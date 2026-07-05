@@ -26,7 +26,8 @@ export const ListClassesQueryParams = zod.object({
   "level": zod.enum(['pemula', 'menengah', 'lanjutan']).optional(),
   "category": zod.coerce.string().optional(),
   "instructorId": zod.coerce.string().uuid().optional(),
-  "sort": zod.enum(['newest', 'price_asc', 'price_desc', 'popular']).optional()
+  "sort": zod.enum(['newest', 'price_asc', 'price_desc', 'popular']).optional(),
+  "includeAll": zod.coerce.boolean().optional().describe('When true, returns classes of any status (for admin use). Defaults to published only.')
 })
 
 export const ListClassesResponseItem = zod.object({
@@ -48,6 +49,41 @@ export const ListClassesResponseItem = zod.object({
   "totalDurationMinutes": zod.number().nullable()
 })
 export const ListClassesResponse = zod.array(ListClassesResponseItem)
+
+
+/**
+ * @summary Create a class
+ */
+export const CreateClassBody = zod.object({
+  "title": zod.string(),
+  "description": zod.string().optional(),
+  "coverImage": zod.string().optional(),
+  "basePrice": zod.number().optional(),
+  "discountPrice": zod.number().nullish(),
+  "status": zod.enum(['draft', 'published']).optional(),
+  "level": zod.union([zod.literal('pemula'),zod.literal('menengah'),zod.literal('lanjutan'),zod.literal(null)]).nullish(),
+  "category": zod.string().nullish(),
+  "instructorId": zod.string().uuid()
+})
+
+export const CreateClassResponse = zod.object({
+  "id": zod.string().uuid(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "coverImage": zod.string(),
+  "basePrice": zod.number(),
+  "discountPrice": zod.number().nullable(),
+  "status": zod.enum(['draft', 'published']),
+  "level": zod.union([zod.literal('pemula'),zod.literal('menengah'),zod.literal('lanjutan'),zod.literal(null)]).nullable(),
+  "category": zod.string().nullable(),
+  "instructor": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "photoUrl": zod.string()
+}),
+  "moduleCount": zod.number(),
+  "totalDurationMinutes": zod.number().nullable()
+})
 
 
 /**
@@ -87,6 +123,55 @@ export const GetClassByIdResponse = zod.object({
 
 
 /**
+ * @summary Update a class
+ */
+export const UpdateClassParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const UpdateClassBody = zod.object({
+  "title": zod.string().optional(),
+  "description": zod.string().optional(),
+  "coverImage": zod.string().optional(),
+  "basePrice": zod.number().optional(),
+  "discountPrice": zod.number().nullish(),
+  "status": zod.enum(['draft', 'published']).optional(),
+  "level": zod.union([zod.literal('pemula'),zod.literal('menengah'),zod.literal('lanjutan'),zod.literal(null)]).nullish(),
+  "category": zod.string().nullish(),
+  "instructorId": zod.string().uuid().optional()
+})
+
+export const UpdateClassResponse = zod.object({
+  "id": zod.string().uuid(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "coverImage": zod.string(),
+  "basePrice": zod.number(),
+  "discountPrice": zod.number().nullable(),
+  "status": zod.enum(['draft', 'published']),
+  "level": zod.union([zod.literal('pemula'),zod.literal('menengah'),zod.literal('lanjutan'),zod.literal(null)]).nullable(),
+  "category": zod.string().nullable(),
+  "instructor": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "photoUrl": zod.string()
+}),
+  "moduleCount": zod.number(),
+  "totalDurationMinutes": zod.number().nullable()
+})
+
+
+/**
+ * @summary Delete a class
+ */
+export const DeleteClassParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const DeleteClassResponse = zod.void()
+
+
+/**
  * Returns all instructors with their published class count
  * @summary List instructors
  */
@@ -98,6 +183,56 @@ export const ListInstructorsResponseItem = zod.object({
   "classCount": zod.number()
 })
 export const ListInstructorsResponse = zod.array(ListInstructorsResponseItem)
+
+
+/**
+ * @summary Create an instructor
+ */
+export const CreateInstructorBody = zod.object({
+  "name": zod.string(),
+  "bio": zod.string().optional(),
+  "photoUrl": zod.string().optional()
+})
+
+export const CreateInstructorResponse = zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "bio": zod.string(),
+  "photoUrl": zod.string(),
+  "classCount": zod.number()
+})
+
+
+/**
+ * @summary Update an instructor
+ */
+export const UpdateInstructorParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const UpdateInstructorBody = zod.object({
+  "name": zod.string().optional(),
+  "bio": zod.string().optional(),
+  "photoUrl": zod.string().optional()
+})
+
+export const UpdateInstructorResponse = zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "bio": zod.string(),
+  "photoUrl": zod.string(),
+  "classCount": zod.number()
+})
+
+
+/**
+ * @summary Delete an instructor
+ */
+export const DeleteInstructorParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const DeleteInstructorResponse = zod.void()
 
 
 /**

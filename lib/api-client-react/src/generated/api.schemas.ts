@@ -123,6 +123,88 @@ export interface ClassSummary {
   totalDurationMinutes: number | null;
 }
 
+export type CreateClassRequestStatus = typeof CreateClassRequestStatus[keyof typeof CreateClassRequestStatus];
+
+
+export const CreateClassRequestStatus = {
+  draft: 'draft',
+  published: 'published',
+} as const;
+
+/**
+ * @nullable
+ */
+export type CreateClassRequestLevel = typeof CreateClassRequestLevel[keyof typeof CreateClassRequestLevel] | null;
+
+
+export const CreateClassRequestLevel = {
+  pemula: 'pemula',
+  menengah: 'menengah',
+  lanjutan: 'lanjutan',
+} as const;
+
+export interface CreateClassRequest {
+  title: string;
+  description?: string;
+  coverImage?: string;
+  basePrice?: number;
+  /** @nullable */
+  discountPrice?: number | null;
+  status?: CreateClassRequestStatus;
+  /** @nullable */
+  level?: CreateClassRequestLevel;
+  /** @nullable */
+  category?: string | null;
+  instructorId: string;
+}
+
+export type UpdateClassRequestStatus = typeof UpdateClassRequestStatus[keyof typeof UpdateClassRequestStatus];
+
+
+export const UpdateClassRequestStatus = {
+  draft: 'draft',
+  published: 'published',
+} as const;
+
+/**
+ * @nullable
+ */
+export type UpdateClassRequestLevel = typeof UpdateClassRequestLevel[keyof typeof UpdateClassRequestLevel] | null;
+
+
+export const UpdateClassRequestLevel = {
+  pemula: 'pemula',
+  menengah: 'menengah',
+  lanjutan: 'lanjutan',
+} as const;
+
+export interface UpdateClassRequest {
+  title?: string;
+  description?: string;
+  coverImage?: string;
+  basePrice?: number;
+  /** @nullable */
+  discountPrice?: number | null;
+  status?: UpdateClassRequestStatus;
+  /** @nullable */
+  level?: UpdateClassRequestLevel;
+  /** @nullable */
+  category?: string | null;
+  instructorId?: string;
+}
+
+export interface CreateInstructorRequest {
+  name: string;
+  bio?: string;
+  photoUrl?: string;
+}
+
+export interface UpdateInstructorRequest {
+  name?: string;
+  bio?: string;
+  photoUrl?: string;
+}
+
 export interface CartItem {
   id: string;
   classId: string;
@@ -225,6 +307,10 @@ level?: ClassLevel;
 category?: string;
 instructorId?: string;
 sort?: ListClassesSort;
+/**
+ * When true, returns classes of any status (for admin use). Defaults to published only.
+ */
+includeAll?: boolean;
 };
 
 export type ListClassesSort = typeof ListClassesSort[keyof typeof ListClassesSort];

@@ -6,6 +6,10 @@ import {
   ListClassesResponse,
   GetClassByIdResponse,
   ListRecommendedClassesQueryParams,
+  CreateClassBody,
+  CreateClassResponse,
+  UpdateClassBody,
+  UpdateClassResponse,
 } from "@workspace/api-zod";
 
 const router: IRouter = Router();
@@ -83,9 +87,9 @@ router.get("/classes", async (req, res): Promise<void> => {
     res.status(400).json({ error: params.error.message });
     return;
   }
-  const { search, level, category, instructorId, sort } = params.data;
+  const { search, level, category, instructorId, sort, includeAll } = params.data;
 
-  const conditions = [eq(classesTable.status, "published")];
+  const conditions = includeAll ? [] : [eq(classesTable.status, "published")];
   if (search) {
     conditions.push(
       or(
@@ -245,6 +249,114 @@ router.get("/classes/:id", async (req, res): Promise<void> => {
   };
 
   res.json(GetClassByIdResponse.parse(result));
+});
+
+router.post("/classes", async (req, res): Promise<void> => {
+  const body = CreateClassBody.safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: body.error.message });
+    return;
+  }
+
+  const [inserted] = await db.insert(classesTable).values(body.data).returning();
+
+  const instructorRows = await db
+    .select()
+    .from(instructorsTable)
+    .where(eq(instructorsTable.id, inserted.instructorId))
+    .limit(1);
+  const instructor = instructorRows[0];
+
+  const result = {
+    id: inserted.id,
+    title: inserted.title,
+    description: inserted.description,
+    coverImage: inserted.coverImage,
+    basePrice: inserted.basePrice,
+    discountPrice: inserted.discountPrice,
+    status: inserted.status,
+    level: inserted.level,
+    category: inserted.category,
+    instructor: {
+      id: instructor.id,
+      name: instructor.name,
+      photoUrl: instructor.photoUrl,
+    },
+    moduleCount: 0,
+    totalDurationMinutes: null,
+  };
+
+  res.status(201).json(CreateClassResponse.parse(result));
+});
+
+router.put("/classes/:id", async (req, res): Promise<void> => {
+  const { id } = req.params;
+  const body = UpdateClassBody.safeParse(req.body);
+  if (!body.success) {
+    res.status(400).json({ error: body.error.message });
+    return;
+  }
+
+  const [updated] = await db.update(classesTable).set(body.data).where(eq(classesTable.id, id)).returning();
+
+  if (!updated) {
+    res.status(404).json({ error: "Class not found" });
+    return;
+  }
+
+  const instructorRows = await db
+    .select()
+    .from(instructorsTable)
+    .where(eq(instructorsTable.id, updated.instructorId))
+    .limit(1);
+  const instructor = instructorRows[0];
+
+  const classModules = await db
+    .select({
+      durationMinutes: modulesTable.durationMinutes,
+    })
+    .from(modulesTable)
+    .where(eq(modulesTable.classId, updated.id));
+
+  const moduleCount = classModules.length;
+  const hasDuration = classModules.some((m) => m.durationMinutes != null);
+  const totalDurationMinutes = hasDuration
+    ? classModules.reduce((sum, m) => sum + (m.durationMinutes ?? 0), 0)
+    : null;
+
+  const result = {
+    id: updated.id,
+    title: updated.title,
+    description: updated.description,
+    coverImage: updated.coverImage,
+    basePrice: updated.basePrice,
+    discountPrice: updated.discountPrice,
+    status: updated.status,
+    level: updated.level,
+    category: updated.category,
+    instructor: {
+      id: instructor.id,
+      name: instructor.name,
+      photoUrl: instructor.photoUrl,
+    },
+    moduleCount,
+    totalDurationMinutes,
+  };
+
+  res.json(UpdateClassResponse.parse(result));
+});
+
+router.delete("/classes/:id", async (req, res): Promise<void> => {
+  const { id } = req.params;
+
+  const [deleted] = await db.delete(classesTable).where(eq(classesTable.id, id)).returning();
+
+  if (!deleted) {
+    res.status(404).json({ error: "Class not found" });
+    return;
+  }
+
+  res.status(204).end();
 });
 
 export default router;

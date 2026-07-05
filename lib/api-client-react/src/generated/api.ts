@@ -25,6 +25,8 @@ import type {
   ClassDetail,
   ClassSummary,
   CreateCheckoutRequest,
+  CreateClassRequest,
+  CreateInstructorRequest,
   CreateTestimonialRequest,
   ErrorResponse,
   HealthStatus,
@@ -35,6 +37,8 @@ import type {
   ListRecommendedClassesParams,
   SiteSettings,
   Testimonial,
+  UpdateClassRequest,
+  UpdateInstructorRequest,
   UpdateSiteSettingsRequest,
   UpdateTestimonialRequest
 } from './api.schemas';
@@ -229,6 +233,76 @@ export function useListClasses<TData = Awaited<ReturnType<typeof listClasses>>, 
 
 
 
+export const getCreateClassUrl = () => {
+
+
+
+
+  return `/api/classes`
+}
+
+/**
+ * @summary Create a class
+ */
+export const createClass = async (createClassRequest: CreateClassRequest, options?: RequestInit): Promise<ClassSummary> => {
+
+  return customFetch<ClassSummary>(getCreateClassUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(createClassRequest)
+  }
+);}
+
+
+
+
+export const getCreateClassMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createClass>>, TError,{data: BodyType<CreateClassRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createClass>>, TError,{data: BodyType<CreateClassRequest>}, TContext> => {
+
+const mutationKey = ['createClass'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createClass>>, {data: BodyType<CreateClassRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createClass(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateClassMutationResult = NonNullable<Awaited<ReturnType<typeof createClass>>>
+    export type CreateClassMutationBody = BodyType<CreateClassRequest>
+    export type CreateClassMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Create a class
+ */
+export const useCreateClass = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createClass>>, TError,{data: BodyType<CreateClassRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createClass>>,
+        TError,
+        {data: BodyType<CreateClassRequest>},
+        TContext
+      > => {
+      return useMutation(getCreateClassMutationOptions(options));
+    }
+
 export const getGetClassByIdUrl = (id: string,) => {
 
 
@@ -307,6 +381,147 @@ export function useGetClassById<TData = Awaited<ReturnType<typeof getClassById>>
 
 
 
+export const getUpdateClassUrl = (id: string,) => {
+
+
+
+
+  return `/api/classes/${id}`
+}
+
+/**
+ * @summary Update a class
+ */
+export const updateClass = async (id: string,
+    updateClassRequest: UpdateClassRequest, options?: RequestInit): Promise<ClassSummary> => {
+
+  return customFetch<ClassSummary>(getUpdateClassUrl(id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updateClassRequest)
+  }
+);}
+
+
+
+
+export const getUpdateClassMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateClass>>, TError,{id: string;data: BodyType<UpdateClassRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateClass>>, TError,{id: string;data: BodyType<UpdateClassRequest>}, TContext> => {
+
+const mutationKey = ['updateClass'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateClass>>, {id: string;data: BodyType<UpdateClassRequest>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateClass(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateClassMutationResult = NonNullable<Awaited<ReturnType<typeof updateClass>>>
+    export type UpdateClassMutationBody = BodyType<UpdateClassRequest>
+    export type UpdateClassMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Update a class
+ */
+export const useUpdateClass = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateClass>>, TError,{id: string;data: BodyType<UpdateClassRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateClass>>,
+        TError,
+        {id: string;data: BodyType<UpdateClassRequest>},
+        TContext
+      > => {
+      return useMutation(getUpdateClassMutationOptions(options));
+    }
+
+export const getDeleteClassUrl = (id: string,) => {
+
+
+
+
+  return `/api/classes/${id}`
+}
+
+/**
+ * @summary Delete a class
+ */
+export const deleteClass = async (id: string, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteClassUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteClassMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteClass>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteClass>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['deleteClass'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteClass>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteClass(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteClassMutationResult = NonNullable<Awaited<ReturnType<typeof deleteClass>>>
+
+    export type DeleteClassMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Delete a class
+ */
+export const useDeleteClass = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteClass>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteClass>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getDeleteClassMutationOptions(options));
+    }
+
 export const getListInstructorsUrl = () => {
 
 
@@ -384,6 +599,217 @@ export function useListInstructors<TData = Awaited<ReturnType<typeof listInstruc
 
 
 
+
+export const getCreateInstructorUrl = () => {
+
+
+
+
+  return `/api/instructors`
+}
+
+/**
+ * @summary Create an instructor
+ */
+export const createInstructor = async (createInstructorRequest: CreateInstructorRequest, options?: RequestInit): Promise<InstructorSummary> => {
+
+  return customFetch<InstructorSummary>(getCreateInstructorUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(createInstructorRequest)
+  }
+);}
+
+
+
+
+export const getCreateInstructorMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createInstructor>>, TError,{data: BodyType<CreateInstructorRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createInstructor>>, TError,{data: BodyType<CreateInstructorRequest>}, TContext> => {
+
+const mutationKey = ['createInstructor'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createInstructor>>, {data: BodyType<CreateInstructorRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createInstructor(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateInstructorMutationResult = NonNullable<Awaited<ReturnType<typeof createInstructor>>>
+    export type CreateInstructorMutationBody = BodyType<CreateInstructorRequest>
+    export type CreateInstructorMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Create an instructor
+ */
+export const useCreateInstructor = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createInstructor>>, TError,{data: BodyType<CreateInstructorRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createInstructor>>,
+        TError,
+        {data: BodyType<CreateInstructorRequest>},
+        TContext
+      > => {
+      return useMutation(getCreateInstructorMutationOptions(options));
+    }
+
+export const getUpdateInstructorUrl = (id: string,) => {
+
+
+
+
+  return `/api/instructors/${id}`
+}
+
+/**
+ * @summary Update an instructor
+ */
+export const updateInstructor = async (id: string,
+    updateInstructorRequest: UpdateInstructorRequest, options?: RequestInit): Promise<InstructorSummary> => {
+
+  return customFetch<InstructorSummary>(getUpdateInstructorUrl(id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(updateInstructorRequest)
+  }
+);}
+
+
+
+
+export const getUpdateInstructorMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateInstructor>>, TError,{id: string;data: BodyType<UpdateInstructorRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateInstructor>>, TError,{id: string;data: BodyType<UpdateInstructorRequest>}, TContext> => {
+
+const mutationKey = ['updateInstructor'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateInstructor>>, {id: string;data: BodyType<UpdateInstructorRequest>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateInstructor(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateInstructorMutationResult = NonNullable<Awaited<ReturnType<typeof updateInstructor>>>
+    export type UpdateInstructorMutationBody = BodyType<UpdateInstructorRequest>
+    export type UpdateInstructorMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Update an instructor
+ */
+export const useUpdateInstructor = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateInstructor>>, TError,{id: string;data: BodyType<UpdateInstructorRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateInstructor>>,
+        TError,
+        {id: string;data: BodyType<UpdateInstructorRequest>},
+        TContext
+      > => {
+      return useMutation(getUpdateInstructorMutationOptions(options));
+    }
+
+export const getDeleteInstructorUrl = (id: string,) => {
+
+
+
+
+  return `/api/instructors/${id}`
+}
+
+/**
+ * @summary Delete an instructor
+ */
+export const deleteInstructor = async (id: string, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteInstructorUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteInstructorMutationOptions = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteInstructor>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteInstructor>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['deleteInstructor'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteInstructor>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteInstructor(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteInstructorMutationResult = NonNullable<Awaited<ReturnType<typeof deleteInstructor>>>
+
+    export type DeleteInstructorMutationError = ErrorType<ErrorResponse>
+
+    /**
+ * @summary Delete an instructor
+ */
+export const useDeleteInstructor = <TError = ErrorType<ErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteInstructor>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteInstructor>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getDeleteInstructorMutationOptions(options));
+    }
 
 export const getListRecommendedClassesUrl = (params: ListRecommendedClassesParams,) => {
   const normalizedParams = new URLSearchParams();

@@ -65,6 +65,11 @@ paths:
           schema:
             type: string
             enum: [newest, price_asc, price_desc, popular]
+        - name: includeAll
+          in: query
+          description: When true, returns classes of any status (for admin use). Defaults to published only.
+          schema:
+            type: boolean
       responses:
         "200":
           description: List of published classes
@@ -74,6 +79,29 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/ClassSummary"
+    post:
+      operationId: createClass
+      tags: [classes]
+      summary: Create a class
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClassRequest"
+      responses:
+        "201":
+          description: Class created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassSummary"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /classes/{id}:
     get:
       operationId: getClassById
@@ -100,6 +128,62 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: updateClass
+      tags: [classes]
+      summary: Update a class
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateClassRequest"
+      responses:
+        "200":
+          description: Class updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassSummary"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Class not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteClass
+      tags: [classes]
+      summary: Delete a class
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Removed
+        "404":
+          description: Class not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /instructors:
     get:
       operationId: listInstructors
@@ -115,6 +199,86 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/InstructorSummary"
+    post:
+      operationId: createInstructor
+      tags: [instructors]
+      summary: Create an instructor
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateInstructorRequest"
+      responses:
+        "201":
+          description: Instructor created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstructorSummary"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /instructors/{id}:
+    put:
+      operationId: updateInstructor
+      tags: [instructors]
+      summary: Update an instructor
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateInstructorRequest"
+      responses:
+        "200":
+          description: Instructor updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InstructorSummary"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Instructor not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteInstructor
+      tags: [instructors]
+      summary: Delete an instructor
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Removed
+        "404":
+          description: Instructor not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /classes/recommended:
     get:
       operationId: listRecommendedClasses
@@ -560,6 +724,74 @@ components:
           type: integer
         totalDurationMinutes:
           type: ["integer", "null"]
+    CreateClassRequest:
+      type: object
+      required: [title, instructorId]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        coverImage:
+          type: string
+        basePrice:
+          type: integer
+        discountPrice:
+          type: ["integer", "null"]
+        status:
+          type: string
+          enum: [draft, published]
+        level:
+          type: ["string", "null"]
+          enum: [pemula, menengah, lanjutan, null]
+        category:
+          type: ["string", "null"]
+        instructorId:
+          type: string
+          format: uuid
+    UpdateClassRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        coverImage:
+          type: string
+        basePrice:
+          type: integer
+        discountPrice:
+          type: ["integer", "null"]
+        status:
+          type: string
+          enum: [draft, published]
+        level:
+          type: ["string", "null"]
+          enum: [pemula, menengah, lanjutan, null]
+        category:
+          type: ["string", "null"]
+        instructorId:
+          type: string
+          format: uuid
+    CreateInstructorRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        bio:
+          type: string
+        photoUrl:
+          type: string
+    UpdateInstructorRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        bio:
+          type: string
+        photoUrl:
+          type: string
     CartItem:
       type: object
       required: [id, classId, addedAt, class]

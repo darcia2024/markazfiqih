@@ -14,4 +14,8 @@ level?: ClassLevel;
 category?: string;
 instructorId?: string;
 sort?: ListClassesSort;
+/**
+ * When true, returns classes of any status (for admin use). Defaults to published only.
+ */
+includeAll?: boolean;
 };
