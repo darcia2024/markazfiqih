@@ -493,9 +493,9 @@ export default function LandingPage() {
   const testimonialsQuery = useListTestimonials();
   const settingsQuery = useGetSettings();
 
-  const allClasses = (classesQuery.data ?? []) as ClassSummary[];
-  const instructors = instructorsQuery.data ?? [];
-  const testimonials = testimonialsQuery.data ?? [];
+  const allClasses: ClassSummary[] = Array.isArray(classesQuery.data) ? classesQuery.data : [];
+  const instructors = Array.isArray(instructorsQuery.data) ? instructorsQuery.data : [];
+  const testimonials = Array.isArray(testimonialsQuery.data) ? testimonialsQuery.data : [];
   const settings = settingsQuery.data;
 
   const featuredTestimonials = useMemo(() => testimonials.slice(0, 1), [testimonials]);

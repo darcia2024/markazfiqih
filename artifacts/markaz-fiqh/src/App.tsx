@@ -12,9 +12,6 @@ import CatalogPage from '@/pages/CatalogPage';
 import ClassDetailPage from '@/pages/ClassDetailPage';
 import MyClassesPage from '@/pages/MyClassesPage';
 import CartPage from '@/pages/CartPage';
-import CheckoutPage from '@/pages/CheckoutPage';
-import PaymentPage from '@/pages/PaymentPage';
-import PaymentStatusPage from '@/pages/PaymentStatusPage';
 import LearnPage from '@/pages/LearnPage';
 import AdminDashboardPage from '@/pages/admin/AdminDashboardPage';
 import AdminClassesPage from '@/pages/admin/AdminClassesPage';
@@ -33,9 +30,6 @@ function Router() {
       <Route path="/class/:id" component={ClassDetailPage} />
       <Route path="/my-classes" component={MyClassesPage} />
       <Route path="/keranjang" component={CartPage} />
-      <Route path="/checkout" component={CheckoutPage} />
-      <Route path="/payment" component={PaymentPage} />
-      <Route path="/payment-status" component={PaymentStatusPage} />
       <Route path="/learn/:classId" component={LearnPage} />
       <Route path="/admin" component={AdminDashboardPage} />
       <Route path="/admin/classes" component={AdminClassesPage} />

@@ -1,5 +1,3 @@
-import { MOCK_CLASSES } from './mockClasses';
-
 export type OrderStatus = 'pending' | 'success' | 'failed';
 
 export type MockOrder = {
@@ -20,7 +18,7 @@ export const MOCK_ORDERS: MockOrder[] = [
     user_name: 'Ahmad Fauzi',
     user_email: 'ahmad@example.com',
     class_id: 'fiqih-thaharah',
-    class_title: MOCK_CLASSES.find((c) => c.id === 'fiqih-thaharah')?.title ?? 'Fiqih Thaharah',
+    class_title: 'Fiqih Thaharah',
     amount: 149000,
     payment_method: 'VA BCA',
     status: 'pending',
@@ -31,7 +29,7 @@ export const MOCK_ORDERS: MockOrder[] = [
     user_name: 'Siti Rahmawati',
     user_email: 'siti.rahma@example.com',
     class_id: 'fiqih-muamalah',
-    class_title: MOCK_CLASSES.find((c) => c.id === 'fiqih-muamalah')?.title ?? 'Fiqih Muamalah',
+    class_title: 'Fiqih Muamalah',
     amount: 249000,
     payment_method: 'QRIS',
     status: 'pending',
@@ -42,7 +40,7 @@ export const MOCK_ORDERS: MockOrder[] = [
     user_name: 'Budi Santoso',
     user_email: 'budi.santoso@example.com',
     class_id: 'fiqih-nikah',
-    class_title: MOCK_CLASSES.find((c) => c.id === 'fiqih-nikah')?.title ?? 'Fiqih Nikah',
+    class_title: 'Fiqih Nikah',
     amount: 329000,
     payment_method: 'E-Wallet (GoPay)',
     status: 'pending',
@@ -53,7 +51,7 @@ export const MOCK_ORDERS: MockOrder[] = [
     user_name: 'Nurul Hidayah',
     user_email: 'nurul.h@example.com',
     class_id: 'fiqih-shalat',
-    class_title: MOCK_CLASSES.find((c) => c.id === 'fiqih-shalat')?.title ?? 'Fiqih Shalat',
+    class_title: 'Fiqih Shalat',
     amount: 349000,
     payment_method: 'VA Mandiri',
     status: 'success',
@@ -64,7 +62,7 @@ export const MOCK_ORDERS: MockOrder[] = [
     user_name: 'Rizky Pratama',
     user_email: 'rizky.p@example.com',
     class_id: 'fiqih-zakat',
-    class_title: MOCK_CLASSES.find((c) => c.id === 'fiqih-zakat')?.title ?? 'Fiqih Zakat',
+    class_title: 'Fiqih Zakat',
     amount: 199000,
     payment_method: 'Kartu Kredit',
     status: 'failed',
@@ -75,7 +73,7 @@ export const MOCK_ORDERS: MockOrder[] = [
     user_name: 'Fatimah Azzahra',
     user_email: 'fatimah.az@example.com',
     class_id: 'fiqih-puasa',
-    class_title: MOCK_CLASSES.find((c) => c.id === 'fiqih-puasa')?.title ?? 'Fiqih Puasa',
+    class_title: 'Fiqih Puasa',
     amount: 179000,
     payment_method: 'VA BNI',
     status: 'success',
