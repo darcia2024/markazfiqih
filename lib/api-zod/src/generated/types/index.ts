@@ -6,11 +6,16 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './classDetail';
+export * from './classDetailLevel';
+export * from './classDetailStatus';
 export * from './classInstructor';
 export * from './classLevel';
+export * from './classModule';
 export * from './classSummary';
 export * from './classSummaryLevel';
 export * from './classSummaryStatus';
+export * from './errorResponse';
 export * from './healthStatus';
 export * from './instructorSummary';
 export * from './listClassesParams';

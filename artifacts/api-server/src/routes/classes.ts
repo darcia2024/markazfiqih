@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { and, asc, desc, eq, ilike, or } from "drizzle-orm";
 import { db, classesTable, instructorsTable, modulesTable } from "@workspace/db";
-import { ListClassesQueryParams, ListClassesResponse } from "@workspace/api-zod";
+import { ListClassesQueryParams, ListClassesResponse, GetClassByIdResponse } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
@@ -101,6 +101,78 @@ router.get("/classes", async (req, res): Promise<void> => {
   });
 
   res.json(ListClassesResponse.parse(result));
+});
+
+router.get("/classes/:id", async (req, res): Promise<void> => {
+  const { id } = req.params;
+
+  const rows = await db
+    .select({
+      id: classesTable.id,
+      title: classesTable.title,
+      description: classesTable.description,
+      coverImage: classesTable.coverImage,
+      basePrice: classesTable.basePrice,
+      discountPrice: classesTable.discountPrice,
+      status: classesTable.status,
+      level: classesTable.level,
+      category: classesTable.category,
+      instructorId: instructorsTable.id,
+      instructorName: instructorsTable.name,
+      instructorBio: instructorsTable.bio,
+      instructorPhotoUrl: instructorsTable.photoUrl,
+    })
+    .from(classesTable)
+    .innerJoin(instructorsTable, eq(classesTable.instructorId, instructorsTable.id))
+    .where(and(eq(classesTable.id, id), eq(classesTable.status, "published")))
+    .limit(1);
+
+  const row = rows[0];
+  if (!row) {
+    res.status(404).json({ error: "Class not found" });
+    return;
+  }
+
+  const classModules = await db
+    .select({
+      id: modulesTable.id,
+      title: modulesTable.title,
+      orderIndex: modulesTable.orderIndex,
+      durationMinutes: modulesTable.durationMinutes,
+    })
+    .from(modulesTable)
+    .where(eq(modulesTable.classId, row.id))
+    .orderBy(asc(modulesTable.orderIndex));
+
+  const moduleCount = classModules.length;
+  const hasDuration = classModules.some((m) => m.durationMinutes != null);
+  const totalDurationMinutes = hasDuration
+    ? classModules.reduce((sum, m) => sum + (m.durationMinutes ?? 0), 0)
+    : null;
+
+  const result = {
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    coverImage: row.coverImage,
+    basePrice: row.basePrice,
+    discountPrice: row.discountPrice,
+    status: row.status,
+    level: row.level,
+    category: row.category,
+    instructor: {
+      id: row.instructorId,
+      name: row.instructorName,
+      bio: row.instructorBio,
+      photoUrl: row.instructorPhotoUrl,
+      classCount: 0,
+    },
+    modules: classModules,
+    moduleCount,
+    totalDurationMinutes,
+  };
+
+  res.json(GetClassByIdResponse.parse(result));
 });
 
 export default router;

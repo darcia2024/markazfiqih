@@ -1,0 +1,13 @@
+Saat ini halaman utama ("/") langsung menampilkan halaman katalog penuh. Ubah struktur routing menjadi dua halaman terpisah:
+1. Landing Page di route "/" — halaman marketing/perkenalan, BUKAN katalog penuh. Strukturnya dari atas ke bawah:
+
+Hero section: judul besar (Heading Display, 40px weight 700, warna #241C1B) berisi value proposition singkat, misalnya "Belajar Fiqih Terstruktur, Bersama Pengajar Terpercaya" — buat teks placeholder yang sesuai, dengan subheading di bawahnya (Body Large, warna #5C4F4C) menjelaskan singkat apa itu Markaz Fiqih. Sertakan tombol Primary Button besar bertuliskan "Jelajahi Semua Kelas" yang mengarah ke halaman /katalog. Background section ini boleh pakai tint merah pucat (#FBEEEF) atau krem (#FBF7F4), dengan elemen dekoratif minimal (sesuai prinsip design system — jangan ramai).
+Section "Kelas Pilihan" atau "Kelas Terpopuler": tampilkan HANYA 4-6 kelas (bukan semua 14), ambil dari data classes yang status published, urutkan berdasarkan created_at terbaru atau bisa random untuk sementara. Gunakan Kelas Card yang sama seperti yang sudah dibuat di halaman katalog (reuse komponen yang sudah ada, jangan buat ulang). Di bawah grid ini, taruh link/tombol Secondary Button "Lihat Semua Kelas" yang mengarah ke /katalog.
+Section "Kategori Kelas": tampilkan 2-3 card besar untuk kategori (Fiqih Tematik, Fiqih Kitab), masing-masing dengan ikon, nama kategori, dan jumlah kelas di kategori itu (hitung dari data asli). Card ini clickable, mengarah ke /katalog dengan filter kategori sudah teraplikasi otomatis (contoh: /katalog?category=Fiqih+Kitab).
+Section instruktur (opsional, reuse dari yang sudah dibuat di katalog kalau sudah ada): tampilkan card instruktur singkat.
+Footer sederhana: nama Markaz Fiqih, copyright, tanpa perlu link sosial media dulu kecuali sudah ada datanya.
+
+2. Halaman Katalog Lengkap di route "/katalog" — ini yang SUDAH dibuat sebelumnya (search bar, filter Level/Kategori/Urutkan, section instruktur, grid semua kelas). Pindahkan halaman yang sekarang ada di "/" ke route "/katalog" ini, jangan dibuat ulang dari nol, cukup ubah routingnya saja.
+Update juga link navigasi di header/navbar: logo Markaz Fiqih mengarah ke "/", menu "Katalog" mengarah ke "/katalog", menu "Kelas Saya" tetap seperti sekarang.
+Gunakan tetap design system dari markazfiqih-DESIGN.md untuk semua elemen baru di Landing Page ini — warna, tipografi, spacing, dan style card harus konsisten dengan halaman katalog yang sudah ada.
+Jangan ubah logic atau struktur data apapun, ini murni perubahan struktur routing dan penambahan halaman baru. Setelah selesai, tunjukkan preview halaman "/" (landing page baru) dan pastikan halaman "/katalog" masih berfungsi seperti sebelumnya.

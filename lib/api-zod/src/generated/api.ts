@@ -51,6 +51,42 @@ export const ListClassesResponse = zod.array(ListClassesResponseItem)
 
 
 /**
+ * Returns a single published class with its modules, or 404 if not found or not published
+ * @summary Get a published class by ID
+ */
+export const GetClassByIdParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const GetClassByIdResponse = zod.object({
+  "id": zod.string().uuid(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "coverImage": zod.string(),
+  "basePrice": zod.number(),
+  "discountPrice": zod.number().nullable(),
+  "status": zod.enum(['draft', 'published']),
+  "level": zod.union([zod.literal('pemula'),zod.literal('menengah'),zod.literal('lanjutan'),zod.literal(null)]).nullable(),
+  "category": zod.string().nullable(),
+  "instructor": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "bio": zod.string(),
+  "photoUrl": zod.string(),
+  "classCount": zod.number()
+}),
+  "modules": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "title": zod.string(),
+  "orderIndex": zod.number(),
+  "durationMinutes": zod.number().nullable()
+})),
+  "moduleCount": zod.number(),
+  "totalDurationMinutes": zod.number().nullable()
+})
+
+
+/**
  * Returns all instructors with their published class count
  * @summary List instructors
  */

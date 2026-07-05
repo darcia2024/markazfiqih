@@ -5,8 +5,7 @@ import {
   BookOpen,
   Clock,
   Users,
-  ChevronDown,
-  Play,
+  Loader2,
   CheckCircle2,
   ShieldCheck,
   Infinity,
@@ -17,18 +16,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   Accordion,
-  AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
-import {
-  getClassById,
-  formatPrice,
-  countTotalDars,
-  countTotalDuration,
-} from '@/data/mockClasses';
+import { formatPrice } from '@/data/mockClasses';
+import { useGetClassById } from '@workspace/api-client-react';
 import { useAuth } from '@/context/AuthContext';
 
 // ── Format duration ────────────────────────────────────────────────────────
@@ -60,17 +54,30 @@ function ClassNotFound() {
   );
 }
 
+// ── Loading ────────────────────────────────────────────────────────────────
+function ClassDetailLoading() {
+  return (
+    <div className="min-h-screen flex flex-col bg-background">
+      <Navbar />
+      <main className="flex-1 flex flex-col items-center justify-center gap-3 text-center px-4">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        <p className="text-sm text-muted-foreground">Memuat detail kelas...</p>
+      </main>
+    </div>
+  );
+}
+
 // ── Detail Page ────────────────────────────────────────────────────────────
 export default function ClassDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
-  const cls = getClassById(id ?? '');
+  const { data: cls, isLoading, isError } = useGetClassById(id ?? '');
 
-  if (!cls || cls.status !== 'published') return <ClassNotFound />;
+  if (isLoading) return <ClassDetailLoading />;
+  if (isError || !cls || cls.status !== 'published') return <ClassNotFound />;
 
-  const hasDiscount = cls.discount_price !== null;
-  const totalDars = countTotalDars(cls);
-  const totalMinutes = countTotalDuration(cls);
+  const hasDiscount = cls.discountPrice !== null;
+  const totalMinutes = cls.totalDurationMinutes ?? 0;
   const checkoutPath = user
     ? `/checkout?classId=${cls.id}`
     : `/login?redirect=${encodeURIComponent(`/checkout?classId=${cls.id}`)}`;
@@ -120,7 +127,7 @@ export default function ClassDetailPage() {
                 <div className="flex flex-wrap gap-4 text-sm text-muted-foreground pt-1">
                   <span className="flex items-center gap-1.5">
                     <BookOpen className="w-4 h-4" />
-                    {cls.modules.length} modul · {totalDars} pelajaran
+                    {cls.moduleCount} modul
                   </span>
                   <span className="flex items-center gap-1.5">
                     <Clock className="w-4 h-4" />
@@ -141,7 +148,7 @@ export default function ClassDetailPage() {
                 className="aspect-video rounded-xl overflow-hidden bg-muted shadow-sm"
               >
                 <img
-                  src={cls.cover_image}
+                  src={cls.coverImage}
                   alt={cls.title}
                   className="w-full h-full object-cover"
                 />
@@ -155,7 +162,7 @@ export default function ClassDetailPage() {
                 className="flex items-start gap-4 p-5 rounded-xl border bg-card"
               >
                 <Avatar className="w-14 h-14 shrink-0">
-                  <AvatarImage src={cls.instructor.photo_url} alt={cls.instructor.name} />
+                  <AvatarImage src={cls.instructor.photoUrl} alt={cls.instructor.name} />
                   <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-lg">
                     {cls.instructor.name.charAt(0)}
                   </AvatarFallback>
@@ -185,7 +192,7 @@ export default function ClassDetailPage() {
                     Kurikulum
                   </h2>
                   <span className="text-sm text-muted-foreground">
-                    {cls.modules.length} modul · {totalDars} pelajaran
+                    {cls.moduleCount} modul
                   </span>
                 </div>
 
@@ -199,39 +206,20 @@ export default function ClassDetailPage() {
                       <AccordionTrigger className="hover:no-underline py-4">
                         <div className="flex items-center gap-3 text-left">
                           <div className="shrink-0 w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
-                            {mod.order_index}
+                            {mod.orderIndex}
                           </div>
                           <div>
                             <p className="font-semibold text-sm text-foreground">
                               {mod.title}
                             </p>
-                            <p className="text-xs text-muted-foreground font-normal mt-0.5">
-                              {mod.dars.length} pelajaran ·{' '}
-                              {formatDuration(
-                                mod.dars.reduce((s, d) => s + d.duration_minutes, 0)
-                              )}
-                            </p>
+                            {mod.durationMinutes != null && (
+                              <p className="text-xs text-muted-foreground font-normal mt-0.5">
+                                {formatDuration(mod.durationMinutes)}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </AccordionTrigger>
-                      <AccordionContent className="pb-3">
-                        <ul className="space-y-1 mt-1">
-                          {mod.dars.map((dars) => (
-                            <li
-                              key={dars.id}
-                              className="flex items-center gap-3 px-2 py-2.5 rounded-lg hover:bg-muted/50 transition-colors"
-                            >
-                              <Play className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                              <span className="text-sm text-foreground flex-1">
-                                {dars.title}
-                              </span>
-                              <span className="text-xs text-muted-foreground shrink-0">
-                                {dars.duration_minutes} menit
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-                      </AccordionContent>
                     </AccordionItem>
                   ))}
                 </Accordion>
@@ -246,22 +234,22 @@ export default function ClassDetailPage() {
                   {hasDiscount ? (
                     <>
                       <p className="text-sm text-muted-foreground line-through">
-                        {formatPrice(cls.base_price)}
+                        {formatPrice(cls.basePrice)}
                       </p>
                       <p className="text-3xl font-bold text-primary">
-                        {formatPrice(cls.discount_price!)}
+                        {formatPrice(cls.discountPrice!)}
                       </p>
                       <Badge
                         variant="outline"
                         className="border-brand-gold text-brand-gold-hover text-xs mt-1"
                       >
                         Hemat{' '}
-                        {formatPrice(cls.base_price - cls.discount_price!)}
+                        {formatPrice(cls.basePrice - cls.discountPrice!)}
                       </Badge>
                     </>
                   ) : (
                     <p className="text-3xl font-bold text-primary">
-                      {formatPrice(cls.base_price)}
+                      {formatPrice(cls.basePrice)}
                     </p>
                   )}
                 </div>
@@ -293,8 +281,7 @@ export default function ClassDetailPage() {
                     <div className="flex items-start gap-2.5">
                       <BookOpen className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                       <span>
-                        <strong>{cls.modules.length}</strong> modul ·{' '}
-                        <strong>{totalDars}</strong> video pelajaran
+                        <strong>{cls.moduleCount}</strong> modul video pelajaran
                       </span>
                     </div>
                     <div className="flex items-start gap-2.5">

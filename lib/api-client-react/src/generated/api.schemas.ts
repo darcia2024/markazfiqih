@@ -32,6 +32,58 @@ export interface ClassInstructor {
   photoUrl: string;
 }
 
+export interface ErrorResponse {
+  error: string;
+}
+
+export interface ClassModule {
+  id: string;
+  title: string;
+  orderIndex: number;
+  /** @nullable */
+  durationMinutes: number | null;
+}
+
+export type ClassDetailStatus = typeof ClassDetailStatus[keyof typeof ClassDetailStatus];
+
+
+export const ClassDetailStatus = {
+  draft: 'draft',
+  published: 'published',
+} as const;
+
+/**
+ * @nullable
+ */
+export type ClassDetailLevel = typeof ClassDetailLevel[keyof typeof ClassDetailLevel] | null;
+
+
+export const ClassDetailLevel = {
+  pemula: 'pemula',
+  menengah: 'menengah',
+  lanjutan: 'lanjutan',
+} as const;
+
+export interface ClassDetail {
+  id: string;
+  title: string;
+  description: string;
+  coverImage: string;
+  basePrice: number;
+  /** @nullable */
+  discountPrice: number | null;
+  status: ClassDetailStatus;
+  /** @nullable */
+  level: ClassDetailLevel;
+  /** @nullable */
+  category: string | null;
+  instructor: InstructorSummary;
+  modules: ClassModule[];
+  moduleCount: number;
+  /** @nullable */
+  totalDurationMinutes: number | null;
+}
+
 export type ClassSummaryStatus = typeof ClassSummaryStatus[keyof typeof ClassSummaryStatus];
 
 

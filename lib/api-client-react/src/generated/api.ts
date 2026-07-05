@@ -16,7 +16,9 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  ClassDetail,
   ClassSummary,
+  ErrorResponse,
   HealthStatus,
   InstructorSummary,
   ListClassesParams
@@ -200,6 +202,84 @@ export function useListClasses<TData = Awaited<ReturnType<typeof listClasses>>, 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getListClassesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetClassByIdUrl = (id: string,) => {
+
+
+
+
+  return `/api/classes/${id}`
+}
+
+/**
+ * Returns a single published class with its modules, or 404 if not found or not published
+ * @summary Get a published class by ID
+ */
+export const getClassById = async (id: string, options?: RequestInit): Promise<ClassDetail> => {
+
+  return customFetch<ClassDetail>(getGetClassByIdUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetClassByIdQueryKey = (id: string,) => {
+    return [
+    `/api/classes/${id}`
+    ] as const;
+    }
+
+
+export const getGetClassByIdQueryOptions = <TData = Awaited<ReturnType<typeof getClassById>>, TError = ErrorType<ErrorResponse>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getClassById>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetClassByIdQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getClassById>>> = ({ signal }) => getClassById(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getClassById>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetClassByIdQueryResult = NonNullable<Awaited<ReturnType<typeof getClassById>>>
+export type GetClassByIdQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Get a published class by ID
+ */
+
+export function useGetClassById<TData = Awaited<ReturnType<typeof getClassById>>, TError = ErrorType<ErrorResponse>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getClassById>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetClassByIdQueryOptions(id,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

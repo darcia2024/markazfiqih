@@ -66,6 +66,32 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/ClassSummary"
+  /classes/{id}:
+    get:
+      operationId: getClassById
+      tags: [classes]
+      summary: Get a published class by ID
+      description: Returns a single published class with its modules, or 404 if not found or not published
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Class detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClassDetail"
+        "404":
+          description: Class not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /instructors:
     get:
       operationId: listInstructors
@@ -119,6 +145,73 @@ components:
           type: string
         photoUrl:
           type: string
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+    ClassModule:
+      type: object
+      required: [id, title, orderIndex, durationMinutes]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        orderIndex:
+          type: integer
+        durationMinutes:
+          type: ["integer", "null"]
+    ClassDetail:
+      type: object
+      required:
+        - id
+        - title
+        - description
+        - coverImage
+        - basePrice
+        - discountPrice
+        - status
+        - level
+        - category
+        - instructor
+        - modules
+        - moduleCount
+        - totalDurationMinutes
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        coverImage:
+          type: string
+        basePrice:
+          type: integer
+        discountPrice:
+          type: ["integer", "null"]
+        status:
+          type: string
+          enum: [draft, published]
+        level:
+          type: ["string", "null"]
+          enum: [pemula, menengah, lanjutan, null]
+        category:
+          type: ["string", "null"]
+        instructor:
+          $ref: "#/components/schemas/InstructorSummary"
+        modules:
+          type: array
+          items:
+            $ref: "#/components/schemas/ClassModule"
+        moduleCount:
+          type: integer
+        totalDurationMinutes:
+          type: ["integer", "null"]
     ClassSummary:
       type: object
       required:
