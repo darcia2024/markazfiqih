@@ -3,6 +3,8 @@ export type Dars = {
   title: string;
   duration_minutes: number;
   order_index: number;
+  /** YouTube video ID (unlisted di produksi, placeholder di mock) */
+  youtube_id: string;
 };
 
 export type Module = {
@@ -50,9 +52,9 @@ export const MOCK_CLASSES: MockClass[] = [
         title: 'Pengantar: Konsep Thaharah dalam Islam',
         order_index: 1,
         dars: [
-          { id: 'd-th-1-1', title: 'Pengertian Thaharah dan Urgensinya', duration_minutes: 18, order_index: 1 },
-          { id: 'd-th-1-2', title: 'Pembagian Air dan Hukumnya', duration_minutes: 22, order_index: 2 },
-          { id: 'd-th-1-3', title: 'Macam-Macam Najis dan Cara Menyucikan', duration_minutes: 25, order_index: 3 },
+          { id: 'd-th-1-1', title: 'Pengertian Thaharah dan Urgensinya', duration_minutes: 18, order_index: 1 , youtube_id: 'jNQXAC9IVRw' },
+          { id: 'd-th-1-2', title: 'Pembagian Air dan Hukumnya', duration_minutes: 22, order_index: 2 , youtube_id: 'dQw4w9WgXcQ' },
+          { id: 'd-th-1-3', title: 'Macam-Macam Najis dan Cara Menyucikan', duration_minutes: 25, order_index: 3 , youtube_id: '_OBlgSz8sSM' },
         ],
       },
       {
@@ -60,10 +62,10 @@ export const MOCK_CLASSES: MockClass[] = [
         title: 'Wudhu: Rukun, Syarat, dan Pembatal',
         order_index: 2,
         dars: [
-          { id: 'd-th-2-1', title: 'Rukun-Rukun Wudhu', duration_minutes: 30, order_index: 1 },
-          { id: 'd-th-2-2', title: 'Sunah-Sunah Wudhu', duration_minutes: 20, order_index: 2 },
-          { id: 'd-th-2-3', title: 'Perkara yang Membatalkan Wudhu', duration_minutes: 28, order_index: 3 },
-          { id: 'd-th-2-4', title: 'Praktik Wudhu yang Benar', duration_minutes: 15, order_index: 4 },
+          { id: 'd-th-2-1', title: 'Rukun-Rukun Wudhu', duration_minutes: 30, order_index: 1 , youtube_id: 'kJQP7kiw5Fk' },
+          { id: 'd-th-2-2', title: 'Sunah-Sunah Wudhu', duration_minutes: 20, order_index: 2 , youtube_id: 'jNQXAC9IVRw' },
+          { id: 'd-th-2-3', title: 'Perkara yang Membatalkan Wudhu', duration_minutes: 28, order_index: 3 , youtube_id: 'dQw4w9WgXcQ' },
+          { id: 'd-th-2-4', title: 'Praktik Wudhu yang Benar', duration_minutes: 15, order_index: 4 , youtube_id: '_OBlgSz8sSM' },
         ],
       },
       {
@@ -71,9 +73,9 @@ export const MOCK_CLASSES: MockClass[] = [
         title: 'Tayamum dan Mandi Wajib',
         order_index: 3,
         dars: [
-          { id: 'd-th-3-1', title: 'Sebab dan Tata Cara Tayamum', duration_minutes: 24, order_index: 1 },
-          { id: 'd-th-3-2', title: 'Penyebab Mandi Wajib (Hadats Besar)', duration_minutes: 22, order_index: 2 },
-          { id: 'd-th-3-3', title: 'Rukun dan Tata Cara Mandi Wajib', duration_minutes: 26, order_index: 3 },
+          { id: 'd-th-3-1', title: 'Sebab dan Tata Cara Tayamum', duration_minutes: 24, order_index: 1 , youtube_id: 'kJQP7kiw5Fk' },
+          { id: 'd-th-3-2', title: 'Penyebab Mandi Wajib (Hadats Besar)', duration_minutes: 22, order_index: 2 , youtube_id: 'jNQXAC9IVRw' },
+          { id: 'd-th-3-3', title: 'Rukun dan Tata Cara Mandi Wajib', duration_minutes: 26, order_index: 3 , youtube_id: 'dQw4w9WgXcQ' },
         ],
       },
       {
@@ -81,8 +83,8 @@ export const MOCK_CLASSES: MockClass[] = [
         title: 'Studi Kasus Kontemporer',
         order_index: 4,
         dars: [
-          { id: 'd-th-4-1', title: 'Thaharah di Fasilitas Umum Modern', duration_minutes: 20, order_index: 1 },
-          { id: 'd-th-4-2', title: 'Soal Jawab: Pertanyaan Umum Seputar Thaharah', duration_minutes: 35, order_index: 2 },
+          { id: 'd-th-4-1', title: 'Thaharah di Fasilitas Umum Modern', duration_minutes: 20, order_index: 1 , youtube_id: '_OBlgSz8sSM' },
+          { id: 'd-th-4-2', title: 'Soal Jawab: Pertanyaan Umum Seputar Thaharah', duration_minutes: 35, order_index: 2 , youtube_id: 'kJQP7kiw5Fk' },
         ],
       },
     ],
@@ -108,8 +110,8 @@ export const MOCK_CLASSES: MockClass[] = [
         title: 'Fondasi Shalat dalam Al-Quran dan Sunnah',
         order_index: 1,
         dars: [
-          { id: 'd-sh-1-1', title: 'Kewajiban Shalat dan Dalilnya', duration_minutes: 20, order_index: 1 },
-          { id: 'd-sh-1-2', title: 'Syarat Wajib dan Syarat Sah Shalat', duration_minutes: 28, order_index: 2 },
+          { id: 'd-sh-1-1', title: 'Kewajiban Shalat dan Dalilnya', duration_minutes: 20, order_index: 1 , youtube_id: 'jNQXAC9IVRw' },
+          { id: 'd-sh-1-2', title: 'Syarat Wajib dan Syarat Sah Shalat', duration_minutes: 28, order_index: 2 , youtube_id: 'dQw4w9WgXcQ' },
         ],
       },
       {
@@ -117,9 +119,9 @@ export const MOCK_CLASSES: MockClass[] = [
         title: 'Rukun Shalat: Dari Takbir hingga Salam',
         order_index: 2,
         dars: [
-          { id: 'd-sh-2-1', title: 'Takbiratul Ihram dan Niat', duration_minutes: 22, order_index: 1 },
-          { id: 'd-sh-2-2', title: 'Bacaan-Bacaan dalam Shalat', duration_minutes: 30, order_index: 2 },
-          { id: 'd-sh-2-3', title: 'Ruku, Sujud, dan Tasyahud', duration_minutes: 25, order_index: 3 },
+          { id: 'd-sh-2-1', title: 'Takbiratul Ihram dan Niat', duration_minutes: 22, order_index: 1 , youtube_id: '_OBlgSz8sSM' },
+          { id: 'd-sh-2-2', title: 'Bacaan-Bacaan dalam Shalat', duration_minutes: 30, order_index: 2 , youtube_id: 'kJQP7kiw5Fk' },
+          { id: 'd-sh-2-3', title: 'Ruku, Sujud, dan Tasyahud', duration_minutes: 25, order_index: 3 , youtube_id: 'jNQXAC9IVRw' },
         ],
       },
       {
@@ -127,9 +129,9 @@ export const MOCK_CLASSES: MockClass[] = [
         title: 'Shalat Jamak, Qashar, dan Musafir',
         order_index: 3,
         dars: [
-          { id: 'd-sh-3-1', title: 'Ketentuan Musafir dalam Fiqih', duration_minutes: 24, order_index: 1 },
-          { id: 'd-sh-3-2', title: 'Tata Cara Jamak dan Qashar', duration_minutes: 27, order_index: 2 },
-          { id: 'd-sh-3-3', title: 'Shalat di Pesawat dan Kendaraan', duration_minutes: 19, order_index: 3 },
+          { id: 'd-sh-3-1', title: 'Ketentuan Musafir dalam Fiqih', duration_minutes: 24, order_index: 1 , youtube_id: 'dQw4w9WgXcQ' },
+          { id: 'd-sh-3-2', title: 'Tata Cara Jamak dan Qashar', duration_minutes: 27, order_index: 2 , youtube_id: '_OBlgSz8sSM' },
+          { id: 'd-sh-3-3', title: 'Shalat di Pesawat dan Kendaraan', duration_minutes: 19, order_index: 3 , youtube_id: 'kJQP7kiw5Fk' },
         ],
       },
       {
@@ -137,8 +139,8 @@ export const MOCK_CLASSES: MockClass[] = [
         title: 'Fiqih Shalat untuk Kondisi Khusus',
         order_index: 4,
         dars: [
-          { id: 'd-sh-4-1', title: 'Shalat Orang Sakit dan Cara-Caranya', duration_minutes: 22, order_index: 1 },
-          { id: 'd-sh-4-2', title: 'Qadha Shalat yang Terlewat', duration_minutes: 20, order_index: 2 },
+          { id: 'd-sh-4-1', title: 'Shalat Orang Sakit dan Cara-Caranya', duration_minutes: 22, order_index: 1 , youtube_id: 'jNQXAC9IVRw' },
+          { id: 'd-sh-4-2', title: 'Qadha Shalat yang Terlewat', duration_minutes: 20, order_index: 2 , youtube_id: 'dQw4w9WgXcQ' },
         ],
       },
     ],
@@ -164,8 +166,8 @@ export const MOCK_CLASSES: MockClass[] = [
         title: 'Pengantar Puasa dalam Islam',
         order_index: 1,
         dars: [
-          { id: 'd-pu-1-1', title: 'Keutamaan dan Hikmah Puasa', duration_minutes: 18, order_index: 1 },
-          { id: 'd-pu-1-2', title: 'Rukun dan Syarat Sah Puasa', duration_minutes: 22, order_index: 2 },
+          { id: 'd-pu-1-1', title: 'Keutamaan dan Hikmah Puasa', duration_minutes: 18, order_index: 1 , youtube_id: '_OBlgSz8sSM' },
+          { id: 'd-pu-1-2', title: 'Rukun dan Syarat Sah Puasa', duration_minutes: 22, order_index: 2 , youtube_id: 'kJQP7kiw5Fk' },
         ],
       },
       {
@@ -173,9 +175,9 @@ export const MOCK_CLASSES: MockClass[] = [
         title: 'Hal-Hal yang Membatalkan Puasa',
         order_index: 2,
         dars: [
-          { id: 'd-pu-2-1', title: 'Pembatal Puasa yang Disepakati', duration_minutes: 25, order_index: 1 },
-          { id: 'd-pu-2-2', title: 'Persoalan Kontemporer: Suntik, Inhaler, Dll.', duration_minutes: 28, order_index: 2 },
-          { id: 'd-pu-2-3', title: 'Kaffarah dan Fidyah', duration_minutes: 20, order_index: 3 },
+          { id: 'd-pu-2-1', title: 'Pembatal Puasa yang Disepakati', duration_minutes: 25, order_index: 1 , youtube_id: 'jNQXAC9IVRw' },
+          { id: 'd-pu-2-2', title: 'Persoalan Kontemporer: Suntik, Inhaler, Dll.', duration_minutes: 28, order_index: 2 , youtube_id: 'dQw4w9WgXcQ' },
+          { id: 'd-pu-2-3', title: 'Kaffarah dan Fidyah', duration_minutes: 20, order_index: 3 , youtube_id: '_OBlgSz8sSM' },
         ],
       },
       {
@@ -183,8 +185,8 @@ export const MOCK_CLASSES: MockClass[] = [
         title: 'Puasa untuk Kondisi Khusus',
         order_index: 3,
         dars: [
-          { id: 'd-pu-3-1', title: 'Puasa bagi Ibu Hamil dan Menyusui', duration_minutes: 22, order_index: 1 },
-          { id: 'd-pu-3-2', title: 'Puasa bagi Musafir dan Orang Sakit', duration_minutes: 20, order_index: 2 },
+          { id: 'd-pu-3-1', title: 'Puasa bagi Ibu Hamil dan Menyusui', duration_minutes: 22, order_index: 1 , youtube_id: 'kJQP7kiw5Fk' },
+          { id: 'd-pu-3-2', title: 'Puasa bagi Musafir dan Orang Sakit', duration_minutes: 20, order_index: 2 , youtube_id: 'jNQXAC9IVRw' },
         ],
       },
       {
@@ -192,8 +194,8 @@ export const MOCK_CLASSES: MockClass[] = [
         title: 'Puasa-Puasa Sunnah',
         order_index: 4,
         dars: [
-          { id: 'd-pu-4-1', title: 'Puasa Senin-Kamis dan Ayyamul Bidh', duration_minutes: 18, order_index: 1 },
-          { id: 'd-pu-4-2', title: 'Puasa Syawal, Arafah, dan Asyura', duration_minutes: 22, order_index: 2 },
+          { id: 'd-pu-4-1', title: 'Puasa Senin-Kamis dan Ayyamul Bidh', duration_minutes: 18, order_index: 1 , youtube_id: 'dQw4w9WgXcQ' },
+          { id: 'd-pu-4-2', title: 'Puasa Syawal, Arafah, dan Asyura', duration_minutes: 22, order_index: 2 , youtube_id: '_OBlgSz8sSM' },
         ],
       },
     ],
@@ -219,9 +221,9 @@ export const MOCK_CLASSES: MockClass[] = [
         title: 'Dasar-Dasar Zakat dalam Islam',
         order_index: 1,
         dars: [
-          { id: 'd-zk-1-1', title: 'Pengertian, Dalil, dan Hikmah Zakat', duration_minutes: 20, order_index: 1 },
-          { id: 'd-zk-1-2', title: 'Syarat Wajib Zakat', duration_minutes: 18, order_index: 2 },
-          { id: 'd-zk-1-3', title: 'Delapan Golongan Penerima Zakat', duration_minutes: 24, order_index: 3 },
+          { id: 'd-zk-1-1', title: 'Pengertian, Dalil, dan Hikmah Zakat', duration_minutes: 20, order_index: 1 , youtube_id: 'kJQP7kiw5Fk' },
+          { id: 'd-zk-1-2', title: 'Syarat Wajib Zakat', duration_minutes: 18, order_index: 2 , youtube_id: 'jNQXAC9IVRw' },
+          { id: 'd-zk-1-3', title: 'Delapan Golongan Penerima Zakat', duration_minutes: 24, order_index: 3 , youtube_id: 'dQw4w9WgXcQ' },
         ],
       },
       {
@@ -229,9 +231,9 @@ export const MOCK_CLASSES: MockClass[] = [
         title: 'Zakat Fitrah dan Zakat Maal',
         order_index: 2,
         dars: [
-          { id: 'd-zk-2-1', title: 'Ketentuan dan Tata Cara Zakat Fitrah', duration_minutes: 22, order_index: 1 },
-          { id: 'd-zk-2-2', title: 'Zakat Emas, Perak, dan Uang', duration_minutes: 25, order_index: 2 },
-          { id: 'd-zk-2-3', title: 'Zakat Perdagangan dan Investasi', duration_minutes: 28, order_index: 3 },
+          { id: 'd-zk-2-1', title: 'Ketentuan dan Tata Cara Zakat Fitrah', duration_minutes: 22, order_index: 1 , youtube_id: '_OBlgSz8sSM' },
+          { id: 'd-zk-2-2', title: 'Zakat Emas, Perak, dan Uang', duration_minutes: 25, order_index: 2 , youtube_id: 'kJQP7kiw5Fk' },
+          { id: 'd-zk-2-3', title: 'Zakat Perdagangan dan Investasi', duration_minutes: 28, order_index: 3 , youtube_id: 'jNQXAC9IVRw' },
         ],
       },
       {
@@ -239,8 +241,8 @@ export const MOCK_CLASSES: MockClass[] = [
         title: 'Zakat Profesi & Kontemporer',
         order_index: 3,
         dars: [
-          { id: 'd-zk-3-1', title: 'Dalil dan Kontroversi Zakat Profesi', duration_minutes: 26, order_index: 1 },
-          { id: 'd-zk-3-2', title: 'Cara Menghitung Zakat Profesi', duration_minutes: 20, order_index: 2 },
+          { id: 'd-zk-3-1', title: 'Dalil dan Kontroversi Zakat Profesi', duration_minutes: 26, order_index: 1 , youtube_id: 'dQw4w9WgXcQ' },
+          { id: 'd-zk-3-2', title: 'Cara Menghitung Zakat Profesi', duration_minutes: 20, order_index: 2 , youtube_id: '_OBlgSz8sSM' },
         ],
       },
     ],
@@ -266,8 +268,8 @@ export const MOCK_CLASSES: MockClass[] = [
         title: 'Prinsip-Prinsip Muamalah dalam Islam',
         order_index: 1,
         dars: [
-          { id: 'd-mu-1-1', title: 'Kaidah Dasar Muamalah', duration_minutes: 22, order_index: 1 },
-          { id: 'd-mu-1-2', title: 'Rukun dan Syarat Akad', duration_minutes: 20, order_index: 2 },
+          { id: 'd-mu-1-1', title: 'Kaidah Dasar Muamalah', duration_minutes: 22, order_index: 1 , youtube_id: 'kJQP7kiw5Fk' },
+          { id: 'd-mu-1-2', title: 'Rukun dan Syarat Akad', duration_minutes: 20, order_index: 2 , youtube_id: 'jNQXAC9IVRw' },
         ],
       },
       {
@@ -275,9 +277,9 @@ export const MOCK_CLASSES: MockClass[] = [
         title: 'Jual Beli yang Sah dan yang Dilarang',
         order_index: 2,
         dars: [
-          { id: 'd-mu-2-1', title: 'Jual Beli yang Disepakati Boleh', duration_minutes: 25, order_index: 1 },
-          { id: 'd-mu-2-2', title: 'Jual Beli yang Dilarang: Gharar dan Maysir', duration_minutes: 28, order_index: 2 },
-          { id: 'd-mu-2-3', title: 'Riba: Jenis, Sebab, dan Larangan', duration_minutes: 32, order_index: 3 },
+          { id: 'd-mu-2-1', title: 'Jual Beli yang Disepakati Boleh', duration_minutes: 25, order_index: 1 , youtube_id: 'dQw4w9WgXcQ' },
+          { id: 'd-mu-2-2', title: 'Jual Beli yang Dilarang: Gharar dan Maysir', duration_minutes: 28, order_index: 2 , youtube_id: '_OBlgSz8sSM' },
+          { id: 'd-mu-2-3', title: 'Riba: Jenis, Sebab, dan Larangan', duration_minutes: 32, order_index: 3 , youtube_id: 'kJQP7kiw5Fk' },
         ],
       },
       {
@@ -285,9 +287,9 @@ export const MOCK_CLASSES: MockClass[] = [
         title: 'Keuangan Kontemporer dalam Fiqih',
         order_index: 3,
         dars: [
-          { id: 'd-mu-3-1', title: 'Bunga Bank: Riba atau Bukan?', duration_minutes: 30, order_index: 1 },
-          { id: 'd-mu-3-2', title: 'Asuransi dalam Pandangan Fiqih', duration_minutes: 25, order_index: 2 },
-          { id: 'd-mu-3-3', title: 'Investasi Saham dan Reksa Dana Syariah', duration_minutes: 27, order_index: 3 },
+          { id: 'd-mu-3-1', title: 'Bunga Bank: Riba atau Bukan?', duration_minutes: 30, order_index: 1 , youtube_id: 'jNQXAC9IVRw' },
+          { id: 'd-mu-3-2', title: 'Asuransi dalam Pandangan Fiqih', duration_minutes: 25, order_index: 2 , youtube_id: 'dQw4w9WgXcQ' },
+          { id: 'd-mu-3-3', title: 'Investasi Saham dan Reksa Dana Syariah', duration_minutes: 27, order_index: 3 , youtube_id: '_OBlgSz8sSM' },
         ],
       },
       {
@@ -295,8 +297,8 @@ export const MOCK_CLASSES: MockClass[] = [
         title: 'Akad-Akad Keuangan Islam',
         order_index: 4,
         dars: [
-          { id: 'd-mu-4-1', title: 'Mudharabah dan Musyarakah', duration_minutes: 24, order_index: 1 },
-          { id: 'd-mu-4-2', title: 'Murabahah, Ijarah, dan Istishna', duration_minutes: 26, order_index: 2 },
+          { id: 'd-mu-4-1', title: 'Mudharabah dan Musyarakah', duration_minutes: 24, order_index: 1 , youtube_id: 'kJQP7kiw5Fk' },
+          { id: 'd-mu-4-2', title: 'Murabahah, Ijarah, dan Istishna', duration_minutes: 26, order_index: 2 , youtube_id: 'jNQXAC9IVRw' },
         ],
       },
     ],
@@ -322,8 +324,8 @@ export const MOCK_CLASSES: MockClass[] = [
         title: 'Hukum dan Hikmah Pernikahan dalam Islam',
         order_index: 1,
         dars: [
-          { id: 'd-nk-1-1', title: 'Pengertian, Dalil, dan Hukum Menikah', duration_minutes: 22, order_index: 1 },
-          { id: 'd-nk-1-2', title: 'Tujuan dan Hikmah Pernikahan', duration_minutes: 18, order_index: 2 },
+          { id: 'd-nk-1-1', title: 'Pengertian, Dalil, dan Hukum Menikah', duration_minutes: 22, order_index: 1 , youtube_id: 'dQw4w9WgXcQ' },
+          { id: 'd-nk-1-2', title: 'Tujuan dan Hikmah Pernikahan', duration_minutes: 18, order_index: 2 , youtube_id: '_OBlgSz8sSM' },
         ],
       },
       {
@@ -331,9 +333,9 @@ export const MOCK_CLASSES: MockClass[] = [
         title: 'Rukun dan Syarat Sah Pernikahan',
         order_index: 2,
         dars: [
-          { id: 'd-nk-2-1', title: 'Rukun Nikah: Calon Suami, Istri, Wali', duration_minutes: 25, order_index: 1 },
-          { id: 'd-nk-2-2', title: 'Saksi Nikah dan Ijab Qabul', duration_minutes: 20, order_index: 2 },
-          { id: 'd-nk-2-3', title: 'Mahar: Ketentuan dan Jenisnya', duration_minutes: 22, order_index: 3 },
+          { id: 'd-nk-2-1', title: 'Rukun Nikah: Calon Suami, Istri, Wali', duration_minutes: 25, order_index: 1 , youtube_id: 'kJQP7kiw5Fk' },
+          { id: 'd-nk-2-2', title: 'Saksi Nikah dan Ijab Qabul', duration_minutes: 20, order_index: 2 , youtube_id: 'jNQXAC9IVRw' },
+          { id: 'd-nk-2-3', title: 'Mahar: Ketentuan dan Jenisnya', duration_minutes: 22, order_index: 3 , youtube_id: 'dQw4w9WgXcQ' },
         ],
       },
       {
@@ -341,9 +343,9 @@ export const MOCK_CLASSES: MockClass[] = [
         title: 'Hak dan Kewajiban dalam Rumah Tangga',
         order_index: 3,
         dars: [
-          { id: 'd-nk-3-1', title: 'Hak dan Kewajiban Suami', duration_minutes: 24, order_index: 1 },
-          { id: 'd-nk-3-2', title: 'Hak dan Kewajiban Istri', duration_minutes: 24, order_index: 2 },
-          { id: 'd-nk-3-3', title: 'Nafkah: Standar dan Ketentuannya', duration_minutes: 20, order_index: 3 },
+          { id: 'd-nk-3-1', title: 'Hak dan Kewajiban Suami', duration_minutes: 24, order_index: 1 , youtube_id: '_OBlgSz8sSM' },
+          { id: 'd-nk-3-2', title: 'Hak dan Kewajiban Istri', duration_minutes: 24, order_index: 2 , youtube_id: 'kJQP7kiw5Fk' },
+          { id: 'd-nk-3-3', title: 'Nafkah: Standar dan Ketentuannya', duration_minutes: 20, order_index: 3 , youtube_id: 'jNQXAC9IVRw' },
         ],
       },
       {
@@ -351,9 +353,9 @@ export const MOCK_CLASSES: MockClass[] = [
         title: 'Talak, Idah, dan Rujuk',
         order_index: 4,
         dars: [
-          { id: 'd-nk-4-1', title: 'Jenis-Jenis Talak dan Hukumnya', duration_minutes: 26, order_index: 1 },
-          { id: 'd-nk-4-2', title: 'Idah dan Ketentuannya', duration_minutes: 22, order_index: 2 },
-          { id: 'd-nk-4-3', title: 'Rujuk: Hukum dan Tata Caranya', duration_minutes: 18, order_index: 3 },
+          { id: 'd-nk-4-1', title: 'Jenis-Jenis Talak dan Hukumnya', duration_minutes: 26, order_index: 1 , youtube_id: 'dQw4w9WgXcQ' },
+          { id: 'd-nk-4-2', title: 'Idah dan Ketentuannya', duration_minutes: 22, order_index: 2 , youtube_id: '_OBlgSz8sSM' },
+          { id: 'd-nk-4-3', title: 'Rujuk: Hukum dan Tata Caranya', duration_minutes: 18, order_index: 3 , youtube_id: 'kJQP7kiw5Fk' },
         ],
       },
     ],
