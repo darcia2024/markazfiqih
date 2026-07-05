@@ -10,6 +10,7 @@ import {
   Facebook,
   Youtube,
   Clock,
+  Quote,
 } from 'lucide-react';
 
 import { Navbar } from '@/components/Navbar';
@@ -236,17 +237,17 @@ function CategorySection({
                   href={`/katalog?category=${encodeURIComponent(category)}`}
                   className="group block h-full"
                 >
-                  <div className="h-full flex flex-col gap-3 rounded-[14px] border border-border bg-card p-6 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-[10px] bg-primary/10 text-primary">
+                  <div className="h-full flex flex-col gap-3 rounded-[14px] bg-[hsl(var(--brand-red-deep))] p-6 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-[10px] bg-white/10 text-white">
                       <Icon className="h-6 w-6" />
                     </div>
-                    <h3 className="font-serif text-lg font-semibold text-foreground group-hover:text-primary transition-colors">
+                    <h3 className="font-serif text-lg font-semibold text-white">
                       {category}
                     </h3>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-white/70">
                       {meta?.description ?? 'Kumpulan kelas fiqih dalam kategori ini.'}
                     </p>
-                    <p className="text-sm font-semibold text-primary mt-auto pt-2">
+                    <p className="text-sm font-semibold text-[hsl(var(--brand-gold-pale))] mt-auto pt-2">
                       {count} Kelas
                     </p>
                   </div>
@@ -263,31 +264,38 @@ function CategorySection({
 function AboutSection() {
   return (
     <section className="bg-background">
-      <div className="container mx-auto px-5 sm:px-8 lg:px-16 py-14 sm:py-20 max-w-[900px] text-center">
-        <h2 className="font-serif text-[26px] font-semibold text-foreground leading-8 mb-6">
-          Tentang Markaz Fiqih
-        </h2>
+      <div className="container mx-auto px-5 sm:px-8 lg:px-16 py-16 max-w-[1200px]">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+          <div>
+            <p className="text-xs font-semibold tracking-wider text-primary uppercase">
+              Tentang Kami
+            </p>
+            <p className="font-serif text-2xl font-bold italic text-primary mt-3 mb-4">
+              &ldquo;Membumikan Fiqih di Setiap Lini Kehidupan&rdquo;
+            </p>
+            <p className="text-base leading-[26px] text-muted-foreground">
+              Markaz Fiqih adalah lembaga keilmuan independen yang berfokus pada pendidikan,
+              publikasi, kaderisasi, dan pengembangan kajian fiqih berbasis turats madzhab
+              Syafi'i.
+            </p>
+            <div className="flex flex-wrap gap-2 mt-5">
+              {CORE_VALUES.map((value) => (
+                <Badge key={value} variant="gold">
+                  {value}
+                </Badge>
+              ))}
+            </div>
+          </div>
 
-        <blockquote className="font-serif italic text-2xl sm:text-[28px] leading-snug text-primary mb-6">
-          &ldquo;Membumikan Fiqih di Setiap Lini Kehidupan&rdquo;
-        </blockquote>
-
-        <p className="text-base leading-[26px] text-muted-foreground max-w-2xl mx-auto">
-          Markaz Fiqih adalah lembaga keilmuan independen yang berfokus pada pendidikan,
-          publikasi, kaderisasi, dan pengembangan kajian fiqih berbasis turats madzhab
-          Syafi'i.
-        </p>
-
-        <div className="flex flex-wrap items-center justify-center gap-2.5 mt-8">
-          {CORE_VALUES.map((value) => (
-            <Badge
-              key={value}
-              variant="outline"
-              className="px-3.5 py-1.5 text-[13px] font-medium rounded-full border-brand-red-border text-primary bg-[hsl(var(--brand-red-tint))]"
-            >
-              {value}
-            </Badge>
-          ))}
+          <div className="bg-card rounded-[14px] shadow-md p-8 relative">
+            <Quote className="text-[hsl(var(--brand-gold-pale))] w-10 h-10 mb-4" />
+            {/* TODO: ganti dengan testimoni asli */}
+            <p className="text-base italic text-foreground mb-4">
+              &ldquo;Belajar fiqih di sini bikin saya paham dasar-dasar ibadah dengan runut
+              dan mudah dipahami.&rdquo;
+            </p>
+            <p className="text-sm font-semibold text-foreground">Santri Markaz Fiqih</p>
+          </div>
         </div>
       </div>
     </section>
