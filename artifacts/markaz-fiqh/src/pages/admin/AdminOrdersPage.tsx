@@ -25,9 +25,9 @@ const TABS: { value: OrderStatus | 'all'; label: string }[] = [
   { value: 'all', label: 'Semua' },
 ];
 
-const STATUS_BADGE: Record<OrderStatus, { label: string; variant: 'default' | 'secondary' | 'destructive' }> = {
-  pending: { label: 'Tertunda', variant: 'secondary' },
-  success: { label: 'Berhasil', variant: 'default' },
+const STATUS_BADGE: Record<OrderStatus, { label: string; variant: 'neutral' | 'success' | 'destructive' }> = {
+  pending: { label: 'Tertunda', variant: 'neutral' },
+  success: { label: 'Berhasil', variant: 'success' },
   failed: { label: 'Gagal', variant: 'destructive' },
 };
 

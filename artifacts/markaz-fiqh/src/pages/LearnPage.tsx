@@ -224,7 +224,7 @@ function Sidebar({
                                 fill="currentColor"
                               />
                             ) : isDone ? (
-                              <CheckCircle2 className="w-4 h-4 text-green-600" />
+                              <CheckCircle2 className="w-4 h-4 text-success" />
                             ) : (
                               <Circle className="w-4 h-4 text-muted-foreground/40" />
                             )}
@@ -396,9 +396,9 @@ function LearnContent() {
               {/* Tandai Selesai */}
               {isDone ? (
                 <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-2 rounded-lg bg-green-50 border border-green-200 px-4 py-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-green-600" />
-                    <span className="text-sm font-semibold text-green-700">
+                  <div className="flex items-center gap-2 rounded-lg bg-success-pale border border-success-pale px-4 py-2.5">
+                    <CheckCircle2 className="w-4 h-4 text-success" />
+                    <span className="text-sm font-semibold text-success">
                       Sudah Selesai
                     </span>
                   </div>
@@ -465,7 +465,7 @@ function LearnContent() {
                           }`}
                         >
                           {done ? (
-                            <CheckCircle2 className="w-3.5 h-3.5 text-green-600 shrink-0" />
+                            <CheckCircle2 className="w-3.5 h-3.5 text-success shrink-0" />
                           ) : isThis ? (
                             <PlayCircle className="w-3.5 h-3.5 shrink-0" fill="currentColor" />
                           ) : (

@@ -80,7 +80,7 @@ function VaPanel({ bank, vaNumber, amount }: { bank: string; vaNumber: string; a
               {vaNumber}
             </p>
             <Button size="sm" variant="outline" onClick={handleCopy} className="shrink-0 gap-1">
-              {copied ? <CheckCircle2 className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
+              {copied ? <CheckCircle2 className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5" />}
               {copied ? 'Disalin!' : 'Salin'}
             </Button>
           </div>
@@ -90,8 +90,8 @@ function VaPanel({ bank, vaNumber, amount }: { bank: string; vaNumber: string; a
           <p className="text-xs text-muted-foreground mb-1">Jumlah Transfer (harus tepat)</p>
           <p className="text-2xl font-bold text-primary">{amount}</p>
         </div>
-        <div className="rounded-lg bg-amber-50 border border-amber-200 p-3">
-          <p className="text-xs text-amber-700">
+        <div className="rounded-lg bg-brand-gold-pale border border-brand-gold-pale p-3">
+          <p className="text-xs text-brand-gold-hover">
             Batas waktu pembayaran: <strong>24 jam</strong> sejak pesanan dibuat.
             Pastikan jumlah transfer <strong>tepat sama</strong> agar sistem dapat mendeteksi otomatis.
           </p>
@@ -108,7 +108,7 @@ function EwalletPanel({ amount }: { amount: string }) {
         Pilih dompet digital untuk melanjutkan pembayaran.
       </p>
       {[
-        { name: 'GoPay',  color: 'bg-green-500',  code: '0812-3456-7890' },
+        { name: 'GoPay',  color: 'bg-success-pale0',  code: '0812-3456-7890' },
         { name: 'OVO',    color: 'bg-purple-600', code: '0812-3456-7890' },
         { name: 'DANA',   color: 'bg-blue-500',   code: '0812-3456-7890' },
       ].map((w) => (

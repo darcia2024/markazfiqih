@@ -141,9 +141,9 @@ function SuccessView({ className, price }: { className: string; price: string })
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.1 }}
-        className="w-24 h-24 rounded-full bg-green-100 flex items-center justify-center"
+        className="w-24 h-24 rounded-full bg-success-pale flex items-center justify-center"
       >
-        <CheckCircle2 className="w-12 h-12 text-green-600" />
+        <CheckCircle2 className="w-12 h-12 text-success" />
       </motion.div>
 
       <motion.div
@@ -165,7 +165,7 @@ function SuccessView({ className, price }: { className: string; price: string })
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.45 }}
-        className="w-full max-w-sm rounded-xl border bg-green-50 border-green-200 p-5 space-y-3"
+        className="w-full max-w-sm rounded-xl border bg-success-pale border-success-pale p-5 space-y-3"
       >
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">Kelas</span>
@@ -173,11 +173,11 @@ function SuccessView({ className, price }: { className: string; price: string })
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">Jumlah</span>
-          <span className="font-bold text-green-700">{price}</span>
+          <span className="font-bold text-success">{price}</span>
         </div>
         <div className="flex justify-between text-sm">
           <span className="text-muted-foreground">Status</span>
-          <span className="font-semibold text-green-700 flex items-center gap-1">
+          <span className="font-semibold text-success flex items-center gap-1">
             <CheckCircle2 className="w-3.5 h-3.5" /> Berhasil
           </span>
         </div>
@@ -219,9 +219,9 @@ function FailedView({ onRetry }: { onRetry: () => void }) {
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.1 }}
-        className="w-24 h-24 rounded-full bg-red-100 flex items-center justify-center"
+        className="w-24 h-24 rounded-full bg-destructive-pale flex items-center justify-center"
       >
-        <XCircle className="w-12 h-12 text-red-500" />
+        <XCircle className="w-12 h-12 text-destructive" />
       </motion.div>
 
       <div className="space-y-2">
@@ -234,8 +234,8 @@ function FailedView({ onRetry }: { onRetry: () => void }) {
         </p>
       </div>
 
-      <div className="w-full max-w-sm rounded-xl border bg-red-50 border-red-200 p-4">
-        <p className="text-sm text-red-700">
+      <div className="w-full max-w-sm rounded-xl border bg-destructive-pale border-destructive-pale p-4">
+        <p className="text-sm text-destructive">
           Kode: <strong>PAYMENT_FAILED</strong> · Tidak ada saldo yang terpotong.
         </p>
       </div>

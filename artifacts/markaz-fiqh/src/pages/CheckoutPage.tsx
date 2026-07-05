@@ -87,7 +87,7 @@ function CartContent() {
                 />
                 {hasDiscount && (
                   <div className="absolute top-3 left-3">
-                    <Badge className="bg-amber-500 hover:bg-amber-500 text-white text-xs font-semibold">
+                    <Badge className="bg-brand-gold hover:bg-brand-gold text-white text-xs font-semibold">
                       <Tag className="w-3 h-3 mr-1" />
                       Promo
                     </Badge>
@@ -164,7 +164,7 @@ function CartContent() {
 
                   {/* Diskon */}
                   {hasDiscount && (
-                    <div className="flex justify-between items-center text-amber-600">
+                    <div className="flex justify-between items-center text-brand-gold-hover">
                       <span className="flex items-center gap-1 font-medium">
                         <Tag className="w-3.5 h-3.5" />
                         Diskon promo

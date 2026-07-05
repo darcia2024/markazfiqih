@@ -106,7 +106,7 @@ function KelasCard({ cls, index }: { cls: MockClass; index: number }) {
         {/* Status badge overlay */}
         <div className="absolute top-3 right-3">
           {isComplete ? (
-            <Badge className="bg-green-500 hover:bg-green-500 text-white gap-1 shadow">
+            <Badge className="bg-success-pale0 hover:bg-success-pale0 text-white gap-1 shadow">
               <Trophy className="w-3 h-3" />
               Tuntas
             </Badge>
@@ -156,7 +156,7 @@ function KelasCard({ cls, index }: { cls: MockClass; index: number }) {
             </span>
             <span
               className={`font-bold text-sm ${
-                isComplete ? 'text-green-600' : pct > 0 ? 'text-primary' : 'text-muted-foreground'
+                isComplete ? 'text-success' : pct > 0 ? 'text-primary' : 'text-muted-foreground'
               }`}
             >
               {pct}% Selesai
@@ -165,7 +165,7 @@ function KelasCard({ cls, index }: { cls: MockClass; index: number }) {
           {/* Progress bar */}
           <div className="h-2 bg-muted rounded-full overflow-hidden">
             <motion.div
-              className={`h-full rounded-full ${isComplete ? 'bg-green-500' : 'bg-primary'}`}
+              className={`h-full rounded-full ${isComplete ? 'bg-success-pale0' : 'bg-primary'}`}
               initial={{ width: 0 }}
               animate={{ width: `${pct}%` }}
               transition={{ duration: 0.7, ease: 'easeOut', delay: index * 0.1 + 0.2 }}
@@ -177,9 +177,9 @@ function KelasCard({ cls, index }: { cls: MockClass; index: number }) {
         <div className="mt-auto pt-1">
           {isComplete ? (
             <div className="space-y-2">
-              <div className="flex items-center justify-center gap-2 rounded-lg bg-green-50 border border-green-200 py-2.5 px-3">
-                <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
-                <span className="text-sm font-semibold text-green-700">
+              <div className="flex items-center justify-center gap-2 rounded-lg bg-success-pale border border-success-pale py-2.5 px-3">
+                <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
+                <span className="text-sm font-semibold text-success">
                   Semua pelajaran selesai! 🎉
                 </span>
               </div>
@@ -225,8 +225,8 @@ function EmptyState() {
         <div className="w-32 h-32 rounded-full bg-primary/10 flex items-center justify-center">
           <GraduationCap className="w-16 h-16 text-primary/40" />
         </div>
-        <div className="absolute -top-1 -right-1 w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shadow-sm border border-amber-200">
-          <BookOpen className="w-5 h-5 text-amber-500" />
+        <div className="absolute -top-1 -right-1 w-10 h-10 rounded-full bg-brand-gold-pale flex items-center justify-center shadow-sm border border-brand-gold-pale">
+          <BookOpen className="w-5 h-5 text-brand-gold" />
         </div>
       </div>
 
@@ -278,8 +278,8 @@ function StatsSummary({
     <div className="grid grid-cols-3 gap-4 rounded-xl border bg-card p-5 shadow-sm">
       {[
         { label: 'Kelas Dimiliki', value: totalOwned, icon: BookOpen, color: 'text-primary' },
-        { label: 'Kelas Tuntas', value: totalCompleted, icon: Trophy, color: 'text-green-600' },
-        { label: 'Progress Keseluruhan', value: `${overallPct}%`, icon: TrendingUp, color: 'text-amber-500' },
+        { label: 'Kelas Tuntas', value: totalCompleted, icon: Trophy, color: 'text-success' },
+        { label: 'Progress Keseluruhan', value: `${overallPct}%`, icon: TrendingUp, color: 'text-brand-gold' },
       ].map(({ label, value, icon: Icon, color }) => (
         <div key={label} className="text-center space-y-1">
           <Icon className={`w-5 h-5 mx-auto ${color}`} />

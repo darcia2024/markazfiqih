@@ -46,7 +46,7 @@ function ClassCard({ cls, index }: { cls: MockClass; index: number }) {
             />
             {hasDiscount && (
               <div className="absolute top-3 left-3">
-                <Badge className="bg-amber-500 hover:bg-amber-500 text-white text-xs font-semibold px-2 py-0.5 shadow">
+                <Badge className="bg-brand-gold hover:bg-brand-gold text-white text-xs font-semibold px-2 py-0.5 shadow">
                   <Tag className="w-3 h-3 mr-1" />
                   Promo
                 </Badge>
@@ -154,7 +154,7 @@ export default function CatalogPage() {
               <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold text-white tracking-tight leading-tight">
                 Ilmu Fiqih,
                 <br />
-                <span className="text-amber-300">Tersusun Rapi</span>
+                <span className="text-brand-gold-pale">Tersusun Rapi</span>
               </h1>
               <p className="mt-4 text-lg md:text-xl text-white/80 max-w-2xl mx-auto leading-relaxed">
                 Kurikulum terstruktur dari asatidzah kompeten. Belajar dengan
@@ -175,7 +175,7 @@ export default function CatalogPage() {
                 placeholder="Cari kelas fiqih… (misal: thaharah, zakat, nikah)"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="pl-12 pr-4 py-3 h-12 text-base bg-white border-0 rounded-xl shadow-lg placeholder:text-muted-foreground/70 focus-visible:ring-2 focus-visible:ring-amber-400"
+                className="pl-12 pr-4 py-3 h-12 text-base bg-white border-0 rounded-xl shadow-lg placeholder:text-muted-foreground/70 focus-visible:ring-2 focus-visible:ring-brand-gold"
               />
             </motion.div>
           </div>

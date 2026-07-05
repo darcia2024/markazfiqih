@@ -128,7 +128,7 @@ export default function AdminClassesPage() {
                     </TableCell>
                     <TableCell>
                       <Badge
-                        variant={cls.status === 'published' ? 'default' : 'secondary'}
+                        variant={cls.status === 'published' ? 'success' : 'neutral'}
                         data-testid={`badge-status-${cls.id}`}
                       >
                         {cls.status === 'published' ? 'Published' : 'Draft'}

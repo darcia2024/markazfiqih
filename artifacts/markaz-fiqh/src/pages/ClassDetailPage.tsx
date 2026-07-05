@@ -105,7 +105,7 @@ export default function ClassDetailPage() {
                 className="space-y-4"
               >
                 {hasDiscount && (
-                  <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-amber-200 text-xs font-semibold">
+                  <Badge className="bg-brand-gold-pale text-brand-gold-hover hover:bg-brand-gold-pale border-brand-gold-pale text-xs font-semibold">
                     Sedang Promo
                   </Badge>
                 )}
@@ -253,7 +253,7 @@ export default function ClassDetailPage() {
                       </p>
                       <Badge
                         variant="outline"
-                        className="border-amber-400 text-amber-700 text-xs mt-1"
+                        className="border-brand-gold text-brand-gold-hover text-xs mt-1"
                       >
                         Hemat{' '}
                         {formatPrice(cls.base_price - cls.discount_price!)}
