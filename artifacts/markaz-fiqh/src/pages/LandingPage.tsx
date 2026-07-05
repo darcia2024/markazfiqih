@@ -1,16 +1,47 @@
-import { useMemo } from 'react';
-import { Link } from 'wouter';
-import { BookOpen, Layers, Library, GraduationCap, ArrowRight } from 'lucide-react';
+import { useEffect, useMemo } from 'react';
+import { Link, useLocation } from 'wouter';
+import {
+  BookOpen,
+  Layers,
+  Library,
+  GraduationCap,
+  ArrowRight,
+  Instagram,
+  Facebook,
+  Youtube,
+} from 'lucide-react';
 
 import { Navbar } from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useAuth } from '@/context/AuthContext';
 import { useListClasses, useListInstructors } from '@workspace/api-client-react';
 import {
   ClassCard,
   ClassCardSkeleton,
-  InstructorSection,
   type ClassSummary,
 } from '@/pages/CatalogPage';
+
+// ── Ikon TikTok (belum tersedia di lucide-react, jadi pakai SVG custom) ────
+function TikTokIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      <path d="M16.6 5.82c-.9-.88-1.4-2.08-1.4-3.32h-3.13v13.44c0 1.6-1.3 2.9-2.9 2.9a2.9 2.9 0 0 1 0-5.8c.27 0 .53.03.78.1V9.98a6.03 6.03 0 0 0-.78-.05A6.03 6.03 0 0 0 3.15 16a6.03 6.03 0 0 0 6.02 6.02A6.03 6.03 0 0 0 15.19 16V8.66a8.16 8.16 0 0 0 4.76 1.52V7.05a4.85 4.85 0 0 1-3.35-1.23Z" />
+    </svg>
+  );
+}
+
+// ── Nilai dasar lembaga ─────────────────────────────────────────────────
+const CORE_VALUES = ['Keilmuan', 'Amanah', 'Profesionalisme', 'Pelayanan Umat'];
+
+// ── Sosial media (arahkan ke URL asli nanti) ────────────────────────────
+const SOCIAL_LINKS: Array<{ label: string; icon: typeof Instagram | typeof TikTokIcon }> = [
+  { label: 'Instagram', icon: Instagram },
+  { label: 'Facebook', icon: Facebook },
+  { label: 'TikTok', icon: TikTokIcon },
+  { label: 'YouTube', icon: Youtube },
+];
 
 // ── Category metadata (ikon & deskripsi singkat, jumlah dihitung dari data asli) ──
 const CATEGORY_META: Record<string, { icon: typeof Layers; description: string }> = {
@@ -167,6 +198,160 @@ function CategorySection({
   );
 }
 
+// ── Tentang Markaz Fiqih ─────────────────────────────────────────────────
+function AboutSection() {
+  return (
+    <section className="bg-background">
+      <div className="container mx-auto px-5 sm:px-8 lg:px-16 py-14 sm:py-20 max-w-[900px] text-center">
+        <h2 className="font-serif text-[26px] font-semibold text-foreground leading-8 mb-6">
+          Tentang Markaz Fiqih
+        </h2>
+
+        <blockquote className="font-serif italic text-2xl sm:text-[28px] leading-snug text-primary mb-6">
+          &ldquo;Membumikan Fiqih di Setiap Lini Kehidupan&rdquo;
+        </blockquote>
+
+        <p className="text-base leading-[26px] text-muted-foreground max-w-2xl mx-auto">
+          Markaz Fiqih adalah lembaga keilmuan independen yang berfokus pada pendidikan,
+          publikasi, kaderisasi, dan pengembangan kajian fiqih berbasis turats madzhab
+          Syafi'i.
+        </p>
+
+        <div className="flex flex-wrap items-center justify-center gap-2.5 mt-8">
+          {CORE_VALUES.map((value) => (
+            <Badge
+              key={value}
+              variant="outline"
+              className="px-3.5 py-1.5 text-[13px] font-medium rounded-full border-brand-red-border text-primary bg-[hsl(var(--brand-red-tint))]"
+            >
+              {value}
+            </Badge>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ── Founder placeholder ──────────────────────────────────────────────────
+// TODO: ganti dengan data founder asli (nama, foto, dan bio) begitu tersedia.
+const FOUNDER_PLACEHOLDER = {
+  id: 'founder-placeholder',
+  name: 'Nama Founder',
+  role: 'Pendiri Markaz Fiqih',
+  photoUrl: 'https://ui-avatars.com/api/?name=Founder&background=A31F2C&color=fff',
+  bio: 'Bio founder akan diisi kemudian',
+};
+
+// ── Peran default untuk pengajar (bisa disesuaikan per instruktur nanti) ──
+const INSTRUCTOR_ROLE_LABEL = 'Pengajar Fiqih';
+
+// ── Pengajar Kami ────────────────────────────────────────────────────────
+function TeachersSection({
+  instructors,
+  isLoading,
+}: {
+  instructors: Array<{ id: string; name: string; photoUrl: string; bio?: string; classCount: number }>;
+  isLoading: boolean;
+}) {
+  return (
+    <section className="bg-background">
+      <div className="container mx-auto px-5 sm:px-8 lg:px-16 py-12 sm:py-16 max-w-[1200px]">
+        <h2 className="font-serif text-[26px] font-semibold text-foreground leading-8 mb-6">
+          Pengajar Kami
+        </h2>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {isLoading &&
+            Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="rounded-[14px] border border-border bg-card p-6 animate-pulse h-[220px]" />
+            ))}
+
+          {!isLoading &&
+            instructors.map((instructor) => (
+              <div
+                key={instructor.id}
+                className="flex flex-col items-center text-center gap-3 rounded-[14px] border border-border bg-card p-6 shadow-sm hover:shadow-md transition-all duration-300"
+              >
+                <Avatar className="h-16 w-16 border border-border">
+                  <AvatarImage src={instructor.photoUrl} alt={instructor.name} />
+                  <AvatarFallback className="bg-primary/10 text-primary text-lg">
+                    {instructor.name.split(' ').map((n) => n[0]).join('').substring(0, 2)}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="text-base font-semibold text-foreground leading-tight">
+                    {instructor.name}
+                  </p>
+                  <p className="text-xs font-medium text-primary mt-0.5">
+                    {INSTRUCTOR_ROLE_LABEL}
+                  </p>
+                </div>
+                <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
+                  {instructor.bio || `Mengampu ${instructor.classCount} kelas fiqih di Markaz Fiqih.`}
+                </p>
+              </div>
+            ))}
+
+          {/* Card Founder — data placeholder, lihat TODO di FOUNDER_PLACEHOLDER */}
+          {!isLoading && (
+            <div className="flex flex-col items-center text-center gap-3 rounded-[14px] border border-brand-red-border bg-[hsl(var(--brand-red-tint))] p-6 shadow-sm">
+              <Avatar className="h-16 w-16 border border-border">
+                <AvatarImage src={FOUNDER_PLACEHOLDER.photoUrl} alt={FOUNDER_PLACEHOLDER.name} />
+                <AvatarFallback className="bg-primary/10 text-primary text-lg">NF</AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="text-base font-semibold text-foreground leading-tight">
+                  {FOUNDER_PLACEHOLDER.name}
+                </p>
+                <p className="text-xs font-medium text-primary mt-0.5">
+                  {FOUNDER_PLACEHOLDER.role}
+                </p>
+              </div>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {FOUNDER_PLACEHOLDER.bio}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ── Sosial Media ─────────────────────────────────────────────────────────
+function SocialSection() {
+  return (
+    <section className="bg-[hsl(var(--brand-red-tint))]">
+      <div className="container mx-auto px-5 sm:px-8 lg:px-16 py-12 max-w-[1200px] text-center">
+        <h2 className="font-serif text-[22px] font-semibold text-foreground leading-8 mb-1">
+          Ikuti Kami
+        </h2>
+        <p className="text-sm text-muted-foreground mb-6">
+          Dapatkan kajian dan info kelas terbaru di media sosial kami
+        </p>
+
+        <div className="flex items-center justify-center gap-3">
+          {SOCIAL_LINKS.map(({ label, icon: Icon }) => (
+            <Button
+              key={label}
+              asChild
+              variant="ghost"
+              size="icon"
+              className="h-11 w-11 rounded-full bg-card border border-border text-primary hover:text-primary"
+            >
+              {/* TODO: ganti href="#" dengan URL akun media sosial resmi Markaz Fiqih */}
+              <a href="#" aria-label={label} target="_blank" rel="noopener noreferrer">
+                <Icon className="h-5 w-5" />
+              </a>
+            </Button>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ── Footer ───────────────────────────────────────────────────────────────
 function LandingFooter() {
   return (
@@ -191,7 +376,12 @@ function LandingFooter() {
 }
 
 // ── Halaman Landing ──────────────────────────────────────────────────────
+// Hanya ditampilkan untuk user yang belum login — user yang sudah login
+// otomatis diarahkan ke halaman katalog (/katalog).
 export default function LandingPage() {
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const [, setLocation] = useLocation();
+
   const classesQuery = useListClasses({ sort: 'newest' });
   const instructorsQuery = useListInstructors();
 
@@ -212,6 +402,18 @@ export default function LandingPage() {
       .slice(0, 3);
   }, [allClasses]);
 
+  useEffect(() => {
+    if (!isAuthLoading && user) {
+      setLocation('/katalog');
+    }
+  }, [isAuthLoading, user, setLocation]);
+
+  // Selagi status login dicek, atau user ternyata sudah login (sedang
+  // menunggu redirect), jangan render konten landing sama sekali.
+  if (isAuthLoading || user) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
@@ -223,21 +425,13 @@ export default function LandingPage() {
 
         <CategorySection categoryCounts={categoryCounts} isLoading={classesQuery.isLoading} />
 
+        <AboutSection />
+
         {(instructorsQuery.isLoading || instructors.length > 0) && (
-          <section className="bg-background">
-            <div className="container mx-auto px-5 sm:px-8 lg:px-16 py-12 sm:py-16 max-w-[1200px]">
-              <h2 className="font-serif text-[26px] font-semibold text-foreground leading-8 mb-6">
-                Pengajar Kami
-              </h2>
-              <InstructorSection
-                instructors={instructors}
-                isLoading={instructorsQuery.isLoading}
-                selectedInstructorId={null}
-                onSelect={() => {}}
-              />
-            </div>
-          </section>
+          <TeachersSection instructors={instructors} isLoading={instructorsQuery.isLoading} />
         )}
+
+        <SocialSection />
       </main>
 
       <LandingFooter />
