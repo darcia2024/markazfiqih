@@ -10,6 +10,8 @@ import CatalogPage from '@/pages/CatalogPage';
 import ClassDetailPage from '@/pages/ClassDetailPage';
 import MyClassesPage from '@/pages/MyClassesPage';
 import CheckoutPage from '@/pages/CheckoutPage';
+import PaymentPage from '@/pages/PaymentPage';
+import PaymentStatusPage from '@/pages/PaymentStatusPage';
 import LearnPage from '@/pages/LearnPage';
 
 const queryClient = new QueryClient();
@@ -22,6 +24,8 @@ function Router() {
       <Route path="/class/:id" component={ClassDetailPage} />
       <Route path="/my-classes" component={MyClassesPage} />
       <Route path="/checkout" component={CheckoutPage} />
+      <Route path="/payment" component={PaymentPage} />
+      <Route path="/payment-status" component={PaymentStatusPage} />
       <Route path="/learn/:classId" component={LearnPage} />
       <Route component={NotFound} />
     </Switch>
