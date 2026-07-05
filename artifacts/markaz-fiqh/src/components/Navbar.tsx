@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'wouter';
 import { useAuth } from '@/context/AuthContext';
+import { useCart } from '@/context/CartContext';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -11,10 +12,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { BookOpen } from 'lucide-react';
+import { BookOpen, ShoppingCart } from 'lucide-react';
 
 export function Navbar() {
   const { user, logout, isLoading } = useAuth();
+  const { count } = useCart();
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -39,6 +41,20 @@ export function Navbar() {
           </div>
 
           <div className="flex items-center gap-4">
+            {!isLoading && user && (
+              <Link
+                href="/keranjang"
+                className="relative flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                aria-label="Keranjang"
+              >
+                <ShoppingCart className="h-5 w-5" />
+                {count > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-primary-foreground">
+                    {count > 9 ? '9+' : count}
+                  </span>
+                )}
+              </Link>
+            )}
             {!isLoading && (
               user ? (
                 <DropdownMenu>

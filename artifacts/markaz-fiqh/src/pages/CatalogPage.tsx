@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link, useSearch } from 'wouter';
+import { Link, useSearch, useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search,
@@ -9,9 +9,12 @@ import {
   Bell,
   Clock,
   BookMarked,
+  ShoppingCart,
+  Check,
 } from 'lucide-react';
 
 import { useAuth } from '@/context/AuthContext';
+import { useCart } from '@/context/CartContext';
 import { useListClasses, useListInstructors } from '@workspace/api-client-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -107,12 +110,27 @@ function CatalogSidebar({ isAdmin }: { isAdmin: boolean }) {
 // ── Header ───────────────────────────────────────────────────────────────
 function CatalogHeader() {
   const { user } = useAuth();
+  const { count } = useCart();
   return (
     <div className="flex items-center justify-between mb-6">
       <h1 className="font-serif text-[32px] font-bold text-foreground leading-tight">
         Jelajahi Kelas
       </h1>
       <div className="flex items-center gap-3">
+        {user && (
+          <Link
+            href="/keranjang"
+            className="relative flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            aria-label="Keranjang"
+          >
+            <ShoppingCart className="h-5 w-5" />
+            {count > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-primary-foreground">
+                {count > 9 ? '9+' : count}
+              </span>
+            )}
+          </Link>
+        )}
         <Button variant="ghost" size="icon" className="rounded-full" aria-label="Notifikasi">
           <Bell className="h-5 w-5 text-muted-foreground" />
         </Button>
@@ -207,6 +225,24 @@ export type ClassSummary = {
 export function ClassCard({ cls, index }: { cls: ClassSummary; index: number }) {
   const hasDiscount = cls.discountPrice != null;
   const durationLabel = formatDuration(cls.totalDurationMinutes);
+  const { user } = useAuth();
+  const { classIdsInCart, addToCart, isAdding } = useCart();
+  const [location, setLocation] = useLocation();
+  const inCart = classIdsInCart.has(cls.id);
+
+  const handleCartAction = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) {
+      setLocation(`/login?redirect=${encodeURIComponent('/katalog')}`);
+      return;
+    }
+    if (inCart) {
+      setLocation('/keranjang');
+      return;
+    }
+    addToCart(cls.id);
+  };
 
   return (
     <motion.div
@@ -264,24 +300,45 @@ export function ClassCard({ cls, index }: { cls: ClassSummary; index: number }) 
               )}
             </div>
 
-            <div className="mt-auto pt-2 flex flex-col justify-end min-h-[3.25rem]">
-              {hasDiscount ? (
-                <>
-                  <span className="text-[13px] text-text-tertiary line-through leading-tight">
-                    {formatPrice(cls.basePrice)}
-                  </span>
-                  <span className="text-lg font-bold text-primary leading-tight">
-                    {formatPrice(cls.discountPrice!)}
-                  </span>
-                </>
-              ) : (
-                <>
-                  <span className="text-[13px] leading-tight invisible select-none">&nbsp;</span>
-                  <span className="text-lg font-bold text-foreground leading-tight">
-                    {formatPrice(cls.basePrice)}
-                  </span>
-                </>
-              )}
+            <div className="mt-auto pt-2 flex items-end justify-between gap-2 min-h-[3.25rem]">
+              <div className="flex flex-col">
+                {hasDiscount ? (
+                  <>
+                    <span className="text-[13px] text-text-tertiary line-through leading-tight">
+                      {formatPrice(cls.basePrice)}
+                    </span>
+                    <span className="text-lg font-bold text-primary leading-tight">
+                      {formatPrice(cls.discountPrice!)}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-[13px] leading-tight invisible select-none">&nbsp;</span>
+                    <span className="text-lg font-bold text-foreground leading-tight">
+                      {formatPrice(cls.basePrice)}
+                    </span>
+                  </>
+                )}
+              </div>
+              <Button
+                size="sm"
+                variant={inCart ? 'outline' : 'default'}
+                className="shrink-0 text-xs h-8 gap-1"
+                disabled={isAdding}
+                onClick={handleCartAction}
+              >
+                {inCart ? (
+                  <>
+                    <Check className="w-3.5 h-3.5" />
+                    Lihat di Keranjang
+                  </>
+                ) : (
+                  <>
+                    <ShoppingCart className="w-3.5 h-3.5" />
+                    Tambah
+                  </>
+                )}
+              </Button>
             </div>
           </div>
         </div>

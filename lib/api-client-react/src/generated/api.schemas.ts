@@ -123,6 +123,49 @@ export interface ClassSummary {
   totalDurationMinutes: number | null;
 }
 
+export interface CartItem {
+  id: string;
+  classId: string;
+  addedAt: string;
+  class: ClassSummary;
+}
+
+export interface AddCartItemRequest {
+  userId: string;
+  classId: string;
+}
+
+export interface CreateCheckoutRequest {
+  userId: string;
+}
+
+export type InvoiceStatus = typeof InvoiceStatus[keyof typeof InvoiceStatus];
+
+
+export const InvoiceStatus = {
+  pending: 'pending',
+  paid: 'paid',
+  failed: 'failed',
+} as const;
+
+export interface InvoiceItem {
+  id: string;
+  classId: string;
+  price: number;
+  class: ClassSummary;
+}
+
+export interface Invoice {
+  id: string;
+  userId: string;
+  totalAmount: number;
+  status: InvoiceStatus;
+  createdAt: string;
+  /** @nullable */
+  paidAt: string | null;
+  items: InvoiceItem[];
+}
+
 export type ListClassesParams = {
 search?: string;
 level?: ClassLevel;
@@ -140,4 +183,13 @@ export const ListClassesSort = {
   price_desc: 'price_desc',
   popular: 'popular',
 } as const;
+
+export type ListRecommendedClassesParams = {
+userId: string;
+limit?: number;
+};
+
+export type ListCartItemsParams = {
+userId: string;
+};
 

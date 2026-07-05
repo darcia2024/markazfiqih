@@ -6,6 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './addCartItemRequest';
+export * from './cartItem';
 export * from './classDetail';
 export * from './classDetailLevel';
 export * from './classDetailStatus';
@@ -15,8 +17,14 @@ export * from './classModule';
 export * from './classSummary';
 export * from './classSummaryLevel';
 export * from './classSummaryStatus';
+export * from './createCheckoutRequest';
 export * from './errorResponse';
 export * from './healthStatus';
 export * from './instructorSummary';
+export * from './invoice';
+export * from './invoiceItem';
+export * from './invoiceStatus';
+export * from './listCartItemsParams';
 export * from './listClassesParams';
 export * from './listClassesSort';
+export * from './listRecommendedClassesParams';

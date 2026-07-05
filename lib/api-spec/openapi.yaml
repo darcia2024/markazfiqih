@@ -14,6 +14,10 @@ tags:
     description: Class catalog operations
   - name: instructors
     description: Instructor operations
+  - name: cart
+    description: Shopping cart operations
+  - name: checkout
+    description: Checkout and invoice operations
 paths:
   /healthz:
     get:
@@ -107,6 +111,165 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/InstructorSummary"
+  /classes/recommended:
+    get:
+      operationId: listRecommendedClasses
+      tags: [classes]
+      summary: List recommended classes for a user
+      description: Returns published classes excluding ones already in the user's cart or enrollments
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 3
+      responses:
+        "200":
+          description: Recommended classes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClassSummary"
+  /cart:
+    get:
+      operationId: listCartItems
+      tags: [cart]
+      summary: List cart items for a user
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of cart items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CartItem"
+    post:
+      operationId: addCartItem
+      tags: [cart]
+      summary: Add a class to the cart
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddCartItemRequest"
+      responses:
+        "201":
+          description: Cart item added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CartItem"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /cart/{id}:
+    delete:
+      operationId: removeCartItem
+      tags: [cart]
+      summary: Remove an item from the cart
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Removed
+  /checkout:
+    post:
+      operationId: createCheckout
+      tags: [checkout]
+      summary: Create an invoice from the current cart
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCheckoutRequest"
+      responses:
+        "200":
+          description: Invoice created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+        "400":
+          description: Cart is empty
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /checkout/{id}/simulate-success:
+    post:
+      operationId: simulateCheckoutSuccess
+      tags: [checkout]
+      summary: Simulate a successful payment webhook for an invoice
+      description: Marks the invoice as paid, creates enrollments for each invoice item, and clears the user's cart
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Invoice marked as paid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+        "404":
+          description: Invoice not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /checkout/{id}/simulate-fail:
+    post:
+      operationId: simulateCheckoutFail
+      tags: [checkout]
+      summary: Simulate a failed payment webhook for an invoice
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Invoice marked as failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+        "404":
+          description: Invoice not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
     HealthStatus:
@@ -255,4 +418,71 @@ components:
           type: integer
         totalDurationMinutes:
           type: ["integer", "null"]
+    CartItem:
+      type: object
+      required: [id, classId, addedAt, class]
+      properties:
+        id:
+          type: string
+          format: uuid
+        classId:
+          type: string
+          format: uuid
+        addedAt:
+          type: string
+        class:
+          $ref: "#/components/schemas/ClassSummary"
+    AddCartItemRequest:
+      type: object
+      required: [userId, classId]
+      properties:
+        userId:
+          type: string
+        classId:
+          type: string
+          format: uuid
+    CreateCheckoutRequest:
+      type: object
+      required: [userId]
+      properties:
+        userId:
+          type: string
+    InvoiceStatus:
+      type: string
+      enum: [pending, paid, failed]
+    InvoiceItem:
+      type: object
+      required: [id, classId, price, class]
+      properties:
+        id:
+          type: string
+          format: uuid
+        classId:
+          type: string
+          format: uuid
+        price:
+          type: integer
+        class:
+          $ref: "#/components/schemas/ClassSummary"
+    Invoice:
+      type: object
+      required: [id, userId, totalAmount, status, createdAt, paidAt, items]
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+        totalAmount:
+          type: integer
+        status:
+          $ref: "#/components/schemas/InvoiceStatus"
+        createdAt:
+          type: string
+        paidAt:
+          type: ["string", "null"]
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/InvoiceItem"
 

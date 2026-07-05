@@ -1,0 +1,27 @@
+PROMPT 1 — Hero Section
+
+Di file artifacts/markaz-fiqh/src/pages/LandingPage.tsx, ubah function HeroSection() (baris ~34). Saat ini isinya 1 kolom. Ubah jadi grid 2 kolom (grid grid-cols-1 lg:grid-cols-2 gap-10 items-center): kolom kiri berisi konten yang SUDAH ADA (label kecil baru "SELAMAT DATANG DI MARKAZ FIQIH" ditambahkan di atas judul — gunakan text-xs font-semibold tracking-wider text-primary uppercase, lalu judul, paragraf, dan tombol yang sudah ada, urutannya tidak berubah).
+Kolom kanan (hanya tampil di lg: ke atas, gunakan hidden lg:block): buat container relative berisi <img> placeholder (pakai src="https://images.unsplash.com/photo-1584286595398-a59511e18ce2?w=800&q=80" sementara, alt="Kajian Fiqih") dengan rounded-[14px] shadow-lg object-cover w-full h-[420px]. Di atas gambar ini, tambahkan 3 elemen floating badge dengan absolute positioning (posisi menyebar: kiri-atas, kanan-tengah, kiri-bawah), masing-masing badge adalah <div> dengan class absolute bg-card rounded-full shadow-md px-4 py-2 flex items-center gap-2 text-sm font-semibold text-foreground berisi ikon kecil dari lucide-react (BookOpen, GraduationCap, Clock — sudah ada beberapa yang diimport, tambahkan yang belum) dan teks: "Kurikulum Terstruktur", "Pengajar Kompeten", "Belajar Fleksibel".
+Background section tetap bg-[hsl(var(--brand-red-tint))] seperti sekarang, jangan diubah. Jangan sentuh function lain di file ini.
+
+
+PROMPT 2 — Section Statistik
+
+Di file yang sama (LandingPage.tsx), tambahkan function baru bernama StatsSection tepat setelah function HeroSection, lalu panggil <StatsSection /> di dalam <main> pada export default function LandingPage(), posisinya tepat di antara <HeroSection /> dan <FeaturedClassesSection ... />.
+Isi StatsSection: terima props classCount: number dan instructorCount: number (hitung dari allClasses.length dan instructors.length yang sudah ada di komponen LandingPage, kirim sebagai props saat dipanggil). Section ini bg-background, container sama seperti section lain (container mx-auto px-5 sm:px-8 lg:px-16 py-12 max-w-[1200px]), isinya grid 3 kolom (grid grid-cols-3 gap-6 text-center):
+
+Kolom 1: angka besar {classCount}+ dengan class font-serif text-3xl sm:text-4xl font-bold text-primary, di bawahnya teks "Kelas Tersedia" dengan text-sm text-muted-foreground mt-1
+Kolom 2: sama tapi {instructorCount}+ dan label "Pengajar"
+Kolom 3: teks statis "100+" dan label "Santri Aktif" — tambahkan komentar {/* TODO: ganti dengan data asli jumlah user setelah auth diimplementasikan */} tepat di atasnya.
+
+
+
+PROMPT 3 — Category Section jadi Dark Card
+
+Di file yang sama, ubah function CategorySection (baris ~112). JANGAN ubah logic/props/struktur data (categoryCounts, isLoading, mapping CATEGORY_META), HANYA ubah className pada bagian render card-nya.
+Ganti div card dari className="h-full flex flex-col gap-3 rounded-[14px] border border-border bg-card p-6 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5" menjadi className="h-full flex flex-col gap-3 rounded-[14px] bg-[hsl(var(--brand-red-deep))] p-6 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5".
+Ganti icon container dari className="flex h-12 w-12 items-center justify-center rounded-[10px] bg-primary/10 text-primary" menjadi className="flex h-12 w-12 items-center justify-center rounded-[10px] bg-white/10 text-white".
+Ganti judul kategori (<h3>) dari className="font-serif text-lg font-semibold text-foreground group-hover:text-primary transition-colors" menjadi className="font-serif text-lg font-semibold text-white" (hapus efek hover warna karena background sudah gelap).
+Ganti deskripsi (<p> pertama) dari text-muted-foreground menjadi text-white/70.
+Ganti teks jumlah kelas dari className="text-sm font-semibold text-primary mt-auto pt-2" menjadi className="text-sm font-semibold text-[hsl(var(--brand-gold-pale))] mt-auto pt-2".
+Skeleton loading state (saat isLoading) biarkan tetap seperti semula (tidak perlu diubah jadi gelap).

@@ -100,3 +100,232 @@ export const ListInstructorsResponseItem = zod.object({
 export const ListInstructorsResponse = zod.array(ListInstructorsResponseItem)
 
 
+/**
+ * Returns published classes excluding ones already in the user's cart or enrollments
+ * @summary List recommended classes for a user
+ */
+export const listRecommendedClassesQueryLimitDefault = 3;
+
+export const ListRecommendedClassesQueryParams = zod.object({
+  "userId": zod.coerce.string(),
+  "limit": zod.coerce.number().default(listRecommendedClassesQueryLimitDefault)
+})
+
+export const ListRecommendedClassesResponseItem = zod.object({
+  "id": zod.string().uuid(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "coverImage": zod.string(),
+  "basePrice": zod.number(),
+  "discountPrice": zod.number().nullable(),
+  "status": zod.enum(['draft', 'published']),
+  "level": zod.union([zod.literal('pemula'),zod.literal('menengah'),zod.literal('lanjutan'),zod.literal(null)]).nullable(),
+  "category": zod.string().nullable(),
+  "instructor": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "photoUrl": zod.string()
+}),
+  "moduleCount": zod.number(),
+  "totalDurationMinutes": zod.number().nullable()
+})
+export const ListRecommendedClassesResponse = zod.array(ListRecommendedClassesResponseItem)
+
+
+/**
+ * @summary List cart items for a user
+ */
+export const ListCartItemsQueryParams = zod.object({
+  "userId": zod.coerce.string()
+})
+
+export const ListCartItemsResponseItem = zod.object({
+  "id": zod.string().uuid(),
+  "classId": zod.string().uuid(),
+  "addedAt": zod.string(),
+  "class": zod.object({
+  "id": zod.string().uuid(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "coverImage": zod.string(),
+  "basePrice": zod.number(),
+  "discountPrice": zod.number().nullable(),
+  "status": zod.enum(['draft', 'published']),
+  "level": zod.union([zod.literal('pemula'),zod.literal('menengah'),zod.literal('lanjutan'),zod.literal(null)]).nullable(),
+  "category": zod.string().nullable(),
+  "instructor": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "photoUrl": zod.string()
+}),
+  "moduleCount": zod.number(),
+  "totalDurationMinutes": zod.number().nullable()
+})
+})
+export const ListCartItemsResponse = zod.array(ListCartItemsResponseItem)
+
+
+/**
+ * @summary Add a class to the cart
+ */
+export const AddCartItemBody = zod.object({
+  "userId": zod.string(),
+  "classId": zod.string().uuid()
+})
+
+export const AddCartItemResponse = zod.object({
+  "id": zod.string().uuid(),
+  "classId": zod.string().uuid(),
+  "addedAt": zod.string(),
+  "class": zod.object({
+  "id": zod.string().uuid(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "coverImage": zod.string(),
+  "basePrice": zod.number(),
+  "discountPrice": zod.number().nullable(),
+  "status": zod.enum(['draft', 'published']),
+  "level": zod.union([zod.literal('pemula'),zod.literal('menengah'),zod.literal('lanjutan'),zod.literal(null)]).nullable(),
+  "category": zod.string().nullable(),
+  "instructor": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "photoUrl": zod.string()
+}),
+  "moduleCount": zod.number(),
+  "totalDurationMinutes": zod.number().nullable()
+})
+})
+
+
+/**
+ * @summary Remove an item from the cart
+ */
+export const RemoveCartItemParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const RemoveCartItemResponse = zod.void()
+
+
+/**
+ * @summary Create an invoice from the current cart
+ */
+export const CreateCheckoutBody = zod.object({
+  "userId": zod.string()
+})
+
+export const CreateCheckoutResponse = zod.object({
+  "id": zod.string().uuid(),
+  "userId": zod.string(),
+  "totalAmount": zod.number(),
+  "status": zod.enum(['pending', 'paid', 'failed']),
+  "createdAt": zod.string(),
+  "paidAt": zod.string().nullable(),
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "classId": zod.string().uuid(),
+  "price": zod.number(),
+  "class": zod.object({
+  "id": zod.string().uuid(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "coverImage": zod.string(),
+  "basePrice": zod.number(),
+  "discountPrice": zod.number().nullable(),
+  "status": zod.enum(['draft', 'published']),
+  "level": zod.union([zod.literal('pemula'),zod.literal('menengah'),zod.literal('lanjutan'),zod.literal(null)]).nullable(),
+  "category": zod.string().nullable(),
+  "instructor": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "photoUrl": zod.string()
+}),
+  "moduleCount": zod.number(),
+  "totalDurationMinutes": zod.number().nullable()
+})
+}))
+})
+
+
+/**
+ * Marks the invoice as paid, creates enrollments for each invoice item, and clears the user's cart
+ * @summary Simulate a successful payment webhook for an invoice
+ */
+export const SimulateCheckoutSuccessParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const SimulateCheckoutSuccessResponse = zod.object({
+  "id": zod.string().uuid(),
+  "userId": zod.string(),
+  "totalAmount": zod.number(),
+  "status": zod.enum(['pending', 'paid', 'failed']),
+  "createdAt": zod.string(),
+  "paidAt": zod.string().nullable(),
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "classId": zod.string().uuid(),
+  "price": zod.number(),
+  "class": zod.object({
+  "id": zod.string().uuid(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "coverImage": zod.string(),
+  "basePrice": zod.number(),
+  "discountPrice": zod.number().nullable(),
+  "status": zod.enum(['draft', 'published']),
+  "level": zod.union([zod.literal('pemula'),zod.literal('menengah'),zod.literal('lanjutan'),zod.literal(null)]).nullable(),
+  "category": zod.string().nullable(),
+  "instructor": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "photoUrl": zod.string()
+}),
+  "moduleCount": zod.number(),
+  "totalDurationMinutes": zod.number().nullable()
+})
+}))
+})
+
+
+/**
+ * @summary Simulate a failed payment webhook for an invoice
+ */
+export const SimulateCheckoutFailParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const SimulateCheckoutFailResponse = zod.object({
+  "id": zod.string().uuid(),
+  "userId": zod.string(),
+  "totalAmount": zod.number(),
+  "status": zod.enum(['pending', 'paid', 'failed']),
+  "createdAt": zod.string(),
+  "paidAt": zod.string().nullable(),
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "classId": zod.string().uuid(),
+  "price": zod.number(),
+  "class": zod.object({
+  "id": zod.string().uuid(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "coverImage": zod.string(),
+  "basePrice": zod.number(),
+  "discountPrice": zod.number().nullable(),
+  "status": zod.enum(['draft', 'published']),
+  "level": zod.union([zod.literal('pemula'),zod.literal('menengah'),zod.literal('lanjutan'),zod.literal(null)]).nullable(),
+  "category": zod.string().nullable(),
+  "instructor": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "photoUrl": zod.string()
+}),
+  "moduleCount": zod.number(),
+  "totalDurationMinutes": zod.number().nullable()
+})
+}))
+})
+
+
