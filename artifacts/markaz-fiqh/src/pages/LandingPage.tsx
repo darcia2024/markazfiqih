@@ -19,7 +19,12 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthContext';
-import { useListClasses, useListInstructors } from '@workspace/api-client-react';
+import {
+  useListClasses,
+  useListInstructors,
+  useListTestimonials,
+  useGetSettings,
+} from '@workspace/api-client-react';
 import {
   ClassCard,
   ClassCardSkeleton,
@@ -38,13 +43,20 @@ function TikTokIcon({ className }: { className?: string }) {
 // ── Nilai dasar lembaga ─────────────────────────────────────────────────
 const CORE_VALUES = ['Keilmuan', 'Amanah', 'Profesionalisme', 'Pelayanan Umat'];
 
-// ── Sosial media (arahkan ke URL asli nanti) ────────────────────────────
-const SOCIAL_LINKS: Array<{ label: string; icon: typeof Instagram | typeof TikTokIcon }> = [
-  { label: 'Instagram', icon: Instagram },
-  { label: 'Facebook', icon: Facebook },
-  { label: 'TikTok', icon: TikTokIcon },
-  { label: 'YouTube', icon: Youtube },
-];
+// ── Sosial media (URL diambil dari pengaturan situs) ────────────────────
+function buildSocialLinks(settings?: {
+  socialInstagram: string;
+  socialFacebook: string;
+  socialTiktok: string;
+  socialYoutube: string;
+}): Array<{ label: string; icon: typeof Instagram | typeof TikTokIcon; href: string }> {
+  return [
+    { label: 'Instagram', icon: Instagram, href: settings?.socialInstagram || '' },
+    { label: 'Facebook', icon: Facebook, href: settings?.socialFacebook || '' },
+    { label: 'TikTok', icon: TikTokIcon, href: settings?.socialTiktok || '' },
+    { label: 'YouTube', icon: Youtube, href: settings?.socialYoutube || '' },
+  ];
+}
 
 // ── Category metadata (ikon & deskripsi singkat, jumlah dihitung dari data asli) ──
 const CATEGORY_META: Record<string, { icon: typeof Layers; description: string }> = {
@@ -118,9 +130,11 @@ function HeroSection() {
 function StatsSection({
   classCount,
   instructorCount,
+  studentCountLabel,
 }: {
   classCount: number;
   instructorCount: number;
+  studentCountLabel: string;
 }) {
   return (
     <section className="bg-background">
@@ -139,8 +153,9 @@ function StatsSection({
             <p className="text-sm text-muted-foreground mt-1">Pengajar</p>
           </div>
           <div>
-            {/* TODO: ganti dengan data asli jumlah user setelah auth diimplementasikan */}
-            <p className="font-serif text-3xl sm:text-4xl font-bold text-primary">100+</p>
+            <p className="font-serif text-3xl sm:text-4xl font-bold text-primary">
+              {studentCountLabel}
+            </p>
             <p className="text-sm text-muted-foreground mt-1">Santri Aktif</p>
           </div>
         </div>
@@ -262,7 +277,11 @@ function CategorySection({
 }
 
 // ── Tentang Markaz Fiqih ─────────────────────────────────────────────────
-function AboutSection() {
+function AboutSection({
+  testimonials,
+}: {
+  testimonials: Array<{ id: string; name: string; role: string | null; content: string }>;
+}) {
   return (
     <section className="bg-background">
       <div className="container mx-auto px-5 sm:px-8 lg:px-16 py-16 max-w-[1200px]">
@@ -288,30 +307,27 @@ function AboutSection() {
             </div>
           </div>
 
-          <div className="bg-card rounded-[14px] shadow-md p-8 relative">
-            <Quote className="text-[hsl(var(--brand-gold-pale))] w-10 h-10 mb-4" />
-            {/* TODO: ganti dengan testimoni asli */}
-            <p className="text-base italic text-foreground mb-4">
-              &ldquo;Belajar fiqih di sini bikin saya paham dasar-dasar ibadah dengan runut
-              dan mudah dipahami.&rdquo;
-            </p>
-            <p className="text-sm font-semibold text-foreground">Santri Markaz Fiqih</p>
-          </div>
+          {testimonials.length > 0 && (
+            <div className="flex flex-col gap-5">
+              {testimonials.map((testimonial) => (
+                <div key={testimonial.id} className="bg-card rounded-[14px] shadow-md p-8 relative">
+                  <Quote className="text-[hsl(var(--brand-gold-pale))] w-10 h-10 mb-4" />
+                  <p className="text-base italic text-foreground mb-4">
+                    &ldquo;{testimonial.content}&rdquo;
+                  </p>
+                  <p className="text-sm font-semibold text-foreground">
+                    {testimonial.name}
+                    {testimonial.role ? ` — ${testimonial.role}` : ''}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </section>
   );
 }
-
-// ── Founder placeholder ──────────────────────────────────────────────────
-// TODO: ganti dengan data founder asli (nama, foto, dan bio) begitu tersedia.
-const FOUNDER_PLACEHOLDER = {
-  id: 'founder-placeholder',
-  name: 'Nama Founder',
-  role: 'Pendiri Markaz Fiqih',
-  photoUrl: 'https://ui-avatars.com/api/?name=Founder&background=A31F2C&color=fff',
-  bio: 'Bio founder akan diisi kemudian',
-};
 
 // ── Peran default untuk pengajar (bisa disesuaikan per instruktur nanti) ──
 const INSTRUCTOR_ROLE_LABEL = 'Pengajar Fiqih';
@@ -320,9 +336,15 @@ const INSTRUCTOR_ROLE_LABEL = 'Pengajar Fiqih';
 function TeachersSection({
   instructors,
   isLoading,
+  founderName,
+  founderBio,
+  founderPhotoUrl,
 }: {
   instructors: Array<{ id: string; name: string; photoUrl: string; bio?: string; classCount: number }>;
   isLoading: boolean;
+  founderName: string;
+  founderBio: string;
+  founderPhotoUrl: string;
 }) {
   return (
     <section className="bg-background">
@@ -333,12 +355,14 @@ function TeachersSection({
 
         <div className="bg-[hsl(var(--brand-red-tint))] rounded-[14px] p-6 flex items-center gap-4 mb-6">
           <Avatar className="h-16 w-16 border border-border">
-            <AvatarFallback className="bg-primary/10 text-primary text-lg">F</AvatarFallback>
+            <AvatarImage src={founderPhotoUrl} alt={founderName} />
+            <AvatarFallback className="bg-primary/10 text-primary text-lg">
+              {founderName.split(' ').map((n) => n[0]).join('').substring(0, 2) || 'F'}
+            </AvatarFallback>
           </Avatar>
-          {/* TODO: ganti dengan data founder asli */}
           <div>
-            <p className="font-serif font-semibold text-foreground">Nama Founder</p>
-            <p className="text-sm text-muted-foreground">Bio founder akan diisi kemudian</p>
+            <p className="font-serif font-semibold text-foreground">{founderName}</p>
+            <p className="text-sm text-muted-foreground">{founderBio}</p>
           </div>
         </div>
 
@@ -380,7 +404,11 @@ function TeachersSection({
 }
 
 // ── Sosial Media ─────────────────────────────────────────────────────────
-function SocialSection() {
+function SocialSection({
+  socialLinks,
+}: {
+  socialLinks: Array<{ label: string; icon: typeof Instagram | typeof TikTokIcon; href: string }>;
+}) {
   return (
     <section className="bg-[hsl(var(--brand-red-tint))]">
       <div className="container mx-auto px-5 sm:px-8 lg:px-16 py-12 max-w-[1200px] text-center">
@@ -392,7 +420,7 @@ function SocialSection() {
         </p>
 
         <div className="flex items-center justify-center gap-3">
-          {SOCIAL_LINKS.map(({ label, icon: Icon }) => (
+          {socialLinks.map(({ label, icon: Icon, href }) => (
             <Button
               key={label}
               asChild
@@ -400,8 +428,7 @@ function SocialSection() {
               size="icon"
               className="h-11 w-11 rounded-full bg-card border border-border text-primary hover:text-primary"
             >
-              {/* TODO: ganti href="#" dengan URL akun media sosial resmi Markaz Fiqih */}
-              <a href="#" aria-label={label} target="_blank" rel="noopener noreferrer">
+              <a href={href || '#'} aria-label={label} target="_blank" rel="noopener noreferrer">
                 <Icon className="h-5 w-5" />
               </a>
             </Button>
@@ -413,16 +440,22 @@ function SocialSection() {
 }
 
 // ── Footer ───────────────────────────────────────────────────────────────
-function LandingFooter() {
+function LandingFooter({
+  socialLinks,
+}: {
+  socialLinks: Array<{ label: string; icon: typeof Instagram | typeof TikTokIcon; href: string }>;
+}) {
   return (
     <footer className="bg-background border-t border-border">
       <div className="container mx-auto px-5 sm:px-8 lg:px-16 py-8 max-w-[1200px]">
         <div className="flex gap-3 justify-center mb-4">
-          {[Instagram, Facebook, Music2, Youtube].map((Icon, i) => (
+          {socialLinks.map(({ label, icon: Icon, href }) => (
             <a
-              key={i}
-              href="#"
-              /* TODO: ganti href dengan URL sosmed asli */
+              key={label}
+              href={href || '#'}
+              aria-label={label}
+              target="_blank"
+              rel="noopener noreferrer"
               className="w-9 h-9 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary transition-colors"
             >
               <Icon className="h-4 w-4" />
@@ -457,9 +490,16 @@ export default function LandingPage() {
 
   const classesQuery = useListClasses({ sort: 'newest' });
   const instructorsQuery = useListInstructors();
+  const testimonialsQuery = useListTestimonials();
+  const settingsQuery = useGetSettings();
 
   const allClasses = (classesQuery.data ?? []) as ClassSummary[];
   const instructors = instructorsQuery.data ?? [];
+  const testimonials = testimonialsQuery.data ?? [];
+  const settings = settingsQuery.data;
+
+  const featuredTestimonials = useMemo(() => testimonials.slice(0, 1), [testimonials]);
+  const socialLinks = useMemo(() => buildSocialLinks(settings), [settings]);
 
   const featuredClasses = useMemo(() => allClasses.slice(0, 6), [allClasses]);
 
@@ -494,22 +534,32 @@ export default function LandingPage() {
       <main className="flex-1">
         <HeroSection />
 
-        <StatsSection classCount={allClasses.length} instructorCount={instructors.length} />
+        <StatsSection
+          classCount={allClasses.length}
+          instructorCount={instructors.length}
+          studentCountLabel={settings?.studentCountLabel || '100+'}
+        />
 
         <FeaturedClassesSection classes={featuredClasses} isLoading={classesQuery.isLoading} />
 
         <CategorySection categoryCounts={categoryCounts} isLoading={classesQuery.isLoading} />
 
-        <AboutSection />
+        <AboutSection testimonials={featuredTestimonials} />
 
         {(instructorsQuery.isLoading || instructors.length > 0) && (
-          <TeachersSection instructors={instructors} isLoading={instructorsQuery.isLoading} />
+          <TeachersSection
+            instructors={instructors}
+            isLoading={instructorsQuery.isLoading}
+            founderName={settings?.founderName || ''}
+            founderBio={settings?.founderBio || ''}
+            founderPhotoUrl={settings?.founderPhotoUrl || ''}
+          />
         )}
 
-        <SocialSection />
+        <SocialSection socialLinks={socialLinks} />
       </main>
 
-      <LandingFooter />
+      <LandingFooter socialLinks={socialLinks} />
     </div>
   );
 }
