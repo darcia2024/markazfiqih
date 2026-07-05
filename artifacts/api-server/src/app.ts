@@ -25,7 +25,11 @@ app.use(
     },
   }),
 );
-app.use(cors());
+// Allow requests from the frontend. Set FRONTEND_URL in the environment to
+// restrict to a specific origin (e.g. the Vercel deployment URL). Falls back
+// to '*' so the API works out-of-the-box in development and before the
+// frontend domain is known.
+app.use(cors({ origin: process.env.FRONTEND_URL ?? "*" }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
