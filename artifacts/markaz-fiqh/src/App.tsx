@@ -6,6 +6,7 @@ import { Route, Switch, Router as WouterRouter } from 'wouter';
 import { AuthProvider } from '@/context/AuthContext';
 
 import LoginPage from '@/pages/LoginPage';
+import LandingPage from '@/pages/LandingPage';
 import CatalogPage from '@/pages/CatalogPage';
 import ClassDetailPage from '@/pages/ClassDetailPage';
 import MyClassesPage from '@/pages/MyClassesPage';
@@ -22,7 +23,8 @@ const queryClient = new QueryClient();
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={CatalogPage} />
+      <Route path="/" component={LandingPage} />
+      <Route path="/katalog" component={CatalogPage} />
       <Route path="/login" component={LoginPage} />
       <Route path="/class/:id" component={ClassDetailPage} />
       <Route path="/my-classes" component={MyClassesPage} />

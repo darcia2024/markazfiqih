@@ -47,7 +47,7 @@ function ClassNotFound() {
           Kelas yang kamu cari tidak tersedia atau belum dipublikasikan.
         </p>
         <Button asChild>
-          <Link href="/">Kembali ke Katalog</Link>
+          <Link href="/katalog">Kembali ke Katalog</Link>
         </Button>
       </main>
     </div>
@@ -91,7 +91,7 @@ export default function ClassDetailPage() {
         <div className="border-b bg-muted/30">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl py-3">
             <Link
-              href="/"
+              href="/katalog"
               className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors"
             >
               <ArrowLeft className="mr-1.5 h-4 w-4" />

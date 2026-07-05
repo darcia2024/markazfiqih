@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'wouter';
+import { Link, useSearch } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search,
@@ -42,13 +42,15 @@ function formatDuration(totalMinutes: number | null): string | null {
   return `${totalMinutes} menit`;
 }
 
-const LEVEL_LABEL: Record<string, string> = {
+export { formatPrice, formatDuration };
+
+export const LEVEL_LABEL: Record<string, string> = {
   pemula: 'Pemula',
   menengah: 'Menengah',
   lanjutan: 'Lanjutan',
 };
 
-const LEVEL_BADGE_VARIANT: Record<string, 'success' | 'gold' | 'destructive-pale'> = {
+export const LEVEL_BADGE_VARIANT: Record<string, 'success' | 'gold' | 'destructive-pale'> = {
   pemula: 'success',
   menengah: 'gold',
   lanjutan: 'destructive-pale',
@@ -67,11 +69,12 @@ function CatalogSidebar({ isAdmin }: { isAdmin: boolean }) {
             Markaz Fiqih
           </span>
         </Link>
+        {/* Logo tetap mengarah ke landing page ("/") */}
       </div>
 
       <nav className="flex-1 flex flex-col gap-1 px-3 py-4">
         <Link
-          href="/"
+          href="/katalog"
           className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-semibold text-primary bg-primary/5 border-l-[3px] border-primary -ml-3 pl-[9px]"
         >
           <LayoutGrid className="h-4 w-4" />
@@ -131,7 +134,7 @@ function CatalogHeader() {
 }
 
 // ── Instructor section ───────────────────────────────────────────────────
-function InstructorSection({
+export function InstructorSection({
   instructors,
   isLoading,
   selectedInstructorId,
@@ -186,7 +189,7 @@ function InstructorSection({
 }
 
 // ── Class card ───────────────────────────────────────────────────────────
-type ClassSummary = {
+export type ClassSummary = {
   id: string;
   title: string;
   description: string;
@@ -201,7 +204,7 @@ type ClassSummary = {
   totalDurationMinutes: number | null;
 };
 
-function ClassCard({ cls, index }: { cls: ClassSummary; index: number }) {
+export function ClassCard({ cls, index }: { cls: ClassSummary; index: number }) {
   const hasDiscount = cls.discountPrice != null;
   const durationLabel = formatDuration(cls.totalDurationMinutes);
 
@@ -287,7 +290,7 @@ function ClassCard({ cls, index }: { cls: ClassSummary; index: number }) {
   );
 }
 
-function ClassCardSkeleton() {
+export function ClassCardSkeleton() {
   return (
     <div className="h-full flex flex-col rounded-lg border border-border bg-card overflow-hidden">
       <Skeleton className="aspect-video w-full" />
@@ -329,9 +332,15 @@ export default function CatalogPage() {
   const { user } = useAuth();
   const isAdmin = Boolean(user && (user as { role?: string }).role === 'admin');
 
+  const searchParamsString = useSearch();
+  const initialCategory = useMemo(() => {
+    const params = new URLSearchParams(searchParamsString);
+    return params.get('category') ?? 'all';
+  }, [searchParamsString]);
+
   const [search, setSearch] = useState('');
   const [level, setLevel] = useState<'all' | 'pemula' | 'menengah' | 'lanjutan'>('all');
-  const [category, setCategory] = useState<'all' | string>('all');
+  const [category, setCategory] = useState<'all' | string>(initialCategory);
   const [sort, setSort] = useState<'newest' | 'price_asc' | 'price_desc' | 'popular'>('newest');
   const [selectedInstructorId, setSelectedInstructorId] = useState<string | null>(null);
 

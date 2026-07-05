@@ -246,7 +246,7 @@ function FailedView({ onRetry }: { onRetry: () => void }) {
           Coba Lagi
         </Button>
         <Button asChild variant="outline" size="lg">
-          <Link href="/">
+          <Link href="/katalog">
             <ArrowLeft className="w-4 h-4 mr-1" />
             Kembali ke Katalog
           </Link>

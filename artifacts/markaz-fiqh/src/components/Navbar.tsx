@@ -29,7 +29,7 @@ export function Navbar() {
             </Link>
             
             <nav className="hidden md:flex items-center gap-6">
-              <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+              <Link href="/katalog" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                 Katalog
               </Link>
               <Link href="/my-classes" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">

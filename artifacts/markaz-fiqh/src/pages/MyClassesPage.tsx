@@ -240,13 +240,13 @@ function EmptyState() {
 
       <div className="flex flex-col sm:flex-row gap-3">
         <Button asChild size="lg" className="gap-2">
-          <Link href="/">
+          <Link href="/katalog">
             <Sparkles className="w-4 h-4" />
             Jelajahi Katalog
           </Link>
         </Button>
         <Button asChild variant="outline" size="lg">
-          <Link href="/">Lihat Semua Kelas</Link>
+          <Link href="/katalog">Lihat Semua Kelas</Link>
         </Button>
       </div>
     </motion.div>
@@ -394,7 +394,7 @@ function DashboardContent() {
                 </p>
               </div>
               <Button asChild variant="outline" size="sm" className="shrink-0">
-                <Link href="/">Lihat Katalog</Link>
+                <Link href="/katalog">Lihat Katalog</Link>
               </Button>
             </div>
           </div>
