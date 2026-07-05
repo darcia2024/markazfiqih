@@ -1,4 +1,4 @@
-import { useParams, Link } from 'wouter';
+import { useParams, Link, useLocation } from 'wouter';
 import { motion } from 'framer-motion';
 import {
   ArrowLeft,
@@ -11,6 +11,7 @@ import {
   Infinity,
   Lock,
   PlayCircle,
+  ShoppingCart,
 } from 'lucide-react';
 
 import { Navbar } from '@/components/Navbar';
@@ -27,6 +28,7 @@ import { Separator } from '@/components/ui/separator';
 import { formatPrice } from '@/data/mockClasses';
 import { useGetClassById } from '@workspace/api-client-react';
 import { useAuth } from '@/context/AuthContext';
+import { useCart } from '@/context/CartContext';
 
 // ── Format duration ────────────────────────────────────────────────────────
 function formatDuration(minutes: number): string {
@@ -121,14 +123,28 @@ export default function ClassDetailPage() {
   const isEnrolledDemo =
     new URLSearchParams(window.location.search).get('demo') === 'enrolled';
 
+  const { classIdsInCart, addToCart, isAdding } = useCart();
+  const [, setLocation] = useLocation();
+
   if (isLoading) return <ClassDetailLoading />;
   if (isError || !cls || cls.status !== 'published') return <ClassNotFound />;
 
+  const inCart = classIdsInCart.has(cls.id);
+
+  const handleBuyClick = () => {
+    if (!user) {
+      setLocation(`/login?redirect=${encodeURIComponent(`/class/${cls.id}`)}`);
+      return;
+    }
+    if (inCart) {
+      setLocation('/keranjang');
+      return;
+    }
+    addToCart(cls.id);
+  };
+
   const hasDiscount = cls.discountPrice !== null;
   const totalMinutes = cls.totalDurationMinutes ?? 0;
-  const checkoutPath = user
-    ? `/checkout?classId=${cls.id}`
-    : `/login?redirect=${encodeURIComponent(`/checkout?classId=${cls.id}`)}`;
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -370,8 +386,14 @@ export default function ClassDetailPage() {
 
                     {/* CTA Button */}
                     <div className="p-6 space-y-4">
-                      <Button asChild size="lg" className="w-full text-base font-semibold">
-                        <Link href={checkoutPath}>Beli Kelas Sekarang</Link>
+                      <Button
+                        size="lg"
+                        className="w-full text-base font-semibold gap-2"
+                        disabled={isAdding}
+                        onClick={handleBuyClick}
+                      >
+                        <ShoppingCart className="w-4 h-4" />
+                        {inCart ? 'Lihat di Keranjang' : 'Tambah ke Keranjang'}
                       </Button>
 
                       {!user && (
