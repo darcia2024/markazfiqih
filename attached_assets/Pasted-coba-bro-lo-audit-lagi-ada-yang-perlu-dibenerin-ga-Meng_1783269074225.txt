@@ -1,0 +1,189 @@
+coba bro, lo audit lagi ada yang perlu dibenerin ga
+
+
+Mengaudit halaman yang masih bergantung pada mock data
+Mengaudit halaman yang masih bergantung pada mock data
+Bagus, aman — gak ada secret yang hardcoded. Lanjut cek beberapa hal lagi.
+
+
+Identified persistence issues dan compiled audit findings
+Identified persistence issues dan compiled audit findings
+Udah selesai audit-nya bro, dan ada beberapa temuan penting yang perlu lo tau sebelum lanjut ngoprek visual lagi. Gue urutin dari yang paling kritis:
+
+🔴 Kritis — Bug Aktif (bukan cuma "belum selesai", tapi salah)
+1. Checkout/Payment/Learn/Dashboard masih 100% mock, dan ini bikin bug nyata.
+Halaman CheckoutPage, PaymentPage, PaymentStatusPage, LearnPage, dan MyClassesPage semuanya masih pakai getClassById() dari file mockClasses.ts (data fiktif dengan ID kayak 'fiqih-thaharah'), bukan dari Supabase. Sementara itu, kelas asli yang udah lo seed punya UUID beneran (a0000000-...).
+
+Efeknya: begitu user klik "Daftar Sekarang" dari halaman detail kelas ASLI → diarahkan ke /checkout?classId=<uuid-asli> → tapi CheckoutPage nyari UUID itu di array mock, gak ketemu → otomatis fallback ke FALLBACK_CLASS_ID (kelas mock hardcoded). User bakal checkout kelas yang SALAH tanpa sadar — ini bukan cuma "belum jadi", tapi berpotensi nampilin data yang menyesatkan kalau gak keburu ketauan.
+
+2. Admin Panel gak nyimpen apapun ke database.
+AdminClassesPage dan AdminOrdersPage cuma manipulasi useState lokal di React (MOCK_CLASSES, MOCK_ORDERS). Kalau lo edit/tambah kelas lewat admin panel sekarang, itu cuma berubah di memori browser, ke-reset begitu refresh, dan gak nyentuh data asli yang lo seed manual lewat SQL kemarin.
+
+🟠 Gap Besar — Fitur yang Kita Diskusikan Tapi Belum Ada Sama Sekali
+Auth masih full mock — AuthContext.tsx cuma nyimpen user palsu ("Ahmad Fauzi") ke localStorage, gak ada Supabase Auth/Google OAuth beneran. Ini penting diketahui karena kita udah bahas soal setup credentials, tapi belum ada 1 baris kode pun yang benar-benar connect ke Supabase Auth.
+Backend cuma punya 2 endpoint: GET /classes dan GET /classes/:id (plus health check). Gak ada endpoint buat: dars, orders, enrollments, progress, cart, apalagi webhook Mayar. Tabel-tabel itu juga belum ada di skema Drizzle (lib/db/src/schema cuma punya classes.ts, instructors.ts, modules.ts).
+Halaman detail kelas gak punya 2-state (belum beli/sudah beli) yang kita rancang pakai referensi Scholarly — sekarang selalu nampilin state "belum beli" doang, gak ada logic cek enrollment (karena backendnya emang belum ada).
+Cart/keranjang multi-item belum ada — gak ketemu file/route apapun terkait cart.
+Landing page (Tentang, Founder, Sosial Media, Skillora-style hero) — udah dikonfirmasi kemarin, belum ada jejaknya sama sekali.
+🟡 Minor — Code Smell
+instructor.classCount di endpoint /classes/:id di-hardcode 0, padahal seharusnya hitungan asli jumlah kelas per instruktur.
+Fungsi formatPrice (utility asli, bukan mock) nyasar nempel di file mockClasses.ts — bakal bikin bingung nanti kalau file itu mau dihapus pas cleanup.
+✅ Yang Udah Solid
+Katalog & Detail Kelas (baca data) beneran connect ke Supabase, query-nya bersih, join instructor bener, filter search/level/category/instructor semua jalan di level database.
+Gak ada secret/API key yang ke-hardcode di kode — aman.
+Gak ada file yang corrupt/kepotong secara sintaksis.
+Rekomendasi Urutan Perbaikan
+Karena gap-nya sebesar ini, jangan lanjut ke visual/landing page dulu — itu cuma bikin nambah lapisan di atas fondasi yang bolong. Prioritas selanjutnya:
+
+Fix bug kritis #1 dulu (Checkout/Payment/Learn/MyClasses harus baca dari Supabase, bukan mock) — ini paling mendesak karena bisa nyesatin testing lo sendiri.
+Baru lanjut bangun backend yang bener buat dars, orders, enrollments, progress (balik ke rencana Fase C yang sempat ketunda).
+Auth beneran (Supabase Auth + Google).
+Setelah fondasi itu jalan, BARU lanjut cart, 2-state detail page, dan polish visual landing page.
+Mau gue bikinin prompt buat benerin bug #1 dan #2 dulu sebagai langkah pertama?
+
+yang mock biarin dulu, gue mau beresin tampilan UI dulu. Apa kira-kira yg bisa gue beresin dari tampilannya?
+
+
+Inventorisir peluang UI improvements lintas halaman aplikasi
+Inventorisir peluang UI improvements lintas halaman aplikasi
+Oke bro, noted — kita fokus visual dulu, backend/data urusan belakangan. Nih daftar yang worth dibenerin dari sisi tampilan, gue urutin dari yang paling "kosong"/berdampak ke yang paling kecil:
+
+1. Landing Page — ini PR paling besar
+Confirmed dari audit kemarin, section yang kita rancang belum ada satu pun:
+
+Hero masih 1 kolom polos (belum ada gambar + floating badge)
+Belum ada section Statistik
+Category masih card putih biasa (belum jadi dark card ala referensi Skillora)
+Belum ada section Tentang, Founder, Testimonial, Sosial Media
+Ini paling worth dikerjain duluan karena dampaknya paling gede buat first impression, dan gak butuh backend apapun — semua konten (Tentang, Founder placeholder) bisa hardcoded dulu.
+
+2. Dashboard "Kelas Saya" — udah ada, tapi masih versi sederhana
+Gue cek kodenya, sekarang isinya cuma: header + stats ringkas + grid kelas polos + banner CTA. Belum ada elemen yang kita rancang dari referensi Growly: filter chip kategori, section "Lanjutkan Belajar" (cards ringkas untuk kelas yang progressnya belum 100%), sidebar "Progress Belajar" dengan progress bar per kelas, dan section "Aktivitas Terakhir". Karena ini masih pakai data mock, aman dipercantik sekarang tanpa nunggu backend.
+
+3. Halaman Detail Kelas — state "sudah beli" belum pernah dibangun
+Sekarang cuma ada 1 tampilan (state "belum beli" — harga + tombol Daftar). State "sudah enroll" (progress donut, badge "Terdaftar", checkmark hijau di dars) yang kita rancang dari referensi Scholarly belum pernah dibuat sama sekali, padahal ini murni kerjaan visual — bisa dibangun sekarang pakai toggle/flag hardcoded (misal ?demo=enrolled di URL), gak perlu nunggu enrollment beneran.
+
+4. Halaman Keranjang — belum ada file-nya sama sekali
+Kalau lo masih mau lanjutin ide cart/keranjang multi-item, shell visualnya (list item, subtotal, section upsell "Kamu Mungkin Juga Suka", empty state) bisa dibangun pakai array dummy dulu — sama kayak yang lain, gak butuh persist ke database dulu.
+
+5. Panel Admin — paling generic sekarang
+Ini prioritas paling rendah (cuma internal tool, gak dilihat calon pembeli), tapi kalau mau dirapiin, bisa disamain gaya card/table-nya ke design system biar konsisten.
+
+Rekomendasi urutan eksekusi: #1 (Landing Page) dulu — pecah jadi prompt kecil kayak yang gue kasih kemarin (Hero → Statistik → Category dark card → Tentang → Founder+Sosmed), satu-satu biar gak kena limit lagi. Baru lanjut #2 (Dashboard) dan #3 (Detail state sudah-beli).
+
+Mau gue bikinin prompt detail buat mulai dari yang mana? Kalau iya, sebut aja nomernya (misal "mulai dari nomor 1 bagian hero").
+
+bikinin prompt yang paling detail dan tepat sasaran. Tampilan harus sesuai
+
+
+Mengidentifikasi varian komponen dan menyiapkan prompt detail
+Mengidentifikasi varian komponen dan menyiapkan prompt detail
+Nih bro, gue udah bongkar detail teknis kodenya (nama fungsi, class Tailwind yang udah ada, token warna) biar prompt-nya presisi 100% nyambung sama kode yang udah ada — gak nebak-nebak lagi. Kabar baiknya: design token (warna, shadow, radius) udah keimplementasi rapi banget di index.css, termasuk class siap pakai kayak bg-success-pale, text-brand-gold-hover, Badge variant="gold" dll. Jadi prompt di bawah ini tinggal manfaatin yang udah ada, gak perlu invent warna baru.
+
+Kirim satu-satu, cek preview dulu sebelum lanjut ke berikutnya.
+
+PROMPT 1 — Hero Section
+
+Di file artifacts/markaz-fiqh/src/pages/LandingPage.tsx, ubah function HeroSection() (baris ~34). Saat ini isinya 1 kolom. Ubah jadi grid 2 kolom (grid grid-cols-1 lg:grid-cols-2 gap-10 items-center): kolom kiri berisi konten yang SUDAH ADA (label kecil baru "SELAMAT DATANG DI MARKAZ FIQIH" ditambahkan di atas judul — gunakan text-xs font-semibold tracking-wider text-primary uppercase, lalu judul, paragraf, dan tombol yang sudah ada, urutannya tidak berubah).
+
+Kolom kanan (hanya tampil di lg: ke atas, gunakan hidden lg:block): buat container relative berisi <img> placeholder (pakai src="https://images.unsplash.com/photo-1584286595398-a59511e18ce2?w=800&q=80" sementara, alt="Kajian Fiqih") dengan rounded-[14px] shadow-lg object-cover w-full h-[420px]. Di atas gambar ini, tambahkan 3 elemen floating badge dengan absolute positioning (posisi menyebar: kiri-atas, kanan-tengah, kiri-bawah), masing-masing badge adalah <div> dengan class absolute bg-card rounded-full shadow-md px-4 py-2 flex items-center gap-2 text-sm font-semibold text-foreground berisi ikon kecil dari lucide-react (BookOpen, GraduationCap, Clock — sudah ada beberapa yang diimport, tambahkan yang belum) dan teks: "Kurikulum Terstruktur", "Pengajar Kompeten", "Belajar Fleksibel".
+
+Background section tetap bg-[hsl(var(--brand-red-tint))] seperti sekarang, jangan diubah. Jangan sentuh function lain di file ini.
+
+PROMPT 2 — Section Statistik
+
+Di file yang sama (LandingPage.tsx), tambahkan function baru bernama StatsSection tepat setelah function HeroSection, lalu panggil <StatsSection /> di dalam <main> pada export default function LandingPage(), posisinya tepat di antara <HeroSection /> dan <FeaturedClassesSection ... />.
+
+Isi StatsSection: terima props classCount: number dan instructorCount: number (hitung dari allClasses.length dan instructors.length yang sudah ada di komponen LandingPage, kirim sebagai props saat dipanggil). Section ini bg-background, container sama seperti section lain (container mx-auto px-5 sm:px-8 lg:px-16 py-12 max-w-[1200px]), isinya grid 3 kolom (grid grid-cols-3 gap-6 text-center):
+
+Kolom 1: angka besar {classCount}+ dengan class font-serif text-3xl sm:text-4xl font-bold text-primary, di bawahnya teks "Kelas Tersedia" dengan text-sm text-muted-foreground mt-1
+Kolom 2: sama tapi {instructorCount}+ dan label "Pengajar"
+Kolom 3: teks statis "100+" dan label "Santri Aktif" — tambahkan komentar {/* TODO: ganti dengan data asli jumlah user setelah auth diimplementasikan */} tepat di atasnya.
+PROMPT 3 — Category Section jadi Dark Card
+
+Di file yang sama, ubah function CategorySection (baris ~112). JANGAN ubah logic/props/struktur data (categoryCounts, isLoading, mapping CATEGORY_META), HANYA ubah className pada bagian render card-nya.
+
+Ganti div card dari className="h-full flex flex-col gap-3 rounded-[14px] border border-border bg-card p-6 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5" menjadi className="h-full flex flex-col gap-3 rounded-[14px] bg-[hsl(var(--brand-red-deep))] p-6 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5".
+
+Ganti icon container dari className="flex h-12 w-12 items-center justify-center rounded-[10px] bg-primary/10 text-primary" menjadi className="flex h-12 w-12 items-center justify-center rounded-[10px] bg-white/10 text-white".
+
+Ganti judul kategori (<h3>) dari className="font-serif text-lg font-semibold text-foreground group-hover:text-primary transition-colors" menjadi className="font-serif text-lg font-semibold text-white" (hapus efek hover warna karena background sudah gelap).
+
+Ganti deskripsi (<p> pertama) dari text-muted-foreground menjadi text-white/70.
+
+Ganti teks jumlah kelas dari className="text-sm font-semibold text-primary mt-auto pt-2" menjadi className="text-sm font-semibold text-[hsl(var(--brand-gold-pale))] mt-auto pt-2".
+
+Skeleton loading state (saat isLoading) biarkan tetap seperti semula (tidak perlu diubah jadi gelap).
+
+PROMPT 4 — Section Tentang & Testimonial
+
+Di file yang sama, tambahkan function baru AboutSection setelah CategorySection, panggil <AboutSection /> di <main> tepat setelah <CategorySection ... /> dan sebelum section Pengajar yang sudah ada.
+
+Isi: section dengan className="bg-background", container standar (container mx-auto px-5 sm:px-8 lg:px-16 py-16 max-w-[1200px]"), grid 2 kolom (grid grid-cols-1 lg:grid-cols-2 gap-10 items-center).
+
+Kolom kiri: label kecil "TENTANG KAMI" (text-xs font-semibold tracking-wider text-primary uppercase), lalu quote slogan besar: <p className="font-serif text-2xl font-bold italic text-primary mt-3 mb-4">"Membumikan Fiqih di Setiap Lini Kehidupan"</p>, lalu paragraf: <p className="text-base leading-[26px] text-muted-foreground">Markaz Fiqih adalah lembaga keilmuan independen yang berfokus pada pendidikan, publikasi, kaderisasi, dan pengembangan kajian fiqih berbasis turats madzhab Syafi'i.</p>. Di bawahnya, 4 badge nilai dasar menggunakan komponen Badge yang sudah ada (import dari @/components/ui/badge) dengan variant="gold", isi teks: "Keilmuan", "Amanah", "Profesionalisme", "Pelayanan Umat", disusun flex flex-wrap gap-2 mt-5.
+
+Kolom kanan: card testimonial — <div className="bg-card rounded-[14px] shadow-md p-8 relative">, berisi ikon Quote dari lucide-react dengan class text-[hsl(var(--brand-gold-pale))] w-10 h-10 mb-4 (import Quote dari lucide-react), lalu teks testimoni: <p className="text-base italic text-foreground mb-4">"Belajar fiqih di sini bikin saya paham dasar-dasar ibadah dengan runut dan mudah dipahami."</p> dengan komentar {/* TODO: ganti dengan testimoni asli */} di atasnya, lalu <p className="text-sm font-semibold text-foreground">Santri Markaz Fiqih</p>.
+
+PROMPT 5 — Founder & Sosial Media
+
+Di file yang sama, cari section Pengajar Kami yang sudah ada (di dalam <main>, yang memanggil <InstructorSection ... />). Tepat di atas komponen <InstructorSection>, tambahkan 1 card Founder tambahan sebelum grid instruktur, dengan struktur mirip card instruktur tapi lebih besar: <div className="bg-[hsl(var(--brand-red-tint))] rounded-[14px] p-6 flex items-center gap-4 mb-6"> berisi Avatar (import dari @/components/ui/avatar, sudah dipakai di file lain) ukuran h-16 w-16, dengan AvatarFallback teks "F", lalu di sampingnya <div> berisi <p className="font-serif font-semibold text-foreground">Nama Founder</p> dan <p className="text-sm text-muted-foreground">Bio founder akan diisi kemudian</p> — tambahkan komentar {/* TODO: ganti dengan data founder asli */} tepat di atas div ini.
+
+Lalu di function LandingFooter (baris ~171), tambahkan baris social media icon SEBELUM baris copyright yang sudah ada: <div className="flex gap-3 justify-center mb-4">, isi 4 <a href="#"> (tambahkan komentar {/* TODO: ganti href dengan URL sosmed asli */}) masing-masing berisi ikon dari lucide-react (Instagram, Facebook, Youtube — import yang belum ada; untuk TikTok gunakan ikon Music2 sebagai pengganti karena lucide-react tidak punya ikon TikTok resmi), dibungkus <div className="w-9 h-9 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary transition-colors">.
+
+PROMPT 6 — Dashboard "Kelas Saya" Revamp
+
+Di file artifacts/markaz-fiqh/src/pages/MyClassesPage.tsx, function DashboardContent (baris ~295). JANGAN ubah data source (tetap pakai enrolledClasses, progressMap, ENROLLED_CLASS_IDS, semua logic yang sudah ada) — HANYA restrukturisasi tampilan.
+
+Tambahkan baris filter chip horizontal tepat di bawah header "Kelas Saya" dan sebelum StatsSummary: gunakan komponen Button yang sudah diimport, variant "default" untuk chip aktif (default "Semua") dan variant "outline" untuk yang tidak aktif, size="sm", className="rounded-full", isi: "Semua", "Fiqih Tematik", "Fiqih Kitab", "Akademi" — untuk saat ini filter ini boleh belum funsional (state lokal saja, tidak perlu filter enrolledClasses secara nyata), cukup tampilan togglenya jalan.
+
+Ubah bagian "Grid kelas" yang sekarang jadi 2 kolom: gunakan grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8. Kolom kiri (utama) isinya section "Lanjutkan Belajar" (judul font-serif text-xl font-bold, filter enrolledClasses yang progress-nya di bawah 100%, tampilkan maksimal 3 menggunakan KelasCard yang sudah ada) — jika kosong, sembunyikan section ini. Di bawahnya, pindahkan grid semua kelas yang sudah ada sekarang (judul ganti jadi "Semua Kelas Dimiliki").
+
+Kolom kanan (sidebar, hidden lg:block, gunakan sticky top-20 self-start): card baru <div className="bg-card rounded-[14px] border p-5 shadow-sm"> judul "Progress Belajar" (font-serif font-semibold mb-4), lalu list SEMUA enrolledClasses masing-masing baris: judul kelas (text-sm font-medium truncate), progress bar (<div className="h-1.5 rounded-full bg-muted overflow-hidden mt-1"><div className="h-full bg-primary rounded-full" style={{width: ${persen}%}} /></div> — ganti class bg-primary jadi bg-success kalau persen === 100), dan persentase kecil di kanan (text-xs font-semibold text-muted-foreground). Reuse logic progressMap yang sudah ada untuk hitung persen per kelas.
+
+PROMPT 7 — State "Sudah Enroll" di Halaman Detail Kelas
+
+Di file artifacts/markaz-fiqh/src/pages/ClassDetailPage.tsx, tambahkan dukungan toggle visual sementara untuk preview state "sudah enroll" TANPA mengubah data asli — gunakan pola yang sama seperti ?demo=empty di MyClassesPage.tsx. Tambahkan pengecekan: const isEnrolledDemo = new URLSearchParams(window.location.search).get('demo') === 'enrolled'; di awal export default function ClassDetailPage().
+
+Jika isEnrolledDemo === true: ganti sidebar kanan (card harga + tombol "Daftar Sekarang") menjadi card "Progress Belajar" berisi lingkaran progress (boleh pakai library yang sudah terpasang seperti recharts PieChart atau buat manual dengan SVG <circle> stroke — pilih yang paling sederhana untuk diimplementasikan) menampilkan angka "75%" di tengah (gunakan text-success untuk warnanya karena bukan 100%), dan tombol Button bertuliskan "Lanjutkan Belajar" mengarah ke /learn/{cls.id}. Tambahkan juga Badge variant="success" bertuliskan "Terdaftar" di dekat judul kelas.
+
+Di dalam accordion daftar dars, jika isEnrolledDemo === true, ganti ikon lock (yang sekarang tampil di setiap dars) dengan ikon CheckCircle2 berwarna text-success untuk 3 dars pertama (simulasi sudah selesai) dan ikon PlayCircle biasa untuk sisanya (belum selesai tapi bisa diakses, bedakan dari state terkunci). Tambahkan komentar {/* TODO: ganti isEnrolledDemo dengan pengecekan enrollment asli setelah backend siap */} di baris pengecekan tadi.
+
+Setelah 7 prompt ini kelar semua, landing page + dashboard + detail page bakal punya tampilan lengkap sesuai yang kita rancang dari awal — tinggal nunggu backend nyusul buat gantiin bagian mock-nya. Screenshot hasilnya kalau udah keluar, gue bantu cek satu-satu.
+
+bro, gue mau konten-konten yang fleksibel itu bisa diatur sama admin. Misal testimoni, kelas, pengajar, socmed, dll
+
+tolong benerin ya
+
+
+Architected database-backed CMS solution untuk konten dinamis admin
+Architected database-backed CMS solution untuk konten dinamis admin
+Oke bro, ini permintaan yang bagus — tapi perlu gue jelasin dulu: ini artinya kita mau gak mau harus benerin sedikit bagian backend, karena "konten yang bisa diatur admin" itu定义nya emang harus nyimpen ke database, gak bisa cuma hardcode di kode kayak yang gue rancang di prompt 4 & 5 kemarin (testimonial, founder, sosmed masih placeholder hardcoded).
+
+Ini juga otomatis nyambungin balik ke bug yang kita tunda kemarin: Admin Panel buat kelas belum persist ke database — karena sekarang lo minta "kelas, pengajar" juga bisa diatur admin, ini justru momen yang tepat buat sekalian benerin itu.
+
+Yang perlu ditambah:
+2 tabel baru — buat testimoni & pengaturan situs (founder, sosmed, stats)
+Endpoint baru — read+write buat testimoni, settings, DAN kelas/pengajar (yang sekarang masih mock di admin panel)
+Admin UI baru — form buat edit settings & kelola testimoni
+
+
+Created a file, read a file
+Created a file, read a file
+Jalanin SQL ini dulu di Supabase SQL Editor, baru lanjut ke 3 prompt di bawah, urut:
+
+PROMPT 1 — Backend: Endpoint Testimonials & Settings
+
+Tambahkan endpoint baru di artifacts/api-server/src/routes/. Buat file testimonials.ts: GET /testimonials (return semua row dengan is_published = true, urutkan order_index), POST /testimonials (create baru), PUT /testimonials/:id (update), DELETE /testimonials/:id. Buat file settings.ts: GET /settings (return baris tunggal dengan id = 1 dari tabel site_settings), PUT /settings (update baris id = 1 — jangan buat endpoint create/delete untuk ini karena sifatnya singleton).
+
+Ikuti pola yang sudah ada di classes.ts untuk struktur kode (pakai Drizzle, response di-parse pakai Zod schema dari @workspace/api-zod, tambahkan schema baru di sana jika belum ada). Tambahkan skema tabel baru di lib/db/src/schema/ (buat testimonials.ts dan site-settings.ts, ikuti pola di classes.ts). Daftarkan kedua router baru ini di routes/index.ts.
+
+PROMPT 2 — Backend: Sambungin CRUD Kelas & Pengajar ke Database Asli
+
+Saat ini AdminClassesPage.tsx dan endpoint kelas hanya punya GET /classes dan GET /classes/:id — belum ada create/update/delete. Tambahkan di classes.ts: POST /classes, PUT /classes/:id, DELETE /classes/:id. Tambahkan juga di instructors.ts: POST /instructors, PUT /instructors/:id, DELETE /instructors/:id. Ikuti pola validasi Zod yang sudah ada di endpoint GET.
+
+Setelah endpoint ini ada, update AdminClassesPage.tsx agar TIDAK LAGI menggunakan useState<MockClass[]>(MOCK_CLASSES), ganti dengan React Query hook yang memanggil endpoint asli ini (buat hook baru di @workspace/api-client-react mengikuti pola useListClasses yang sudah ada, misal useCreateClass, useUpdateClass, useDeleteClass). Setiap aksi tambah/edit/hapus kelas di UI admin harus benar-benar tersimpan ke Supabase, bukan cuma state lokal React.
+
+PROMPT 3 — Frontend: Admin UI untuk Settings & Testimoni
+
+Tambahkan halaman baru di artifacts/markaz-fiqh/src/pages/admin/: AdminSettingsPage.tsx — form untuk edit site_settings (nama founder, bio founder, foto founder, 4 URL sosial media, label jumlah santri), gunakan komponen form yang sudah ada di admin lain sebagai referensi style, tombol "Simpan" memanggil PUT /settings. Tambahkan juga AdminTestimonialsPage.tsx — list testimoni dengan tombol tambah/edit/hapus, dan toggle is_published. Daftarkan kedua halaman baru ini di routing admin dan di sidebar navigasi admin yang sudah ada.

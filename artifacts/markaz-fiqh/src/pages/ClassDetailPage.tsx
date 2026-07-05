@@ -9,6 +9,8 @@ import {
   CheckCircle2,
   ShieldCheck,
   Infinity,
+  Lock,
+  PlayCircle,
 } from 'lucide-react';
 
 import { Navbar } from '@/components/Navbar';
@@ -18,6 +20,7 @@ import {
   Accordion,
   AccordionItem,
   AccordionTrigger,
+  AccordionContent,
 } from '@/components/ui/accordion';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
@@ -67,11 +70,56 @@ function ClassDetailLoading() {
   );
 }
 
+// ── Circular Progress (SVG manual, tanpa dependency tambahan) ───────────────
+function CircularProgress({ percent }: { percent: number }) {
+  const size = 120;
+  const stroke = 10;
+  const radius = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (percent / 100) * circumference;
+
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90">
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          strokeWidth={stroke}
+          className="stroke-muted"
+          fill="none"
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          strokeWidth={stroke}
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          className="stroke-success transition-all duration-700 ease-out"
+          fill="none"
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="text-2xl font-bold text-success">{percent}%</span>
+      </div>
+    </div>
+  );
+}
+
+// ── Placeholder daftar dars per modul (data dars asli belum tersedia dari API) ─
+// TODO: ganti dengan data dars asli dari backend setelah endpoint tersedia.
+const PLACEHOLDER_DARS_PER_MODULE = 3;
+
 // ── Detail Page ────────────────────────────────────────────────────────────
 export default function ClassDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const { data: cls, isLoading, isError } = useGetClassById(id ?? '');
+  // TODO: ganti isEnrolledDemo dengan pengecekan enrollment asli setelah backend siap
+  const isEnrolledDemo =
+    new URLSearchParams(window.location.search).get('demo') === 'enrolled';
 
   if (isLoading) return <ClassDetailLoading />;
   if (isError || !cls || cls.status !== 'published') return <ClassNotFound />;
@@ -111,11 +159,18 @@ export default function ClassDetailPage() {
                 transition={{ duration: 0.4 }}
                 className="space-y-4"
               >
-                {hasDiscount && (
-                  <Badge className="bg-brand-gold-pale text-brand-gold-hover hover:bg-brand-gold-pale border-brand-gold-pale text-xs font-semibold">
-                    Sedang Promo
-                  </Badge>
-                )}
+                <div className="flex flex-wrap items-center gap-2">
+                  {hasDiscount && (
+                    <Badge className="bg-brand-gold-pale text-brand-gold-hover hover:bg-brand-gold-pale border-brand-gold-pale text-xs font-semibold">
+                      Sedang Promo
+                    </Badge>
+                  )}
+                  {isEnrolledDemo && (
+                    <Badge variant="success" className="text-xs font-semibold">
+                      Terdaftar
+                    </Badge>
+                  )}
+                </div>
                 <h1 className="font-serif text-3xl md:text-4xl font-bold text-foreground leading-tight">
                   {cls.title}
                 </h1>
@@ -197,7 +252,7 @@ export default function ClassDetailPage() {
                 </div>
 
                 <Accordion type="multiple" className="space-y-2">
-                  {cls.modules.map((mod) => (
+                  {cls.modules.map((mod, modIdx) => (
                     <AccordionItem
                       key={mod.id}
                       value={mod.id}
@@ -220,6 +275,37 @@ export default function ClassDetailPage() {
                           </div>
                         </div>
                       </AccordionTrigger>
+                      <AccordionContent>
+                        <div className="space-y-1">
+                          {Array.from({ length: PLACEHOLDER_DARS_PER_MODULE }).map(
+                            (_, darsIdx) => {
+                              const globalDarsIndex =
+                                modIdx * PLACEHOLDER_DARS_PER_MODULE + darsIdx;
+                              const isDoneDemo = globalDarsIndex < 3;
+
+                              return (
+                                <div
+                                  key={darsIdx}
+                                  className="flex items-center gap-2.5 py-2 px-2 rounded-md text-sm text-muted-foreground"
+                                >
+                                  {isEnrolledDemo ? (
+                                    isDoneDemo ? (
+                                      <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
+                                    ) : (
+                                      <PlayCircle className="w-4 h-4 text-primary shrink-0" />
+                                    )
+                                  ) : (
+                                    <Lock className="w-4 h-4 text-muted-foreground shrink-0" />
+                                  )}
+                                  <span>
+                                    Pelajaran {darsIdx + 1} — {mod.title}
+                                  </span>
+                                </div>
+                              );
+                            },
+                          )}
+                        </div>
+                      </AccordionContent>
                     </AccordionItem>
                   ))}
                 </Accordion>
@@ -229,47 +315,75 @@ export default function ClassDetailPage() {
             {/* ── Right Column: Purchase Card ── */}
             <div className="lg:col-span-1">
               <div className="sticky top-24 rounded-xl border bg-card shadow-md overflow-hidden">
-                {/* Price section */}
-                <div className="p-6 space-y-1">
-                  {hasDiscount ? (
-                    <>
-                      <p className="text-sm text-muted-foreground line-through">
-                        {formatPrice(cls.basePrice)}
+                {isEnrolledDemo ? (
+                  <>
+                    {/* Progress Belajar (demo) */}
+                    <div className="p-6 flex flex-col items-center gap-4 text-center">
+                      <p className="text-sm font-semibold text-foreground">
+                        Progress Belajar
                       </p>
-                      <p className="text-3xl font-bold text-primary">
-                        {formatPrice(cls.discountPrice!)}
+                      <CircularProgress percent={75} />
+                      <p className="text-xs text-muted-foreground">
+                        3 dari {cls.moduleCount * PLACEHOLDER_DARS_PER_MODULE} pelajaran
+                        selesai
                       </p>
-                      <Badge
-                        variant="outline"
-                        className="border-brand-gold text-brand-gold-hover text-xs mt-1"
-                      >
-                        Hemat{' '}
-                        {formatPrice(cls.basePrice - cls.discountPrice!)}
-                      </Badge>
-                    </>
-                  ) : (
-                    <p className="text-3xl font-bold text-primary">
-                      {formatPrice(cls.basePrice)}
-                    </p>
-                  )}
-                </div>
+                    </div>
 
-                <Separator />
+                    <Separator />
 
-                {/* CTA Button */}
-                <div className="p-6 space-y-4">
-                  <Button asChild size="lg" className="w-full text-base font-semibold">
-                    <Link href={checkoutPath}>Beli Kelas Sekarang</Link>
-                  </Button>
+                    <div className="p-6">
+                      <Button asChild size="lg" className="w-full text-base font-semibold">
+                        <Link href={`/learn/${cls.id}`}>Lanjutkan Belajar</Link>
+                      </Button>
+                    </div>
 
-                  {!user && (
-                    <p className="text-xs text-center text-muted-foreground">
-                      Kamu akan diminta masuk dengan Google terlebih dahulu.
-                    </p>
-                  )}
-                </div>
+                    <Separator />
+                  </>
+                ) : (
+                  <>
+                    {/* Price section */}
+                    <div className="p-6 space-y-1">
+                      {hasDiscount ? (
+                        <>
+                          <p className="text-sm text-muted-foreground line-through">
+                            {formatPrice(cls.basePrice)}
+                          </p>
+                          <p className="text-3xl font-bold text-primary">
+                            {formatPrice(cls.discountPrice!)}
+                          </p>
+                          <Badge
+                            variant="outline"
+                            className="border-brand-gold text-brand-gold-hover text-xs mt-1"
+                          >
+                            Hemat{' '}
+                            {formatPrice(cls.basePrice - cls.discountPrice!)}
+                          </Badge>
+                        </>
+                      ) : (
+                        <p className="text-3xl font-bold text-primary">
+                          {formatPrice(cls.basePrice)}
+                        </p>
+                      )}
+                    </div>
 
-                <Separator />
+                    <Separator />
+
+                    {/* CTA Button */}
+                    <div className="p-6 space-y-4">
+                      <Button asChild size="lg" className="w-full text-base font-semibold">
+                        <Link href={checkoutPath}>Beli Kelas Sekarang</Link>
+                      </Button>
+
+                      {!user && (
+                        <p className="text-xs text-center text-muted-foreground">
+                          Kamu akan diminta masuk dengan Google terlebih dahulu.
+                        </p>
+                      )}
+                    </div>
+
+                    <Separator />
+                  </>
+                )}
 
                 {/* Class details */}
                 <div className="p-6 space-y-3">
