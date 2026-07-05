@@ -291,11 +291,55 @@ function StatsSummary({
   );
 }
 
+// ── Filter chip kategori (belum fungsional, tampilan saja) ──────────────────
+const CLASS_FILTERS = ['Semua', 'Fiqih Tematik', 'Fiqih Kitab', 'Akademi'];
+
+// ── Sidebar Progress Belajar ──────────────────────────────────────────────
+function ProgressSidebar({
+  classes,
+  progressMap,
+}: {
+  classes: MockClass[];
+  progressMap: Map<string, Set<string>>;
+}) {
+  return (
+    <aside className="hidden lg:block sticky top-20 self-start">
+      <div className="bg-card rounded-[14px] border p-5 shadow-sm">
+        <p className="font-serif font-semibold mb-4">Progress Belajar</p>
+        <div className="space-y-4">
+          {classes.map((cls) => {
+            const total = countTotalDars(cls);
+            const done = progressMap.get(cls.id)?.size ?? 0;
+            const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+            return (
+              <div key={cls.id}>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium truncate">{cls.title}</p>
+                  <span className="text-xs font-semibold text-muted-foreground shrink-0">
+                    {pct}%
+                  </span>
+                </div>
+                <div className="h-1.5 rounded-full bg-muted overflow-hidden mt-1">
+                  <div
+                    className={`h-full rounded-full ${pct === 100 ? 'bg-success' : 'bg-primary'}`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </aside>
+  );
+}
+
 // ── Halaman Utama ──────────────────────────────────────────────────────────────
 function DashboardContent() {
   const { user } = useAuth();
   const search = new URLSearchParams(window.location.search);
   const showEmpty = search.get('demo') === 'empty';
+  const [activeFilter, setActiveFilter] = useState('Semua');
 
   // Load enrolled classes from mock IDs
   const enrolledClasses = useMemo(
@@ -348,6 +392,21 @@ function DashboardContent() {
           </p>
         </motion.div>
 
+        {/* Filter chip kategori (belum fungsional) */}
+        <div className="flex flex-wrap gap-2 mb-8">
+          {CLASS_FILTERS.map((filter) => (
+            <Button
+              key={filter}
+              size="sm"
+              variant={activeFilter === filter ? 'default' : 'outline'}
+              className="rounded-full"
+              onClick={() => setActiveFilter(filter)}
+            >
+              {filter}
+            </Button>
+          ))}
+        </div>
+
         {classesToShow.length === 0 ? (
           <EmptyState />
         ) : (
@@ -361,41 +420,76 @@ function DashboardContent() {
               <StatsSummary classes={enrolledClasses} progressMap={progressMap} />
             </motion.div>
 
-            {/* Section heading */}
-            <div className="flex items-center justify-between">
-              <h2 className="font-serif text-xl font-bold text-foreground">
-                Kelas yang Dimiliki
-              </h2>
-              <span className="text-sm text-muted-foreground">
-                {classesToShow.length} kelas
-              </span>
-            </div>
+            {/* Grid 2 kolom: konten utama + sidebar progress */}
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
+              <div className="space-y-8">
+                {/* Lanjutkan Belajar */}
+                {(() => {
+                  const inProgressClasses = classesToShow
+                    .filter((cls) => {
+                      const total = countTotalDars(cls);
+                      const done = progressMap.get(cls.id)?.size ?? 0;
+                      const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+                      return pct < 100;
+                    })
+                    .slice(0, 3);
 
-            {/* Grid kelas */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              <AnimatePresence>
-                {classesToShow.map((cls, idx) => (
-                  <KelasCard key={cls.id} cls={cls} index={idx} />
-                ))}
-              </AnimatePresence>
-            </div>
+                  if (inProgressClasses.length === 0) return null;
 
-            {/* Ajakan tambah kelas */}
-            <div className="rounded-xl border-2 border-dashed bg-muted/20 flex flex-col sm:flex-row items-center gap-4 p-6">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                <Sparkles className="w-5 h-5 text-primary" />
+                  return (
+                    <div className="space-y-4">
+                      <h2 className="font-serif text-xl font-bold">Lanjutkan Belajar</h2>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <AnimatePresence>
+                          {inProgressClasses.map((cls, idx) => (
+                            <KelasCard key={cls.id} cls={cls} index={idx} />
+                          ))}
+                        </AnimatePresence>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Semua Kelas Dimiliki */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="font-serif text-xl font-bold text-foreground">
+                      Semua Kelas Dimiliki
+                    </h2>
+                    <span className="text-sm text-muted-foreground">
+                      {classesToShow.length} kelas
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <AnimatePresence>
+                      {classesToShow.map((cls, idx) => (
+                        <KelasCard key={cls.id} cls={cls} index={idx} />
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                </div>
+
+                {/* Ajakan tambah kelas */}
+                <div className="rounded-xl border-2 border-dashed bg-muted/20 flex flex-col sm:flex-row items-center gap-4 p-6">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <Sparkles className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="flex-1 text-center sm:text-left">
+                    <p className="font-semibold text-foreground text-sm">
+                      Tambah kelas baru
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Masih banyak ilmu fiqih yang bisa dipelajari — temukan kelas lainnya di katalog.
+                    </p>
+                  </div>
+                  <Button asChild variant="outline" size="sm" className="shrink-0">
+                    <Link href="/katalog">Lihat Katalog</Link>
+                  </Button>
+                </div>
               </div>
-              <div className="flex-1 text-center sm:text-left">
-                <p className="font-semibold text-foreground text-sm">
-                  Tambah kelas baru
-                </p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Masih banyak ilmu fiqih yang bisa dipelajari — temukan kelas lainnya di katalog.
-                </p>
-              </div>
-              <Button asChild variant="outline" size="sm" className="shrink-0">
-                <Link href="/katalog">Lihat Katalog</Link>
-              </Button>
+
+              <ProgressSidebar classes={enrolledClasses} progressMap={progressMap} />
             </div>
           </div>
         )}

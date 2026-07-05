@@ -11,6 +11,7 @@ import {
   Youtube,
   Clock,
   Quote,
+  Music2,
 } from 'lucide-react';
 
 import { Navbar } from '@/components/Navbar';
@@ -330,6 +331,17 @@ function TeachersSection({
           Pengajar Kami
         </h2>
 
+        <div className="bg-[hsl(var(--brand-red-tint))] rounded-[14px] p-6 flex items-center gap-4 mb-6">
+          <Avatar className="h-16 w-16 border border-border">
+            <AvatarFallback className="bg-primary/10 text-primary text-lg">F</AvatarFallback>
+          </Avatar>
+          {/* TODO: ganti dengan data founder asli */}
+          <div>
+            <p className="font-serif font-semibold text-foreground">Nama Founder</p>
+            <p className="text-sm text-muted-foreground">Bio founder akan diisi kemudian</p>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {isLoading &&
             Array.from({ length: 4 }).map((_, i) => (
@@ -361,27 +373,6 @@ function TeachersSection({
                 </p>
               </div>
             ))}
-
-          {/* Card Founder — data placeholder, lihat TODO di FOUNDER_PLACEHOLDER */}
-          {!isLoading && (
-            <div className="flex flex-col items-center text-center gap-3 rounded-[14px] border border-brand-red-border bg-[hsl(var(--brand-red-tint))] p-6 shadow-sm">
-              <Avatar className="h-16 w-16 border border-border">
-                <AvatarImage src={FOUNDER_PLACEHOLDER.photoUrl} alt={FOUNDER_PLACEHOLDER.name} />
-                <AvatarFallback className="bg-primary/10 text-primary text-lg">NF</AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="text-base font-semibold text-foreground leading-tight">
-                  {FOUNDER_PLACEHOLDER.name}
-                </p>
-                <p className="text-xs font-medium text-primary mt-0.5">
-                  {FOUNDER_PLACEHOLDER.role}
-                </p>
-              </div>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                {FOUNDER_PLACEHOLDER.bio}
-              </p>
-            </div>
-          )}
         </div>
       </div>
     </section>
@@ -426,6 +417,19 @@ function LandingFooter() {
   return (
     <footer className="bg-background border-t border-border">
       <div className="container mx-auto px-5 sm:px-8 lg:px-16 py-8 max-w-[1200px]">
+        <div className="flex gap-3 justify-center mb-4">
+          {[Instagram, Facebook, Music2, Youtube].map((Icon, i) => (
+            <a
+              key={i}
+              href="#"
+              /* TODO: ganti href dengan URL sosmed asli */
+              className="w-9 h-9 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary transition-colors"
+            >
+              <Icon className="h-4 w-4" />
+            </a>
+          ))}
+        </div>
+
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <div className="flex h-7 w-7 items-center justify-center rounded-sm bg-primary text-primary-foreground">
