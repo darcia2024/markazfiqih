@@ -1,0 +1,17 @@
+PROMPT 3 — Category Section jadi Dark Card
+
+Di file yang sama, ubah function CategorySection (baris ~112). JANGAN ubah logic/props/struktur data (categoryCounts, isLoading, mapping CATEGORY_META), HANYA ubah className pada bagian render card-nya.
+Ganti div card dari className="h-full flex flex-col gap-3 rounded-[14px] border border-border bg-card p-6 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5" menjadi className="h-full flex flex-col gap-3 rounded-[14px] bg-[hsl(var(--brand-red-deep))] p-6 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5".
+Ganti icon container dari className="flex h-12 w-12 items-center justify-center rounded-[10px] bg-primary/10 text-primary" menjadi className="flex h-12 w-12 items-center justify-center rounded-[10px] bg-white/10 text-white".
+Ganti judul kategori (<h3>) dari className="font-serif text-lg font-semibold text-foreground group-hover:text-primary transition-colors" menjadi className="font-serif text-lg font-semibold text-white" (hapus efek hover warna karena background sudah gelap).
+Ganti deskripsi (<p> pertama) dari text-muted-foreground menjadi text-white/70.
+Ganti teks jumlah kelas dari className="text-sm font-semibold text-primary mt-auto pt-2" menjadi className="text-sm font-semibold text-[hsl(var(--brand-gold-pale))] mt-auto pt-2".
+Skeleton loading state (saat isLoading) biarkan tetap seperti semula (tidak perlu diubah jadi gelap).
+
+
+PROMPT 4 — Section Tentang & Testimonial
+
+Di file yang sama, tambahkan function baru AboutSection setelah CategorySection, panggil <AboutSection /> di <main> tepat setelah <CategorySection ... /> dan sebelum section Pengajar yang sudah ada.
+Isi: section dengan className="bg-background", container standar (container mx-auto px-5 sm:px-8 lg:px-16 py-16 max-w-[1200px]"), grid 2 kolom (grid grid-cols-1 lg:grid-cols-2 gap-10 items-center).
+Kolom kiri: label kecil "TENTANG KAMI" (text-xs font-semibold tracking-wider text-primary uppercase), lalu quote slogan besar: <p className="font-serif text-2xl font-bold italic text-primary mt-3 mb-4">"Membumikan Fiqih di Setiap Lini Kehidupan"</p>, lalu paragraf: <p className="text-base leading-[26px] text-muted-foreground">Markaz Fiqih adalah lembaga keilmuan independen yang berfokus pada pendidikan, publikasi, kaderisasi, dan pengembangan kajian fiqih berbasis turats madzhab Syafi'i.</p>. Di bawahnya, 4 badge nilai dasar menggunakan komponen Badge yang sudah ada (import dari @/components/ui/badge) dengan variant="gold", isi teks: "Keilmuan", "Amanah", "Profesionalisme", "Pelayanan Umat", disusun flex flex-wrap gap-2 mt-5.
+Kolom kanan: card testimonial — <div className="bg-card rounded-[14px] shadow-md p-8 relative">, berisi ikon Quote dari lucide-react dengan class text-[hsl(var(--brand-gold-pale))] w-10 h-10 mb-4 (import Quote dari lucide-react), lalu teks testimoni: <p className="text-base italic text-foreground mb-4">"Belajar fiqih di sini bikin saya paham dasar-dasar ibadah dengan runut dan mudah dipahami."</p> dengan komentar {/* TODO: ganti dengan testimoni asli */} di atasnya, lalu <p className="text-sm font-semibold text-foreground">Santri Markaz Fiqih</p>.
