@@ -10,6 +10,10 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: classes
+    description: Class catalog operations
+  - name: instructors
+    description: Instructor operations
 paths:
   /healthz:
     get:
@@ -24,6 +28,59 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /classes:
+    get:
+      operationId: listClasses
+      tags: [classes]
+      summary: List published classes
+      description: Returns published classes only, with optional search/filter/sort
+      parameters:
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: level
+          in: query
+          schema:
+            $ref: "#/components/schemas/ClassLevel"
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: instructorId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: sort
+          in: query
+          schema:
+            type: string
+            enum: [newest, price_asc, price_desc, popular]
+      responses:
+        "200":
+          description: List of published classes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClassSummary"
+  /instructors:
+    get:
+      operationId: listInstructors
+      tags: [instructors]
+      summary: List instructors
+      description: Returns all instructors with their published class count
+      responses:
+        "200":
+          description: List of instructors
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/InstructorSummary"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +90,76 @@ components:
           type: string
       required:
         - status
+    ClassLevel:
+      type: string
+      enum: [pemula, menengah, lanjutan]
+    InstructorSummary:
+      type: object
+      required: [id, name, bio, photoUrl, classCount]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        bio:
+          type: string
+        photoUrl:
+          type: string
+        classCount:
+          type: integer
+    ClassInstructor:
+      type: object
+      required: [id, name, photoUrl]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        photoUrl:
+          type: string
+    ClassSummary:
+      type: object
+      required:
+        - id
+        - title
+        - description
+        - coverImage
+        - basePrice
+        - discountPrice
+        - status
+        - level
+        - category
+        - instructor
+        - moduleCount
+        - totalDurationMinutes
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        coverImage:
+          type: string
+        basePrice:
+          type: integer
+        discountPrice:
+          type: ["integer", "null"]
+        status:
+          type: string
+          enum: [draft, published]
+        level:
+          type: ["string", "null"]
+          enum: [pemula, menengah, lanjutan, null]
+        category:
+          type: ["string", "null"]
+        instructor:
+          $ref: "#/components/schemas/ClassInstructor"
+        moduleCount:
+          type: integer
+        totalDurationMinutes:
+          type: ["integer", "null"]
 

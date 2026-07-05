@@ -1,112 +1,284 @@
-import { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, BookOpen, Clock, Tag } from 'lucide-react';
+import {
+  Search,
+  LayoutGrid,
+  BookOpen,
+  Settings,
+  Bell,
+  Clock,
+  BookMarked,
+} from 'lucide-react';
 
-import { Navbar } from '@/components/Navbar';
+import { useAuth } from '@/context/AuthContext';
+import { useListClasses, useListInstructors } from '@workspace/api-client-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
-  PUBLISHED_CLASSES,
-  formatPrice,
-  countTotalDars,
-  countTotalDuration,
-  type MockClass,
-} from '@/data/mockClasses';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
 
-// ── Kartu Kelas ──────────────────────────────────────────────────────────────
-function ClassCard({ cls, index }: { cls: MockClass; index: number }) {
-  const hasDiscount = cls.discount_price !== null;
-  const totalDars = countTotalDars(cls);
-  const totalMinutes = countTotalDuration(cls);
-  const totalHours = Math.floor(totalMinutes / 60);
-  const remainingMins = totalMinutes % 60;
-  const durationLabel =
-    totalHours > 0
-      ? `${totalHours} jam ${remainingMins > 0 ? remainingMins + ' menit' : ''}`
-      : `${totalMinutes} menit`;
+function formatPrice(amount: number): string {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0,
+  }).format(amount);
+}
+
+function formatDuration(totalMinutes: number | null): string | null {
+  if (totalMinutes == null) return null;
+  const hours = Math.floor(totalMinutes / 60);
+  const mins = totalMinutes % 60;
+  if (hours > 0) return `${hours} jam${mins > 0 ? ` ${mins} menit` : ''}`;
+  return `${totalMinutes} menit`;
+}
+
+const LEVEL_LABEL: Record<string, string> = {
+  pemula: 'Pemula',
+  menengah: 'Menengah',
+  lanjutan: 'Lanjutan',
+};
+
+const LEVEL_BADGE_VARIANT: Record<string, 'success' | 'gold' | 'destructive-pale'> = {
+  pemula: 'success',
+  menengah: 'gold',
+  lanjutan: 'destructive-pale',
+};
+
+// ── Sidebar ──────────────────────────────────────────────────────────────
+function CatalogSidebar({ isAdmin }: { isAdmin: boolean }) {
+  return (
+    <aside className="hidden lg:flex fixed inset-y-0 left-0 w-[240px] flex-col bg-card border-r border-border z-40">
+      <div className="h-20 flex items-center px-6 border-b border-border">
+        <Link href="/" className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-sm bg-primary text-primary-foreground">
+            <BookOpen className="h-5 w-5" />
+          </div>
+          <span className="font-serif text-lg font-bold tracking-tight text-primary">
+            Markaz Fiqih
+          </span>
+        </Link>
+      </div>
+
+      <nav className="flex-1 flex flex-col gap-1 px-3 py-4">
+        <Link
+          href="/"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-semibold text-primary bg-primary/5 border-l-[3px] border-primary -ml-3 pl-[9px]"
+        >
+          <LayoutGrid className="h-4 w-4" />
+          Katalog Kelas
+        </Link>
+        <Link
+          href="/my-classes"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors border-l-[3px] border-transparent -ml-3 pl-[9px]"
+        >
+          <BookMarked className="h-4 w-4" />
+          Kelas Saya
+        </Link>
+      </nav>
+
+      {isAdmin && (
+        <div className="px-3 py-4 border-t border-border">
+          <Link
+            href="/admin"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors border-l-[3px] border-transparent -ml-3 pl-[9px]"
+          >
+            <Settings className="h-4 w-4" />
+            Panel Admin
+          </Link>
+        </div>
+      )}
+    </aside>
+  );
+}
+
+// ── Header ───────────────────────────────────────────────────────────────
+function CatalogHeader() {
+  const { user } = useAuth();
+  return (
+    <div className="flex items-center justify-between mb-6">
+      <h1 className="font-serif text-[32px] font-bold text-foreground leading-tight">
+        Jelajahi Kelas
+      </h1>
+      <div className="flex items-center gap-3">
+        <Button variant="ghost" size="icon" className="rounded-full" aria-label="Notifikasi">
+          <Bell className="h-5 w-5 text-muted-foreground" />
+        </Button>
+        <Avatar className="h-9 w-9 border border-border">
+          {user ? (
+            <>
+              <AvatarImage src={user.avatar_url} alt={user.name} />
+              <AvatarFallback className="bg-primary/10 text-primary">
+                {user.name.split(' ').map((n) => n[0]).join('').substring(0, 2)}
+              </AvatarFallback>
+            </>
+          ) : (
+            <AvatarFallback className="bg-muted text-muted-foreground">?</AvatarFallback>
+          )}
+        </Avatar>
+      </div>
+    </div>
+  );
+}
+
+// ── Instructor section ───────────────────────────────────────────────────
+function InstructorSection({
+  instructors,
+  isLoading,
+  selectedInstructorId,
+  onSelect,
+}: {
+  instructors: Array<{ id: string; name: string; photoUrl: string; classCount: number }>;
+  isLoading: boolean;
+  selectedInstructorId: string | null;
+  onSelect: (id: string | null) => void;
+}) {
+  if (!isLoading && instructors.length === 0) return null;
+
+  return (
+    <section className="mb-8">
+      <h3 className="text-xl font-semibold text-foreground mb-4">Instruktur</h3>
+      <div className="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1">
+        {isLoading
+          ? Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="flex flex-col items-center gap-2 shrink-0 w-24">
+                <Skeleton className="h-12 w-12 rounded-full" />
+                <Skeleton className="h-3 w-16" />
+              </div>
+            ))
+          : instructors.map((instructor) => (
+              <button
+                key={instructor.id}
+                type="button"
+                onClick={() =>
+                  onSelect(selectedInstructorId === instructor.id ? null : instructor.id)
+                }
+                className={`flex flex-col items-center gap-2 shrink-0 w-24 p-2 rounded-lg transition-colors ${
+                  selectedInstructorId === instructor.id
+                    ? 'bg-primary/5 ring-1 ring-primary/30'
+                    : 'hover:bg-muted'
+                }`}
+              >
+                <Avatar className="h-12 w-12 border border-border">
+                  <AvatarImage src={instructor.photoUrl} alt={instructor.name} />
+                  <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                    {instructor.name.split(' ').map((n) => n[0]).join('').substring(0, 2)}
+                  </AvatarFallback>
+                </Avatar>
+                <p className="text-sm font-semibold text-foreground text-center leading-tight line-clamp-2">
+                  {instructor.name}
+                </p>
+                <p className="text-xs text-muted-foreground">{instructor.classCount} Kelas</p>
+              </button>
+            ))}
+      </div>
+    </section>
+  );
+}
+
+// ── Class card ───────────────────────────────────────────────────────────
+type ClassSummary = {
+  id: string;
+  title: string;
+  description: string;
+  coverImage: string;
+  basePrice: number;
+  discountPrice: number | null;
+  status: 'draft' | 'published';
+  level: 'pemula' | 'menengah' | 'lanjutan' | null;
+  category: string | null;
+  instructor: { id: string; name: string; photoUrl: string };
+  moduleCount: number;
+  totalDurationMinutes: number | null;
+};
+
+function ClassCard({ cls, index }: { cls: ClassSummary; index: number }) {
+  const hasDiscount = cls.discountPrice != null;
+  const durationLabel = formatDuration(cls.totalDurationMinutes);
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 24 }}
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.97 }}
-      transition={{ duration: 0.35, delay: index * 0.07 }}
+      transition={{ duration: 0.3, delay: index * 0.05 }}
       layout
+      className="h-full"
     >
       <Link href={`/class/${cls.id}`} className="group block h-full">
-        <div className="h-full flex flex-col rounded-xl border bg-card overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5">
-          {/* Cover Image */}
+        <div className="h-full flex flex-col rounded-lg border border-border bg-card overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5">
           <div className="relative aspect-video overflow-hidden bg-muted">
             <img
-              src={cls.cover_image}
+              src={cls.coverImage}
               alt={cls.title}
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
-            {hasDiscount && (
+            {cls.level && (
               <div className="absolute top-3 left-3">
-                <Badge className="bg-brand-gold hover:bg-brand-gold text-white text-xs font-semibold px-2 py-0.5 shadow">
-                  <Tag className="w-3 h-3 mr-1" />
-                  Promo
+                <Badge variant={LEVEL_BADGE_VARIANT[cls.level]} className="text-[11px]">
+                  {LEVEL_LABEL[cls.level]}
                 </Badge>
               </div>
             )}
           </div>
 
-          {/* Content */}
-          <div className="flex flex-col flex-1 p-5 gap-3">
-            {/* Instructor */}
-            <p className="text-xs text-muted-foreground font-medium truncate">
-              {cls.instructor.name}
-            </p>
-
-            {/* Title */}
-            <h3 className="font-serif text-lg font-bold text-foreground leading-snug line-clamp-2 group-hover:text-primary transition-colors">
+          <div className="flex flex-col flex-1 p-4 gap-2">
+            <h4 className="text-base font-semibold text-foreground leading-snug line-clamp-2 min-h-[2.75rem] group-hover:text-primary transition-colors">
               {cls.title}
-            </h3>
+            </h4>
 
-            {/* Description */}
-            <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2 flex-1">
-              {cls.description}
-            </p>
-
-            {/* Stats */}
-            <div className="flex items-center gap-4 text-xs text-muted-foreground pt-1">
-              <span className="flex items-center gap-1">
-                <BookOpen className="w-3.5 h-3.5" />
-                {totalDars} pelajaran
-              </span>
-              <span className="flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5" />
-                {durationLabel}
+            <div className="flex items-center gap-2">
+              <Avatar className="h-6 w-6">
+                <AvatarImage src={cls.instructor.photoUrl} alt={cls.instructor.name} />
+                <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                  {cls.instructor.name.charAt(0)}
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-[13px] text-muted-foreground truncate">
+                {cls.instructor.name}
               </span>
             </div>
 
-            {/* Divider */}
-            <div className="border-t pt-3 mt-1">
-              {/* Price */}
-              <div className="flex items-baseline gap-2 mb-3">
-                {hasDiscount ? (
-                  <>
-                    <span className="text-xl font-bold text-primary">
-                      {formatPrice(cls.discount_price!)}
-                    </span>
-                    <span className="text-sm text-muted-foreground line-through">
-                      {formatPrice(cls.base_price)}
-                    </span>
-                  </>
-                ) : (
-                  <span className="text-xl font-bold text-primary">
-                    {formatPrice(cls.base_price)}
-                  </span>
-                )}
-              </div>
+            <div className="flex items-center gap-3 text-xs text-text-tertiary">
+              <span className="flex items-center gap-1">
+                <BookOpen className="w-3.5 h-3.5" />
+                {cls.moduleCount} Modul
+              </span>
+              {durationLabel && (
+                <span className="flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5" />
+                  {durationLabel}
+                </span>
+              )}
+            </div>
 
-              {/* CTA */}
-              <Button className="w-full" size="sm">
-                Lihat Detail
-              </Button>
+            <div className="mt-auto pt-2 flex flex-col justify-end min-h-[3.25rem]">
+              {hasDiscount ? (
+                <>
+                  <span className="text-[13px] text-text-tertiary line-through leading-tight">
+                    {formatPrice(cls.basePrice)}
+                  </span>
+                  <span className="text-lg font-bold text-primary leading-tight">
+                    {formatPrice(cls.discountPrice!)}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="text-[13px] leading-tight invisible select-none">&nbsp;</span>
+                  <span className="text-lg font-bold text-foreground leading-tight">
+                    {formatPrice(cls.basePrice)}
+                  </span>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -115,153 +287,171 @@ function ClassCard({ cls, index }: { cls: MockClass; index: number }) {
   );
 }
 
-// ── Halaman Katalog ───────────────────────────────────────────────────────────
-export default function CatalogPage() {
-  const [query, setQuery] = useState('');
+function ClassCardSkeleton() {
+  return (
+    <div className="h-full flex flex-col rounded-lg border border-border bg-card overflow-hidden">
+      <Skeleton className="aspect-video w-full" />
+      <div className="p-4 flex flex-col gap-3">
+        <Skeleton className="h-4 w-3/4" />
+        <Skeleton className="h-3 w-1/2" />
+        <Skeleton className="h-3 w-2/3" />
+        <Skeleton className="h-5 w-1/3 mt-2" />
+      </div>
+    </div>
+  );
+}
 
-  const filteredClasses = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return PUBLISHED_CLASSES;
-    return PUBLISHED_CLASSES.filter(
-      (cls) =>
-        cls.title.toLowerCase().includes(q) ||
-        cls.description.toLowerCase().includes(q) ||
-        cls.instructor.name.toLowerCase().includes(q)
-    );
-  }, [query]);
+// ── Empty state ──────────────────────────────────────────────────────────
+function EmptyState({ onReset }: { onReset: () => void }) {
+  return (
+    <motion.div
+      key="empty"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0 }}
+      className="col-span-full flex flex-col items-center justify-center py-20 text-center"
+    >
+      <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+        <Search className="w-7 h-7 text-muted-foreground" />
+      </div>
+      <p className="text-base text-muted-foreground max-w-sm">
+        Belum ada kelas yang cocok dengan pencarianmu
+      </p>
+      <Button variant="ghost" size="sm" className="mt-4" onClick={onReset}>
+        Reset Filter
+      </Button>
+    </motion.div>
+  );
+}
+
+// ── Halaman Katalog ───────────────────────────────────────────────────────
+export default function CatalogPage() {
+  const { user } = useAuth();
+  const isAdmin = Boolean(user && (user as { role?: string }).role === 'admin');
+
+  const [search, setSearch] = useState('');
+  const [level, setLevel] = useState<'all' | 'pemula' | 'menengah' | 'lanjutan'>('all');
+  const [category, setCategory] = useState<'all' | string>('all');
+  const [sort, setSort] = useState<'newest' | 'price_asc' | 'price_desc' | 'popular'>('newest');
+  const [selectedInstructorId, setSelectedInstructorId] = useState<string | null>(null);
+
+  const classesQuery = useListClasses({
+    search: search || undefined,
+    level: level === 'all' ? undefined : level,
+    category: category === 'all' ? undefined : category,
+    instructorId: selectedInstructorId ?? undefined,
+    sort,
+  });
+  const instructorsQuery = useListInstructors();
+
+  const classes = (classesQuery.data ?? []) as ClassSummary[];
+  const instructors = instructorsQuery.data ?? [];
+
+  const isLoading = classesQuery.isLoading;
+  const isEmpty = !isLoading && classes.length === 0;
+
+  const handleReset = () => {
+    setSearch('');
+    setLevel('all');
+    setCategory('all');
+    setSort('newest');
+    setSelectedInstructorId(null);
+  };
+
+  const hasActiveFilters = useMemo(
+    () => Boolean(search || level !== 'all' || category !== 'all' || selectedInstructorId),
+    [search, level, category, selectedInstructorId],
+  );
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar />
+    <div className="min-h-screen bg-background">
+      <CatalogSidebar isAdmin={isAdmin} />
 
-      <main className="flex-1">
-        {/* ── Hero ── */}
-        <section className="relative bg-primary py-20 lg:py-28 overflow-hidden">
-          {/* Decorative pattern */}
-          <div
-            className="absolute inset-0 opacity-10"
-            style={{
-              backgroundImage: `radial-gradient(circle at 1px 1px, white 1px, transparent 0)`,
-              backgroundSize: '32px 32px',
-            }}
-          />
-          <div className="relative container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl text-center space-y-6">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold text-white tracking-tight leading-tight">
-                Ilmu Fiqih,
-                <br />
-                <span className="text-brand-gold-pale">Tersusun Rapi</span>
-              </h1>
-              <p className="mt-4 text-lg md:text-xl text-white/80 max-w-2xl mx-auto leading-relaxed">
-                Kurikulum terstruktur dari asatidzah kompeten. Belajar dengan
-                urutan yang benar, dari dasar hingga mahir.
-              </p>
-            </motion.div>
+      <main className="lg:ml-[240px] px-6 lg:px-10 py-8 max-w-[1400px]">
+        <CatalogHeader />
 
-            {/* Search Bar */}
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.15 }}
-              className="relative max-w-xl mx-auto mt-8"
-            >
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
-              <Input
-                type="search"
-                placeholder="Cari kelas fiqih… (misal: thaharah, zakat, nikah)"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="pl-12 pr-4 py-3 h-12 text-base bg-white border-0 rounded-xl shadow-lg placeholder:text-muted-foreground/70 focus-visible:ring-2 focus-visible:ring-brand-gold"
-              />
-            </motion.div>
+        {/* Search + filters */}
+        <div className="flex flex-col md:flex-row gap-3 mb-8">
+          <div className="relative flex-1">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Input
+              type="search"
+              placeholder="Cari kelas fiqih..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10 h-11 rounded-sm"
+            />
           </div>
-        </section>
 
-        {/* ── Catalog Grid ── */}
-        <section className="py-14 lg:py-20">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl">
-            {/* Section header */}
-            <div className="flex items-center justify-between mb-8">
-              <div>
-                {query ? (
-                  <h2 className="font-serif text-2xl font-bold text-foreground">
-                    Hasil pencarian{' '}
-                    <span className="text-primary">"{query}"</span>
-                  </h2>
-                ) : (
-                  <h2 className="font-serif text-2xl font-bold text-foreground">
-                    Semua Kelas
-                  </h2>
-                )}
-                <p className="text-sm text-muted-foreground mt-1">
-                  {filteredClasses.length} kelas tersedia
-                </p>
-              </div>
+          <div className="flex gap-2 flex-wrap">
+            <Select value={level} onValueChange={(v) => setLevel(v as typeof level)}>
+              <SelectTrigger className="h-9 w-auto min-w-[110px] rounded-full px-4 text-[13px] border-secondary-border bg-secondary">
+                <SelectValue placeholder="Level" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Level</SelectItem>
+                <SelectItem value="pemula">Pemula</SelectItem>
+                <SelectItem value="menengah">Menengah</SelectItem>
+                <SelectItem value="lanjutan">Lanjutan</SelectItem>
+              </SelectContent>
+            </Select>
 
-              {query && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setQuery('')}
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  Hapus pencarian
-                </Button>
-              )}
-            </div>
+            <Select value={category} onValueChange={(v) => setCategory(v)}>
+              <SelectTrigger className="h-9 w-auto min-w-[130px] rounded-full px-4 text-[13px] border-secondary-border bg-secondary">
+                <SelectValue placeholder="Kategori" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Kategori</SelectItem>
+                <SelectItem value="Fiqih Tematik">Fiqih Tematik</SelectItem>
+                <SelectItem value="Fiqih Kitab">Fiqih Kitab</SelectItem>
+                <SelectItem value="Akademi">Akademi</SelectItem>
+              </SelectContent>
+            </Select>
 
-            {/* Grid */}
-            <AnimatePresence mode="popLayout">
-              {filteredClasses.length > 0 ? (
-                <motion.div
-                  layout
-                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
-                >
-                  {filteredClasses.map((cls, idx) => (
-                    <ClassCard key={cls.id} cls={cls} index={idx} />
-                  ))}
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="empty"
-                  initial={{ opacity: 0, y: 16 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  className="flex flex-col items-center justify-center py-24 text-center"
-                >
-                  <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-                    <Search className="w-7 h-7 text-muted-foreground" />
-                  </div>
-                  <h3 className="font-serif text-xl font-semibold text-foreground mb-2">
-                    Kelas tidak ditemukan
-                  </h3>
-                  <p className="text-muted-foreground max-w-sm">
-                    Tidak ada kelas yang cocok dengan kata kunci{' '}
-                    <strong>"{query}"</strong>. Coba kata kunci lain atau
-                    telusuri semua kelas.
-                  </p>
-                  <Button
-                    variant="outline"
-                    className="mt-6"
-                    onClick={() => setQuery('')}
-                  >
-                    Lihat Semua Kelas
-                  </Button>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            <Select value={sort} onValueChange={(v) => setSort(v as typeof sort)}>
+              <SelectTrigger className="h-9 w-auto min-w-[110px] rounded-full px-4 text-[13px] border-secondary-border bg-secondary">
+                <SelectValue placeholder="Urutkan" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Terbaru</SelectItem>
+                <SelectItem value="price_asc">Termurah</SelectItem>
+                <SelectItem value="price_desc">Termahal</SelectItem>
+                <SelectItem value="popular">Terpopuler</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
+        </div>
+
+        <InstructorSection
+          instructors={instructors}
+          isLoading={instructorsQuery.isLoading}
+          selectedInstructorId={selectedInstructorId}
+          onSelect={setSelectedInstructorId}
+        />
+
+        <section>
+          <h2 className="text-xl font-semibold text-foreground mb-4">Semua Kelas</h2>
+
+          <AnimatePresence mode="popLayout">
+            <motion.div
+              layout
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5"
+            >
+              {isLoading &&
+                Array.from({ length: 8 }).map((_, i) => <ClassCardSkeleton key={i} />)}
+
+              {!isLoading &&
+                classes.map((cls, idx) => <ClassCard key={cls.id} cls={cls} index={idx} />)}
+
+              {isEmpty && (
+                <EmptyState
+                  onReset={hasActiveFilters ? handleReset : () => window.location.reload()}
+                />
+              )}
+            </motion.div>
+          </AnimatePresence>
         </section>
       </main>
-
-      {/* Footer */}
-      <footer className="border-t py-8 text-center text-sm text-muted-foreground">
-        © 2026 Markaz Fiqh. Semua Hak Dilindungi.
-      </footer>
     </div>
   );
 }
