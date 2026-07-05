@@ -275,10 +275,20 @@ function LearnContent() {
     totalDars
   );
 
-  // Default: first dars of first module
-  const [activeDarsId, setActiveDarsId] = useState<string>(
-    () => cls?.modules[0]?.dars[0]?.id ?? ''
-  );
+  // Default: resume dari dars pertama yang belum selesai (baca localStorage)
+  const [activeDarsId, setActiveDarsId] = useState<string>(() => {
+    if (!cls) return '';
+    try {
+      const raw = localStorage.getItem(`markaz_progress_${classId}`);
+      const done = raw ? new Set(JSON.parse(raw) as string[]) : new Set<string>();
+      for (const m of cls.modules) {
+        for (const d of m.dars) {
+          if (!done.has(d.id)) return d.id;
+        }
+      }
+    } catch { /* fallback */ }
+    return cls.modules[0]?.dars[0]?.id ?? '';
+  });
 
   // Derived active dars info
   const activeEntry = useMemo(

@@ -1,63 +1,417 @@
-import React from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { Link } from 'wouter';
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  PlayCircle,
+  BookOpen,
+  Clock,
+  CheckCircle2,
+  Sparkles,
+  RotateCcw,
+  GraduationCap,
+  Trophy,
+  TrendingUp,
+} from 'lucide-react';
+
 import { Navbar } from '@/components/Navbar';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { Link } from 'wouter';
-import { PlayCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import {
+  getClassById,
+  countTotalDars,
+  countTotalDuration,
+  type MockClass,
+  type Dars,
+  type Module,
+} from '@/data/mockClasses';
+import { useAuth } from '@/context/AuthContext';
+
+// ── Mock: kelas yang "sudah dibeli" user ────────────────────────────────────
+// Di produksi nanti diambil dari API /my-courses sesuai enrollment DB.
+const ENROLLED_CLASS_IDS = ['fiqih-thaharah', 'fiqih-shalat', 'fiqih-puasa'];
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function formatDuration(min: number) {
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return h > 0 ? `${h} jam ${m > 0 ? m + ' mnt' : ''}` : `${m} mnt`;
+}
+
+/** Baca progress kelas dari localStorage (ditulis oleh LearnPage) */
+function readProgress(classId: string): Set<string> {
+  try {
+    const raw = localStorage.getItem(`markaz_progress_${classId}`);
+    return raw ? new Set(JSON.parse(raw) as string[]) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+/** Cari ID dars pertama yang belum selesai (untuk resume) */
+function findNextDarsId(cls: MockClass, done: Set<string>): string {
+  for (const m of cls.modules) {
+    for (const d of m.dars) {
+      if (!done.has(d.id)) return d.id;
+    }
+  }
+  // Semua selesai → kembalikan dars pertama
+  return cls.modules[0]?.dars[0]?.id ?? '';
+}
+
+// ── Hook: baca + subscribe progress dari localStorage ────────────────────────
+function useClassProgress(classId: string) {
+  const [completedIds, setCompletedIds] = useState<Set<string>>(() =>
+    readProgress(classId)
+  );
+
+  // Refresh ketika halaman mendapat focus (user baru balik dari LearnPage)
+  useEffect(() => {
+    const refresh = () => setCompletedIds(readProgress(classId));
+    window.addEventListener('focus', refresh);
+    // Juga refresh saat komponen mount
+    refresh();
+    return () => window.removeEventListener('focus', refresh);
+  }, [classId]);
+
+  return completedIds;
+}
+
+// ── KelasCard ─────────────────────────────────────────────────────────────────
+function KelasCard({ cls, index }: { cls: MockClass; index: number }) {
+  const completedIds = useClassProgress(cls.id);
+  const totalDars = useMemo(() => countTotalDars(cls), [cls]);
+  const totalMin = useMemo(() => countTotalDuration(cls), [cls]);
+  const completedCount = completedIds.size;
+  const pct = totalDars > 0 ? Math.round((completedCount / totalDars) * 100) : 0;
+  const isComplete = pct === 100;
+  const nextDarsId = useMemo(() => findNextDarsId(cls, completedIds), [cls, completedIds]);
+
+  const learnUrl = `/learn/${cls.id}`;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: index * 0.08 }}
+      className="flex flex-col rounded-xl border bg-card shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden"
+    >
+      {/* Cover */}
+      <div className="relative aspect-video overflow-hidden bg-muted">
+        <img
+          src={cls.cover_image}
+          alt={cls.title}
+          className="w-full h-full object-cover"
+        />
+        {/* Status badge overlay */}
+        <div className="absolute top-3 right-3">
+          {isComplete ? (
+            <Badge className="bg-green-500 hover:bg-green-500 text-white gap-1 shadow">
+              <Trophy className="w-3 h-3" />
+              Tuntas
+            </Badge>
+          ) : pct > 0 ? (
+            <Badge className="bg-primary hover:bg-primary text-white gap-1 shadow">
+              <TrendingUp className="w-3 h-3" />
+              Sedang Belajar
+            </Badge>
+          ) : (
+            <Badge variant="secondary" className="gap-1 shadow">
+              <BookOpen className="w-3 h-3" />
+              Belum Dimulai
+            </Badge>
+          )}
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="flex flex-col flex-1 p-5 gap-4">
+        {/* Instructor */}
+        <p className="text-xs text-muted-foreground font-medium truncate">
+          {cls.instructor.name}
+        </p>
+
+        {/* Title */}
+        <h3 className="font-serif text-lg font-bold text-foreground leading-snug line-clamp-2">
+          {cls.title}
+        </h3>
+
+        {/* Stats */}
+        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <BookOpen className="w-3.5 h-3.5" />
+            {cls.modules.length} modul · {totalDars} pelajaran
+          </span>
+          <span className="flex items-center gap-1">
+            <Clock className="w-3.5 h-3.5" />
+            {formatDuration(totalMin)}
+          </span>
+        </div>
+
+        {/* ── Progress Tracker ── */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground text-xs">
+              {completedCount} dari {totalDars} pelajaran selesai
+            </span>
+            <span
+              className={`font-bold text-sm ${
+                isComplete ? 'text-green-600' : pct > 0 ? 'text-primary' : 'text-muted-foreground'
+              }`}
+            >
+              {pct}% Selesai
+            </span>
+          </div>
+          {/* Progress bar */}
+          <div className="h-2 bg-muted rounded-full overflow-hidden">
+            <motion.div
+              className={`h-full rounded-full ${isComplete ? 'bg-green-500' : 'bg-primary'}`}
+              initial={{ width: 0 }}
+              animate={{ width: `${pct}%` }}
+              transition={{ duration: 0.7, ease: 'easeOut', delay: index * 0.1 + 0.2 }}
+            />
+          </div>
+        </div>
+
+        {/* ── CTA: Lanjutkan Belajar ── */}
+        <div className="mt-auto pt-1">
+          {isComplete ? (
+            <div className="space-y-2">
+              <div className="flex items-center justify-center gap-2 rounded-lg bg-green-50 border border-green-200 py-2.5 px-3">
+                <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
+                <span className="text-sm font-semibold text-green-700">
+                  Semua pelajaran selesai! 🎉
+                </span>
+              </div>
+              <Button asChild variant="outline" className="w-full gap-2 text-sm">
+                <Link href={learnUrl}>
+                  <RotateCcw className="w-4 h-4" />
+                  Tonton Ulang
+                </Link>
+              </Button>
+            </div>
+          ) : pct > 0 ? (
+            <Button asChild className="w-full gap-2 text-sm">
+              <Link href={learnUrl}>
+                <PlayCircle className="w-4 h-4" />
+                Lanjutkan Belajar
+              </Link>
+            </Button>
+          ) : (
+            <Button asChild className="w-full gap-2 text-sm" variant="default">
+              <Link href={learnUrl}>
+                <Sparkles className="w-4 h-4" />
+                Mulai Belajar
+              </Link>
+            </Button>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ── Empty State ───────────────────────────────────────────────────────────────
+function EmptyState() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="flex flex-col items-center justify-center text-center py-24 px-4"
+    >
+      {/* Illustration */}
+      <div className="relative mb-8">
+        <div className="w-32 h-32 rounded-full bg-primary/10 flex items-center justify-center">
+          <GraduationCap className="w-16 h-16 text-primary/40" />
+        </div>
+        <div className="absolute -top-1 -right-1 w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shadow-sm border border-amber-200">
+          <BookOpen className="w-5 h-5 text-amber-500" />
+        </div>
+      </div>
+
+      <h2 className="font-serif text-2xl font-bold text-foreground mb-3">
+        Kamu Belum Memiliki Kelas
+      </h2>
+      <p className="text-muted-foreground max-w-sm leading-relaxed mb-8">
+        Mulai perjalanan menuntut ilmu fiqih dengan memilih kelas yang sesuai
+        kebutuhanmu. Ratusan santri sudah merasakan manfaatnya!
+      </p>
+
+      <div className="flex flex-col sm:flex-row gap-3">
+        <Button asChild size="lg" className="gap-2">
+          <Link href="/">
+            <Sparkles className="w-4 h-4" />
+            Jelajahi Katalog
+          </Link>
+        </Button>
+        <Button asChild variant="outline" size="lg">
+          <Link href="/">Lihat Semua Kelas</Link>
+        </Button>
+      </div>
+    </motion.div>
+  );
+}
+
+// ── Summary Stats Bar ─────────────────────────────────────────────────────────
+function StatsSummary({
+  classes,
+  progressMap,
+}: {
+  classes: MockClass[];
+  progressMap: Map<string, Set<string>>;
+}) {
+  const totalOwned = classes.length;
+  const totalCompleted = classes.filter((c) => {
+    const done = progressMap.get(c.id) ?? new Set();
+    return done.size === countTotalDars(c);
+  }).length;
+  const totalDarsAcross = classes.reduce((s, c) => s + countTotalDars(c), 0);
+  const totalDoneDars = classes.reduce(
+    (s, c) => s + (progressMap.get(c.id)?.size ?? 0),
+    0
+  );
+  const overallPct =
+    totalDarsAcross > 0 ? Math.round((totalDoneDars / totalDarsAcross) * 100) : 0;
+
+  return (
+    <div className="grid grid-cols-3 gap-4 rounded-xl border bg-card p-5 shadow-sm">
+      {[
+        { label: 'Kelas Dimiliki', value: totalOwned, icon: BookOpen, color: 'text-primary' },
+        { label: 'Kelas Tuntas', value: totalCompleted, icon: Trophy, color: 'text-green-600' },
+        { label: 'Progress Keseluruhan', value: `${overallPct}%`, icon: TrendingUp, color: 'text-amber-500' },
+      ].map(({ label, value, icon: Icon, color }) => (
+        <div key={label} className="text-center space-y-1">
+          <Icon className={`w-5 h-5 mx-auto ${color}`} />
+          <p className={`text-2xl font-bold ${color}`}>{value}</p>
+          <p className="text-xs text-muted-foreground">{label}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Halaman Utama ──────────────────────────────────────────────────────────────
+function DashboardContent() {
+  const { user } = useAuth();
+  const search = new URLSearchParams(window.location.search);
+  const showEmpty = search.get('demo') === 'empty';
+
+  // Load enrolled classes from mock IDs
+  const enrolledClasses = useMemo(
+    () =>
+      ENROLLED_CLASS_IDS.map((id) => getClassById(id)).filter(
+        (c): c is MockClass => c !== undefined
+      ),
+    []
+  );
+
+  // Progress map (read once; KelasCard also hooks individually for live updates)
+  const [progressMap, setProgressMap] = useState<Map<string, Set<string>>>(() => {
+    const m = new Map<string, Set<string>>();
+    for (const id of ENROLLED_CLASS_IDS) m.set(id, readProgress(id));
+    return m;
+  });
+
+  useEffect(() => {
+    const refresh = () => {
+      const m = new Map<string, Set<string>>();
+      for (const id of ENROLLED_CLASS_IDS) m.set(id, readProgress(id));
+      setProgressMap(m);
+    };
+    window.addEventListener('focus', refresh);
+    return () => window.removeEventListener('focus', refresh);
+  }, []);
+
+  const classesToShow = showEmpty ? [] : enrolledClasses;
+
+  return (
+    <div className="min-h-screen flex flex-col bg-background">
+      <Navbar />
+
+      <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl py-10 lg:py-14">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8 space-y-1"
+        >
+          <h1 className="font-serif text-3xl lg:text-4xl font-bold text-foreground">
+            Kelas Saya
+          </h1>
+          <p className="text-muted-foreground">
+            Assalamu'alaikum,{' '}
+            <span className="font-medium text-foreground">
+              {user?.name?.split(' ')[0] ?? 'Santri'}
+            </span>
+            . Lanjutkan perjalanan menuntut ilmumu.
+          </p>
+        </motion.div>
+
+        {classesToShow.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <div className="space-y-8">
+            {/* Stats summary */}
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              <StatsSummary classes={enrolledClasses} progressMap={progressMap} />
+            </motion.div>
+
+            {/* Section heading */}
+            <div className="flex items-center justify-between">
+              <h2 className="font-serif text-xl font-bold text-foreground">
+                Kelas yang Dimiliki
+              </h2>
+              <span className="text-sm text-muted-foreground">
+                {classesToShow.length} kelas
+              </span>
+            </div>
+
+            {/* Grid kelas */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <AnimatePresence>
+                {classesToShow.map((cls, idx) => (
+                  <KelasCard key={cls.id} cls={cls} index={idx} />
+                ))}
+              </AnimatePresence>
+            </div>
+
+            {/* Ajakan tambah kelas */}
+            <div className="rounded-xl border-2 border-dashed bg-muted/20 flex flex-col sm:flex-row items-center gap-4 p-6">
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <Sparkles className="w-5 h-5 text-primary" />
+              </div>
+              <div className="flex-1 text-center sm:text-left">
+                <p className="font-semibold text-foreground text-sm">
+                  Tambah kelas baru
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Masih banyak ilmu fiqih yang bisa dipelajari — temukan kelas lainnya di katalog.
+                </p>
+              </div>
+              <Button asChild variant="outline" size="sm" className="shrink-0">
+                <Link href="/">Lihat Katalog</Link>
+              </Button>
+            </div>
+          </div>
+        )}
+      </main>
+
+      <footer className="border-t py-8 text-center text-sm text-muted-foreground">
+        © 2026 Markaz Fiqh. Semua Hak Dilindungi.
+      </footer>
+    </div>
+  );
+}
 
 export default function MyClassesPage() {
   return (
     <ProtectedRoute>
-      <div className="min-h-screen flex flex-col bg-background">
-        <Navbar />
-        
-        <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 max-w-5xl py-12">
-          <div className="space-y-8">
-            <div>
-              <h1 className="font-serif text-3xl font-bold text-foreground">Kelas Saya</h1>
-              <p className="text-muted-foreground mt-2">Lanjutkan perjalanan menuntut ilmu Anda.</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="font-serif text-xl">Fiqih Thaharah Dasar</CardTitle>
-                  <CardDescription>Progress Pembelajaran</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">3 dari 12 Modul diselesaikan</span>
-                    <span className="font-medium">25%</span>
-                  </div>
-                  <Progress value={25} className="h-2" />
-                </CardContent>
-                <CardFooter>
-                  <Button asChild className="w-full" variant="default">
-                    <Link href="/learn/f-101" className="flex items-center justify-center gap-2">
-                      <PlayCircle className="h-4 w-4" /> Lanjutkan Belajar
-                    </Link>
-                  </Button>
-                </CardFooter>
-              </Card>
-
-              <Card className="border-dashed border-2 bg-muted/30 flex flex-col items-center justify-center p-8 text-center space-y-4">
-                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                  <PlayCircle className="h-6 w-6" />
-                </div>
-                <div>
-                  <h3 className="font-medium text-foreground">Tambah Kelas Baru</h3>
-                  <p className="text-sm text-muted-foreground mt-1">Eksplorasi katalog untuk menemukan kelas lainnya.</p>
-                </div>
-                <Button asChild variant="outline" className="mt-2">
-                  <Link href="/">Lihat Katalog</Link>
-                </Button>
-              </Card>
-            </div>
-          </div>
-        </main>
-      </div>
+      <DashboardContent />
     </ProtectedRoute>
   );
 }
