@@ -13,4 +13,12 @@ export interface UpdateSiteSettingsRequest {
   contactEmail?: string;
   contactPhone?: string;
   address?: string;
+  founderName?: string;
+  founderBio?: string;
+  founderPhotoUrl?: string;
+  socialInstagram?: string;
+  socialYoutube?: string;
+  socialFacebook?: string;
+  socialTiktok?: string;
+  studentCountLabel?: string;
 }

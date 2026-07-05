@@ -18,13 +18,15 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthContext';
-import { BookOpen, LayoutDashboard, GraduationCap, Receipt, Users, ExternalLink } from 'lucide-react';
+import { BookOpen, LayoutDashboard, GraduationCap, Receipt, Users, ExternalLink, MessageSquareQuote, Settings } from 'lucide-react';
 
 const NAV_ITEMS = [
   { title: 'Dashboard', url: '/admin', icon: LayoutDashboard },
   { title: 'Manajemen Kelas', url: '/admin/classes', icon: GraduationCap },
   { title: 'Pesanan', url: '/admin/orders', icon: Receipt },
+  { title: 'Testimoni', url: '/admin/testimonials', icon: MessageSquareQuote },
   { title: 'Pengguna & Akses', url: '/admin/users', icon: Users },
+  { title: 'Pengaturan', url: '/admin/settings', icon: Settings },
 ];
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {

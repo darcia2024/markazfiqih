@@ -558,6 +558,14 @@ export const GetSettingsResponse = zod.object({
   "contactEmail": zod.string(),
   "contactPhone": zod.string(),
   "address": zod.string(),
+  "founderName": zod.string(),
+  "founderBio": zod.string(),
+  "founderPhotoUrl": zod.string(),
+  "socialInstagram": zod.string(),
+  "socialYoutube": zod.string(),
+  "socialFacebook": zod.string(),
+  "socialTiktok": zod.string(),
+  "studentCountLabel": zod.string(),
   "updatedAt": zod.string()
 })
 
@@ -572,7 +580,15 @@ export const UpdateSettingsBody = zod.object({
   "logoUrl": zod.string().optional(),
   "contactEmail": zod.string().optional(),
   "contactPhone": zod.string().optional(),
-  "address": zod.string().optional()
+  "address": zod.string().optional(),
+  "founderName": zod.string().optional(),
+  "founderBio": zod.string().optional(),
+  "founderPhotoUrl": zod.string().optional(),
+  "socialInstagram": zod.string().optional(),
+  "socialYoutube": zod.string().optional(),
+  "socialFacebook": zod.string().optional(),
+  "socialTiktok": zod.string().optional(),
+  "studentCountLabel": zod.string().optional()
 })
 
 export const UpdateSettingsResponse = zod.object({
@@ -583,6 +599,14 @@ export const UpdateSettingsResponse = zod.object({
   "contactEmail": zod.string(),
   "contactPhone": zod.string(),
   "address": zod.string(),
+  "founderName": zod.string(),
+  "founderBio": zod.string(),
+  "founderPhotoUrl": zod.string(),
+  "socialInstagram": zod.string(),
+  "socialYoutube": zod.string(),
+  "socialFacebook": zod.string(),
+  "socialTiktok": zod.string(),
+  "studentCountLabel": zod.string(),
   "updatedAt": zod.string()
 })
 

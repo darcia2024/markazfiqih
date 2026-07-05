@@ -19,6 +19,8 @@ import LearnPage from '@/pages/LearnPage';
 import AdminDashboardPage from '@/pages/admin/AdminDashboardPage';
 import AdminClassesPage from '@/pages/admin/AdminClassesPage';
 import AdminOrdersPage from '@/pages/admin/AdminOrdersPage';
+import AdminTestimonialsPage from '@/pages/admin/AdminTestimonialsPage';
+import AdminSettingsPage from '@/pages/admin/AdminSettingsPage';
 
 const queryClient = new QueryClient();
 
@@ -38,6 +40,8 @@ function Router() {
       <Route path="/admin" component={AdminDashboardPage} />
       <Route path="/admin/classes" component={AdminClassesPage} />
       <Route path="/admin/orders" component={AdminOrdersPage} />
+      <Route path="/admin/testimonials" component={AdminTestimonialsPage} />
+      <Route path="/admin/settings" component={AdminSettingsPage} />
       <Route component={NotFound} />
     </Switch>
   );

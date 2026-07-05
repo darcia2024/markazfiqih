@@ -10,6 +10,14 @@ export const siteSettingsTable = pgTable("site_settings", {
   contactEmail: text("contact_email").notNull().default(""),
   contactPhone: text("contact_phone").notNull().default(""),
   address: text("address").notNull().default(""),
+  founderName: text("founder_name").notNull().default(""),
+  founderBio: text("founder_bio").notNull().default(""),
+  founderPhotoUrl: text("founder_photo_url").notNull().default(""),
+  socialInstagram: text("social_instagram").notNull().default(""),
+  socialYoutube: text("social_youtube").notNull().default(""),
+  socialFacebook: text("social_facebook").notNull().default(""),
+  socialTiktok: text("social_tiktok").notNull().default(""),
+  studentCountLabel: text("student_count_label").notNull().default(""),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow()

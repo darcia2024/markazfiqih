@@ -12,7 +12,15 @@ router.get("/testimonials", async (_req, res): Promise<void> => {
     .where(eq(testimonialsTable.isPublished, true))
     .orderBy(asc(testimonialsTable.orderIndex));
 
-  res.json(ListTestimonialsResponse.parse(rows));
+  res.json(
+    ListTestimonialsResponse.parse(
+      rows.map((row) => ({
+        ...row,
+        createdAt: row.createdAt.toISOString(),
+        updatedAt: row.updatedAt.toISOString(),
+      })),
+    ),
+  );
 });
 
 router.post("/testimonials", async (req, res): Promise<void> => {
@@ -24,7 +32,13 @@ router.post("/testimonials", async (req, res): Promise<void> => {
 
   const [row] = await db.insert(testimonialsTable).values(body.data).returning();
 
-  res.status(201).json(CreateTestimonialResponse.parse(row));
+  res.status(201).json(
+    CreateTestimonialResponse.parse({
+      ...row,
+      createdAt: row.createdAt.toISOString(),
+      updatedAt: row.updatedAt.toISOString(),
+    }),
+  );
 });
 
 router.put("/testimonials/:id", async (req, res): Promise<void> => {
@@ -46,7 +60,13 @@ router.put("/testimonials/:id", async (req, res): Promise<void> => {
     return;
   }
 
-  res.json(UpdateTestimonialResponse.parse(row));
+  res.json(
+    UpdateTestimonialResponse.parse({
+      ...row,
+      createdAt: row.createdAt.toISOString(),
+      updatedAt: row.updatedAt.toISOString(),
+    }),
+  );
 });
 
 router.delete("/testimonials/:id", async (req, res): Promise<void> => {

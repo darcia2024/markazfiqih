@@ -14,7 +14,7 @@ router.get("/settings", async (_req, res): Promise<void> => {
     return;
   }
 
-  res.json(GetSettingsResponse.parse(row));
+  res.json(GetSettingsResponse.parse({ ...row, updatedAt: row.updatedAt.toISOString() }));
 });
 
 router.put("/settings", async (req, res): Promise<void> => {
@@ -35,7 +35,7 @@ router.put("/settings", async (req, res): Promise<void> => {
     return;
   }
 
-  res.json(UpdateSettingsResponse.parse(row));
+  res.json(UpdateSettingsResponse.parse({ ...row, updatedAt: row.updatedAt.toISOString() }));
 });
 
 export default router;

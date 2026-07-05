@@ -932,6 +932,14 @@ components:
         - contactEmail
         - contactPhone
         - address
+        - founderName
+        - founderBio
+        - founderPhotoUrl
+        - socialInstagram
+        - socialYoutube
+        - socialFacebook
+        - socialTiktok
+        - studentCountLabel
         - updatedAt
       properties:
         id:
@@ -947,6 +955,22 @@ components:
         contactPhone:
           type: string
         address:
+          type: string
+        founderName:
+          type: string
+        founderBio:
+          type: string
+        founderPhotoUrl:
+          type: string
+        socialInstagram:
+          type: string
+        socialYoutube:
+          type: string
+        socialFacebook:
+          type: string
+        socialTiktok:
+          type: string
+        studentCountLabel:
           type: string
         updatedAt:
           type: string
@@ -964,5 +988,21 @@ components:
         contactPhone:
           type: string
         address:
+          type: string
+        founderName:
+          type: string
+        founderBio:
+          type: string
+        founderPhotoUrl:
+          type: string
+        socialInstagram:
+          type: string
+        socialYoutube:
+          type: string
+        socialFacebook:
+          type: string
+        socialTiktok:
+          type: string
+        studentCountLabel:
           type: string
 
