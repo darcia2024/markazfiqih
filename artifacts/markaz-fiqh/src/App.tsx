@@ -13,6 +13,9 @@ import CheckoutPage from '@/pages/CheckoutPage';
 import PaymentPage from '@/pages/PaymentPage';
 import PaymentStatusPage from '@/pages/PaymentStatusPage';
 import LearnPage from '@/pages/LearnPage';
+import AdminDashboardPage from '@/pages/admin/AdminDashboardPage';
+import AdminClassesPage from '@/pages/admin/AdminClassesPage';
+import AdminOrdersPage from '@/pages/admin/AdminOrdersPage';
 
 const queryClient = new QueryClient();
 
@@ -27,6 +30,9 @@ function Router() {
       <Route path="/payment" component={PaymentPage} />
       <Route path="/payment-status" component={PaymentStatusPage} />
       <Route path="/learn/:classId" component={LearnPage} />
+      <Route path="/admin" component={AdminDashboardPage} />
+      <Route path="/admin/classes" component={AdminClassesPage} />
+      <Route path="/admin/orders" component={AdminOrdersPage} />
       <Route component={NotFound} />
     </Switch>
   );
