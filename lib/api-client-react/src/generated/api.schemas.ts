@@ -166,6 +166,59 @@ export interface Invoice {
   items: InvoiceItem[];
 }
 
+export interface Testimonial {
+  id: string;
+  name: string;
+  /** @nullable */
+  role: string | null;
+  content: string;
+  photoUrl: string;
+  isPublished: boolean;
+  orderIndex: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateTestimonialRequest {
+  name: string;
+  /** @nullable */
+  role?: string | null;
+  content: string;
+  photoUrl?: string;
+  isPublished?: boolean;
+  orderIndex?: number;
+}
+
+export interface UpdateTestimonialRequest {
+  name?: string;
+  /** @nullable */
+  role?: string | null;
+  content?: string;
+  photoUrl?: string;
+  isPublished?: boolean;
+  orderIndex?: number;
+}
+
+export interface SiteSettings {
+  id: number;
+  siteName: string;
+  tagline: string;
+  logoUrl: string;
+  contactEmail: string;
+  contactPhone: string;
+  address: string;
+  updatedAt: string;
+}
+
+export interface UpdateSiteSettingsRequest {
+  siteName?: string;
+  tagline?: string;
+  logoUrl?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  address?: string;
+}
+
 export type ListClassesParams = {
 search?: string;
 level?: ClassLevel;

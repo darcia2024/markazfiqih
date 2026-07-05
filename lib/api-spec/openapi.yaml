@@ -18,6 +18,10 @@ tags:
     description: Shopping cart operations
   - name: checkout
     description: Checkout and invoice operations
+  - name: testimonials
+    description: Testimonial operations
+  - name: settings
+    description: Site settings operations
 paths:
   /healthz:
     get:
@@ -270,6 +274,144 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /testimonials:
+    get:
+      operationId: listTestimonials
+      tags: [testimonials]
+      summary: List published testimonials
+      description: Returns published testimonials only, ordered by orderIndex
+      responses:
+        "200":
+          description: List of published testimonials
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Testimonial"
+    post:
+      operationId: createTestimonial
+      tags: [testimonials]
+      summary: Create a testimonial
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTestimonialRequest"
+      responses:
+        "201":
+          description: Testimonial created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Testimonial"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /testimonials/{id}:
+    put:
+      operationId: updateTestimonial
+      tags: [testimonials]
+      summary: Update a testimonial
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTestimonialRequest"
+      responses:
+        "200":
+          description: Testimonial updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Testimonial"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Testimonial not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteTestimonial
+      tags: [testimonials]
+      summary: Delete a testimonial
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Removed
+        "404":
+          description: Testimonial not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /settings:
+    get:
+      operationId: getSettings
+      tags: [settings]
+      summary: Get site settings
+      description: Returns the singleton site settings row (id = 1)
+      responses:
+        "200":
+          description: Site settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SiteSettings"
+        "404":
+          description: Settings not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: updateSettings
+      tags: [settings]
+      summary: Update site settings
+      description: Updates the singleton site settings row (id = 1)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSiteSettingsRequest"
+      responses:
+        "200":
+          description: Site settings updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SiteSettings"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
     HealthStatus:
@@ -485,4 +627,110 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/InvoiceItem"
+    Testimonial:
+      type: object
+      required:
+        - id
+        - name
+        - role
+        - content
+        - photoUrl
+        - isPublished
+        - orderIndex
+        - createdAt
+        - updatedAt
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        role:
+          type: ["string", "null"]
+        content:
+          type: string
+        photoUrl:
+          type: string
+        isPublished:
+          type: boolean
+        orderIndex:
+          type: integer
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+    CreateTestimonialRequest:
+      type: object
+      required: [name, content]
+      properties:
+        name:
+          type: string
+        role:
+          type: ["string", "null"]
+        content:
+          type: string
+        photoUrl:
+          type: string
+        isPublished:
+          type: boolean
+        orderIndex:
+          type: integer
+    UpdateTestimonialRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        role:
+          type: ["string", "null"]
+        content:
+          type: string
+        photoUrl:
+          type: string
+        isPublished:
+          type: boolean
+        orderIndex:
+          type: integer
+    SiteSettings:
+      type: object
+      required:
+        - id
+        - siteName
+        - tagline
+        - logoUrl
+        - contactEmail
+        - contactPhone
+        - address
+        - updatedAt
+      properties:
+        id:
+          type: integer
+        siteName:
+          type: string
+        tagline:
+          type: string
+        logoUrl:
+          type: string
+        contactEmail:
+          type: string
+        contactPhone:
+          type: string
+        address:
+          type: string
+        updatedAt:
+          type: string
+    UpdateSiteSettingsRequest:
+      type: object
+      properties:
+        siteName:
+          type: string
+        tagline:
+          type: string
+        logoUrl:
+          type: string
+        contactEmail:
+          type: string
+        contactPhone:
+          type: string
+        address:
+          type: string
 

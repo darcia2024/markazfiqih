@@ -7,3 +7,5 @@ export * from "./progress";
 export * from "./cartItems";
 export * from "./invoices";
 export * from "./invoiceItems";
+export * from "./testimonials";
+export * from "./site-settings";

@@ -4,6 +4,8 @@ import classesRouter from "./classes";
 import instructorsRouter from "./instructors";
 import cartRouter from "./cart";
 import checkoutRouter from "./checkout";
+import testimonialsRouter from "./testimonials";
+import settingsRouter from "./settings";
 
 const router: IRouter = Router();
 
@@ -12,5 +14,7 @@ router.use(classesRouter);
 router.use(instructorsRouter);
 router.use(cartRouter);
 router.use(checkoutRouter);
+router.use(testimonialsRouter);
+router.use(settingsRouter);
 
 export default router;

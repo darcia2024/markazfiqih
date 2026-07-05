@@ -329,3 +329,126 @@ export const SimulateCheckoutFailResponse = zod.object({
 })
 
 
+/**
+ * Returns published testimonials only, ordered by orderIndex
+ * @summary List published testimonials
+ */
+export const ListTestimonialsResponseItem = zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "role": zod.string().nullable(),
+  "content": zod.string(),
+  "photoUrl": zod.string(),
+  "isPublished": zod.boolean(),
+  "orderIndex": zod.number(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+export const ListTestimonialsResponse = zod.array(ListTestimonialsResponseItem)
+
+
+/**
+ * @summary Create a testimonial
+ */
+export const CreateTestimonialBody = zod.object({
+  "name": zod.string(),
+  "role": zod.string().nullish(),
+  "content": zod.string(),
+  "photoUrl": zod.string().optional(),
+  "isPublished": zod.boolean().optional(),
+  "orderIndex": zod.number().optional()
+})
+
+export const CreateTestimonialResponse = zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "role": zod.string().nullable(),
+  "content": zod.string(),
+  "photoUrl": zod.string(),
+  "isPublished": zod.boolean(),
+  "orderIndex": zod.number(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Update a testimonial
+ */
+export const UpdateTestimonialParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const UpdateTestimonialBody = zod.object({
+  "name": zod.string().optional(),
+  "role": zod.string().nullish(),
+  "content": zod.string().optional(),
+  "photoUrl": zod.string().optional(),
+  "isPublished": zod.boolean().optional(),
+  "orderIndex": zod.number().optional()
+})
+
+export const UpdateTestimonialResponse = zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "role": zod.string().nullable(),
+  "content": zod.string(),
+  "photoUrl": zod.string(),
+  "isPublished": zod.boolean(),
+  "orderIndex": zod.number(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * @summary Delete a testimonial
+ */
+export const DeleteTestimonialParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const DeleteTestimonialResponse = zod.void()
+
+
+/**
+ * Returns the singleton site settings row (id = 1)
+ * @summary Get site settings
+ */
+export const GetSettingsResponse = zod.object({
+  "id": zod.number(),
+  "siteName": zod.string(),
+  "tagline": zod.string(),
+  "logoUrl": zod.string(),
+  "contactEmail": zod.string(),
+  "contactPhone": zod.string(),
+  "address": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
+/**
+ * Updates the singleton site settings row (id = 1)
+ * @summary Update site settings
+ */
+export const UpdateSettingsBody = zod.object({
+  "siteName": zod.string().optional(),
+  "tagline": zod.string().optional(),
+  "logoUrl": zod.string().optional(),
+  "contactEmail": zod.string().optional(),
+  "contactPhone": zod.string().optional(),
+  "address": zod.string().optional()
+})
+
+export const UpdateSettingsResponse = zod.object({
+  "id": zod.number(),
+  "siteName": zod.string(),
+  "tagline": zod.string(),
+  "logoUrl": zod.string(),
+  "contactEmail": zod.string(),
+  "contactPhone": zod.string(),
+  "address": zod.string(),
+  "updatedAt": zod.string()
+})
+
+
