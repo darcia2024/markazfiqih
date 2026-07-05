@@ -6,6 +6,8 @@ import cartRouter from "./cart";
 import checkoutRouter from "./checkout";
 import testimonialsRouter from "./testimonials";
 import settingsRouter from "./settings";
+import enrollmentsRouter from "./enrollments";
+import darsRouter from "./dars";
 
 const router: IRouter = Router();
 
@@ -16,5 +18,7 @@ router.use(cartRouter);
 router.use(checkoutRouter);
 router.use(testimonialsRouter);
 router.use(settingsRouter);
+router.use(enrollmentsRouter);
+router.use(darsRouter);
 
 export default router;
