@@ -30,7 +30,7 @@ function ProgressWidget({ enrollments }: { enrollments: EnrollmentItem[] }) {
 
   return (
     <Link href="/dashboard">
-      <div className="mx-3 rounded-[18px] bg-white/10 p-4 space-y-3 cursor-pointer hover:bg-white/15 transition-friendly">
+      <div className="mx-3 rounded-[18px] bg-white/10 backdrop-blur-sm border border-white/10 p-4 space-y-3 cursor-pointer hover:bg-white/15 transition-friendly">
         <p className="text-xs font-semibold text-white/70 uppercase tracking-wide">
           Progress Kamu
         </p>
@@ -63,7 +63,7 @@ export function AppSidebar({ isAdmin }: { isAdmin: boolean }) {
   });
 
   return (
-    <aside className="hidden lg:flex fixed inset-y-0 left-0 w-[240px] h-full flex-col bg-primary border-r border-white/10 z-40">
+    <aside className="hidden lg:flex fixed inset-y-0 left-0 w-[240px] h-full flex-col bg-gradient-to-b from-primary to-[hsl(var(--brand-red-deep))] border-r border-white/10 z-40">
       <div className="h-20 flex items-center px-6 border-b border-white/10">
         <Link href="/" className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-sm bg-white text-primary">
@@ -87,8 +87,8 @@ export function AppSidebar({ isAdmin }: { isAdmin: boolean }) {
               href={href}
               className={
                 isActive
-                  ? 'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-semibold text-primary bg-white border-l-[3px] border-white -ml-3 pl-[9px]'
-                  : 'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-friendly border-l-[3px] border-transparent -ml-3 pl-[9px]'
+                  ? 'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-semibold text-primary bg-white shadow-[0_4px_12px_rgba(0,0,0,0.15)] border-l-[3px] border-white -ml-3 pl-[9px]'
+                  : 'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 hover:scale-[1.02] transition-friendly border-l-[3px] border-transparent -ml-3 pl-[9px]'
               }
             >
               <Icon className="h-4 w-4" />
@@ -116,7 +116,7 @@ export function AppSidebar({ isAdmin }: { isAdmin: boolean }) {
 
       <div className="border-t border-white/20 p-4">
         <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-full bg-white text-primary flex items-center justify-center text-sm font-semibold shrink-0">
+          <div className="h-9 w-9 rounded-full bg-white text-primary flex items-center justify-center text-sm font-semibold shrink-0 ring-2 ring-white/20">
             {initial}
           </div>
           <div className="flex-1 min-w-0">

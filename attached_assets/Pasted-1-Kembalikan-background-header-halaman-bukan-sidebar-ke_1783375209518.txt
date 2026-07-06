@@ -1,0 +1,17 @@
+1. Kembalikan background header halaman (bukan sidebar) ke non-merah.
+Cari bagian yang menampilkan judul halaman (misal "Dashboard") beserta teks sapaan di bawahnya (di DashboardPage.tsx, dan terapkan pola yang sama di CatalogPage.tsx/MyClassesPage.tsx kalau ada perubahan serupa dari prompt sebelumnya). Ubah background area ini dari bg-primary (merah solid) kembali ke transparan/bg-background (krem, menyatu dengan halaman), dan kembalikan warna teks judul & sapaan dari putih menjadi warna normal (text-foreground untuk judul, text-muted-foreground untuk sapaan, nama tetap bold warna text-foreground).
+2. Ubah sidebar dari merah solid jadi gradasi.
+Di komponen sidebar (AppShell.tsx atau lokasi function sidebar saat ini), ubah className dari bg-primary menjadi bg-gradient-to-b from-primary to-[hsl(var(--brand-red-deep))] — gradasi dari merah normal di atas ke merah tua di bawah, arah vertikal top-to-bottom.
+3. Polish tambahan biar terasa lebih modern:
+
+Menu item yang aktif (contoh "Dashboard" saat ini): tambahkan sedikit efek glow/depth, ganti dari flat putih polos menjadi bg-white shadow-[0_4px_12px_rgba(0,0,0,0.15)] supaya terlihat sedikit "terangkat" dari sidebar.
+Widget "Progress Kamu": ganti background dari bg-white/10 polos menjadi efek glass: bg-white/10 backdrop-blur-sm border border-white/10, supaya ada kesan premium/modern (glassmorphism ringan).
+Card profil user di bawah: tambahkan ring-2 ring-white/20 pada avatar bulat supaya terlihat sedikit lebih detail, bukan flat polos.
+Divider/border yang memisahkan section sidebar (bawah logo, atas card profil): ganti dari solid border-border (kalau masih ada sisa warna lama) jadi border-white/15 supaya konsisten dengan tema gradasi merah.
+Icon menu tidak aktif: beri sedikit efek transisi scale saat hover, tambahkan hover:scale-[1.02] transition-transform pada elemen link menu.
+
+Verifikasi:
+
+pnpm run typecheck, 0 error.
+Screenshot halaman Dashboard — pastikan area judul "Dashboard"+sapaan sudah TIDAK merah lagi (menyatu dengan background krem), sementara sidebar kiri menampilkan gradasi merah dari terang ke gelap (dari atas ke bawah), bukan warna solid rata.
+Perhatikan detail-detail kecil di sidebar (widget progress, card profil, menu aktif) sudah terasa lebih halus/modern dibanding versi flat sebelumnya.

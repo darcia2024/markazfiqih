@@ -63,20 +63,20 @@ function CatalogHeader() {
   const { user } = useAuth();
   const { count } = useCart();
   return (
-    <div className="flex h-16 items-center justify-between px-6 lg:px-10 bg-primary">
-      <h1 className="font-serif text-[26px] font-bold text-white leading-tight">
+    <div className="flex items-center justify-between px-6 lg:px-10 pt-8 pb-2">
+      <h1 className="font-serif text-[32px] font-bold text-foreground leading-tight">
         Jelajahi Kelas
       </h1>
       <div className="flex items-center gap-3">
         {user && (
           <Link
             href="/keranjang"
-            className="relative flex h-9 w-9 items-center justify-center rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-friendly"
+            className="relative flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-friendly"
             aria-label="Keranjang"
           >
             <ShoppingCart className="h-5 w-5" />
             {count > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-[hsl(var(--brand-gold))] px-1 text-[10px] font-bold leading-none text-white">
+              <span className="absolute -top-1 -right-1 flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-primary-foreground">
                 {count > 9 ? '9+' : count}
               </span>
             )}
@@ -85,21 +85,21 @@ function CatalogHeader() {
         <Button
           variant="ghost"
           size="icon"
-          className="rounded-full text-white/80 hover:text-white hover:bg-white/10"
+          className="rounded-full"
           aria-label="Notifikasi"
         >
-          <Bell className="h-5 w-5" />
+          <Bell className="h-5 w-5 text-muted-foreground" />
         </Button>
-        <Avatar className="h-9 w-9 border border-white/20">
+        <Avatar className="h-9 w-9 border border-border">
           {user ? (
             <>
               <AvatarImage src={user.avatar_url} alt={user.name} />
-              <AvatarFallback className="bg-white text-primary">
+              <AvatarFallback className="bg-primary/10 text-primary">
                 {user.name.split(' ').map((n) => n[0]).join('').substring(0, 2)}
               </AvatarFallback>
             </>
           ) : (
-            <AvatarFallback className="bg-white/20 text-white">?</AvatarFallback>
+            <AvatarFallback className="bg-muted text-muted-foreground">?</AvatarFallback>
           )}
         </Avatar>
       </div>

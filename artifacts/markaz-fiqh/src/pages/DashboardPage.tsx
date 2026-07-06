@@ -246,17 +246,17 @@ function DashboardContent() {
 
   return (
     <AppShell>
-      {/* Top bar */}
-      <div className="bg-primary h-20 flex items-center px-4 sm:px-6 lg:px-8 shrink-0">
+      {/* Page header */}
+      <div className="px-4 sm:px-6 lg:px-8 pt-8 pb-2 shrink-0">
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           className="space-y-0.5"
         >
-          <h1 className="font-serif text-2xl lg:text-3xl font-bold text-white">Dashboard</h1>
-          <p className="text-white/70 text-sm">
+          <h1 className="font-serif text-3xl lg:text-4xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-muted-foreground text-sm">
             Assalamu'alaikum,{' '}
-            <span className="font-medium text-white">
+            <span className="font-medium text-foreground">
               {user?.nickname ?? user?.name?.split(' ')[0] ?? 'Santri'}
             </span>
             . Lanjutkan perjalanan menuntut ilmumu.
