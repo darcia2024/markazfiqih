@@ -28,7 +28,9 @@ declare global {
 if (!globalThis.__pool) {
   // max: 1 keeps connection usage minimal in serverless where many function
   // instances may run concurrently. Each instance only needs one connection.
-  globalThis.__pool = new Pool({ connectionString, max: 1, ssl: true });
+  // Supabase pooler uses a self-signed certificate chain; rejectUnauthorized: false
+  // is required for Node.js connections. The connection is still fully encrypted.
+  globalThis.__pool = new Pool({ connectionString, max: 1, ssl: { rejectUnauthorized: false } });
 }
 
 if (!globalThis.__db) {

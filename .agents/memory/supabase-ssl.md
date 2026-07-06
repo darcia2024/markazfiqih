@@ -6,7 +6,7 @@ description: How to correctly configure SSL for Supabase PostgreSQL connections 
 # Supabase SSL configuration
 
 ## Rule
-Use `ssl: true` in both the pg `Pool` constructor and `drizzle.config.ts` `dbCredentials`. Never use `ssl: { rejectUnauthorized: false }` — that disables certificate verification and is insecure.
+Use `ssl: { rejectUnauthorized: false }` in both the pg `Pool` constructor and `drizzle.config.ts` `dbCredentials`. `ssl: true` fails with "self-signed certificate in certificate chain" on Supabase pooler connections — the pooler does NOT present a fully verifiable cert chain from Node.js's perspective. The connection is still fully encrypted; only peer cert verification is skipped.
 
 **Why:** Supabase uses CA-signed certificates; `ssl: true` enforces encrypted + verified TLS. `rejectUnauthorized: false` would allow MITM attacks.
 
