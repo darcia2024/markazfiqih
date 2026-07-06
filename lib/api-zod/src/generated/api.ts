@@ -64,6 +64,8 @@ export const CreateClassBody = zod.object({
   "status": zod.enum(['draft', 'published']).optional(),
   "level": zod.union([zod.literal('pemula'),zod.literal('menengah'),zod.literal('lanjutan'),zod.literal(null)]).nullish(),
   "category": zod.string().nullish(),
+  "gdriveMateriUrl": zod.string().nullish(),
+  "waGroupUrl": zod.string().nullish(),
   "instructorId": zod.string().uuid()
 })
 
@@ -78,6 +80,8 @@ export const CreateClassResponse = zod.object({
   "level": zod.union([zod.literal('pemula'),zod.literal('menengah'),zod.literal('lanjutan'),zod.literal(null)]).nullable(),
   "category": zod.string().nullable(),
   "youtubePlaylistId": zod.string().nullable(),
+  "gdriveMateriUrl": zod.string().nullable(),
+  "waGroupUrl": zod.string().nullable(),
   "instructor": zod.object({
   "id": zod.string().uuid(),
   "name": zod.string(),
@@ -107,6 +111,8 @@ export const GetClassByIdResponse = zod.object({
   "level": zod.union([zod.literal('pemula'),zod.literal('menengah'),zod.literal('lanjutan'),zod.literal(null)]).nullable(),
   "category": zod.string().nullable(),
   "youtubePlaylistId": zod.string().nullable(),
+  "gdriveMateriUrl": zod.string().nullable(),
+  "waGroupUrl": zod.string().nullable(),
   "instructor": zod.object({
   "id": zod.string().uuid(),
   "name": zod.string(),
@@ -141,6 +147,8 @@ export const UpdateClassBody = zod.object({
   "status": zod.enum(['draft', 'published']).optional(),
   "level": zod.union([zod.literal('pemula'),zod.literal('menengah'),zod.literal('lanjutan'),zod.literal(null)]).nullish(),
   "category": zod.string().nullish(),
+  "gdriveMateriUrl": zod.string().nullish(),
+  "waGroupUrl": zod.string().nullish(),
   "instructorId": zod.string().uuid().optional()
 })
 
@@ -155,6 +163,8 @@ export const UpdateClassResponse = zod.object({
   "level": zod.union([zod.literal('pemula'),zod.literal('menengah'),zod.literal('lanjutan'),zod.literal(null)]).nullable(),
   "category": zod.string().nullable(),
   "youtubePlaylistId": zod.string().nullable(),
+  "gdriveMateriUrl": zod.string().nullable(),
+  "waGroupUrl": zod.string().nullable(),
   "instructor": zod.object({
   "id": zod.string().uuid(),
   "name": zod.string(),

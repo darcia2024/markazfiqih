@@ -25,6 +25,10 @@ export interface ClassDetail {
   category: string | null;
   /** @nullable */
   youtubePlaylistId: string | null;
+  /** @nullable */
+  gdriveMateriUrl: string | null;
+  /** @nullable */
+  waGroupUrl: string | null;
   instructor: InstructorSummary;
   modules: ClassModule[];
   moduleCount: number;

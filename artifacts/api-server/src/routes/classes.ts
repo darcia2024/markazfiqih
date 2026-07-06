@@ -198,6 +198,8 @@ router.get("/classes/:id", async (req, res): Promise<void> => {
       level: classesTable.level,
       category: classesTable.category,
       youtubePlaylistId: classesTable.youtubePlaylistId,
+      gdriveMateriUrl: classesTable.gdriveMateriUrl,
+      waGroupUrl: classesTable.waGroupUrl,
       instructorId: instructorsTable.id,
       instructorName: instructorsTable.name,
       instructorBio: instructorsTable.bio,
@@ -242,6 +244,8 @@ router.get("/classes/:id", async (req, res): Promise<void> => {
     level: row.level,
     category: row.category,
     youtubePlaylistId: row.youtubePlaylistId,
+    gdriveMateriUrl: row.gdriveMateriUrl,
+    waGroupUrl: row.waGroupUrl,
     instructor: {
       id: row.instructorId,
       name: row.instructorName,
@@ -284,6 +288,8 @@ router.post("/classes", async (req, res): Promise<void> => {
     level: inserted.level,
     category: inserted.category,
     youtubePlaylistId: inserted.youtubePlaylistId,
+    gdriveMateriUrl: inserted.gdriveMateriUrl,
+    waGroupUrl: inserted.waGroupUrl,
     instructor: {
       id: instructor.id,
       name: instructor.name,
@@ -342,6 +348,8 @@ router.put("/classes/:id", async (req, res): Promise<void> => {
     level: updated.level,
     category: updated.category,
     youtubePlaylistId: updated.youtubePlaylistId,
+    gdriveMateriUrl: updated.gdriveMateriUrl,
+    waGroupUrl: updated.waGroupUrl,
     instructor: {
       id: instructor.id,
       name: instructor.name,
