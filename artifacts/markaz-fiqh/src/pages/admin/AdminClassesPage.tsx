@@ -62,6 +62,8 @@ type ClassFormState = {
   level: 'pemula' | 'menengah' | 'lanjutan' | '';
   category: string;
   instructorId: string;
+  gdriveMateriUrl: string;
+  waGroupUrl: string;
 };
 
 const EMPTY_FORM: ClassFormState = {
@@ -74,6 +76,8 @@ const EMPTY_FORM: ClassFormState = {
   level: '',
   category: '',
   instructorId: '',
+  gdriveMateriUrl: '',
+  waGroupUrl: '',
 };
 
 function classToForm(cls: ClassSummary): ClassFormState {
@@ -87,6 +91,8 @@ function classToForm(cls: ClassSummary): ClassFormState {
     level: cls.level ?? '',
     category: cls.category ?? '',
     instructorId: cls.instructor.id,
+    gdriveMateriUrl: '',
+    waGroupUrl: '',
   };
 }
 
@@ -185,6 +191,8 @@ export default function AdminClassesPage() {
       level: form.level || null,
       category: form.category || null,
       instructorId: form.instructorId,
+      gdriveMateriUrl: form.gdriveMateriUrl.trim() || null,
+      waGroupUrl: form.waGroupUrl.trim() || null,
     };
 
     if (editingClass) {
@@ -463,6 +471,28 @@ export default function AdminClassesPage() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="class-gdrive-materi">Link Google Drive Materi (PDF)</Label>
+                <Input
+                  id="class-gdrive-materi"
+                  type="url"
+                  placeholder="https://drive.google.com/..."
+                  value={form.gdriveMateriUrl}
+                  onChange={(e) => setForm((p) => ({ ...p, gdriveMateriUrl: e.target.value }))}
+                  data-testid="input-class-gdrive-materi"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="class-wa-group">Link Grup WhatsApp</Label>
+                <Input
+                  id="class-wa-group"
+                  type="url"
+                  placeholder="https://chat.whatsapp.com/..."
+                  value={form.waGroupUrl}
+                  onChange={(e) => setForm((p) => ({ ...p, waGroupUrl: e.target.value }))}
+                  data-testid="input-class-wa-group"
+                />
               </div>
             </div>
             <DialogFooter>
