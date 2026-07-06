@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 
 function formatPrice(amount: number): string {
   return new Intl.NumberFormat('id-ID', {
@@ -385,7 +386,7 @@ function EmptyState({ onReset }: { onReset: () => void }) {
 }
 
 // ── Halaman Katalog ───────────────────────────────────────────────────────
-export default function CatalogPage() {
+function CatalogContent() {
   const { user } = useAuth();
   const isAdmin = Boolean(user && (user as { role?: string }).role === 'admin');
 
@@ -519,5 +520,13 @@ export default function CatalogPage() {
         </section>
       </main>
     </div>
+  );
+}
+
+export default function CatalogPage() {
+  return (
+    <ProtectedRoute>
+      <CatalogContent />
+    </ProtectedRoute>
   );
 }

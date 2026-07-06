@@ -1,0 +1,29 @@
+ Wajibkan Login di Halaman Katalog (Super Detail)
+
+Saya ingin halaman Katalog Kelas (/katalog) hanya bisa diakses oleh user yang sudah login. Saat ini halaman ini bisa diakses siapa saja tanpa login. Ikuti pattern yang SUDAH ADA di artifacts/markaz-fiqh/src/pages/MyClassesPage.tsx — jangan buat pattern baru, tiru persis strukturnya.
+Langkah 1 — Buka file artifacts/markaz-fiqh/src/pages/CatalogPage.tsx.
+Cari baris yang berisi:
+// ── Halaman Katalog ───────────────────────────────────────────────────────
+export default function CatalogPage() {
+Ubah export default function CatalogPage() { menjadi function CatalogContent() { (HAPUS kata export default, ganti nama function dari CatalogPage menjadi CatalogContent). JANGAN mengubah apapun di dalam isi function ini (semua logic useState, useMemo, useAuth, dst di dalamnya tetap sama persis, hanya nama function dan keyword export yang berubah). Pastikan penutup kurung kurawal function ini (} yang menutup function tersebut, biasanya di akhir file sebelum function-function kecil lain kalau ada, atau benar-benar di baris terakhir file) tetap ada dan tidak berubah posisinya.
+Langkah 2 — Tambahkan import baru di bagian paling atas file CatalogPage.tsx, di antara import-import yang sudah ada (letakkan setelah import-import dari @/components/, cocokkan style import yang sudah ada di file ini):
+import { ProtectedRoute } from '@/components/ProtectedRoute';
+Langkah 3 — Tambahkan function baru di paling bawah file (setelah penutup function CatalogContent dari Langkah 1, dan setelah semua function helper lain yang mungkin ada di file ini seperti EmptyState atau sejenisnya — pastikan ini menjadi function PALING TERAKHIR di file, karena inilah yang harus jadi default export satu-satunya di file ini):
+tsxexport default function CatalogPage() {
+  return (
+    <ProtectedRoute>
+      <CatalogContent />
+    </ProtectedRoute>
+  );
+}
+Langkah 4 — Verifikasi tidak ada duplikasi export default. Pastikan sekarang di seluruh file CatalogPage.tsx HANYA ADA SATU export default function CatalogPage() (yang baru dibuat di Langkah 3), dan function lama sudah berubah nama jadi CatalogContent tanpa kata export default di depannya (dari Langkah 1). Jika masih ada 2 export default di file yang sama, ini akan menyebabkan error build — perbaiki sampai hanya ada 1.
+Langkah 5 — JANGAN ubah file lain. Tidak perlu mengubah App.tsx, tidak perlu mengubah ProtectedRoute.tsx, tidak perlu mengubah routing apapun — karena ProtectedRoute sekarang sudah "terbungkus" langsung di dalam CatalogPage.tsx itu sendiri, otomatis berlaku untuk route /katalog yang sudah terdaftar di App.tsx tanpa perlu perubahan tambahan di sana.
+Langkah 6 — Cara verifikasi setelah selesai (jelaskan ke saya hasilnya):
+
+Jalankan pnpm run typecheck dari root project, pastikan 0 error.
+Di browser, buka Developer Tools (F12) → tab Application/Storage → Local Storage → hapus key markaz_mock_user (atau klik tombol logout kalau ada di navbar) untuk memastikan kondisi belum login.
+Buka/refresh halaman /katalog secara langsung (ketik di address bar, jangan klik dari navigasi).
+Screenshot hasilnya — seharusnya yang muncul adalah tampilan "Akses Terbatas" dengan ikon shield dan tombol "Masuk untuk Melanjutkan" (bukan lagi tampilan katalog dengan card-card kelas dan tombol "Tambah").
+Klik tombol "Masuk untuk Melanjutkan" tersebut, selesaikan proses login mock, dan pastikan setelah login berhasil, otomatis kembali menampilkan halaman katalog yang normal (dengan card-card kelas seperti sebelumnya).
+
+Laporkan ke saya jika salah satu dari langkah verifikasi di atas hasilnya tidak sesuai yang diharapkan.
