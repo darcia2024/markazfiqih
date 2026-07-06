@@ -25,6 +25,8 @@ router.put("/settings", async (req, res): Promise<void> => {
     return;
   }
 
+  // Upsert: create id=1 row if missing, then apply update
+  await db.insert(siteSettingsTable).values({ id: 1 }).onConflictDoNothing();
   const [row] = await db
     .update(siteSettingsTable)
     .set(body.data)
@@ -32,7 +34,7 @@ router.put("/settings", async (req, res): Promise<void> => {
     .returning();
 
   if (!row) {
-    res.status(404).json({ error: "Settings not found" });
+    res.status(500).json({ error: "Settings update failed" });
     return;
   }
 
