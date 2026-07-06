@@ -12,7 +12,12 @@ import {
   Clock,
   Quote,
   Music2,
-  Star,
+  Search,
+  ShoppingCart,
+  CreditCard,
+  Unlock,
+  TrendingUp,
+  type LucideIcon,
 } from 'lucide-react';
 
 import { Navbar } from '@/components/Navbar';
@@ -140,26 +145,31 @@ function HeroSection({
 }
 
 // ── Cara Belajar ─────────────────────────────────────────────────────────
-const HOW_IT_WORKS = [
+const HOW_IT_WORKS: { title: string; description: string; icon: LucideIcon }[] = [
   {
     title: 'Jelajahi Katalog',
     description: 'Cari kelas fiqih sesuai minat dan levelmu.',
+    icon: Search,
   },
   {
     title: 'Tambahkan ke Keranjang',
     description: 'Pilih satu atau beberapa kelas sekaligus.',
+    icon: ShoppingCart,
   },
   {
     title: 'Bayar dengan Mudah',
     description: 'QRIS, e-wallet, virtual account, atau kartu.',
+    icon: CreditCard,
   },
   {
     title: 'Kelas Langsung Terbuka',
     description: 'Akses otomatis begitu pembayaran terverifikasi.',
+    icon: Unlock,
   },
   {
     title: 'Belajar & Pantau Progress',
     description: 'Tonton kapan saja, progressmu tersimpan otomatis.',
+    icon: TrendingUp,
   },
 ];
 
@@ -175,19 +185,44 @@ function HowItWorksSection() {
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-          {HOW_IT_WORKS.map((step, index) => (
-            <div
-              key={step.title}
-              className="relative rounded-[14px] bg-[hsl(var(--brand-red-deep))] p-5 text-white"
-            >
-              <Star className="absolute top-4 right-4 w-4 h-4 text-[hsl(var(--brand-gold-pale))]" />
-              <p className="text-xs text-white/60 font-medium">Step {index + 1}</p>
-              <p className="font-serif font-semibold text-base mt-2 leading-snug pr-6">
-                {step.title}
-              </p>
-              <p className="text-sm text-white/70 mt-1 leading-relaxed">{step.description}</p>
-            </div>
-          ))}
+          {HOW_IT_WORKS.map((step, index) => {
+            const stepNum = index + 1;
+            const isLast = index === HOW_IT_WORKS.length - 1;
+            const Icon = step.icon;
+            return (
+              <div
+                key={step.title}
+                className={[
+                  'relative rounded-lg overflow-hidden bg-gradient-to-br from-primary to-[hsl(var(--brand-red-hover))] p-5 text-white hover:shadow-lg hover:-translate-y-1 transition-all duration-300',
+                  isLast
+                    ? 'border border-[hsl(var(--brand-gold))]/40 shadow-[0_0_20px_rgba(184,134,46,0.15)]'
+                    : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+              >
+                {/* Icon */}
+                <div className="h-10 w-10 rounded-full bg-white/15 flex items-center justify-center mb-3">
+                  <Icon className="h-5 w-5 text-white" />
+                </div>
+
+                {/* Step badge */}
+                <span className="inline-block text-[10px] font-bold uppercase tracking-wider text-white/70 bg-white/10 px-2 py-1 rounded-full mb-2">
+                  Langkah {stepNum}
+                </span>
+
+                <p className="font-serif font-semibold text-base leading-snug">
+                  {step.title}
+                </p>
+                <p className="text-sm text-white/70 mt-1 leading-relaxed">{step.description}</p>
+
+                {/* Watermark number */}
+                <span className="absolute bottom-2 right-4 font-serif text-6xl font-bold text-white/10 leading-none select-none">
+                  {stepNum}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>

@@ -1,0 +1,20 @@
+Di LandingPage.tsx, function HowItWorksSection, redesign card step-by-step ini:
+1. Samakan warna gradasi dengan Category Section.
+Ganti background card dari bg-[hsl(var(--brand-red-deep))] solid menjadi gradasi yang SAMA PERSIS dengan yang dipakai di CategorySection (yang baru saja diperbaiki): bg-gradient-to-br from-primary to-[hsl(var(--brand-red-hover))].
+2. Ganti ikon bintang generik jadi ikon relevan per step, dari lucide-react:
+
+Step 1 (Jelajahi Katalog): Search
+Step 2 (Tambahkan ke Keranjang): ShoppingCart
+Step 3 (Bayar dengan Mudah): CreditCard
+Step 4 (Kelas Langsung Terbuka): Unlock
+Step 5 (Belajar & Pantau Progress): TrendingUp
+
+Ubah container ikon dari kotak (rounded-md atau sejenis) jadi bulat penuh: h-10 w-10 rounded-full bg-white/15 flex items-center justify-center, ikon ukuran h-5 w-5 text-white.
+3. Tambahkan nomor step besar sebagai watermark dekoratif di pojok kanan bawah tiap card (menggantikan posisi ikon bintang yang lama di kanan atas): <span className="absolute bottom-2 right-4 font-serif text-6xl font-bold text-white/10 leading-none select-none">{stepNumber}</span> (gunakan angka 1-5 sesuai step, container card harus relative overflow-hidden supaya watermark ini tidak keluar dari card).
+4. Ganti label "Step X" jadi badge kecil alih-alih teks polos abu-abu: <span className="inline-block text-[10px] font-bold uppercase tracking-wider text-white/70 bg-white/10 px-2 py-1 rounded-full">Langkah {stepNumber}</span>.
+5. Beri aksen khusus di card TERAKHIR (Step 5) untuk menandakan ini "hasil akhir" — tambahkan border tipis emas: border border-[hsl(var(--brand-gold))]/40 dan sedikit glow: shadow-[0_0_20px_rgba(184,134,46,0.15)].
+6. Tambahkan efek hover pada semua card: hover:shadow-lg hover:-translate-y-1 transition-all duration-300.
+Verifikasi:
+
+pnpm run typecheck, 0 error.
+Screenshot section ini — pastikan warna gradasi sekarang konsisten dengan Category Section, tiap card punya ikon berbeda sesuai isinya (bukan bintang generik lagi), ada watermark angka besar transparan di background tiap card, dan card Step 5 punya aksen emas yang membedakannya dari 4 card lain.
