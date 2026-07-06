@@ -28,7 +28,7 @@ declare global {
 if (!globalThis.__pool) {
   // max: 1 keeps connection usage minimal in serverless where many function
   // instances may run concurrently. Each instance only needs one connection.
-  globalThis.__pool = new Pool({ connectionString, max: 1 });
+  globalThis.__pool = new Pool({ connectionString, max: 1, ssl: true });
 }
 
 if (!globalThis.__db) {
