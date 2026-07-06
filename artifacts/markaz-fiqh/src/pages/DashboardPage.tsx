@@ -23,6 +23,34 @@ import {
 } from '@workspace/api-client-react';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+function getGreeting(): string {
+  const h = new Date().getHours();
+  if (h >= 4 && h <= 10) return 'Selamat Pagi';
+  if (h >= 11 && h <= 14) return 'Selamat Siang';
+  if (h >= 15 && h <= 17) return 'Selamat Sore';
+  return 'Selamat Malam';
+}
+
+const MOTIVASI = [
+  'Lanjutkan perjalanan menuntut ilmumu.',
+  'Konsistensi kecil hari ini, hasil besar nanti.',
+  'Semoga ilmu yang dipelajari hari ini berkah.',
+  'Satu pelajaran hari ini lebih baik dari tidak sama sekali.',
+];
+
+function getMotivasi(): string {
+  return MOTIVASI[Math.floor(Math.random() * MOTIVASI.length)];
+}
+
+function formatTanggal(): string {
+  return new Date().toLocaleDateString('id-ID', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
 function formatDuration(min: number | null) {
   if (!min) return '—';
   const h = Math.floor(min / 60);
@@ -251,15 +279,20 @@ function DashboardContent() {
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="space-y-0.5"
+          className="flex items-start justify-between gap-4"
         >
-          <h1 className="font-serif text-3xl lg:text-4xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground text-sm">
-            Assalamu'alaikum,{' '}
-            <span className="font-medium text-foreground">
-              {user?.nickname ?? user?.name?.split(' ')[0] ?? 'Santri'}
-            </span>
-            . Lanjutkan perjalanan menuntut ilmumu.
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-primary mb-2">
+              {getGreeting()}
+            </p>
+            <h1 className="font-serif text-3xl sm:text-4xl font-bold text-foreground leading-tight">
+              Assalamu'alaikum,{' '}
+              {user?.nickname ?? user?.name?.split(' ')[0] ?? 'Sahabat'}!
+            </h1>
+            <p className="text-muted-foreground mt-2 text-sm">{getMotivasi()}</p>
+          </div>
+          <p className="hidden sm:block text-sm text-muted-foreground shrink-0 pt-1">
+            {formatTanggal()}
           </p>
         </motion.div>
       </div>

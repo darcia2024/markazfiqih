@@ -1,0 +1,14 @@
+Di DashboardPage.tsx, ubah struktur header bagian atas (yang sekarang berisi judul "Dashboard" besar + sapaan kecil di bawahnya). Balik hierarkinya jadi seperti ini:
+
+Label kecil eyebrow di atas (text-xs font-semibold uppercase tracking-wider text-primary mb-2): tampilkan sapaan berdasarkan waktu — buat function helper getGreeting() yang mengecek jam saat ini (new Date().getHours()), return "Selamat Pagi" (jam 4-10), "Selamat Siang" (jam 11-14), "Selamat Sore" (jam 15-17), atau "Selamat Malam" (jam 18-3).
+Judul utama besar (font-serif text-3xl sm:text-4xl font-bold text-foreground): ganti isinya jadi personal, contoh: Assalamu'alaikum, {nickname}! (pakai user?.nickname ?? user?.name?.split(' ')[0] ?? 'Sahabat', tanda seru di akhir untuk kesan hangat).
+Subteks di bawahnya (text-muted-foreground mt-2): pindahkan kalimat motivasi yang sudah ada ("Lanjutkan perjalanan menuntut ilmumu.") ke sini, bisa dibuat sedikit lebih variatif — buat array 3-4 kalimat motivasi berbeda (misal "Lanjutkan perjalanan menuntut ilmumu.", "Konsistensi kecil hari ini, hasil besar nanti.", "Semoga ilmu yang dipelajari hari ini berkah.") dan pilih satu secara acak setiap kali halaman dimuat (Math.random()), supaya terasa tidak monoton kalau dibuka berulang kali.
+Tambahkan tanggal hari ini di ujung kanan header (sejajar dengan judul, hidden sm:block text-sm text-muted-foreground): format new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }), contoh hasil: "Senin, 7 Juli 2026".
+Kata "Dashboard" yang sebelumnya jadi judul utama, HAPUS saja sepenuhnya dari tampilan ini (karena sudah jelas dari sidebar bahwa ini halaman Dashboard, tidak perlu diulang sebagai judul besar).
+
+Susun layout header jadi flex items-start justify-between (label+judul+subteks di kiri, tanggal di kanan) supaya rapi di desktop, dan flex-col di mobile (tanggal pindah ke bawah atau disembunyikan).
+Verifikasi:
+
+pnpm run typecheck, 0 error.
+Screenshot header baru — pastikan urutannya: label kecil sapaan waktu → judul besar "Assalamu'alaikum, {nama}!" → subteks motivasi → tanggal di kanan. Tidak ada lagi teks "Dashboard" besar seperti sebelumnya.
+Refresh halaman beberapa kali — pastikan kalimat motivasi di subteks berubah-ubah (menandakan random-nya jalan).
