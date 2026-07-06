@@ -40,6 +40,7 @@ export const ListClassesResponseItem = zod.object({
   "status": zod.enum(['draft', 'published']),
   "level": zod.union([zod.literal('pemula'),zod.literal('menengah'),zod.literal('lanjutan'),zod.literal(null)]).nullable(),
   "category": zod.string().nullable(),
+  "youtubePlaylistId": zod.string().nullable(),
   "instructor": zod.object({
   "id": zod.string().uuid(),
   "name": zod.string(),
@@ -76,6 +77,7 @@ export const CreateClassResponse = zod.object({
   "status": zod.enum(['draft', 'published']),
   "level": zod.union([zod.literal('pemula'),zod.literal('menengah'),zod.literal('lanjutan'),zod.literal(null)]).nullable(),
   "category": zod.string().nullable(),
+  "youtubePlaylistId": zod.string().nullable(),
   "instructor": zod.object({
   "id": zod.string().uuid(),
   "name": zod.string(),
@@ -104,6 +106,7 @@ export const GetClassByIdResponse = zod.object({
   "status": zod.enum(['draft', 'published']),
   "level": zod.union([zod.literal('pemula'),zod.literal('menengah'),zod.literal('lanjutan'),zod.literal(null)]).nullable(),
   "category": zod.string().nullable(),
+  "youtubePlaylistId": zod.string().nullable(),
   "instructor": zod.object({
   "id": zod.string().uuid(),
   "name": zod.string(),
@@ -151,6 +154,7 @@ export const UpdateClassResponse = zod.object({
   "status": zod.enum(['draft', 'published']),
   "level": zod.union([zod.literal('pemula'),zod.literal('menengah'),zod.literal('lanjutan'),zod.literal(null)]).nullable(),
   "category": zod.string().nullable(),
+  "youtubePlaylistId": zod.string().nullable(),
   "instructor": zod.object({
   "id": zod.string().uuid(),
   "name": zod.string(),
@@ -256,6 +260,7 @@ export const ListRecommendedClassesResponseItem = zod.object({
   "status": zod.enum(['draft', 'published']),
   "level": zod.union([zod.literal('pemula'),zod.literal('menengah'),zod.literal('lanjutan'),zod.literal(null)]).nullable(),
   "category": zod.string().nullable(),
+  "youtubePlaylistId": zod.string().nullable(),
   "instructor": zod.object({
   "id": zod.string().uuid(),
   "name": zod.string(),

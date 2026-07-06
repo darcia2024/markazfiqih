@@ -49,6 +49,7 @@ router.get("/classes/recommended", async (req, res): Promise<void> => {
       status: classesTable.status,
       level: classesTable.level,
       category: classesTable.category,
+      youtubePlaylistId: classesTable.youtubePlaylistId,
       instructorId: instructorsTable.id,
       instructorName: instructorsTable.name,
       instructorPhotoUrl: instructorsTable.photoUrl,
@@ -69,6 +70,7 @@ router.get("/classes/recommended", async (req, res): Promise<void> => {
     status: row.status,
     level: row.level,
     category: row.category,
+    youtubePlaylistId: row.youtubePlaylistId,
     instructor: {
       id: row.instructorId,
       name: row.instructorName,
@@ -127,6 +129,7 @@ router.get("/classes", async (req, res): Promise<void> => {
       status: classesTable.status,
       level: classesTable.level,
       category: classesTable.category,
+      youtubePlaylistId: classesTable.youtubePlaylistId,
       instructorId: instructorsTable.id,
       instructorName: instructorsTable.name,
       instructorPhotoUrl: instructorsTable.photoUrl,
@@ -166,6 +169,7 @@ router.get("/classes", async (req, res): Promise<void> => {
       status: row.status,
       level: row.level,
       category: row.category,
+      youtubePlaylistId: row.youtubePlaylistId,
       instructor: {
         id: row.instructorId,
         name: row.instructorName,
@@ -193,6 +197,7 @@ router.get("/classes/:id", async (req, res): Promise<void> => {
       status: classesTable.status,
       level: classesTable.level,
       category: classesTable.category,
+      youtubePlaylistId: classesTable.youtubePlaylistId,
       instructorId: instructorsTable.id,
       instructorName: instructorsTable.name,
       instructorBio: instructorsTable.bio,
@@ -236,6 +241,7 @@ router.get("/classes/:id", async (req, res): Promise<void> => {
     status: row.status,
     level: row.level,
     category: row.category,
+    youtubePlaylistId: row.youtubePlaylistId,
     instructor: {
       id: row.instructorId,
       name: row.instructorName,
@@ -277,6 +283,7 @@ router.post("/classes", async (req, res): Promise<void> => {
     status: inserted.status,
     level: inserted.level,
     category: inserted.category,
+    youtubePlaylistId: inserted.youtubePlaylistId,
     instructor: {
       id: instructor.id,
       name: instructor.name,
@@ -334,6 +341,7 @@ router.put("/classes/:id", async (req, res): Promise<void> => {
     status: updated.status,
     level: updated.level,
     category: updated.category,
+    youtubePlaylistId: updated.youtubePlaylistId,
     instructor: {
       id: instructor.id,
       name: instructor.name,

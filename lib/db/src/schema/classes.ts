@@ -16,6 +16,7 @@ export const classesTable = pgTable("classes", {
   status: text("status", { enum: CLASS_STATUS_VALUES }).notNull().default("draft"),
   level: text("level", { enum: CLASS_LEVEL_VALUES }),
   category: text("category"),
+  youtubePlaylistId: text("youtube_playlist_id"),
   instructorId: uuid("instructor_id")
     .notNull()
     .references(() => instructorsTable.id, { onDelete: "cascade" }),

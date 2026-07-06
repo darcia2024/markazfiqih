@@ -649,6 +649,7 @@ components:
         - modules
         - moduleCount
         - totalDurationMinutes
+        - youtubePlaylistId
       properties:
         id:
           type: string
@@ -670,6 +671,8 @@ components:
           type: ["string", "null"]
           enum: [pemula, menengah, lanjutan, null]
         category:
+          type: ["string", "null"]
+        youtubePlaylistId:
           type: ["string", "null"]
         instructor:
           $ref: "#/components/schemas/InstructorSummary"
@@ -696,6 +699,7 @@ components:
         - instructor
         - moduleCount
         - totalDurationMinutes
+        - youtubePlaylistId
       properties:
         id:
           type: string
@@ -717,6 +721,8 @@ components:
           type: ["string", "null"]
           enum: [pemula, menengah, lanjutan, null]
         category:
+          type: ["string", "null"]
+        youtubePlaylistId:
           type: ["string", "null"]
         instructor:
           $ref: "#/components/schemas/ClassInstructor"

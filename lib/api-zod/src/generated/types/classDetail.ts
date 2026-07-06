@@ -23,6 +23,8 @@ export interface ClassDetail {
   level: ClassDetailLevel;
   /** @nullable */
   category: string | null;
+  /** @nullable */
+  youtubePlaylistId: string | null;
   instructor: InstructorSummary;
   modules: ClassModule[];
   moduleCount: number;
