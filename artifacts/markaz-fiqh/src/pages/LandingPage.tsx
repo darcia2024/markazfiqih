@@ -12,6 +12,7 @@ import {
   Clock,
   Quote,
   Music2,
+  Star,
 } from 'lucide-react';
 
 import { Navbar } from '@/components/Navbar';
@@ -132,6 +133,61 @@ function HeroSection({
               <Link href="/katalog">Jelajahi Kelas</Link>
             </Button>
           </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ── Cara Belajar ─────────────────────────────────────────────────────────
+const HOW_IT_WORKS = [
+  {
+    title: 'Jelajahi Katalog',
+    description: 'Cari kelas fiqih sesuai minat dan levelmu.',
+  },
+  {
+    title: 'Tambahkan ke Keranjang',
+    description: 'Pilih satu atau beberapa kelas sekaligus.',
+  },
+  {
+    title: 'Bayar dengan Mudah',
+    description: 'QRIS, e-wallet, virtual account, atau kartu.',
+  },
+  {
+    title: 'Kelas Langsung Terbuka',
+    description: 'Akses otomatis begitu pembayaran terverifikasi.',
+  },
+  {
+    title: 'Belajar & Pantau Progress',
+    description: 'Tonton kapan saja, progressmu tersimpan otomatis.',
+  },
+];
+
+function HowItWorksSection() {
+  return (
+    <section className="bg-background">
+      <div className="container mx-auto px-5 sm:px-8 lg:px-16 py-16 max-w-[1200px]">
+        <p className="text-xs font-semibold tracking-wider text-primary uppercase">
+          Cara Belajar
+        </p>
+        <h2 className="font-serif text-2xl sm:text-3xl font-bold mt-2 mb-8 text-foreground">
+          Belajar Jadi Lebih Terarah
+        </h2>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          {HOW_IT_WORKS.map((step, index) => (
+            <div
+              key={step.title}
+              className="relative rounded-[14px] bg-[hsl(var(--brand-red-deep))] p-5 text-white"
+            >
+              <Star className="absolute top-4 right-4 w-4 h-4 text-[hsl(var(--brand-gold-pale))]" />
+              <p className="text-xs text-white/60 font-medium">Step {index + 1}</p>
+              <p className="font-serif font-semibold text-base mt-2 leading-snug pr-6">
+                {step.title}
+              </p>
+              <p className="text-sm text-white/70 mt-1 leading-relaxed">{step.description}</p>
+            </div>
+          ))}
         </div>
       </div>
     </section>
@@ -545,6 +601,8 @@ export default function LandingPage() {
 
       <main className="flex-1">
         <HeroSection socialLinks={socialLinks} />
+
+        <HowItWorksSection />
 
         <StatsSection
           classCount={allClasses.length}
