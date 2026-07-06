@@ -11,6 +11,7 @@ import {
   Infinity,
   Lock,
   PlayCircle,
+  PlaySquare,
   ShoppingCart,
 } from 'lucide-react';
 
@@ -262,69 +263,89 @@ export default function ClassDetailPage() {
                   <h2 className="font-serif text-2xl font-bold text-foreground">
                     Kurikulum
                   </h2>
-                  <span className="text-sm text-muted-foreground">
-                    {cls.moduleCount} modul
-                  </span>
+                  {!(cls.youtubePlaylistId && cls.modules.length === 0) && (
+                    <span className="text-sm text-muted-foreground">
+                      {cls.moduleCount} modul
+                    </span>
+                  )}
                 </div>
 
-                <Accordion type="multiple" className="space-y-2">
-                  {cls.modules.map((mod, modIdx) => (
-                    <AccordionItem
-                      key={mod.id}
-                      value={mod.id}
-                      className="border rounded-lg px-4 bg-card"
-                    >
-                      <AccordionTrigger className="hover:no-underline py-4">
-                        <div className="flex items-center gap-3 text-left">
-                          <div className="shrink-0 w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
-                            {mod.orderIndex}
-                          </div>
-                          <div>
-                            <p className="font-semibold text-sm text-foreground">
-                              {mod.title}
-                            </p>
-                            {mod.durationMinutes != null && (
-                              <p className="text-xs text-muted-foreground font-normal mt-0.5">
-                                {formatDuration(mod.durationMinutes)}
+                {cls.youtubePlaylistId && cls.modules.length === 0 ? (
+                  /* Playlist mode: no module/dars breakdown */
+                  <div className="flex items-center gap-4 rounded-xl border bg-card px-5 py-4">
+                    <div className="shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <PlaySquare className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-sm text-foreground">
+                        Kelas ini berupa playlist video berkelanjutan
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Akses penuh playlist setelah kelas dibeli
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  /* Normal mode: module/dars accordion */
+                  <Accordion type="multiple" className="space-y-2">
+                    {cls.modules.map((mod, modIdx) => (
+                      <AccordionItem
+                        key={mod.id}
+                        value={mod.id}
+                        className="border rounded-lg px-4 bg-card"
+                      >
+                        <AccordionTrigger className="hover:no-underline py-4">
+                          <div className="flex items-center gap-3 text-left">
+                            <div className="shrink-0 w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
+                              {mod.orderIndex}
+                            </div>
+                            <div>
+                              <p className="font-semibold text-sm text-foreground">
+                                {mod.title}
                               </p>
+                              {mod.durationMinutes != null && (
+                                <p className="text-xs text-muted-foreground font-normal mt-0.5">
+                                  {formatDuration(mod.durationMinutes)}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <div className="space-y-1">
+                            {Array.from({ length: PLACEHOLDER_DARS_PER_MODULE }).map(
+                              (_, darsIdx) => {
+                                const globalDarsIndex =
+                                  modIdx * PLACEHOLDER_DARS_PER_MODULE + darsIdx;
+                                const isDoneDemo = globalDarsIndex < 3;
+
+                                return (
+                                  <div
+                                    key={darsIdx}
+                                    className="flex items-center gap-2.5 py-2 px-2 rounded-md text-sm text-muted-foreground"
+                                  >
+                                    {isEnrolledDemo ? (
+                                      isDoneDemo ? (
+                                        <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
+                                      ) : (
+                                        <PlayCircle className="w-4 h-4 text-primary shrink-0" />
+                                      )
+                                    ) : (
+                                      <Lock className="w-4 h-4 text-muted-foreground shrink-0" />
+                                    )}
+                                    <span>
+                                      Pelajaran {darsIdx + 1} — {mod.title}
+                                    </span>
+                                  </div>
+                                );
+                              },
                             )}
                           </div>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent>
-                        <div className="space-y-1">
-                          {Array.from({ length: PLACEHOLDER_DARS_PER_MODULE }).map(
-                            (_, darsIdx) => {
-                              const globalDarsIndex =
-                                modIdx * PLACEHOLDER_DARS_PER_MODULE + darsIdx;
-                              const isDoneDemo = globalDarsIndex < 3;
-
-                              return (
-                                <div
-                                  key={darsIdx}
-                                  className="flex items-center gap-2.5 py-2 px-2 rounded-md text-sm text-muted-foreground"
-                                >
-                                  {isEnrolledDemo ? (
-                                    isDoneDemo ? (
-                                      <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
-                                    ) : (
-                                      <PlayCircle className="w-4 h-4 text-primary shrink-0" />
-                                    )
-                                  ) : (
-                                    <Lock className="w-4 h-4 text-muted-foreground shrink-0" />
-                                  )}
-                                  <span>
-                                    Pelajaran {darsIdx + 1} — {mod.title}
-                                  </span>
-                                </div>
-                              );
-                            },
-                          )}
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))}
-                </Accordion>
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
+                )}
               </motion.div>
             </div>
 
