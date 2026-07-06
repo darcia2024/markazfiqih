@@ -246,22 +246,24 @@ function DashboardContent() {
 
   return (
     <AppShell>
-      <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl py-10 lg:py-14">
-        {/* Header */}
+      {/* Top bar */}
+      <div className="bg-primary h-20 flex items-center px-4 sm:px-6 lg:px-8 shrink-0">
         <motion.div
-          initial={{ opacity: 0, y: 12 }}
+          initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8 space-y-1"
+          className="space-y-0.5"
         >
-          <h1 className="font-serif text-3xl lg:text-4xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-muted-foreground">
+          <h1 className="font-serif text-2xl lg:text-3xl font-bold text-white">Dashboard</h1>
+          <p className="text-white/70 text-sm">
             Assalamu'alaikum,{' '}
-            <span className="font-medium text-foreground">
+            <span className="font-medium text-white">
               {user?.nickname ?? user?.name?.split(' ')[0] ?? 'Santri'}
             </span>
             . Lanjutkan perjalanan menuntut ilmumu.
           </p>
         </motion.div>
+      </div>
+      <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl py-8 lg:py-10">
 
         {isLoading ? (
           <div className="flex items-center justify-center py-32">

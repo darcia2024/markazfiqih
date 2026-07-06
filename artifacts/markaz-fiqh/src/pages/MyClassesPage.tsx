@@ -212,15 +212,13 @@ function MyClassesContent() {
 
   return (
     <AppShell>
-      <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl py-10 lg:py-14">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8 space-y-1"
-        >
-          <h1 className="font-serif text-3xl lg:text-4xl font-bold text-foreground">Kelas Saya</h1>
+      {/* Top bar */}
+      <div className="bg-primary h-16 flex items-center px-4 sm:px-6 lg:px-8 shrink-0">
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+          <h1 className="font-serif text-2xl lg:text-3xl font-bold text-white">Kelas Saya</h1>
         </motion.div>
+      </div>
+      <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl py-8 lg:py-10">
 
         {/* Filter chips */}
         <div className="flex flex-wrap gap-2 mb-8">
