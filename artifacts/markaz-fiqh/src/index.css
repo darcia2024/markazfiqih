@@ -63,8 +63,8 @@
 
   --radius-sm: 8px;
   --radius-md: var(--radius);
-  --radius-lg: 14px;
-  --radius-xl: calc(14px + 4px);
+  --radius-lg: 18px;
+  --radius-xl: calc(18px + 4px);
 }
 
 /* LIGHT MODE — Markaz Fiqih Design System */
@@ -126,12 +126,12 @@
   --app-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --app-font-serif: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --app-font-mono: 'Menlo', monospace;
-  --radius: 0.625rem; /* 10px — Button default; Card 14px & Input 8px set per-component */
+  --radius: 0.75rem; /* 12px — Button default; Card 18px & Input 8px set per-component */
 
-  --shadow-sm: 0px 1px 2px rgba(163, 31, 44, 0.05);
-  --shadow: 0px 2px 8px rgba(163, 31, 44, 0.06), 0px 4px 16px rgba(163, 31, 44, 0.08);
-  --shadow-md: 0px 6px 16px rgba(163, 31, 44, 0.10);
-  --shadow-lg: 0px 12px 24px rgba(163, 31, 44, 0.14);
+  --shadow-sm: 0px 1px 4px rgba(163, 31, 44, 0.04);
+  --shadow: 0px 4px 20px rgba(163, 31, 44, 0.08);
+  --shadow-md: 0px 6px 24px rgba(163, 31, 44, 0.08);
+  --shadow-lg: 0px 12px 32px rgba(163, 31, 44, 0.10);
 
   --primary-border: hsl(from hsl(var(--primary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
   --secondary-border: hsl(from hsl(var(--secondary)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
@@ -163,6 +163,10 @@
   --destructive-foreground: 0 0% 100%;
   --input: 356 15% 18%;
   --ring: 354 68% 48%;
+}
+
+@utility transition-friendly {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 @layer base {
