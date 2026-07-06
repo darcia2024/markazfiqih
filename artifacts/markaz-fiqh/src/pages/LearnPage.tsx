@@ -19,6 +19,7 @@ import {
 
 import { AppShell } from '@/components/AppShell';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { FacilitasCard } from '@/components/FacilitasCard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
@@ -73,12 +74,16 @@ function PlaylistMode({
   playlistId,
   enrollmentId,
   userId,
+  gdriveMateriUrl,
+  waGroupUrl,
 }: {
   classTitle: string;
   instructorName: string;
   playlistId: string;
   enrollmentId: string | null;
   userId: string;
+  gdriveMateriUrl?: string | null;
+  waGroupUrl?: string | null;
 }) {
   const { mutate: completeEnrollment, isPending: isCompleting, isSuccess: isCompleted } =
     useCompleteEnrollment();
@@ -131,6 +136,12 @@ function PlaylistMode({
               )}
               Tandai Kelas Selesai
             </Button>
+          )}
+
+          {(gdriveMateriUrl || waGroupUrl) && (
+            <div className="pt-2 border-t">
+              <FacilitasCard gdriveMateriUrl={gdriveMateriUrl} waGroupUrl={waGroupUrl} />
+            </div>
           )}
         </div>
       </div>
@@ -406,6 +417,8 @@ function LearnContent() {
         playlistId={classDetail.youtubePlaylistId!}
         enrollmentId={enrollmentId}
         userId={user?.id ?? ''}
+        gdriveMateriUrl={classDetail.gdriveMateriUrl}
+        waGroupUrl={classDetail.waGroupUrl}
       />
     );
   }
@@ -520,6 +533,16 @@ function LearnContent() {
                 </Button>
               </div>
             </div>
+
+            {/* Fasilitas Kelas */}
+            {(classDetail.gdriveMateriUrl || classDetail.waGroupUrl) && (
+              <div className="pt-4 border-t">
+                <FacilitasCard
+                  gdriveMateriUrl={classDetail.gdriveMateriUrl}
+                  waGroupUrl={classDetail.waGroupUrl}
+                />
+              </div>
+            )}
 
             {/* Mini nav — dars in current module */}
             {activeEntry && (

@@ -29,6 +29,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { formatPrice } from '@/data/mockClasses';
 import { useGetClassById } from '@workspace/api-client-react';
+import { FacilitasCard } from '@/components/FacilitasCard';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 
@@ -370,6 +371,16 @@ export default function ClassDetailPage() {
                         <Link href={`/learn/${cls.id}`}>Lanjutkan Belajar</Link>
                       </Button>
                     </div>
+
+                    {(cls.gdriveMateriUrl || cls.waGroupUrl) && (
+                      <>
+                        <Separator />
+                        <FacilitasCard
+                          gdriveMateriUrl={cls.gdriveMateriUrl}
+                          waGroupUrl={cls.waGroupUrl}
+                        />
+                      </>
+                    )}
 
                     <Separator />
                   </>

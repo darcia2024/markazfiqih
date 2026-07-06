@@ -1,0 +1,23 @@
+Kurangi Distraksi & Klik Keluar dari Player YouTube
+
+Di LearnPage.tsx, cari <iframe> yang embed video YouTube (baik mode playlist maupun mode dars biasa). Update parameter URL embed-nya:
+
+Ganti domain dari youtube.com/embed menjadi youtube-nocookie.com/embed (mode privacy-enhanced, mengurangi tracking & sedikit lebih clean).
+Tambahkan parameter: ?rel=0 (video rekomendasi setelah selesai HANYA dari channel yang sama, bukan channel lain), &modestbranding=1 (kurangi logo YouTube yang mencolok), &iv_load_policy=3 (matikan anotasi/kartu interaktif yang suka muncul di video), &fs=1 (tetap izinkan fullscreen, ini biasanya perlu untuk UX yang baik).
+Untuk mode playlist: tambahkan juga &playsinline=1.
+
+Tambahkan komentar di kode: {/* CATATAN: YouTube tidak mengizinkan menyembunyikan sepenuhnya opsi "Watch on YouTube" atau logo YouTube karena kebijakan mereka — parameter di atas hanya meminimalisir distraksi/rekomendasi video lain, bukan blokir total. */}
+
+
+PROMPT 2 — Isi Halaman Belajar Biar Gak Sepi
+
+Di LearnPage.tsx, untuk kondisi mode playlist (isPlaylistMode === true), tambahkan sidebar kanan (hidden lg:block w-[320px]) di sebelah video player, berisi:
+1. Card "Tentang Pengajar" — foto/avatar instruktur (inisial jika tidak ada foto), nama, dan bio singkat (ambil dari data instruktur yang sudah ada di response API kelas). Tambahkan juga jumlah kelas lain yang diajar instruktur ini (query useListClasses filter by instructorId, hitung .length).
+2. Card "Fasilitas Kelas" — reuse komponen yang sudah dibuat di prompt sebelumnya (link Google Drive Materi & Grup WhatsApp), jika kelas ini punya datanya.
+3. Card "Kelas Lainnya dari Kategori yang Sama" — 2-3 kelas lain dengan kategori yang sama (gunakan endpoint /classes/recommended yang sudah ada dari fitur cart, atau useListClasses filter kategori jika endpoint itu tidak cocok), ditampilkan ringkas (thumbnail kecil, judul, harga) dengan link ke halaman detail masing-masing.
+Di bagian bawah video (area yang sekarang cuma ada judul kelas + nama pengajar + tombol "Tandai Kelas Selesai"), tambahkan juga deskripsi lengkap kelas (cls.description) di bawah nama pengajar, supaya area itu tidak terlalu kosong.
+Verifikasi:
+
+pnpm run typecheck, 0 error.
+Screenshot halaman belajar kelas mode playlist — pastikan sidebar kanan sekarang terisi (pengajar, fasilitas jika ada, kelas lainnya), dan area bawah video ada deskripsi kelas.
+Coba klik logo YouTube kecil di pojok player — kalau masih bisa membuka youtube.com, itu memang batasan bawaan YouTube (bukan bug), tapi pastikan video rekomendasi acak dari channel lain sudah tidak muncul lagi setelah video selesai.
