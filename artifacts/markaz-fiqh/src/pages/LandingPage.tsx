@@ -229,44 +229,6 @@ function HowItWorksSection() {
   );
 }
 
-// ── Statistik ────────────────────────────────────────────────────────────
-function StatsSection({
-  classCount,
-  instructorCount,
-  studentCountLabel,
-}: {
-  classCount: number;
-  instructorCount: number;
-  studentCountLabel: string;
-}) {
-  return (
-    <section className="bg-background">
-      <div className="container mx-auto px-5 sm:px-8 lg:px-16 py-12 max-w-[1200px]">
-        <div className="grid grid-cols-3 gap-6 text-center">
-          <div>
-            <p className="font-serif text-3xl sm:text-4xl font-bold text-primary">
-              {classCount}+
-            </p>
-            <p className="text-sm text-muted-foreground mt-1">Kelas Tersedia</p>
-          </div>
-          <div>
-            <p className="font-serif text-3xl sm:text-4xl font-bold text-primary">
-              {instructorCount}+
-            </p>
-            <p className="text-sm text-muted-foreground mt-1">Pengajar</p>
-          </div>
-          <div>
-            <p className="font-serif text-3xl sm:text-4xl font-bold text-primary">
-              {studentCountLabel}
-            </p>
-            <p className="text-sm text-muted-foreground mt-1">Santri Aktif</p>
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 // ── Kelas Pilihan ────────────────────────────────────────────────────────
 function FeaturedClassesSection({
   classes,
@@ -619,12 +581,6 @@ export default function LandingPage() {
         <HeroSection socialLinks={socialLinks} />
 
         <HowItWorksSection />
-
-        <StatsSection
-          classCount={allClasses.length}
-          instructorCount={instructors.length}
-          studentCountLabel={settings?.studentCountLabel || '100+'}
-        />
 
         <FeaturedClassesSection classes={featuredClasses} isLoading={classesQuery.isLoading} />
 
