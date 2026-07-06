@@ -30,17 +30,17 @@ function ProgressWidget({ enrollments }: { enrollments: EnrollmentItem[] }) {
 
   return (
     <Link href="/dashboard">
-      <div className="mx-3 rounded-[14px] bg-[hsl(var(--brand-red-tint))] p-4 space-y-3 cursor-pointer">
-        <p className="text-xs font-semibold text-primary uppercase tracking-wide">
+      <div className="mx-3 rounded-[18px] bg-white/10 p-4 space-y-3 cursor-pointer hover:bg-white/15 transition-friendly">
+        <p className="text-xs font-semibold text-white/70 uppercase tracking-wide">
           Progress Kamu
         </p>
         <div>
-          <p className="font-serif text-2xl font-bold text-foreground">{overallProgress}%</p>
-          <p className="text-xs text-muted-foreground">{totalOwned} kelas dimiliki</p>
+          <p className="font-serif text-2xl font-bold text-white">{overallProgress}%</p>
+          <p className="text-xs text-white/60">{totalOwned} kelas dimiliki</p>
         </div>
-        <div className="h-1.5 rounded-full bg-white/60 overflow-hidden">
+        <div className="h-1.5 rounded-full bg-white/20 overflow-hidden">
           <div
-            className="h-full bg-primary rounded-full transition-all"
+            className="h-full bg-white rounded-full transition-all"
             style={{ width: `${overallProgress}%` }}
           />
         </div>
@@ -63,20 +63,20 @@ export function AppSidebar({ isAdmin }: { isAdmin: boolean }) {
   });
 
   return (
-    <aside className="hidden lg:flex fixed inset-y-0 left-0 w-[240px] h-full flex-col bg-card border-r border-border z-40">
-      <div className="h-20 flex items-center px-6 border-b border-border">
+    <aside className="hidden lg:flex fixed inset-y-0 left-0 w-[240px] h-full flex-col bg-primary border-r border-white/10 z-40">
+      <div className="h-20 flex items-center px-6 border-b border-white/10">
         <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-sm bg-primary text-primary-foreground">
+          <div className="flex h-8 w-8 items-center justify-center rounded-sm bg-white text-primary">
             <BookOpen className="h-5 w-5" />
           </div>
-          <span className="font-serif text-lg font-bold tracking-tight text-primary">
+          <span className="font-serif text-lg font-bold tracking-tight text-white">
             Markaz Fiqih
           </span>
         </Link>
       </div>
 
       <nav className="flex flex-col gap-1 px-3 py-4">
-        <p className="px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60 mb-2">
+        <p className="px-3 text-[11px] font-semibold uppercase tracking-wider text-white/50 mb-2">
           Menu Utama
         </p>
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
@@ -87,8 +87,8 @@ export function AppSidebar({ isAdmin }: { isAdmin: boolean }) {
               href={href}
               className={
                 isActive
-                  ? 'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-semibold text-primary bg-primary/5 border-l-[3px] border-primary -ml-3 pl-[9px]'
-                  : 'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors border-l-[3px] border-transparent -ml-3 pl-[9px]'
+                  ? 'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-semibold text-primary bg-white border-l-[3px] border-white -ml-3 pl-[9px]'
+                  : 'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-friendly border-l-[3px] border-transparent -ml-3 pl-[9px]'
               }
             >
               <Icon className="h-4 w-4" />
@@ -100,7 +100,7 @@ export function AppSidebar({ isAdmin }: { isAdmin: boolean }) {
         {isAdmin && (
           <Link
             href="/admin"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors border-l-[3px] border-transparent -ml-3 pl-[9px]"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-friendly border-l-[3px] border-transparent -ml-3 pl-[9px]"
           >
             <Settings className="h-4 w-4" />
             Panel Admin
@@ -114,18 +114,18 @@ export function AppSidebar({ isAdmin }: { isAdmin: boolean }) {
 
       <div className="flex-1" />
 
-      <div className="border-t border-border p-4">
+      <div className="border-t border-white/20 p-4">
         <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-semibold shrink-0">
+          <div className="h-9 w-9 rounded-full bg-white text-primary flex items-center justify-center text-sm font-semibold shrink-0">
             {initial}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-foreground truncate">{displayName}</p>
-            <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+            <p className="text-sm font-semibold text-white truncate">{displayName}</p>
+            <p className="text-xs text-white/60 truncate">{user?.email}</p>
           </div>
           <button
             onClick={logout}
-            className="shrink-0 p-2 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+            className="shrink-0 p-2 rounded-md text-white/60 hover:text-white hover:bg-white/10 transition-friendly"
             title="Keluar"
           >
             <LogOut className="h-4 w-4" />
