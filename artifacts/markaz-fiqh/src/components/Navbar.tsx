@@ -19,22 +19,22 @@ export function Navbar() {
   const { count } = useCart();
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full bg-gradient-to-r from-primary to-[hsl(var(--brand-red-hover))]">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-8">
             <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-90">
-              <div className="flex h-8 w-8 items-center justify-center rounded-sm bg-primary text-primary-foreground">
+              <div className="flex h-8 w-8 items-center justify-center rounded-sm bg-white text-primary">
                 <BookOpen className="h-5 w-5" />
               </div>
-              <span className="font-serif text-xl font-bold tracking-tight text-primary">Markaz Fiqh</span>
+              <span className="font-serif text-xl font-bold tracking-tight text-white">Markaz Fiqh</span>
             </Link>
-            
+
             <nav className="hidden md:flex items-center gap-6">
-              <Link href="/katalog" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+              <Link href="/katalog" className="text-sm font-medium text-white/80 hover:text-white transition-colors">
                 Katalog
               </Link>
-              <Link href="/my-classes" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+              <Link href="/my-classes" className="text-sm font-medium text-white/80 hover:text-white transition-colors">
                 Kelas Saya
               </Link>
             </nav>
@@ -44,12 +44,12 @@ export function Navbar() {
             {!isLoading && user && (
               <Link
                 href="/keranjang"
-                className="relative flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                className="relative flex h-9 w-9 items-center justify-center rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-friendly"
                 aria-label="Keranjang"
               >
                 <ShoppingCart className="h-5 w-5" />
                 {count > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-primary-foreground">
+                  <span className="absolute -top-1 -right-1 flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-[hsl(var(--brand-gold))] px-1 text-[10px] font-bold leading-none text-white">
                     {count > 9 ? '9+' : count}
                   </span>
                 )}
@@ -59,10 +59,10 @@ export function Navbar() {
               user ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="relative h-9 w-9 rounded-full">
-                      <Avatar className="h-9 w-9 border border-border">
+                    <Button variant="ghost" className="relative h-9 w-9 rounded-full hover:bg-white/10">
+                      <Avatar className="h-9 w-9 border border-white/20">
                         <AvatarImage src={user.avatar_url} alt={user.name} />
-                        <AvatarFallback className="bg-primary/10 text-primary">
+                        <AvatarFallback className="bg-white text-primary">
                           {user.name.split(' ').map(n => n[0]).join('').substring(0, 2)}
                         </AvatarFallback>
                       </Avatar>
@@ -88,7 +88,7 @@ export function Navbar() {
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
-                <Button asChild variant="default" className="font-medium">
+                <Button asChild className="font-medium bg-white text-primary hover:bg-white/90">
                   <Link href="/login">Masuk</Link>
                 </Button>
               )

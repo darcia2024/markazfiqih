@@ -1,0 +1,17 @@
+Selaraskan tampilan Landing Page (LandingPage.tsx, halaman publik sebelum login) dengan tema yang baru saja diterapkan di Dashboard/sidebar aplikasi (gradasi merah, radius lebih bulat, shadow lebih lembut, sentuhan modern seperti glass effect). Berikut penyesuaian yang perlu dilakukan:
+1. Header/navbar Landing Page (bagian paling atas berisi logo "Markaz Fiqih" dan tombol "Masuk", biasanya sticky di atas Hero Section). Cari komponen ini di kode. Ubah background dari transparan/putih polos menjadi bg-gradient-to-r from-primary to-[hsl(var(--brand-red-hover))] (gradasi horizontal, bukan vertikal seperti sidebar, karena bentuknya horizontal). Ubah logo teks dan ikon jadi versi putih (kontras di atas merah, sama seperti perlakuan logo di sidebar). Tombol "Masuk" ubah jadi bg-white text-primary hover:bg-white/90 (kebalikan warna, biar menonjol di atas gradasi merah).
+2. Category Section (card gelap Fiqih Tematik/Fiqih Kitab/Akademi).
+Ubah background card dari bg-[hsl(var(--brand-red-deep))] solid menjadi gradasi: bg-gradient-to-br from-primary to-[hsl(var(--brand-red-deep))] (arah diagonal), supaya konsisten dengan pendekatan gradasi yang sekarang dipakai di sidebar. Tambahkan efek hover yang sama seperti menu sidebar: hover:shadow-lg hover:-translate-y-1 transition-all duration-300.
+3. Pastikan token radius & shadow global sudah otomatis ter-apply.
+Cek apakah card-card di Landing Page (testimonial, instruktur, kelas pilihan) sudah otomatis memakai radius 18px dan shadow lembut yang sudah diupdate di index.css sebelumnya (karena ini token global, seharusnya sudah otomatis berlaku tanpa perlu diubah manual). Jika ternyata ada card yang masih memakai nilai radius/shadow hardcoded berbeda (bukan dari token/variable), samakan supaya konsisten.
+4. Tombol CTA utama ("Jelajahi Kelas" di Hero, dan tombol-tombol lain yang memakai style Primary Button) — pastikan sudah otomatis mendapat radius 12px dan transition halus dari update komponen Button sebelumnya. Tidak perlu perubahan manual jika sudah memakai komponen Button yang sama.
+5. JANGAN ubah:
+
+Section "Tentang Markaz Fiqih", "Founder", "Testimonial" — biarkan tetap dengan background terang/krem seperti sekarang, karena berisi teks yang perlu nyaman dibaca (sama seperti prinsip di halaman Dashboard, area baca tetap terang).
+Footer — biarkan seperti sekarang.
+
+Verifikasi:
+
+pnpm run typecheck, 0 error.
+Screenshot Landing Page dari atas sampai section Category — pastikan header sekarang bergradasi merah dengan logo & tombol Masuk versi putih, dan card Category memakai gradasi diagonal yang konsisten dengan gaya sidebar.
+Bandingkan "rasa" keseluruhan Landing Page dengan Dashboard — harusnya terasa sebagai 1 keluarga produk yang sama, bukan 2 desain terpisah.

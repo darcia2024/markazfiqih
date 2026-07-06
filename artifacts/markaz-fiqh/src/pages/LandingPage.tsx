@@ -307,7 +307,7 @@ function CategorySection({
             Array.from({ length: 3 }).map((_, i) => (
               <div
                 key={i}
-                className="h-[140px] rounded-[14px] border border-border bg-card animate-pulse"
+                className="h-[140px] rounded-lg border border-border bg-card animate-pulse"
               />
             ))}
 
@@ -321,7 +321,7 @@ function CategorySection({
                   href={`/katalog?category=${encodeURIComponent(category)}`}
                   className="group block h-full"
                 >
-                  <div className="h-full flex flex-col gap-3 rounded-lg bg-[hsl(var(--brand-red-deep))] p-6 shadow-md hover:shadow-lg hover:-translate-y-1 transition-friendly">
+                  <div className="h-full flex flex-col gap-3 rounded-lg bg-gradient-to-br from-primary to-[hsl(var(--brand-red-deep))] p-6 shadow-md hover:shadow-lg hover:-translate-y-1 transition-friendly">
                     <div className="flex h-12 w-12 items-center justify-center rounded-[10px] bg-white/10 text-white">
                       <Icon className="h-6 w-6" />
                     </div>
