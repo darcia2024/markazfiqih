@@ -268,20 +268,28 @@ function DashboardContent() {
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
         ) : classesToShow.length === 0 ? (
-          <div className="rounded-xl border-2 border-dashed bg-muted/20 flex flex-col sm:flex-row items-center gap-4 p-6">
-            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-              <Sparkles className="w-5 h-5 text-primary" />
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="flex flex-col items-center justify-center text-center py-24 px-4 rounded-xl border bg-card"
+          >
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-6">
+              <BookOpen className="w-8 h-8 text-primary" />
             </div>
-            <div className="flex-1 text-center sm:text-left">
-              <p className="font-semibold text-foreground text-sm">Kamu Belum Memiliki Kelas</p>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Mulai perjalanan menuntut ilmu fiqih dengan memilih kelas yang sesuai kebutuhanmu.
-              </p>
-            </div>
-            <Button asChild variant="outline" size="sm" className="shrink-0">
-              <Link href="/katalog">Lihat Katalog</Link>
+            <p className="text-lg font-semibold text-foreground mb-2">
+              Kamu belum memulai kelas apapun
+            </p>
+            <p className="text-muted-foreground max-w-sm mb-6">
+              Yuk mulai perjalanan belajarmu dari katalog kelas kami.
+            </p>
+            <Button asChild size="lg" className="gap-2">
+              <Link href="/katalog">
+                <Sparkles className="w-4 h-4" />
+                Jelajahi Katalog
+              </Link>
             </Button>
-          </div>
+          </motion.div>
         ) : (
           <div className="space-y-8">
             <motion.div

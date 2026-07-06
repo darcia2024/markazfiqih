@@ -585,7 +585,7 @@ export default function LandingPage() {
 
   useEffect(() => {
     if (!isAuthLoading && user) {
-      setLocation('/katalog');
+      setLocation('/dashboard');
     }
   }, [isAuthLoading, user, setLocation]);
 

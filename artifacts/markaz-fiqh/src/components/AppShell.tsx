@@ -1,10 +1,18 @@
 import type { ReactNode } from 'react';
-import { Link } from 'wouter';
-import { LayoutGrid, BookOpen, BookMarked, Settings, LayoutDashboard } from 'lucide-react';
+import { Link, useLocation } from 'wouter';
+import { LayoutGrid, BookOpen, BookMarked, Settings, LayoutDashboard, type LucideIcon } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+
+const NAV_ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/katalog', label: 'Katalog Kelas', icon: LayoutGrid },
+  { href: '/my-classes', label: 'Kelas Saya', icon: BookMarked },
+];
 
 // ── Sidebar ──────────────────────────────────────────────────────────────
 export function AppSidebar({ isAdmin }: { isAdmin: boolean }) {
+  const [location] = useLocation();
+
   return (
     <aside className="hidden lg:flex fixed inset-y-0 left-0 w-[240px] flex-col bg-card border-r border-border z-40">
       <div className="h-20 flex items-center px-6 border-b border-border">
@@ -20,27 +28,23 @@ export function AppSidebar({ isAdmin }: { isAdmin: boolean }) {
       </div>
 
       <nav className="flex-1 flex flex-col gap-1 px-3 py-4">
-        <Link
-          href="/dashboard"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors border-l-[3px] border-transparent -ml-3 pl-[9px]"
-        >
-          <LayoutDashboard className="h-4 w-4" />
-          Dashboard
-        </Link>
-        <Link
-          href="/katalog"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-semibold text-primary bg-primary/5 border-l-[3px] border-primary -ml-3 pl-[9px]"
-        >
-          <LayoutGrid className="h-4 w-4" />
-          Katalog Kelas
-        </Link>
-        <Link
-          href="/my-classes"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors border-l-[3px] border-transparent -ml-3 pl-[9px]"
-        >
-          <BookMarked className="h-4 w-4" />
-          Kelas Saya
-        </Link>
+        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+          const isActive = location === href;
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={
+                isActive
+                  ? 'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-semibold text-primary bg-primary/5 border-l-[3px] border-primary -ml-3 pl-[9px]'
+                  : 'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors border-l-[3px] border-transparent -ml-3 pl-[9px]'
+              }
+            >
+              <Icon className="h-4 w-4" />
+              {label}
+            </Link>
+          );
+        })}
       </nav>
 
       {isAdmin && (

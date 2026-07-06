@@ -1,0 +1,25 @@
+Saya ingin memisahkan halaman "Kelas Saya" yang sekarang menjadi 2 halaman berbeda: "Dashboard" (baru, jadi halaman utama setelah login) dan "Kelas Saya" (disederhanakan, cuma daftar kelas). Tidak ada perubahan skema database untuk task ini — murni perubahan struktur halaman & routing di frontend.
+Langkah 1 — Buat file baru artifacts/markaz-fiqh/src/pages/DashboardPage.tsx.
+Pindahkan (copy) dari MyClassesPage.tsx bagian-bagian berikut ke halaman baru ini: header sapaan ("Assalamu'alaikum, {nama}..."), 3 card statistik (Kelas Dimiliki, Kelas Tuntas, Progress Keseluruhan), section "Lanjutkan Belajar", dan sidebar kanan "Progress Belajar". Ganti judul dari "Kelas Saya" jadi "Dashboard". Bungkus dengan layout/navigasi yang sedang aktif dipakai saat ini (cek dulu apakah AppShell sudah ada dari prompt sebelumnya, atau masih pakai <Navbar /> — sesuaikan dengan yang benar-benar ada di kode saat ini, JANGAN asumsikan AppShell sudah ada kalau ternyata belum). Tambahkan <ProtectedRoute> mengikuti pola yang sama seperti MyClassesPage.tsx.
+Tambahkan penanganan kondisi kosong (PENTING, user baru pasti mengalami ini): jika enrollments.length === 0, jangan tampilkan 3 card statistik dengan angka 0/0/0% yang terlihat seperti error. Sebagai gantinya, tampilkan card sambutan khusus: ikon besar (BookOpen dari lucide-react), teks "Kamu belum memulai kelas apapun" (text-lg font-semibold), subteks "Yuk mulai perjalanan belajarmu dari katalog kelas kami." (text-muted-foreground), dan tombol Primary Button "Jelajahi Katalog" mengarah ke /katalog. Sembunyikan section "Lanjutkan Belajar" dan sidebar "Progress Belajar" sepenuhnya untuk kondisi ini (jangan ditampilkan kosong/blank).
+Langkah 2 — Sederhanakan MyClassesPage.tsx.
+Hapus bagian sapaan, 3 card statistik, section "Lanjutkan Belajar", dan sidebar "Progress Belajar" dari file ini. Sisakan: judul halaman "Kelas Saya" (tanpa sapaan), filter chip kategori yang sudah ada, dan grid LENGKAP semua kelas yang dimiliki (termasuk yang sudah 100% tuntas, bukan cuma yang sedang berjalan). Tambahkan juga penanganan kondisi kosong di sini secara terpisah (kalau belum ada, jika sudah ada pertahankan): "Belum ada kelas yang dimiliki" + tombol ke /katalog.
+Langkah 3 — Update navigasi sidebar.
+Cari komponen yang mendefinisikan menu sidebar saat ini (cek dulu nama file dan function-nya secara langsung di kode, jangan berasumsi). Tambahkan 1 menu baru PALING ATAS (sebelum menu Katalog Kelas yang sudah ada): ikon LayoutDashboard dari lucide-react, teks "Dashboard", mengarah ke /dashboard. Urutan akhir: Dashboard → Katalog Kelas → Kelas Saya. Pastikan logic highlight menu aktif (border-left/warna aktif) mengecek path secara EXACT MATCH per route (/dashboard, /katalog, /my-classes) supaya tidak ada 2 menu yang aktif bersamaan atau salah highlight.
+Langkah 4 — Daftarkan route baru di App.tsx.
+Tambahkan <Route path="/dashboard" component={DashboardPage} /> sebelum route /katalog. Import komponennya di bagian atas file.
+Langkah 5 — Update SEMUA tempat yang mengarah ke halaman lama sebagai "tujuan setelah aksi", BUKAN yang sekadar link menu biasa:
+
+Di LandingPage.tsx, cari useEffect yang memanggil setLocation('/katalog') ketika user sudah login (sekitar baris 586-590) — ubah menjadi setLocation('/dashboard').
+Di CartPage.tsx, cari <Link href="/my-classes">Lihat Kelas Saya</Link> di dalam function CartSuccessView (sekitar baris 154) — ubah href-nya menjadi /dashboard, dan ubah juga teksnya menjadi "Lihat Dashboard".
+Di context/AuthContext.tsx atau OnboardingNamaPage.tsx (jika sudah dibuat dari prompt sebelumnya), pastikan redirect default setelah mengisi nama panggilan (kalau tidak ada redirect spesifik) mengarah ke /dashboard, bukan /.
+JANGAN ubah link "Kembali ke Kelas Saya" yang ada di LearnPage.tsx (ada di beberapa tempat) — itu tetap harus mengarah ke /my-classes, karena konteksnya user sedang di tengah belajar dan ingin balik ke daftar lengkap, bukan ke dashboard.
+
+Langkah 6 — Verifikasi:
+
+pnpm run typecheck, harus 0 error.
+Buka Supabase, cek user mock-1 masih punya 3 enrollment (dari testing sebelumnya) — pastikan Dashboard menampilkan versi TERISI (bukan versi kosong) untuk user ini.
+Logout, buat kondisi user "baru" (hapus semua data enrollment untuk user test yang berbeda, atau simulasikan lewat browser lain/incognito) — pastikan Dashboard menampilkan versi KOSONG yang sudah dijelaskan di Langkah 1, bukan stats 0/0/0%.
+Login dari Landing Page tanpa redirect spesifik — pastikan mendarat di /dashboard.
+Simulasikan checkout sukses dari Keranjang — pastikan tombol di halaman sukses mengarah ke /dashboard, bukan /my-classes.
+Screenshot: halaman /dashboard (versi terisi DAN versi kosong), halaman /my-classes, dan sidebar yang menunjukkan 3 menu dengan highlight yang benar di masing-masing halaman.

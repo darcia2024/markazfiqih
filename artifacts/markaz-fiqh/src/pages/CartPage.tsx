@@ -151,7 +151,7 @@ function CartSuccessView({ invoice, onBackToCatalog }: { invoice: Invoice; onBac
       </div>
       <div className="flex flex-col sm:flex-row gap-3 justify-center">
         <Button asChild size="lg">
-          <Link href="/my-classes">Lihat Kelas Saya</Link>
+          <Link href="/dashboard">Lihat Dashboard</Link>
         </Button>
         <Button variant="outline" size="lg" onClick={onBackToCatalog}>
           Jelajahi Kelas Lain
