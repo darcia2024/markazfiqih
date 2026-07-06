@@ -77,6 +77,8 @@ export interface ClassDetail {
   level: ClassDetailLevel;
   /** @nullable */
   category: string | null;
+  /** @nullable */
+  youtubePlaylistId: string | null;
   instructor: InstructorSummary;
   modules: ClassModule[];
   moduleCount: number;
@@ -117,6 +119,8 @@ export interface ClassSummary {
   level: ClassSummaryLevel;
   /** @nullable */
   category: string | null;
+  /** @nullable */
+  youtubePlaylistId: string | null;
   instructor: ClassInstructor;
   moduleCount: number;
   /** @nullable */

@@ -27,6 +27,8 @@ import {
   useGetClassDars,
   useListProgress,
   useUpdateProgress,
+  useListEnrollments,
+  useCompleteEnrollment,
   type ClassDarsModule,
   type DarsItem,
 } from '@workspace/api-client-react';
@@ -58,6 +60,79 @@ function VideoPlaceholder({ title }: { title: string }) {
           <Video className="w-12 h-12 opacity-30" />
           <p className="text-sm font-medium opacity-60">{title}</p>
           <p className="text-xs opacity-40">Video akan segera tersedia</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Playlist Mode ─────────────────────────────────────────────────────────────
+function PlaylistMode({
+  classTitle,
+  instructorName,
+  playlistId,
+  enrollmentId,
+  userId,
+}: {
+  classTitle: string;
+  instructorName: string;
+  playlistId: string;
+  enrollmentId: string | null;
+  userId: string;
+}) {
+  const { mutate: completeEnrollment, isPending: isCompleting, isSuccess: isCompleted } =
+    useCompleteEnrollment();
+
+  return (
+    <div className="min-h-screen flex flex-col bg-background">
+      <Navbar />
+      <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full px-4 lg:px-8 py-6 gap-6">
+        {/* Back */}
+        <Link
+          href="/my-classes"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-primary transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Kelas Saya
+        </Link>
+
+        {/* YouTube Playlist iframe */}
+        <iframe
+          src={`https://www.youtube.com/embed/videoseries?list=${playlistId}`}
+          className="w-full aspect-video rounded-[14px]"
+          allowFullScreen
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+        />
+
+        {/* Info panel */}
+        <div className="bg-card rounded-2xl border p-6 space-y-5">
+          <div>
+            <h1 className="font-serif text-2xl font-bold text-foreground leading-snug">
+              {classTitle}
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1.5">{instructorName}</p>
+          </div>
+
+          {isCompleted ? (
+            <div className="inline-flex items-center gap-2 rounded-lg bg-success-pale border border-success-pale px-4 py-3">
+              <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
+              <span className="font-semibold text-success">Kelas telah ditandai selesai</span>
+            </div>
+          ) : (
+            <Button
+              size="lg"
+              onClick={() => enrollmentId && completeEnrollment({ enrollmentId, userId })}
+              disabled={isCompleting || !enrollmentId}
+              className="gap-2"
+            >
+              {isCompleting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <CheckCircle2 className="w-4 h-4" />
+              )}
+              Tandai Kelas Selesai
+            </Button>
+          )}
         </div>
       </div>
     </div>
@@ -231,6 +306,9 @@ function LearnContent() {
     classId ?? '',
     { query: { enabled: !!user?.id && !!classId } },
   );
+  const { data: enrollments = [] } = useListEnrollments(user?.id ?? '', {
+    query: { enabled: !!user?.id },
+  });
   const { mutate: updateProgress, isPending: isUpdating } = useUpdateProgress();
 
   const isLoading = isLoadingClass || isLoadingDars || isLoadingProgress;
@@ -319,6 +397,23 @@ function LearnContent() {
     );
   }
 
+  // ── Playlist mode: class has a YouTube playlist but no module/dars data ──────
+  const isPlaylistMode = !!(classDetail.youtubePlaylistId && classDetail.modules.length === 0);
+
+  if (isPlaylistMode) {
+    const enrollmentId = enrollments.find((e) => e.class.id === classId)?.id ?? null;
+    return (
+      <PlaylistMode
+        classTitle={classDetail.title}
+        instructorName={classDetail.instructor.name}
+        playlistId={classDetail.youtubePlaylistId!}
+        enrollmentId={enrollmentId}
+        userId={user?.id ?? ''}
+      />
+    );
+  }
+
+  // ── Normal mode: existing modul/dars breakdown ────────────────────────────────
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />

@@ -140,4 +140,27 @@ router.get("/enrollments", async (req, res): Promise<void> => {
   res.json(ListEnrollmentsResponse.parse(result));
 });
 
+router.put("/enrollments/:id/complete", async (req, res): Promise<void> => {
+  const { id } = req.params;
+  const userId = (req.query.userId as string) || (req.body as Record<string, string>)?.userId;
+
+  if (!userId) {
+    res.status(400).json({ error: "userId is required" });
+    return;
+  }
+
+  const [updated] = await db
+    .update(enrollmentsTable)
+    .set({ isCompleted: true })
+    .where(and(eq(enrollmentsTable.id, id), eq(enrollmentsTable.userId, userId)))
+    .returning();
+
+  if (!updated) {
+    res.status(404).json({ error: "Enrollment not found" });
+    return;
+  }
+
+  res.json({ id: updated.id, isCompleted: updated.isCompleted });
+});
+
 export default router;

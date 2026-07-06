@@ -319,3 +319,68 @@ export function useInvalidateProgress() {
   return (userId: string, classId: string) =>
     queryClient.invalidateQueries({ queryKey: getListProgressQueryKey(userId, classId) });
 }
+
+// ── useCompleteEnrollment ─────────────────────────────────────────────────────
+
+export const completeEnrollmentUrl = (enrollmentId: string) =>
+  `/api/enrollments/${enrollmentId}/complete`;
+
+export const completeEnrollment = async (
+  enrollmentId: string,
+  userId: string,
+  options?: RequestInit,
+): Promise<{ id: string; isCompleted: boolean }> =>
+  customFetch<{ id: string; isCompleted: boolean }>(
+    `${completeEnrollmentUrl(enrollmentId)}?userId=${encodeURIComponent(userId)}`,
+    { ...options, method: 'PUT' },
+  );
+
+export const getCompleteEnrollmentMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof completeEnrollment>>,
+    TError,
+    { enrollmentId: string; userId: string },
+    TContext
+  >;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof completeEnrollment>>,
+  TError,
+  { enrollmentId: string; userId: string },
+  TContext
+> => {
+  const mutationKey = ['completeEnrollment'];
+  const { mutation: mutationOptions } = options
+    ? options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey } };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof completeEnrollment>>,
+    { enrollmentId: string; userId: string }
+  > = (props) => {
+    const { enrollmentId, userId } = props ?? {};
+    return completeEnrollment(enrollmentId, userId);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export function useCompleteEnrollment<TError = ErrorType<unknown>, TContext = unknown>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof completeEnrollment>>,
+    TError,
+    { enrollmentId: string; userId: string },
+    TContext
+  >;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof completeEnrollment>>,
+  TError,
+  { enrollmentId: string; userId: string },
+  TContext
+> {
+  return useMutation(getCompleteEnrollmentMutationOptions(options));
+}
