@@ -9,6 +9,7 @@ import { CartProvider } from '@/context/CartContext';
 import LoginPage from '@/pages/LoginPage';
 import OnboardingNamaPage from '@/pages/OnboardingNamaPage';
 import LandingPage from '@/pages/LandingPage';
+import DashboardPage from '@/pages/DashboardPage';
 import CatalogPage from '@/pages/CatalogPage';
 import ClassDetailPage from '@/pages/ClassDetailPage';
 import MyClassesPage from '@/pages/MyClassesPage';
@@ -26,6 +27,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={LandingPage} />
+      <Route path="/dashboard" component={DashboardPage} />
       <Route path="/katalog" component={CatalogPage} />
       <Route path="/login" component={LoginPage} />
       <Route path="/onboarding-nama" component={OnboardingNamaPage} />

@@ -1,0 +1,17 @@
+Saya ingin memisahkan halaman "Kelas Saya" yang sekarang menjadi 2 halaman berbeda: "Dashboard" (baru, jadi halaman utama setelah login) dan "Kelas Saya" (disederhanakan, cuma daftar kelas).
+Langkah 1 — Buat file baru artifacts/markaz-fiqh/src/pages/DashboardPage.tsx.
+Pindahkan (copy) dari MyClassesPage.tsx bagian-bagian ini ke halaman baru: header sapaan ("Kelas Saya" ganti judul jadi "Dashboard", tapi sapaan "Assalamu'alaikum, {nama}..." tetap dipertahankan), 3 card statistik (Kelas Dimiliki, Kelas Tuntas, Progress Keseluruhan), section "Lanjutkan Belajar" (card kelas yang progress-nya belum 100%), dan sidebar kanan "Progress Belajar". Bungkus dengan <AppShell> (atau komponen layout/navigasi yang sedang dipakai saat ini, sesuaikan dengan yang ada), dan tambahkan <ProtectedRoute> mengikuti pola yang sama seperti MyClassesPage.tsx.
+Langkah 2 — Sederhanakan MyClassesPage.tsx.
+Hapus bagian sapaan, 3 card statistik, section "Lanjutkan Belajar", dan sidebar "Progress Belajar" dari file ini (karena sudah dipindah ke DashboardPage.tsx). Sisakan: judul halaman "Kelas Saya" (tanpa sapaan), filter chip kategori (Semua/Fiqih Tematik/Fiqih Kitab/Akademi) yang sudah ada, dan grid LENGKAP semua kelas yang dimiliki (bukan cuma yang belum 100%, tapi SEMUA kelas termasuk yang sudah tuntas).
+Langkah 3 — Update navigasi sidebar.
+Cari komponen yang mendefinisikan menu sidebar (kemungkinan AppSidebar di components/AppShell.tsx, atau CatalogSidebar di CatalogPage.tsx kalau file AppShell belum ada — cek dulu mana yang aktif dipakai). Tambahkan 1 menu baru PALING ATAS (sebelum "Katalog Kelas"): ikon LayoutDashboard dari lucide-react, teks "Dashboard", mengarah ke /dashboard. Urutan menu jadi: Dashboard → Katalog Kelas → Kelas Saya.
+Langkah 4 — Daftarkan route baru di App.tsx.
+Tambahkan <Route path="/dashboard" component={DashboardPage} />, letakkan sebelum route /katalog. Import komponennya di bagian atas file.
+Langkah 5 — Update redirect setelah login.
+Di context/AuthContext.tsx (atau OnboardingNamaPage.tsx jika sudah dibuat dari prompt sebelumnya), cari logic yang menentukan tujuan setelah login berhasil. Jika tidak ada redirect spesifik yang diminta (misal user klik "Masuk" langsung dari landing page tanpa niat menuju halaman tertentu, sehingga redirect default-nya adalah /), arahkan ke /dashboard sebagai gantinya. TAPI jika ada redirect spesifik (misal user klik "Tambah ke Keranjang" di katalog saat belum login, lalu diarahkan ke halaman itu setelah login), tetap hormati redirect spesifik tersebut, jangan dipaksa ke /dashboard.
+Langkah 6 — Verifikasi:
+
+pnpm run typecheck, harus 0 error.
+Logout, login lagi tanpa redirect spesifik (langsung dari halaman Login) — pastikan mendarat di /dashboard, bukan /my-classes atau /katalog.
+Screenshot halaman /dashboard (harus ada sapaan+stats+lanjutkan belajar) dan halaman /my-classes (harus cuma judul+filter+grid lengkap, tanpa sapaan/stats).
+Cek sidebar — pastikan ada 3 menu: Dashboard, Katalog Kelas, Kelas Saya, dengan urutan itu.

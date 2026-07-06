@@ -1,6 +1,5 @@
-import { useState } from 'react';
-import { Link } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Link } from 'wouter';
 import {
   PlayCircle,
   BookOpen,
@@ -8,7 +7,6 @@ import {
   CheckCircle2,
   Sparkles,
   RotateCcw,
-  GraduationCap,
   Trophy,
   TrendingUp,
   Loader2,
@@ -157,50 +155,76 @@ function KelasCard({ enrollment, index }: { enrollment: EnrollmentItem; index: n
   );
 }
 
-// ── Empty State ───────────────────────────────────────────────────────────────
-function EmptyState() {
+// ── Summary Stats Bar ─────────────────────────────────────────────────────────
+function StatsSummary({ enrollments }: { enrollments: EnrollmentItem[] }) {
+  const totalOwned = enrollments.length;
+  const totalCompleted = enrollments.filter(
+    (e) => e.class.totalDarsCount > 0 && e.class.completedDarsCount === e.class.totalDarsCount,
+  ).length;
+  const totalDarsAcross = enrollments.reduce((s, e) => s + e.class.totalDarsCount, 0);
+  const totalDoneDars = enrollments.reduce((s, e) => s + e.class.completedDarsCount, 0);
+  const overallPct =
+    totalDarsAcross > 0 ? Math.round((totalDoneDars / totalDarsAcross) * 100) : 0;
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="flex flex-col items-center justify-center text-center py-24 px-4"
-    >
-      <div className="relative mb-8">
-        <div className="w-32 h-32 rounded-full bg-primary/10 flex items-center justify-center">
-          <GraduationCap className="w-16 h-16 text-primary/40" />
+    <div className="grid grid-cols-3 gap-4 rounded-xl border bg-card p-5 shadow-sm">
+      {[
+        { label: 'Kelas Dimiliki', value: totalOwned, icon: BookOpen, color: 'text-primary' },
+        { label: 'Kelas Tuntas', value: totalCompleted, icon: Trophy, color: 'text-success' },
+        {
+          label: 'Progress Keseluruhan',
+          value: `${overallPct}%`,
+          icon: TrendingUp,
+          color: 'text-brand-gold',
+        },
+      ].map(({ label, value, icon: Icon, color }) => (
+        <div key={label} className="text-center space-y-1">
+          <Icon className={`w-5 h-5 mx-auto ${color}`} />
+          <p className={`text-2xl font-bold ${color}`}>{value}</p>
+          <p className="text-xs text-muted-foreground">{label}</p>
         </div>
-        <div className="absolute -top-1 -right-1 w-10 h-10 rounded-full bg-brand-gold-pale flex items-center justify-center shadow-sm border border-brand-gold-pale">
-          <BookOpen className="w-5 h-5 text-brand-gold" />
-        </div>
-      </div>
-      <h2 className="font-serif text-2xl font-bold text-foreground mb-3">
-        Kamu Belum Memiliki Kelas
-      </h2>
-      <p className="text-muted-foreground max-w-sm leading-relaxed mb-8">
-        Mulai perjalanan menuntut ilmu fiqih dengan memilih kelas yang sesuai kebutuhanmu.
-      </p>
-      <div className="flex flex-col sm:flex-row gap-3">
-        <Button asChild size="lg" className="gap-2">
-          <Link href="/katalog">
-            <Sparkles className="w-4 h-4" />
-            Jelajahi Katalog
-          </Link>
-        </Button>
-        <Button asChild variant="outline" size="lg">
-          <Link href="/katalog">Lihat Semua Kelas</Link>
-        </Button>
-      </div>
-    </motion.div>
+      ))}
+    </div>
   );
 }
 
-const CLASS_FILTERS = ['Semua', 'Fiqih Tematik', 'Fiqih Kitab', 'Akademi'];
+// ── Sidebar Progress Belajar ──────────────────────────────────────────────────
+function ProgressSidebar({ enrollments }: { enrollments: EnrollmentItem[] }) {
+  return (
+    <aside className="hidden lg:block sticky top-20 self-start">
+      <div className="bg-card rounded-[14px] border p-5 shadow-sm">
+        <p className="font-serif font-semibold mb-4">Progress Belajar</p>
+        <div className="space-y-4">
+          {enrollments.map((enrollment) => {
+            const { totalDarsCount, completedDarsCount } = enrollment.class;
+            const pct =
+              totalDarsCount > 0 ? Math.round((completedDarsCount / totalDarsCount) * 100) : 0;
+            return (
+              <div key={enrollment.id}>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium truncate">{enrollment.class.title}</p>
+                  <span className="text-xs font-semibold text-muted-foreground shrink-0">
+                    {pct}%
+                  </span>
+                </div>
+                <div className="h-1.5 rounded-full bg-muted overflow-hidden mt-1">
+                  <div
+                    className={`h-full rounded-full ${pct === 100 ? 'bg-success' : 'bg-primary'}`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </aside>
+  );
+}
 
 // ── Halaman Utama ─────────────────────────────────────────────────────────────
-function MyClassesContent() {
+function DashboardContent() {
   const { user } = useAuth();
-  const [activeFilter, setActiveFilter] = useState('Semua');
 
   const { data: enrollments = [], isLoading } = useListEnrollments(user?.id ?? '', {
     query: { enabled: !!user?.id },
@@ -209,6 +233,16 @@ function MyClassesContent() {
   const search = new URLSearchParams(window.location.search);
   const showEmpty = search.get('demo') === 'empty';
   const classesToShow = showEmpty ? [] : enrollments;
+
+  const inProgressEnrollments = classesToShow
+    .filter((e) => {
+      const pct =
+        e.class.totalDarsCount > 0
+          ? Math.round((e.class.completedDarsCount / e.class.totalDarsCount) * 100)
+          : 0;
+      return pct < 100;
+    })
+    .slice(0, 3);
 
   return (
     <AppShell>
@@ -219,46 +253,80 @@ function MyClassesContent() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8 space-y-1"
         >
-          <h1 className="font-serif text-3xl lg:text-4xl font-bold text-foreground">Kelas Saya</h1>
+          <h1 className="font-serif text-3xl lg:text-4xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-muted-foreground">
+            Assalamu'alaikum,{' '}
+            <span className="font-medium text-foreground">
+              {user?.nickname ?? user?.name?.split(' ')[0] ?? 'Santri'}
+            </span>
+            . Lanjutkan perjalanan menuntut ilmumu.
+          </p>
         </motion.div>
-
-        {/* Filter chips */}
-        <div className="flex flex-wrap gap-2 mb-8">
-          {CLASS_FILTERS.map((filter) => (
-            <Button
-              key={filter}
-              size="sm"
-              variant={activeFilter === filter ? 'default' : 'outline'}
-              className="rounded-full"
-              onClick={() => setActiveFilter(filter)}
-            >
-              {filter}
-            </Button>
-          ))}
-        </div>
 
         {isLoading ? (
           <div className="flex items-center justify-center py-32">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
         ) : classesToShow.length === 0 ? (
-          <EmptyState />
-        ) : (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="font-serif text-xl font-bold text-foreground">
-                Semua Kelas Dimiliki
-              </h2>
-              <span className="text-sm text-muted-foreground">
-                {classesToShow.length} kelas
-              </span>
+          <div className="rounded-xl border-2 border-dashed bg-muted/20 flex flex-col sm:flex-row items-center gap-4 p-6">
+            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <Sparkles className="w-5 h-5 text-primary" />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              <AnimatePresence>
-                {classesToShow.map((enrollment, idx) => (
-                  <KelasCard key={enrollment.id} enrollment={enrollment} index={idx} />
-                ))}
-              </AnimatePresence>
+            <div className="flex-1 text-center sm:text-left">
+              <p className="font-semibold text-foreground text-sm">Kamu Belum Memiliki Kelas</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Mulai perjalanan menuntut ilmu fiqih dengan memilih kelas yang sesuai kebutuhanmu.
+              </p>
+            </div>
+            <Button asChild variant="outline" size="sm" className="shrink-0">
+              <Link href="/katalog">Lihat Katalog</Link>
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-8">
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              <StatsSummary enrollments={enrollments} />
+            </motion.div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
+              <div className="space-y-8">
+                {/* Lanjutkan Belajar */}
+                {inProgressEnrollments.length > 0 && (
+                  <div className="space-y-4">
+                    <h2 className="font-serif text-xl font-bold">Lanjutkan Belajar</h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                      <AnimatePresence>
+                        {inProgressEnrollments.map((enrollment, idx) => (
+                          <KelasCard key={enrollment.id} enrollment={enrollment} index={idx} />
+                        ))}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+                )}
+
+                {/* Ajakan tambah kelas */}
+                <div className="rounded-xl border-2 border-dashed bg-muted/20 flex flex-col sm:flex-row items-center gap-4 p-6">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <Sparkles className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="flex-1 text-center sm:text-left">
+                    <p className="font-semibold text-foreground text-sm">Tambah kelas baru</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Masih banyak ilmu fiqih yang bisa dipelajari — temukan kelas lainnya di
+                      katalog.
+                    </p>
+                  </div>
+                  <Button asChild variant="outline" size="sm" className="shrink-0">
+                    <Link href="/katalog">Lihat Katalog</Link>
+                  </Button>
+                </div>
+              </div>
+
+              <ProgressSidebar enrollments={enrollments} />
             </div>
           </div>
         )}
@@ -271,10 +339,10 @@ function MyClassesContent() {
   );
 }
 
-export default function MyClassesPage() {
+export default function DashboardPage() {
   return (
     <ProtectedRoute>
-      <MyClassesContent />
+      <DashboardContent />
     </ProtectedRoute>
   );
 }

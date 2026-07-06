@@ -63,10 +63,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('markaz_mock_user', JSON.stringify(mockUser));
       setIsLoading(false);
 
+      // Jika tidak ada redirect spesifik (default '/'), arahkan ke /dashboard
+      const destination = redirect && redirect !== '/' ? redirect : '/dashboard';
+
       if (mockUser.nickname) {
-        setLocation(redirect || '/');
+        setLocation(destination);
       } else {
-        setLocation(`/onboarding-nama?redirect=${encodeURIComponent(redirect || '/')}`);
+        setLocation(`/onboarding-nama?redirect=${encodeURIComponent(destination)}`);
       }
     }, 500);
   };
