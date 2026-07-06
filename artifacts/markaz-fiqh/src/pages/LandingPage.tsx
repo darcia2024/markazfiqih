@@ -439,15 +439,9 @@ const INSTRUCTOR_ROLE_LABEL = 'Pengajar Fiqih';
 function TeachersSection({
   instructors,
   isLoading,
-  founderName,
-  founderBio,
-  founderPhotoUrl,
 }: {
   instructors: Array<{ id: string; name: string; photoUrl: string; bio?: string; classCount: number }>;
   isLoading: boolean;
-  founderName: string;
-  founderBio: string;
-  founderPhotoUrl: string;
 }) {
   return (
     <section className="bg-background">
@@ -455,19 +449,6 @@ function TeachersSection({
         <h2 className="font-serif text-[26px] font-semibold text-foreground leading-8 mb-6">
           Pengajar Kami
         </h2>
-
-        <div className="bg-[hsl(var(--brand-red-tint))] rounded-lg p-6 flex items-center gap-4 mb-6">
-          <Avatar className="h-16 w-16 border border-border">
-            <AvatarImage src={founderPhotoUrl} alt={founderName} />
-            <AvatarFallback className="bg-primary/10 text-primary text-lg">
-              {founderName.split(' ').map((n) => n[0]).join('').substring(0, 2) || 'F'}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <p className="font-serif font-semibold text-foreground">{founderName}</p>
-            <p className="text-sm text-muted-foreground">{founderBio}</p>
-          </div>
-        </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {isLoading &&
@@ -495,7 +476,7 @@ function TeachersSection({
                     {INSTRUCTOR_ROLE_LABEL}
                   </p>
                 </div>
-                <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
+                <p className="text-sm text-muted-foreground leading-relaxed">
                   {instructor.bio || `Mengampu ${instructor.classCount} kelas fiqih di Markaz Fiqih.`}
                 </p>
               </div>
@@ -655,9 +636,6 @@ export default function LandingPage() {
           <TeachersSection
             instructors={instructors}
             isLoading={instructorsQuery.isLoading}
-            founderName={settings?.founderName || ''}
-            founderBio={settings?.founderBio || ''}
-            founderPhotoUrl={settings?.founderPhotoUrl || ''}
           />
         )}
 
