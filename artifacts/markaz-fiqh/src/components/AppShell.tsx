@@ -12,9 +12,14 @@ const NAV_ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
 // ── Sidebar ──────────────────────────────────────────────────────────────
 export function AppSidebar({ isAdmin }: { isAdmin: boolean }) {
   const [location] = useLocation();
+  const { user, logout } = useAuth();
+
+  const initial =
+    user?.nickname?.[0]?.toUpperCase() ?? user?.name?.[0]?.toUpperCase() ?? 'U';
+  const displayName = user?.nickname ?? user?.name ?? 'Pengguna';
 
   return (
-    <aside className="hidden lg:flex fixed inset-y-0 left-0 w-[240px] flex-col bg-card border-r border-border z-40">
+    <aside className="hidden lg:flex fixed inset-y-0 left-0 w-[240px] h-full flex-col bg-card border-r border-border z-40">
       <div className="h-20 flex items-center px-6 border-b border-border">
         <Link href="/" className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-sm bg-primary text-primary-foreground">
@@ -27,7 +32,10 @@ export function AppSidebar({ isAdmin }: { isAdmin: boolean }) {
         {/* Logo tetap mengarah ke landing page ("/") */}
       </div>
 
-      <nav className="flex-1 flex flex-col gap-1 px-3 py-4">
+      <nav className="flex flex-col gap-1 px-3 py-4">
+        <p className="px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/60 mb-2">
+          Menu Utama
+        </p>
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
           const isActive = location === href;
           return (
@@ -45,10 +53,8 @@ export function AppSidebar({ isAdmin }: { isAdmin: boolean }) {
             </Link>
           );
         })}
-      </nav>
 
-      {isAdmin && (
-        <div className="px-3 py-4 border-t border-border">
+        {isAdmin && (
           <Link
             href="/admin"
             className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors border-l-[3px] border-transparent -ml-3 pl-[9px]"
@@ -56,8 +62,27 @@ export function AppSidebar({ isAdmin }: { isAdmin: boolean }) {
             <Settings className="h-4 w-4" />
             Panel Admin
           </Link>
+        )}
+      </nav>
+
+      <div className="flex-1" />
+
+      <div className="border-t border-border p-4">
+        <div className="flex items-center gap-3">
+          <div className="h-9 w-9 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-semibold">
+            {initial}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-foreground truncate">{displayName}</p>
+            <button
+              onClick={logout}
+              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Keluar
+            </button>
+          </div>
         </div>
-      )}
+      </div>
     </aside>
   );
 }
