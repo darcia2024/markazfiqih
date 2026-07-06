@@ -321,7 +321,7 @@ function CategorySection({
                   href={`/katalog?category=${encodeURIComponent(category)}`}
                   className="group block h-full"
                 >
-                  <div className="h-full flex flex-col gap-3 rounded-[14px] bg-[hsl(var(--brand-red-deep))] p-6 shadow-md hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
+                  <div className="h-full flex flex-col gap-3 rounded-lg bg-[hsl(var(--brand-red-deep))] p-6 shadow-md hover:shadow-lg hover:-translate-y-1 transition-friendly">
                     <div className="flex h-12 w-12 items-center justify-center rounded-[10px] bg-white/10 text-white">
                       <Icon className="h-6 w-6" />
                     </div>
@@ -378,7 +378,7 @@ function AboutSection({
           {testimonials.length > 0 && (
             <div className="flex flex-col gap-5">
               {testimonials.map((testimonial) => (
-                <div key={testimonial.id} className="bg-card rounded-[14px] shadow-md p-8 relative">
+                <div key={testimonial.id} className="bg-card rounded-lg shadow-md p-8 relative">
                   <Quote className="text-[hsl(var(--brand-gold-pale))] w-10 h-10 mb-4" />
                   <p className="text-base italic text-foreground mb-4">
                     &ldquo;{testimonial.content}&rdquo;
@@ -421,7 +421,7 @@ function TeachersSection({
           Pengajar Kami
         </h2>
 
-        <div className="bg-[hsl(var(--brand-red-tint))] rounded-[14px] p-6 flex items-center gap-4 mb-6">
+        <div className="bg-[hsl(var(--brand-red-tint))] rounded-lg p-6 flex items-center gap-4 mb-6">
           <Avatar className="h-16 w-16 border border-border">
             <AvatarImage src={founderPhotoUrl} alt={founderName} />
             <AvatarFallback className="bg-primary/10 text-primary text-lg">
@@ -437,14 +437,14 @@ function TeachersSection({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {isLoading &&
             Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="rounded-[14px] border border-border bg-card p-6 animate-pulse h-[220px]" />
+              <div key={i} className="rounded-lg border border-border bg-card p-6 animate-pulse h-[220px]" />
             ))}
 
           {!isLoading &&
             instructors.map((instructor) => (
               <div
                 key={instructor.id}
-                className="flex flex-col items-center text-center gap-3 rounded-[14px] border border-border bg-card p-6 shadow-sm hover:shadow-md transition-all duration-300"
+                className="flex flex-col items-center text-center gap-3 rounded-lg border border-border bg-card p-6 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-friendly"
               >
                 <Avatar className="h-16 w-16 border border-border">
                   <AvatarImage src={instructor.photoUrl} alt={instructor.name} />

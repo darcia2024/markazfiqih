@@ -210,7 +210,7 @@ export function ClassCard({ cls, index }: { cls: ClassSummary; index: number }) 
       className="h-full"
     >
       <Link href={`/class/${cls.id}`} className="group block h-full">
-        <div className="h-full flex flex-col rounded-lg border border-border bg-card overflow-hidden shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5">
+        <div className="h-full flex flex-col rounded-lg border border-border bg-card overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 transition-friendly">
           <div className="relative aspect-video overflow-hidden bg-muted">
             <img
               src={cls.coverImage}

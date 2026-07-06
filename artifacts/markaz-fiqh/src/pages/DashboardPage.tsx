@@ -43,7 +43,7 @@ function KelasCard({ enrollment, index }: { enrollment: EnrollmentItem; index: n
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.08 }}
-      className="flex flex-col rounded-xl border bg-card shadow-sm hover:shadow-md transition-shadow duration-300 overflow-hidden"
+      className="flex flex-col rounded-lg border bg-card shadow-sm hover:shadow-lg hover:-translate-y-1 transition-friendly overflow-hidden"
     >
       {/* Cover */}
       <div className="relative aspect-video overflow-hidden bg-muted">
