@@ -1,0 +1,37 @@
+ Perbaiki Error Handling di Tombol Tambah ke Keranjang
+
+Di artifacts/markaz-fiqh/src/pages/CatalogPage.tsx, function handleCartAction, baris addToCart(cls.id); dipanggil tanpa await dan tanpa penanganan error — kalau mutation gagal, kegagalannya senyap total tanpa feedback ke user. Perbaiki dengan:
+tsxconst handleCartAction = async (e: React.MouseEvent) => {
+  e.preventDefault();
+  e.stopPropagation();
+  if (!user) {
+    setLocation(`/login?redirect=${encodeURIComponent('/katalog')}`);
+    return;
+  }
+  if (inCart) {
+    setLocation('/keranjang');
+    return;
+  }
+  try {
+    await addToCart(cls.id);
+    toast.success('Berhasil ditambahkan ke keranjang');
+  } catch (error) {
+    console.error('Gagal menambahkan ke keranjang:', error);
+    toast.error(error instanceof Error ? error.message : 'Gagal menambahkan ke keranjang. Coba lagi.');
+  }
+};
+Cek apakah project ini sudah punya library toast (cek sonner atau komponen use-toast di components/ui/, karena kemungkinan sudah terpasang untuk kebutuhan lain). Import dan pakai yang sudah tersedia — jangan install library baru kalau sudah ada.
+Terapkan pola yang sama (try/catch + toast) di SEMUA tempat lain yang memanggil addToCart tanpa penanganan error, termasuk di ClassDetailPage.tsx (tombol "Tambah ke Keranjang" yang dibuat di prompt sebelumnya) dan CartPage.tsx (bagian "Kamu Mungkin Juga Suka" kalau ada tombol tambah cepat di sana).
+Selain itu, di CartContext.tsx, tambahkan onError pada addMutation untuk log error ke console supaya lebih mudah didebug ke depannya:
+tsxconst addMutation = useAddCartItem({
+  mutation: {
+    onSuccess: () => { /* ...yang sudah ada... */ },
+    onError: (error) => {
+      console.error('Add to cart mutation failed:', error);
+    },
+  },
+});
+Verifikasi:
+
+pnpm run typecheck, 0 error.
+Klik "Tambah" di salah satu kelas — sekarang HARUS muncul toast sukses/gagal (bukan diam saja). Screenshot hasilnya, termasuk pesan error PERSIS kalau ternyata masih gagal — dari situ kita akan tahu penyebab aslinya (network, validasi, atau lainnya).
