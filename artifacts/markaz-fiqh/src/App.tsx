@@ -7,6 +7,7 @@ import { AuthProvider } from '@/context/AuthContext';
 import { CartProvider } from '@/context/CartContext';
 
 import LoginPage from '@/pages/LoginPage';
+import OnboardingNamaPage from '@/pages/OnboardingNamaPage';
 import LandingPage from '@/pages/LandingPage';
 import CatalogPage from '@/pages/CatalogPage';
 import ClassDetailPage from '@/pages/ClassDetailPage';
@@ -27,6 +28,7 @@ function Router() {
       <Route path="/" component={LandingPage} />
       <Route path="/katalog" component={CatalogPage} />
       <Route path="/login" component={LoginPage} />
+      <Route path="/onboarding-nama" component={OnboardingNamaPage} />
       <Route path="/class/:id" component={ClassDetailPage} />
       <Route path="/my-classes" component={MyClassesPage} />
       <Route path="/keranjang" component={CartPage} />

@@ -300,7 +300,7 @@ function DashboardContent() {
           <p className="text-muted-foreground">
             Assalamu'alaikum,{' '}
             <span className="font-medium text-foreground">
-              {user?.name?.split(' ')[0] ?? 'Santri'}
+              {user?.nickname ?? user?.name?.split(' ')[0] ?? 'Santri'}
             </span>
             . Lanjutkan perjalanan menuntut ilmumu.
           </p>

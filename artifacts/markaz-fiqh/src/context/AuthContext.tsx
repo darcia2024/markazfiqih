@@ -6,6 +6,7 @@ export type User = {
   name: string;
   email: string;
   avatar_url: string;
+  nickname: string | null;
 };
 
 export type AuthContextType = {
@@ -13,6 +14,7 @@ export type AuthContextType = {
   isLoading: boolean;
   login: (redirect?: string) => void;
   logout: () => void;
+  setNickname: (nickname: string) => void;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -38,16 +40,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     // Simulate network delay
     setTimeout(() => {
+      // Pertahankan nickname yang sudah ada kalau user login ulang
+      let existingNickname: string | null = null;
+      const storedUser = localStorage.getItem('markaz_mock_user');
+      if (storedUser) {
+        try {
+          const parsed = JSON.parse(storedUser) as User;
+          existingNickname = parsed.nickname ?? null;
+        } catch (e) {
+          // ignore parse error
+        }
+      }
+
       const mockUser: User = {
         id: "mock-1",
         name: "Ahmad Fauzi",
         email: "ahmad@example.com",
-        avatar_url: "https://ui-avatars.com/api/?name=Ahmad+Fauzi&background=064e3b&color=fff"
+        avatar_url: "https://ui-avatars.com/api/?name=Ahmad+Fauzi&background=064e3b&color=fff",
+        nickname: existingNickname,
       };
       setUser(mockUser);
       localStorage.setItem('markaz_mock_user', JSON.stringify(mockUser));
       setIsLoading(false);
-      setLocation(redirect || '/');
+
+      if (mockUser.nickname) {
+        setLocation(redirect || '/');
+      } else {
+        setLocation(`/onboarding-nama?redirect=${encodeURIComponent(redirect || '/')}`);
+      }
     }, 500);
   };
 
@@ -57,8 +77,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLocation('/');
   };
 
+  const setNickname = (nickname: string) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const updated: User = { ...prev, nickname };
+      localStorage.setItem('markaz_mock_user', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, login, logout, setNickname }}>
       {children}
     </AuthContext.Provider>
   );
