@@ -1,0 +1,13 @@
+Perbaiki sidebar navigasi berdasarkan 2 masalah ini:
+1. Perbaiki card profil di bagian bawah — tombol "Keluar" sekarang terlihat seperti teks biasa, bukan tombol.
+Cari card profil yang sudah dibuat (avatar + nama + "Keluar"). Ubah strukturnya jadi: baris flex items-center gap-3 berisi avatar (tetap seperti sekarang), lalu <div className="flex-1 min-w-0"> HANYA berisi nama (text-sm font-semibold text-foreground truncate) dan email di bawahnya (text-xs text-muted-foreground truncate, dari user?.email) — hapus teks "Keluar" dari sini. Di ujung kanan baris (sejajar dengan avatar, pakai flex items-center di parent), tambahkan tombol icon: <button onClick={logout} className="shrink-0 p-2 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors" title="Keluar"> berisi ikon LogOut dari lucide-react ukuran h-4 w-4. Pastikan tombol ini punya area klik yang jelas (padding cukup), bukan cuma teks polos.
+2. Isi ruang kosong di tengah sidebar dengan widget ringkasan progress kecil (bukan dekorasi kosong, tapi data asli yang berguna).
+Di antara <nav> menu utama dan spacer sebelum card profil, tambahkan card kecil: <div className="mx-3 rounded-[14px] bg-[hsl(var(--brand-red-tint))] p-4 space-y-3">. Ambil data ringkas dari hook useListEnrollments(user?.id ?? '', { query: { enabled: !!user?.id } }) (hook yang sama dipakai di DashboardPage.tsx) — hitung totalOwned = enrollments.length dan overallProgress (rata-rata persentase semua kelas, pakai logic yang sama seperti di DashboardPage.tsx supaya angkanya konsisten).
+Isi card ini: judul kecil <p className="text-xs font-semibold text-primary uppercase tracking-wide">Progress Kamu</p>, di bawahnya angka besar <p className="font-serif text-2xl font-bold text-foreground">{overallProgress}%</p> dengan subteks <p className="text-xs text-muted-foreground">{totalOwned} kelas dimiliki</p>, dan progress bar tipis di bawahnya (h-1.5 rounded-full bg-white/60 overflow-hidden dengan fill bg-primary sesuai overallProgress).
+Jika totalOwned === 0 (user belum punya kelas), JANGAN tampilkan card ini sama sekali — biarkan area itu kosong tanpa widget, karena tidak ada data yang relevan ditampilkan.
+Card ini clickable — bungkus dengan <Link href="/dashboard"> supaya klik area ini langsung ke halaman Dashboard.
+3. Verifikasi:
+
+pnpm run typecheck, harus 0 error.
+Screenshot sidebar — pastikan card profil sekarang punya tombol logout yang jelas terlihat sebagai button (ada hover state icon merah), dan ada widget "Progress Kamu" dengan angka asli (bukan 0% atau data statis) muncul di antara menu dan card profil.
+Klik widget "Progress Kamu" itu — pastikan berpindah ke halaman /dashboard.

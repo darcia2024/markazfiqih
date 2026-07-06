@@ -1,13 +1,53 @@
 import type { ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
-import { LayoutGrid, BookOpen, BookMarked, Settings, LayoutDashboard, type LucideIcon } from 'lucide-react';
+import {
+  LayoutGrid,
+  BookOpen,
+  BookMarked,
+  Settings,
+  LayoutDashboard,
+  LogOut,
+  type LucideIcon,
+} from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useListEnrollments, type EnrollmentItem } from '@workspace/api-client-react';
 
 const NAV_ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/katalog', label: 'Katalog Kelas', icon: LayoutGrid },
   { href: '/my-classes', label: 'Kelas Saya', icon: BookMarked },
 ];
+
+// ── Progress Widget ───────────────────────────────────────────────────────
+function ProgressWidget({ enrollments }: { enrollments: EnrollmentItem[] }) {
+  const totalOwned = enrollments.length;
+  if (totalOwned === 0) return null;
+
+  const totalDarsAcross = enrollments.reduce((s, e) => s + e.class.totalDarsCount, 0);
+  const totalDoneDars = enrollments.reduce((s, e) => s + e.class.completedDarsCount, 0);
+  const overallProgress =
+    totalDarsAcross > 0 ? Math.round((totalDoneDars / totalDarsAcross) * 100) : 0;
+
+  return (
+    <Link href="/dashboard">
+      <div className="mx-3 rounded-[14px] bg-[hsl(var(--brand-red-tint))] p-4 space-y-3 cursor-pointer">
+        <p className="text-xs font-semibold text-primary uppercase tracking-wide">
+          Progress Kamu
+        </p>
+        <div>
+          <p className="font-serif text-2xl font-bold text-foreground">{overallProgress}%</p>
+          <p className="text-xs text-muted-foreground">{totalOwned} kelas dimiliki</p>
+        </div>
+        <div className="h-1.5 rounded-full bg-white/60 overflow-hidden">
+          <div
+            className="h-full bg-primary rounded-full transition-all"
+            style={{ width: `${overallProgress}%` }}
+          />
+        </div>
+      </div>
+    </Link>
+  );
+}
 
 // ── Sidebar ──────────────────────────────────────────────────────────────
 export function AppSidebar({ isAdmin }: { isAdmin: boolean }) {
@@ -17,6 +57,10 @@ export function AppSidebar({ isAdmin }: { isAdmin: boolean }) {
   const initial =
     user?.nickname?.[0]?.toUpperCase() ?? user?.name?.[0]?.toUpperCase() ?? 'U';
   const displayName = user?.nickname ?? user?.name ?? 'Pengguna';
+
+  const { data: enrollments = [] } = useListEnrollments(user?.id ?? '', {
+    query: { enabled: !!user?.id },
+  });
 
   return (
     <aside className="hidden lg:flex fixed inset-y-0 left-0 w-[240px] h-full flex-col bg-card border-r border-border z-40">
@@ -29,7 +73,6 @@ export function AppSidebar({ isAdmin }: { isAdmin: boolean }) {
             Markaz Fiqih
           </span>
         </Link>
-        {/* Logo tetap mengarah ke landing page ("/") */}
       </div>
 
       <nav className="flex flex-col gap-1 px-3 py-4">
@@ -65,22 +108,28 @@ export function AppSidebar({ isAdmin }: { isAdmin: boolean }) {
         )}
       </nav>
 
+      <div className="pb-3">
+        <ProgressWidget enrollments={enrollments} />
+      </div>
+
       <div className="flex-1" />
 
       <div className="border-t border-border p-4">
         <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-semibold">
+          <div className="h-9 w-9 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-semibold shrink-0">
             {initial}
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-foreground truncate">{displayName}</p>
-            <button
-              onClick={logout}
-              className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Keluar
-            </button>
+            <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
           </div>
+          <button
+            onClick={logout}
+            className="shrink-0 p-2 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+            title="Keluar"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
         </div>
       </div>
     </aside>
