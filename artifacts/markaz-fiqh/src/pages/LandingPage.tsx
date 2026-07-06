@@ -321,7 +321,7 @@ function CategorySection({
                   href={`/katalog?category=${encodeURIComponent(category)}`}
                   className="group block h-full"
                 >
-                  <div className="h-full flex flex-col gap-3 rounded-lg bg-gradient-to-br from-primary to-[hsl(var(--brand-red-deep))] p-6 shadow-md hover:shadow-lg hover:-translate-y-1 transition-friendly">
+                  <div className="h-full flex flex-col gap-3 rounded-lg bg-gradient-to-br from-primary to-[hsl(var(--brand-red-hover))] p-6 shadow-md hover:shadow-lg hover:-translate-y-1 transition-friendly">
                     <div className="flex h-12 w-12 items-center justify-center rounded-[10px] bg-white/10 text-white">
                       <Icon className="h-6 w-6" />
                     </div>
