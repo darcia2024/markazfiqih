@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { toast } from 'sonner';
 import { Link, useSearch, useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -186,7 +187,7 @@ export function ClassCard({ cls, index }: { cls: ClassSummary; index: number }) 
   const [location, setLocation] = useLocation();
   const inCart = classIdsInCart.has(cls.id);
 
-  const handleCartAction = (e: React.MouseEvent) => {
+  const handleCartAction = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (!user) {
@@ -197,7 +198,13 @@ export function ClassCard({ cls, index }: { cls: ClassSummary; index: number }) 
       setLocation('/keranjang');
       return;
     }
-    addToCart(cls.id);
+    try {
+      await addToCart(cls.id);
+      toast.success('Berhasil ditambahkan ke keranjang');
+    } catch (error) {
+      console.error('Gagal menambahkan ke keranjang:', error);
+      toast.error(error instanceof Error ? error.message : 'Gagal menambahkan ke keranjang. Coba lagi.');
+    }
   };
 
   return (

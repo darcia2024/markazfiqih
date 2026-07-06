@@ -30,6 +30,7 @@ import { Separator } from '@/components/ui/separator';
 import { formatPrice } from '@/data/mockClasses';
 import { useGetClassById } from '@workspace/api-client-react';
 import { FacilitasCard } from '@/components/FacilitasCard';
+import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 
@@ -132,7 +133,7 @@ export default function ClassDetailPage() {
 
   const inCart = classIdsInCart.has(cls.id);
 
-  const handleBuyClick = () => {
+  const handleBuyClick = async () => {
     if (!user) {
       setLocation(`/login?redirect=${encodeURIComponent(`/class/${cls.id}`)}`);
       return;
@@ -141,7 +142,13 @@ export default function ClassDetailPage() {
       setLocation('/keranjang');
       return;
     }
-    addToCart(cls.id);
+    try {
+      await addToCart(cls.id);
+      toast.success('Berhasil ditambahkan ke keranjang');
+    } catch (error) {
+      console.error('Gagal menambahkan ke keranjang:', error);
+      toast.error(error instanceof Error ? error.message : 'Gagal menambahkan ke keranjang. Coba lagi.');
+    }
   };
 
   const hasDiscount = cls.discountPrice !== null;

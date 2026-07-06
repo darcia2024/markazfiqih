@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 
+import { toast } from 'sonner';
 import { AppShell } from '@/components/AppShell';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Button } from '@/components/ui/button';
@@ -454,10 +455,16 @@ function RecommendationCardConnected({ cls }: { cls: any }) {
   const [added, setAdded] = useState(false);
 
   const handleAdd = async (classId: string) => {
-    await addToCart(classId);
-    setAdded(true);
-    if (user) {
-      queryClient.invalidateQueries({ queryKey: getListRecommendedClassesQueryKey({ userId: user.id }) });
+    try {
+      await addToCart(classId);
+      setAdded(true);
+      if (user) {
+        queryClient.invalidateQueries({ queryKey: getListRecommendedClassesQueryKey({ userId: user.id }) });
+      }
+      toast.success('Berhasil ditambahkan ke keranjang');
+    } catch (error) {
+      console.error('Gagal menambahkan ke keranjang:', error);
+      toast.error(error instanceof Error ? error.message : 'Gagal menambahkan ke keranjang. Coba lagi.');
     }
   };
 

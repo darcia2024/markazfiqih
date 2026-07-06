@@ -56,6 +56,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           queryClient.invalidateQueries({ queryKey: getListCartItemsQueryKey({ userId: user.id }) });
         }
       },
+      onError: (error) => {
+        console.error('Add to cart mutation failed:', error);
+      },
     },
   });
 
