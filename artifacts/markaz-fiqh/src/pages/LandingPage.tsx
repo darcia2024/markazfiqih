@@ -77,48 +77,60 @@ const CATEGORY_META: Record<string, { icon: typeof Layers; description: string }
 const DEFAULT_CATEGORY_ICON = Layers;
 
 // ── Hero ─────────────────────────────────────────────────────────────────
-function HeroSection() {
+function HeroSection({
+  socialLinks,
+}: {
+  socialLinks: Array<{ label: string; icon: typeof Instagram | typeof TikTokIcon; href: string }>;
+}) {
   return (
-    <section className="bg-[hsl(var(--brand-red-tint))]">
-      <div className="container mx-auto px-5 sm:px-8 lg:px-16 py-16 sm:py-20 max-w-[1200px]">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-          <div className="max-w-2xl">
-            <p className="text-xs font-semibold tracking-wider text-primary uppercase">
-              Selamat Datang di Markaz Fiqih
-            </p>
-            <h1 className="mt-3 font-serif text-[32px] sm:text-[40px] font-bold leading-[1.15] sm:leading-[46px] text-foreground">
-              Belajar Fiqih Terstruktur, Bersama Pengajar Terpercaya
-            </h1>
-            <p className="mt-4 text-base leading-[26px] text-muted-foreground max-w-xl">
-              Markaz Fiqih menghadirkan kelas-kelas fiqih madzhab Syafi'i yang tersusun rapi,
-              dibimbing langsung oleh para pengajar berkompeten — mulai dari thaharah hingga
-              kajian kitab klasik, semua bisa kamu pelajari sesuai ritme belajarmu sendiri.
-            </p>
-            <div className="mt-8">
-              <Button asChild size="lg" className="h-[44px] px-6 text-sm font-semibold rounded-[10px]">
-                <Link href="/katalog">Jelajahi Semua Kelas</Link>
-              </Button>
-            </div>
-          </div>
+    <section className="bg-background">
+      <div className="relative rounded-[14px] overflow-hidden mx-4 mt-4">
+        {/* Background image */}
+        <img
+          src="https://images.unsplash.com/photo-1585036156171-384164a8c675?w=1200&q=80"
+          alt="Kajian Fiqih"
+          className="w-full h-[480px] sm:h-[520px] object-cover"
+        />
 
-          <div className="hidden lg:block relative">
-            <img
-              src="https://images.unsplash.com/photo-1584286595398-a59511e18ce2?w=800&q=80"
-              alt="Kajian Fiqih"
-              className="rounded-[14px] shadow-lg object-cover w-full h-[420px]"
-            />
-            <div className="absolute top-6 left-[-16px] bg-card rounded-full shadow-md px-4 py-2 flex items-center gap-2 text-sm font-semibold text-foreground">
-              <BookOpen className="h-4 w-4 text-primary" />
-              Kurikulum Terstruktur
-            </div>
-            <div className="absolute top-1/2 -translate-y-1/2 right-[-16px] bg-card rounded-full shadow-md px-4 py-2 flex items-center gap-2 text-sm font-semibold text-foreground">
-              <GraduationCap className="h-4 w-4 text-primary" />
-              Pengajar Kompeten
-            </div>
-            <div className="absolute bottom-6 left-[-16px] bg-card rounded-full shadow-md px-4 py-2 flex items-center gap-2 text-sm font-semibold text-foreground">
-              <Clock className="h-4 w-4 text-primary" />
-              Belajar Fleksibel
-            </div>
+        {/* Gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[hsl(var(--brand-red-deep))]/90 via-[hsl(var(--brand-red-deep))]/40 to-transparent" />
+
+        {/* Top-right: social icons */}
+        <div className="absolute top-5 right-5 z-10 flex items-center gap-2">
+          <span className="text-xs font-medium text-white/90 mr-1">Ikuti Kami</span>
+          {socialLinks.map(({ label, icon: Icon, href }) => (
+            <a
+              key={label}
+              href={href || '#'}
+              aria-label={label}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-[hsl(var(--brand-red-deep))] hover:scale-105 transition-transform"
+            >
+              <Icon className="h-3.5 w-3.5" />
+            </a>
+          ))}
+        </div>
+
+        {/* Bottom-left: text + CTA */}
+        <div className="absolute bottom-8 left-8 sm:left-12 z-10 max-w-lg">
+          <h1 className="font-serif text-4xl sm:text-5xl font-bold text-white leading-tight">
+            Belajar Fiqih Terstruktur.{' '}
+            <span className="block">Berkembang Lebih Cepat.</span>
+          </h1>
+          <p className="text-white/80 text-base mt-3">
+            Markaz Fiqih menghadirkan kelas-kelas fiqih madzhab Syafi'i yang tersusun rapi,
+            dibimbing langsung oleh para pengajar berkompeten — mulai dari thaharah hingga
+            kajian kitab klasik, semua bisa kamu pelajari sesuai ritme belajarmu sendiri.
+          </p>
+          <div className="mt-5">
+            <Button
+              asChild
+              size="lg"
+              className="h-[44px] px-6 text-sm font-semibold rounded-[10px] bg-[hsl(var(--accent))] text-white hover:bg-[hsl(var(--brand-gold-hover))]"
+            >
+              <Link href="/katalog">Jelajahi Kelas</Link>
+            </Button>
           </div>
         </div>
       </div>
@@ -532,7 +544,7 @@ export default function LandingPage() {
       <Navbar />
 
       <main className="flex-1">
-        <HeroSection />
+        <HeroSection socialLinks={socialLinks} />
 
         <StatsSection
           classCount={allClasses.length}
