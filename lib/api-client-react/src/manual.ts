@@ -112,11 +112,11 @@ export const getListEnrollmentsQueryOptions = <
 >(
   userId: string,
   options?: {
-    query?: UseQueryOptions<Awaited<ReturnType<typeof listEnrollments>>, TError, TData>;
+    query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listEnrollments>>, TError, TData>, 'queryKey' | 'queryFn'>;
   },
 ) => {
   const { query: queryOptions } = options ?? {};
-  const queryKey = queryOptions?.queryKey ?? getListEnrollmentsQueryKey(userId);
+  const queryKey = getListEnrollmentsQueryKey(userId);
   const queryFn: QueryFunction<Awaited<ReturnType<typeof listEnrollments>>> = ({ signal }) =>
     listEnrollments(userId, { signal });
   return { queryKey, queryFn, enabled: !!userId, ...queryOptions } as UseQueryOptions<
@@ -132,7 +132,7 @@ export function useListEnrollments<
 >(
   userId: string,
   options?: {
-    query?: UseQueryOptions<Awaited<ReturnType<typeof listEnrollments>>, TError, TData>;
+    query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listEnrollments>>, TError, TData>, 'queryKey' | 'queryFn'>;
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getListEnrollmentsQueryOptions(userId, options);
@@ -162,11 +162,11 @@ export const getClassDarsQueryOptions = <
 >(
   classId: string,
   options?: {
-    query?: UseQueryOptions<Awaited<ReturnType<typeof getClassDars>>, TError, TData>;
+    query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getClassDars>>, TError, TData>, 'queryKey' | 'queryFn'>;
   },
 ) => {
   const { query: queryOptions } = options ?? {};
-  const queryKey = queryOptions?.queryKey ?? getClassDarsQueryKey(classId);
+  const queryKey = getClassDarsQueryKey(classId);
   const queryFn: QueryFunction<Awaited<ReturnType<typeof getClassDars>>> = ({ signal }) =>
     getClassDars(classId, { signal });
   return { queryKey, queryFn, enabled: !!classId, ...queryOptions } as UseQueryOptions<
@@ -182,7 +182,7 @@ export function useGetClassDars<
 >(
   classId: string,
   options?: {
-    query?: UseQueryOptions<Awaited<ReturnType<typeof getClassDars>>, TError, TData>;
+    query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof getClassDars>>, TError, TData>, 'queryKey' | 'queryFn'>;
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getClassDarsQueryOptions(classId, options);
@@ -215,11 +215,11 @@ export const getListProgressQueryOptions = <
   userId: string,
   classId: string,
   options?: {
-    query?: UseQueryOptions<Awaited<ReturnType<typeof listProgress>>, TError, TData>;
+    query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listProgress>>, TError, TData>, 'queryKey' | 'queryFn'>;
   },
 ) => {
   const { query: queryOptions } = options ?? {};
-  const queryKey = queryOptions?.queryKey ?? getListProgressQueryKey(userId, classId);
+  const queryKey = getListProgressQueryKey(userId, classId);
   const queryFn: QueryFunction<Awaited<ReturnType<typeof listProgress>>> = ({ signal }) =>
     listProgress(userId, classId, { signal });
   return {
@@ -239,7 +239,7 @@ export function useListProgress<
   userId: string,
   classId: string,
   options?: {
-    query?: UseQueryOptions<Awaited<ReturnType<typeof listProgress>>, TError, TData>;
+    query?: Omit<UseQueryOptions<Awaited<ReturnType<typeof listProgress>>, TError, TData>, 'queryKey' | 'queryFn'>;
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getListProgressQueryOptions(userId, classId, options);
