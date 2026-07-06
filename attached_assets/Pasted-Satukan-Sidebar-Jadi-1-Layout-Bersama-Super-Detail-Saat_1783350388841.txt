@@ -1,0 +1,33 @@
+Satukan Sidebar Jadi 1 Layout Bersama (Super Detail)
+
+Saat ini CatalogPage.tsx punya function CatalogSidebar sendiri, sementara MyClassesPage.tsx (dan mungkin halaman lain seperti ClassDetailPage.tsx, LearnPage.tsx, CartPage.tsx) memakai komponen <Navbar /> yang berbeda (horizontal, bukan sidebar). Ini bikin tampilan gak konsisten pas pindah halaman. Kita akan satukan jadi 1 komponen shell yang dipakai di semua halaman setelah login.
+
+
+Langkah 1 — Buat file baru artifacts/markaz-fiqh/src/components/AppShell.tsx.
+Pindahkan (copy-paste, lalu hapus dari file asal) function CatalogSidebar dari CatalogPage.tsx (definisinya ada tepat di atas komentar // ── Header ───..., mulai dari // ── Sidebar ──... sampai penutup function-nya) ke file baru ini, ubah namanya dari CatalogSidebar menjadi AppSidebar. Sertakan semua import yang dibutuhkan (Link dari wouter, ikon BookOpen, LayoutGrid, BookMarked, Settings dari lucide-react).
+Di file baru ini, buat juga komponen pembungkus:
+tsxexport function AppShell({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+  const isAdmin = Boolean(user && (user as { role?: string }).role === 'admin');
+
+  return (
+    <div className="min-h-screen bg-background">
+      <AppSidebar isAdmin={isAdmin} />
+      <div className="lg:pl-[240px]">
+        {children}
+      </div>
+    </div>
+  );
+}
+Tambahkan import useAuth dari @/context/AuthContext di file baru ini.
+Langkah 2 — Update CatalogPage.tsx.
+Hapus function CatalogSidebar yang sudah dipindah. Tambahkan import { AppShell } from '@/components/AppShell';. Di dalam function CatalogContent (hasil rename dari prompt sebelumnya), cari bagian JSX yang saat ini merender <CatalogSidebar isAdmin={isAdmin} /> beserta wrapper div di sekitarnya (kemungkinan ada <div className="lg:pl-[240px]"> atau sejenisnya membungkus konten utama) — ganti seluruh struktur pembungkus itu dengan cukup membungkus isi konten (bagian header "Jelajahi Kelas", search bar, grid kelas, dst) di dalam <AppShell>...</AppShell>, tanpa perlu lagi merender sidebar secara manual di file ini karena sudah otomatis muncul dari AppShell.
+Langkah 3 — Update MyClassesPage.tsx.
+Cari import import { Navbar } from '@/components/Navbar'; dan penggunaan <Navbar /> di dalam function DashboardContent. Hapus import Navbar, tambahkan import { AppShell } from '@/components/AppShell';. Ganti <Navbar /> dan struktur div pembungkus di sekitarnya dengan membungkus seluruh konten dashboard (bagian header "Kelas Saya", filter chip, grid kelas, sidebar "Progress Belajar") di dalam <AppShell>...</AppShell>.
+Langkah 4 — Terapkan pola yang sama ke ClassDetailPage.tsx, LearnPage.tsx, dan CartPage.tsx.
+Untuk masing-masing file ini, cari penggunaan <Navbar /> (jika ada), dan ganti dengan pola <AppShell> yang sama seperti Langkah 3. Jika salah satu file ini TIDAK memakai <Navbar /> sama sekali (misal sudah pakai layout custom lain), laporkan ke saya nama file dan struktur layout yang sedang dipakainya SEBELUM melakukan perubahan apapun ke file itu — jangan langsung diubah paksa.
+Langkah 5 — Verifikasi.
+
+Jalankan pnpm run typecheck, pastikan 0 error.
+Di browser, login, lalu klik bolak-balik antara "Katalog Kelas" dan "Kelas Saya" di sidebar — pastikan sidebar KIRI tetap terlihat sama persis di kedua halaman (tidak hilang, tidak berubah jadi navbar horizontal).
+Screenshot hasilnya untuk dua halaman tersebut.

@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 
-import { Navbar } from '@/components/Navbar';
+import { AppShell } from '@/components/AppShell';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -476,13 +476,12 @@ function RecommendationCardConnected({ cls }: { cls: any }) {
 export default function CartPage() {
   return (
     <ProtectedRoute>
-      <div className="min-h-screen flex flex-col bg-background">
-        <Navbar />
+      <AppShell>
         <CartContent />
         <footer className="border-t py-8 text-center text-sm text-muted-foreground">
           © 2026 Markaz Fiqh. Semua Hak Dilindungi.
         </footer>
-      </div>
+      </AppShell>
     </ProtectedRoute>
   );
 }

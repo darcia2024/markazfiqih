@@ -15,7 +15,7 @@ import {
   ShoppingCart,
 } from 'lucide-react';
 
-import { Navbar } from '@/components/Navbar';
+import { AppShell } from '@/components/AppShell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -42,8 +42,7 @@ function formatDuration(minutes: number): string {
 // ── Not Found ──────────────────────────────────────────────────────────────
 function ClassNotFound() {
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar />
+    <AppShell>
       <main className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-4">
         <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
           <BookOpen className="w-7 h-7 text-muted-foreground" />
@@ -56,20 +55,19 @@ function ClassNotFound() {
           <Link href="/katalog">Kembali ke Katalog</Link>
         </Button>
       </main>
-    </div>
+    </AppShell>
   );
 }
 
 // ── Loading ────────────────────────────────────────────────────────────────
 function ClassDetailLoading() {
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar />
+    <AppShell>
       <main className="flex-1 flex flex-col items-center justify-center gap-3 text-center px-4">
         <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
         <p className="text-sm text-muted-foreground">Memuat detail kelas...</p>
       </main>
-    </div>
+    </AppShell>
   );
 }
 
@@ -148,9 +146,7 @@ export default function ClassDetailPage() {
   const totalMinutes = cls.totalDurationMinutes ?? 0;
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar />
-
+    <AppShell>
       <main className="flex-1">
         {/* ── Breadcrumb ── */}
         <div className="border-b bg-muted/30">
@@ -473,6 +469,6 @@ export default function ClassDetailPage() {
       <footer className="border-t py-8 text-center text-sm text-muted-foreground">
         © 2026 Markaz Fiqh. Semua Hak Dilindungi.
       </footer>
-    </div>
+    </AppShell>
   );
 }

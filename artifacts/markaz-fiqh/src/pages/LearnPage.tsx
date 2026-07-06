@@ -17,7 +17,7 @@ import {
   Video,
 } from 'lucide-react';
 
-import { Navbar } from '@/components/Navbar';
+import { AppShell } from '@/components/AppShell';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -84,8 +84,7 @@ function PlaylistMode({
     useCompleteEnrollment();
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar />
+    <AppShell>
       <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full px-4 lg:px-8 py-6 gap-6">
         {/* Back */}
         <Link
@@ -135,7 +134,7 @@ function PlaylistMode({
           )}
         </div>
       </div>
-    </div>
+    </AppShell>
   );
 }
 
@@ -373,19 +372,17 @@ function LearnContent() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex flex-col bg-background">
-        <Navbar />
+      <AppShell>
         <div className="flex-1 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
-      </div>
+      </AppShell>
     );
   }
 
   if (!classDetail) {
     return (
-      <div className="min-h-screen flex flex-col bg-background">
-        <Navbar />
+      <AppShell>
         <div className="flex-1 flex items-center justify-center flex-col gap-4 text-center">
           <BookOpen className="w-12 h-12 text-muted-foreground" />
           <h1 className="font-serif text-2xl font-bold">Kelas tidak ditemukan</h1>
@@ -393,7 +390,7 @@ function LearnContent() {
             <Link href="/my-classes">Kembali ke Kelas Saya</Link>
           </Button>
         </div>
-      </div>
+      </AppShell>
     );
   }
 
@@ -415,8 +412,7 @@ function LearnContent() {
 
   // ── Normal mode: existing modul/dars breakdown ────────────────────────────────
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar />
+    <AppShell>
       <div className="flex-1 flex flex-col lg:flex-row">
         {/* Sidebar */}
         <Sidebar
@@ -566,7 +562,7 @@ function LearnContent() {
           </div>
         </main>
       </div>
-    </div>
+    </AppShell>
   );
 }
 

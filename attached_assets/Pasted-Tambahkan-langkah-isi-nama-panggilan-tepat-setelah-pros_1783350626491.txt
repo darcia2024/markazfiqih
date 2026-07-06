@@ -1,0 +1,19 @@
+Tambahkan langkah "isi nama panggilan" tepat setelah proses login (mock Google), sebelum user diarahkan ke halaman tujuan. Ini murni fitur di level frontend/mock dulu (belum perlu tabel database baru, karena sistem auth masih mock berbasis localStorage) — TIDAK ada perubahan schema Supabase untuk task ini.
+Langkah 1 — Update artifacts/markaz-fiqh/src/context/AuthContext.tsx:
+Tambahkan field baru nickname: string | null; ke type User. Tambahkan function baru setNickname: (nickname: string) => void; ke type AuthContextType, implementasinya: update user state dengan menambahkan nickname ke object yang sudah ada, dan simpan ulang ke localStorage.setItem('markaz_mock_user', ...).
+Di function login, saat membuat mockUser, tambahkan nickname: null sebagai field awal (kecuali kalau ada data lama di localStorage yang sudah punya nickname — pertahankan nickname yang sudah ada kalau user login ulang, jangan reset ke null tiap kali).
+Ubah baris setLocation(redirect || '/'); di akhir function login menjadi: jika mockUser.nickname sudah terisi (dari data lama), tetap setLocation(redirect || '/') seperti biasa. Jika mockUser.nickname kosong/null, arahkan ke setLocation(/onboarding-nama?redirect=${encodeURIComponent(redirect || '/')}) sebagai gantinya.
+Langkah 2 — Buat file baru artifacts/markaz-fiqh/src/pages/OnboardingNamaPage.tsx:
+Halaman sederhana, center-aligned, mirip struktur visual sisi kanan LoginPage.tsx (reuse elemen serupa: logo Markaz Fiqih kecil di atas, judul, deskripsi). Konten: judul font-serif text-2xl font-bold bertuliskan "Siapa nama panggilan kamu?", subteks text-muted-foreground "Supaya kami bisa menyapamu dengan lebih akrab.", input teks (pakai komponen Input dari @/components/ui/input, placeholder "Contoh: Ahmad"), dan tombol Primary Button "Lanjutkan" (disabled jika input kosong/hanya spasi).
+Ambil redirect dari query param URL (pola sama seperti di LoginPage.tsx: new URLSearchParams(window.location.search).get('redirect') ?? '/'). Saat tombol "Lanjutkan" diklik: panggil setNickname(inputValue.trim()) dari useAuth(), lalu setLocation(redirect).
+Tambahkan pengecekan di awal komponen: jika user?.nickname sudah terisi (bukan null/kosong), langsung setLocation(redirect) tanpa menampilkan form ini (mencegah user mengisi ulang kalau sudah pernah isi sebelumnya, misal mengetik URL ini secara manual).
+Langkah 3 — Daftarkan route baru di App.tsx:
+Tambahkan <Route path="/onboarding-nama" component={OnboardingNamaPage} /> di dalam <Switch>, letakkan di dekat route /login. Import komponennya di bagian atas file.
+Langkah 4 — Update sapaan di artifacts/markaz-fiqh/src/pages/MyClassesPage.tsx:
+Cari baris {user?.name?.split(' ')[0] ?? 'Santri'} (sekitar baris 305, bagian teks "Assalamu'alaikum, ..."). Ganti jadi {user?.nickname ?? user?.name?.split(' ')[0] ?? 'Santri'} — supaya pakai nama panggilan kalau sudah diisi, tapi tetap ada fallback ke nama depan biasa kalau untuk alasan apapun nickname belum ada.
+Langkah 5 — Verifikasi:
+
+pnpm run typecheck harus 0 error.
+Logout (hapus markaz_mock_user dari Local Storage), lalu login lagi — pastikan setelah klik "Masuk dengan Google", muncul halaman tanya nama panggilan SEBELUM masuk ke halaman tujuan.
+Isi nama panggilan, klik Lanjutkan — pastikan sampai ke halaman tujuan dan (kalau tujuan itu halaman "Kelas Saya") sapaan di header berubah pakai nama panggilan yang baru diisi.
+Refresh halaman atau navigasi ulang — pastikan TIDAK diminta isi nama panggilan lagi (karena sudah tersimpan).

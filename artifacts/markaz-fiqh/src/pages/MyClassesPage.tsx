@@ -14,7 +14,7 @@ import {
   Loader2,
 } from 'lucide-react';
 
-import { Navbar } from '@/components/Navbar';
+import { AppShell } from '@/components/AppShell';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -288,9 +288,7 @@ function DashboardContent() {
     .slice(0, 3);
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar />
-
+    <AppShell>
       <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl py-10 lg:py-14">
         {/* Header */}
         <motion.div
@@ -401,7 +399,7 @@ function DashboardContent() {
       <footer className="border-t py-8 text-center text-sm text-muted-foreground">
         © 2026 Markaz Fiqh. Semua Hak Dilindungi.
       </footer>
-    </div>
+    </AppShell>
   );
 }
 
