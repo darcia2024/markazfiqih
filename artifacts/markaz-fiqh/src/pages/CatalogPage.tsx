@@ -286,7 +286,7 @@ export function ClassCard({ cls, index }: { cls: ClassSummary; index: number }) 
                 {inCart ? (
                   <>
                     <Check className="w-3.5 h-3.5" />
-                    Lihat di Keranjang
+                    Di Keranjang
                   </>
                 ) : (
                   <>

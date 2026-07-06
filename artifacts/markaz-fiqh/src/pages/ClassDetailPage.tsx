@@ -3,16 +3,17 @@ import { motion } from 'framer-motion';
 import {
   ArrowLeft,
   BookOpen,
-  Clock,
-  Users,
-  Loader2,
+  Check,
   CheckCircle2,
-  ShieldCheck,
+  Clock,
   Infinity,
+  Loader2,
   Lock,
   PlayCircle,
   PlaySquare,
+  ShieldCheck,
   ShoppingCart,
+  Users,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/AppShell';
@@ -405,12 +406,17 @@ export default function ClassDetailPage() {
                     <div className="p-6 space-y-4">
                       <Button
                         size="lg"
+                        variant={inCart ? 'outline' : 'default'}
                         className="w-full text-base font-semibold gap-2"
                         disabled={isAdding}
                         onClick={handleBuyClick}
                       >
-                        <ShoppingCart className="w-4 h-4" />
-                        {inCart ? 'Lihat di Keranjang' : 'Tambah ke Keranjang'}
+                        {inCart ? (
+                          <Check className="w-4 h-4" />
+                        ) : (
+                          <ShoppingCart className="w-4 h-4" />
+                        )}
+                        {inCart ? 'Di Keranjang' : 'Tambah ke Keranjang'}
                       </Button>
 
                       {!user && (
