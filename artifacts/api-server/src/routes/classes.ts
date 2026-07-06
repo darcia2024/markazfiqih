@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, asc, desc, eq, ilike, notInArray, or } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, notInArray, or } from "drizzle-orm";
 import { db, classesTable, instructorsTable, modulesTable, cartItemsTable, enrollmentsTable } from "@workspace/db";
 import {
   ListClassesQueryParams,
@@ -233,6 +233,15 @@ router.get("/classes/:id", async (req, res): Promise<void> => {
     ? classModules.reduce((sum, m) => sum + (m.durationMinutes ?? 0), 0)
     : null;
 
+  const [countRow] = await db
+    .select({ value: count() })
+    .from(classesTable)
+    .where(and(
+      eq(classesTable.instructorId, row.instructorId),
+      eq(classesTable.status, "published"),
+    ));
+  const instructorClassCount = countRow?.value ?? 0;
+
   const result = {
     id: row.id,
     title: row.title,
@@ -251,7 +260,7 @@ router.get("/classes/:id", async (req, res): Promise<void> => {
       name: row.instructorName,
       bio: row.instructorBio,
       photoUrl: row.instructorPhotoUrl,
-      classCount: 0,
+      classCount: instructorClassCount,
     },
     modules: classModules,
     moduleCount,

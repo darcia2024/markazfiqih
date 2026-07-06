@@ -22,11 +22,14 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { FacilitasCard } from '@/components/FacilitasCard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthContext';
+import { formatPrice } from '@/data/mockClasses';
 import {
   useGetClassById,
   useGetClassDars,
   useListProgress,
+  useListClasses,
   useUpdateProgress,
   useListEnrollments,
   useCompleteEnrollment,
@@ -69,16 +72,28 @@ function VideoPlaceholder({ title }: { title: string }) {
 
 // ── Playlist Mode ─────────────────────────────────────────────────────────────
 function PlaylistMode({
+  classId,
   classTitle,
+  classDescription,
+  classCategory,
   instructorName,
+  instructorBio,
+  instructorPhotoUrl,
+  instructorClassCount,
   playlistId,
   enrollmentId,
   userId,
   gdriveMateriUrl,
   waGroupUrl,
 }: {
+  classId: string;
   classTitle: string;
+  classDescription: string;
+  classCategory: string | null;
   instructorName: string;
+  instructorBio: string;
+  instructorPhotoUrl: string;
+  instructorClassCount: number;
   playlistId: string;
   enrollmentId: string | null;
   userId: string;
@@ -88,9 +103,14 @@ function PlaylistMode({
   const { mutate: completeEnrollment, isPending: isCompleting, isSuccess: isCompleted } =
     useCompleteEnrollment();
 
+  const { data: categoryClasses = [] } = useListClasses(
+    classCategory ? { category: classCategory } : undefined,
+  );
+  const relatedClasses = categoryClasses.filter((c) => c.id !== classId).slice(0, 3);
+
   return (
     <AppShell>
-      <div className="flex-1 flex flex-col max-w-4xl mx-auto w-full px-4 lg:px-8 py-6 gap-6">
+      <div className="flex-1 flex flex-col max-w-7xl mx-auto w-full px-4 lg:px-8 py-6 gap-4">
         {/* Back */}
         <Link
           href="/my-classes"
@@ -100,49 +120,121 @@ function PlaylistMode({
           Kelas Saya
         </Link>
 
-        {/* YouTube Playlist iframe */}
-        <iframe
-          src={`https://www.youtube.com/embed/videoseries?list=${playlistId}`}
-          className="w-full aspect-video rounded-[14px]"
-          allowFullScreen
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-        />
+        <div className="flex flex-col lg:flex-row gap-6 items-start">
+          {/* ── Left: video + info ── */}
+          <div className="flex-1 min-w-0 flex flex-col gap-6">
+            {/* CATATAN: YouTube tidak mengizinkan menyembunyikan sepenuhnya opsi "Watch on
+                YouTube" atau logo YouTube karena kebijakan mereka — parameter di bawah hanya
+                meminimalisir distraksi/rekomendasi video lain, bukan blokir total. */}
+            <iframe
+              src={`https://www.youtube-nocookie.com/embed/videoseries?list=${playlistId}&rel=0&modestbranding=1&iv_load_policy=3&fs=1&playsinline=1`}
+              className="w-full aspect-video rounded-[14px]"
+              allowFullScreen
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            />
 
-        {/* Info panel */}
-        <div className="bg-card rounded-2xl border p-6 space-y-5">
-          <div>
-            <h1 className="font-serif text-2xl font-bold text-foreground leading-snug">
-              {classTitle}
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1.5">{instructorName}</p>
+            {/* Info panel */}
+            <div className="bg-card rounded-2xl border p-6 space-y-4">
+              <div className="space-y-1">
+                <h1 className="font-serif text-2xl font-bold text-foreground leading-snug">
+                  {classTitle}
+                </h1>
+                <p className="text-sm text-muted-foreground">{instructorName}</p>
+                {classDescription && (
+                  <p className="text-sm text-muted-foreground leading-relaxed pt-1">
+                    {classDescription}
+                  </p>
+                )}
+              </div>
+
+              {isCompleted ? (
+                <div className="inline-flex items-center gap-2 rounded-lg bg-success-pale border border-success-pale px-4 py-3">
+                  <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
+                  <span className="font-semibold text-success">Kelas telah ditandai selesai</span>
+                </div>
+              ) : (
+                <Button
+                  size="lg"
+                  onClick={() => enrollmentId && completeEnrollment({ enrollmentId, userId })}
+                  disabled={isCompleting || !enrollmentId}
+                  className="gap-2"
+                >
+                  {isCompleting ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="w-4 h-4" />
+                  )}
+                  Tandai Kelas Selesai
+                </Button>
+              )}
+            </div>
           </div>
 
-          {isCompleted ? (
-            <div className="inline-flex items-center gap-2 rounded-lg bg-success-pale border border-success-pale px-4 py-3">
-              <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
-              <span className="font-semibold text-success">Kelas telah ditandai selesai</span>
+          {/* ── Right sidebar (desktop only) ── */}
+          <aside className="hidden lg:flex flex-col gap-4 w-[320px] shrink-0">
+            {/* Card: Tentang Pengajar */}
+            <div className="bg-card rounded-2xl border p-5 space-y-3">
+              <p className="text-sm font-semibold text-foreground">Tentang Pengajar</p>
+              <div className="flex items-start gap-3">
+                <Avatar className="w-12 h-12 shrink-0">
+                  <AvatarImage src={instructorPhotoUrl} alt={instructorName} />
+                  <AvatarFallback className="bg-primary/10 text-primary font-bold">
+                    {instructorName.charAt(0)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-foreground">{instructorName}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {instructorClassCount} kelas
+                  </p>
+                  {instructorBio && (
+                    <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+                      {instructorBio}
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
-          ) : (
-            <Button
-              size="lg"
-              onClick={() => enrollmentId && completeEnrollment({ enrollmentId, userId })}
-              disabled={isCompleting || !enrollmentId}
-              className="gap-2"
-            >
-              {isCompleting ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <CheckCircle2 className="w-4 h-4" />
-              )}
-              Tandai Kelas Selesai
-            </Button>
-          )}
 
-          {(gdriveMateriUrl || waGroupUrl) && (
-            <div className="pt-2 border-t">
-              <FacilitasCard gdriveMateriUrl={gdriveMateriUrl} waGroupUrl={waGroupUrl} />
-            </div>
-          )}
+            {/* Card: Fasilitas Kelas */}
+            {(gdriveMateriUrl || waGroupUrl) && (
+              <div className="bg-card rounded-2xl border overflow-hidden">
+                <FacilitasCard gdriveMateriUrl={gdriveMateriUrl} waGroupUrl={waGroupUrl} />
+              </div>
+            )}
+
+            {/* Card: Kelas Lainnya dari Kategori Sama — hanya tampil jika kelas punya kategori */}
+            {classCategory && relatedClasses.length > 0 && (
+              <div className="bg-card rounded-2xl border p-5 space-y-4">
+                <p className="text-sm font-semibold text-foreground">
+                  Kelas Lainnya{classCategory ? ` — ${classCategory}` : ''}
+                </p>
+                <div className="space-y-3">
+                  {relatedClasses.map((cls) => (
+                    <Link
+                      key={cls.id}
+                      href={`/class/${cls.id}`}
+                      className="flex items-start gap-3 group"
+                    >
+                      <img
+                        src={cls.coverImage}
+                        alt={cls.title}
+                        className="w-16 h-11 rounded-lg object-cover shrink-0"
+                      />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-foreground line-clamp-2 group-hover:text-primary transition-colors leading-snug">
+                          {cls.title}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {formatPrice(cls.discountPrice ?? cls.basePrice)}
+                        </p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+          </aside>
         </div>
       </div>
     </AppShell>
@@ -412,8 +504,14 @@ function LearnContent() {
     const enrollmentId = enrollments.find((e) => e.class.id === classId)?.id ?? null;
     return (
       <PlaylistMode
+        classId={classId!}
         classTitle={classDetail.title}
+        classDescription={classDetail.description}
+        classCategory={classDetail.category}
         instructorName={classDetail.instructor.name}
+        instructorBio={classDetail.instructor.bio}
+        instructorPhotoUrl={classDetail.instructor.photoUrl}
+        instructorClassCount={classDetail.instructor.classCount}
         playlistId={classDetail.youtubePlaylistId!}
         enrollmentId={enrollmentId}
         userId={user?.id ?? ''}
