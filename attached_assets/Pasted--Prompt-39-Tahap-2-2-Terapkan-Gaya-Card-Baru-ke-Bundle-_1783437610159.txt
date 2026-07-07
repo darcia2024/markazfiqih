@@ -1,0 +1,72 @@
+# Prompt 39 (Tahap 2/2): Terapkan Gaya Card Baru ke Bundle, Kategori, Instruktur
+
+## Konteks
+Lanjutan dari Tahap 1 (`ClassCard` sudah diredesign dengan pola checkmark
+list + footer gradient). Sekarang terapkan bahasa visual yang sama secara
+konsisten ke 3 tempat lain, disesuaikan dengan konten masing-masing (tidak
+semua elemen relevan untuk setiap jenis card — ikuti instruksi spesifik per
+bagian di bawah).
+
+---
+
+## Bagian A — `BundleCard` (`artifacts/markaz-fiqh/src/pages/BundlesPage.tsx`)
+
+Card ini sudah diredesign sebelumnya (chip list untuk daftar kelas, footer
+harga terpisah dari tombol). Sekarang selaraskan dengan pola baru dari
+`ClassCard`:
+
+- Pertahankan chip list kelas yang sudah ada dari redesign sebelumnya
+  (JANGAN diubah lagi ke checkmark list vertikal — untuk daftar kelas
+  yang bisa berjumlah banyak seperti 16 kelas, chip wrap lebih efisien
+  ruang daripada list checkmark vertikal).
+- Ganti footer (harga + tombol "Tambah ke Keranjang") dari layout
+  side-by-side yang sekarang (harga kiri, tombol kanan dalam padding) —
+  jadi mengikuti pola `ClassCard`: harga ditampilkan di atas sebagai baris
+  sendiri, lalu tombol jadi footer full-width gradient solid yang menyatu
+  di tepi bawah card (persis pola yang sudah diterapkan di `ClassCard`
+  Tahap 1 — gunakan style yang sama: `bg-gradient-to-r from-primary
+  to-[hsl(var(--brand-red-hover))]`, teks putih, `ArrowRight` di kanan).
+- Sesuaikan teks tombol: "Lihat di Keranjang" kalau `inCart`, "Tambah ke
+  Keranjang" kalau belum (logika `handleCartAction` tidak berubah).
+
+## Bagian B — Card Kategori (`CategorySection` di `LandingPage.tsx`)
+
+Card kategori ini solid crimson (bukan card putih dengan border seperti
+`ClassCard`/`BundleCard`), dan tidak punya tombol aksi (seluruh card adalah
+link ke katalog dengan filter kategori). Untuk card ini:
+
+- Tambahkan **garis pemisah tipis** (`border-t border-white/15`) antara
+  bagian judul+deskripsi dan bagian jumlah kelas di bagian bawah — mengikuti
+  prinsip "garis pemisah antara header dan detail" dari referensi, meskipun
+  bentuk card-nya beda (solid warna, bukan card putih).
+- Ubah bagian footer (yang sekarang menampilkan "X Kelas" sebagai teks
+  biasa) menjadi terasa lebih seperti CTA — tambahkan ikon panah
+  (`ArrowRight`) di sampingnya yang muncul/bergerak sedikit saat hover
+  (`group-hover:translate-x-1`), supaya terasa seperti tombol meski
+  seluruh card tetap bisa diklik (jangan tambahkan tombol terpisah di
+  dalam card yang sudah berupa link, itu akan membuat nested
+  interactive element yang tidak valid secara HTML).
+
+## Bagian C — Card Instruktur (`TeachersSection` di `LandingPage.tsx`)
+
+Card ini tidak punya list fitur atau tombol aksi (murni foto + nama + bio),
+jadi pola checkmark list dan footer gradient TIDAK relevan untuk
+diterapkan di sini secara paksa. Cukup poles ringan supaya terasa
+konsisten dengan card lain di halaman:
+
+- Tambahkan garis pemisah tipis (`border-t border-border`) antara bagian
+  avatar+nama dan bagian bio, supaya strukturnya terasa punya "header" dan
+  "detail" seperti card lain.
+- Pertahankan sisanya seperti sekarang (avatar, nama, role, bio) — tidak
+  perlu menambahkan footer atau tombol buatan yang tidak ada fungsinya.
+
+## Yang Tidak Boleh Berubah di Semua Bagian
+- Data yang ditampilkan tidak berubah
+- Fungsi/logika interaktif (cart, link filter kategori) tidak diubah,
+  hanya tampilannya
+- Warna brand tetap dari CSS variables yang sudah ada
+
+## Setelah Selesai
+Kasih ringkasan card mana saja yang sudah diselaraskan gayanya, dan
+konfirmasi tidak ada nested interactive element (tombol di dalam link)
+yang membuat error HTML/React.

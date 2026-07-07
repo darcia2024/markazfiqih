@@ -1,0 +1,104 @@
+# Prompt 38 (Tahap 1/2): Redesign Style Card — Checkmark List + Footer Gradient Solid
+
+## Konteks
+Referensi visual baru untuk gaya card (lihat gambar yang dilampirkan di
+percakapan): card dengan header berisi judul + badge, garis pemisah tipis,
+daftar fitur/poin dengan icon checklist bulat berwarna (di referensi hijau,
+di sini gunakan warna brand crimson/gold), harga di bagian tengah-bawah
+card, dan **tombol aksi berbentuk footer full-width dengan background
+gradient solid** yang menyatu di bagian paling bawah card (bukan tombol
+kecil terpisah dalam padding seperti sekarang).
+
+Elemen tooltip info saat hover (kotak putih kecil di referensi) TIDAK perlu
+diadopsi — cukup ambil pola layout, checkmark list, dan footer gradient
+saja.
+
+Kerjakan bertahap. **Tahap ini fokus ke `ClassCard`** (kartu kelas di
+Katalog dan section "Kelas Pilihan" pada landing page — cek apakah
+komponen ini shared/reused di beberapa tempat sebelum mengubah, supaya
+perubahan konsisten di semua tempat yang memakainya).
+
+## Perubahan pada `ClassCard`
+
+Edit `artifacts/markaz-fiqh/src/pages/CatalogPage.tsx`, komponen
+`ClassCard`.
+
+### 1. Struktur Card Baru
+Pertahankan foto cover di bagian atas (ini beda dari referensi yang tidak
+ada foto — foto tetap penting untuk konteks kelas), tapi susun ulang
+bagian bawahnya:
+
+- **Header info**: judul kelas + badge level (pertahankan seperti sekarang)
+- **Garis pemisah tipis** (`border-t border-border`) sebelum bagian
+  fitur/detail
+- **Detail kelas sebagai list dengan icon checklist bulat**, alih-alih
+  baris ikon-ikon kecil yang sekarang ada (Modul, Durasi, Instruktur).
+  Ubah jadi list vertikal singkat dengan bullet icon bulat kecil berwarna
+  (misal `bg-primary/10` dengan checkmark `text-primary` di dalamnya,
+  mirip pola `<CheckCircle2>` kecil), masing-masing baris:
+  - Nama instruktur
+  - Jumlah modul
+  - Durasi (kalau ada)
+
+  Contoh style bullet:
+  ```tsx
+  <div className="flex items-center gap-2 text-sm text-foreground/80">
+    <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary/10 text-primary shrink-0">
+      <Check className="h-2.5 w-2.5" />
+    </span>
+    {instructor.name}
+  </div>
+  ```
+- **Harga**: tetap ditampilkan sebelum footer, dengan style yang sudah ada
+  (harga coret jika diskon + harga final)
+- **Footer tombol full-width gradient solid**: ganti tombol "Tambah" kecil
+  yang sekarang ada di pojok kanan bawah, jadi tombol yang membentang
+  penuh lebar card, menempel di bagian paling bawah (tidak ada padding di
+  kiri-kanannya, menyatu dengan tepi card), dengan background gradient
+  solid warna brand (`bg-gradient-to-r from-primary to-[hsl(var(--brand-
+  red-hover))]`), teks putih, dan panah kecil di kanan (ikon `ArrowRight`
+  dari lucide-react) — mirip pola "Upgrade to Business →" di referensi.
+  Sudut bawah card (rounded corner) mengikuti border-radius card itu
+  sendiri supaya menyatu rapi.
+
+  Contoh:
+  ```tsx
+  <button
+    onClick={handleCartAction}
+    disabled={isAdding}
+    className="w-full py-3 px-4 bg-gradient-to-r from-primary to-[hsl(var(--brand-red-hover))] text-white text-sm font-semibold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+  >
+    {inCart ? 'Lihat di Keranjang' : 'Tambah ke Keranjang'}
+    <ArrowRight className="h-4 w-4" />
+  </button>
+  ```
+  Sesuaikan teks tombol supaya tetap mencerminkan state `inCart` seperti
+  sekarang (translate ke `/keranjang` kalau sudah ada, tambah ke cart kalau
+  belum — logika `handleCartAction` yang sudah ada TIDAK diubah, hanya
+  tampilan tombolnya).
+
+### 2. Perhatikan Struktur Link
+Card ini sekarang dibungkus `<Link href={.../class/${cls.id}}>` yang
+membuat seluruh card bisa diklik untuk ke halaman detail. Karena tombol
+footer sekarang adalah CTA "Tambah ke Keranjang" yang punya aksi berbeda
+(`e.preventDefault(); e.stopPropagation()` sudah ada di `handleCartAction`
+untuk mencegah trigger link saat tombol diklik) — pastikan behavior ini
+tetap terjaga setelah restrukturisasi (klik area foto/judul/detail → ke
+halaman detail kelas; klik tombol footer → aksi cart, tidak ikut trigger
+navigasi ke detail).
+
+### 3. Update `ClassCardSkeleton`
+Sesuaikan skeleton loading state supaya merepresentasikan struktur baru
+(list checkmark + footer full-width), konsisten dengan perubahan di atas.
+
+## Yang Tidak Boleh Berubah
+- Foto cover kelas tetap ada di bagian atas card
+- Data yang ditampilkan tidak berubah (judul, level, instruktur, modul,
+  durasi, harga)
+- Logika `handleCartAction`, state `inCart`, dan navigasi tidak diubah
+- Warna brand (crimson, gold) tetap dari CSS variables yang sudah ada
+
+## Setelah Selesai
+Konfirmasi apakah `ClassCard` dipakai di lebih dari satu tempat (Katalog
+dan/atau landing page "Kelas Pilihan") dan pastikan perubahan konsisten di
+semua tempat tersebut karena ini komponen shared.

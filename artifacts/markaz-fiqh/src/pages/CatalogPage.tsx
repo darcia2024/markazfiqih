@@ -5,11 +5,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 import {
   Search,
-  BookOpen,
   Bell,
-  Clock,
   ShoppingCart,
   Check,
+  ArrowRight,
 } from 'lucide-react';
 
 import { useAuth } from '@/context/AuthContext';
@@ -195,7 +194,7 @@ export function ClassCard({ cls, index }: { cls: ClassSummary; index: number }) 
   const durationLabel = formatDuration(cls.totalDurationMinutes);
   const { user } = useAuth();
   const { classIdsInCart, addToCart, isAdding } = useCart();
-  const [location, setLocation] = useLocation();
+  const [, setLocation] = useLocation();
   const inCart = classIdsInCart.has(cls.id);
 
   const handleCartAction = async (e: React.MouseEvent) => {
@@ -229,8 +228,16 @@ export function ClassCard({ cls, index }: { cls: ClassSummary; index: number }) 
       layout
       className="h-full"
     >
-      <Link href={`/class/${cls.id}`} className="group block h-full">
-        <div className="h-full flex flex-col rounded-lg border border-border bg-card overflow-hidden shadow-sm hover:shadow-lg transition-friendly">
+      {/*
+       * Card container: group for hover effects; button is a sibling of Link,
+       * NOT nested inside it, to produce valid HTML (no interactive-in-interactive).
+       */}
+      <div className="group h-full flex flex-col rounded-lg border border-border bg-card overflow-hidden shadow-sm hover:shadow-lg transition-friendly">
+
+        {/* Clickable area — image + content — navigates to class detail */}
+        <Link href={`/class/${cls.id}`} className="flex flex-col flex-1">
+
+          {/* Cover image */}
           <div className="relative aspect-video overflow-hidden bg-muted">
             <img
               src={cls.coverImage}
@@ -246,87 +253,73 @@ export function ClassCard({ cls, index }: { cls: ClassSummary; index: number }) 
             )}
           </div>
 
-          <div className="flex flex-col flex-1 p-4 gap-2">
+          {/* Content */}
+          <div className="flex flex-col flex-1 px-4 pt-4 pb-3 gap-2">
+            {/* Title */}
             <h4 className="text-base font-semibold text-foreground leading-snug line-clamp-2 min-h-[2.75rem] group-hover:text-primary transition-colors">
               {cls.title}
             </h4>
 
-            <div className="flex items-center gap-2">
-              <Avatar className="h-6 w-6">
-                <AvatarImage src={cls.instructor.photoUrl} alt={cls.instructor.name} />
-                <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
-                  {cls.instructor.name.charAt(0)}
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-[13px] text-muted-foreground truncate">
-                {cls.instructor.name}
-              </span>
-            </div>
+            {/* Separator */}
+            <div className="border-t border-border" />
 
-            <div className="flex items-center gap-3 text-xs text-text-tertiary">
-              <span className="flex items-center gap-1">
-                <BookOpen className="w-3.5 h-3.5" />
-                {cls.moduleCount} Modul
-              </span>
-              {durationLabel && (
-                <span className="flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5" />
-                  {durationLabel}
+            {/* Checkmark detail list */}
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-2 text-sm text-foreground/80">
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary/10 text-primary shrink-0">
+                  <Check className="h-2.5 w-2.5" />
                 </span>
+                <span className="truncate">{cls.instructor.name}</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm text-foreground/80">
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary/10 text-primary shrink-0">
+                  <Check className="h-2.5 w-2.5" />
+                </span>
+                {cls.moduleCount} Modul
+              </div>
+              {durationLabel && (
+                <div className="flex items-center gap-2 text-sm text-foreground/80">
+                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary/10 text-primary shrink-0">
+                    <Check className="h-2.5 w-2.5" />
+                  </span>
+                  {durationLabel}
+                </div>
               )}
             </div>
 
-            <div className="mt-auto pt-2 flex items-end justify-between gap-2 min-h-[3.25rem]">
-              <div className="flex flex-col">
-                {hasDiscount ? (
-                  <>
-                    <span className="text-[13px] text-text-tertiary line-through leading-tight">
-                      {formatPrice(cls.basePrice)}
-                    </span>
-                    <span className="text-lg font-bold text-primary leading-tight">
-                      {formatPrice(cls.discountPrice!)}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <span className="text-[13px] leading-tight invisible select-none">&nbsp;</span>
-                    <span className="text-lg font-bold text-foreground leading-tight">
-                      {formatPrice(cls.basePrice)}
-                    </span>
-                  </>
-                )}
-              </div>
-              <motion.div whileTap={{ scale: 0.92 }}>
-                <Button
-                  size="sm"
-                  variant={inCart ? 'outline' : 'default'}
-                  className="shrink-0 text-xs h-8 gap-1"
-                  disabled={isAdding}
-                  onClick={handleCartAction}
-                >
-                  <AnimatePresence mode="wait">
-                    <motion.span
-                      key={inCart ? 'added' : 'add'}
-                      initial={{ scale: 0, rotate: -90 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      exit={{ scale: 0, rotate: 90 }}
-                      transition={{ duration: 0.2 }}
-                      className="flex items-center"
-                    >
-                      {inCart ? (
-                        <Check className="w-3.5 h-3.5" />
-                      ) : (
-                        <ShoppingCart className="w-3.5 h-3.5" />
-                      )}
-                    </motion.span>
-                  </AnimatePresence>
-                  {inCart ? 'Di Keranjang' : 'Tambah'}
-                </Button>
-              </motion.div>
+            {/* Price */}
+            <div className="mt-auto pt-2">
+              {hasDiscount ? (
+                <>
+                  <span className="text-[13px] text-text-tertiary line-through leading-tight block">
+                    {formatPrice(cls.basePrice)}
+                  </span>
+                  <span className="text-lg font-bold text-primary leading-tight">
+                    {formatPrice(cls.discountPrice!)}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="text-[13px] leading-tight invisible select-none block">&nbsp;</span>
+                  <span className="text-lg font-bold text-foreground leading-tight">
+                    {formatPrice(cls.basePrice)}
+                  </span>
+                </>
+              )}
             </div>
           </div>
-        </div>
-      </Link>
+        </Link>
+
+        {/* Full-width gradient footer button — sibling of Link, NOT nested inside it */}
+        <button
+          onClick={handleCartAction}
+          disabled={isAdding}
+          className="w-full py-3 px-4 bg-gradient-to-r from-primary to-[hsl(var(--brand-red-hover))] text-white text-sm font-semibold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-60"
+        >
+          {inCart ? 'Lihat di Keranjang' : 'Tambah ke Keranjang'}
+          <ArrowRight className="h-4 w-4 shrink-0" />
+        </button>
+      </div>
     </motion.div>
   );
 }
@@ -334,13 +327,43 @@ export function ClassCard({ cls, index }: { cls: ClassSummary; index: number }) 
 export function ClassCardSkeleton() {
   return (
     <div className="h-full flex flex-col rounded-lg border border-border bg-card overflow-hidden">
+      {/* Cover image skeleton */}
       <Skeleton className="aspect-video w-full" />
-      <div className="p-4 flex flex-col gap-3">
+
+      {/* Content skeleton */}
+      <div className="px-4 pt-4 pb-3 flex flex-col gap-2.5 flex-1">
+        {/* Title */}
+        <Skeleton className="h-4 w-full" />
         <Skeleton className="h-4 w-3/4" />
-        <Skeleton className="h-3 w-1/2" />
-        <Skeleton className="h-3 w-2/3" />
-        <Skeleton className="h-5 w-1/3 mt-2" />
+
+        {/* Separator */}
+        <div className="border-t border-border" />
+
+        {/* Checkmark list */}
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-4 w-4 rounded-full shrink-0" />
+            <Skeleton className="h-3 w-24" />
+          </div>
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-4 w-4 rounded-full shrink-0" />
+            <Skeleton className="h-3 w-16" />
+          </div>
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-4 w-4 rounded-full shrink-0" />
+            <Skeleton className="h-3 w-20" />
+          </div>
+        </div>
+
+        {/* Price */}
+        <div className="mt-auto pt-2">
+          <Skeleton className="h-3 w-20 mb-1" />
+          <Skeleton className="h-6 w-28" />
+        </div>
       </div>
+
+      {/* Footer button skeleton */}
+      <Skeleton className="w-full h-11 rounded-none" />
     </div>
   );
 }
