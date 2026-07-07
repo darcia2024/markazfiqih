@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
+import { toast } from 'sonner';
 import { useParams, Link } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -104,6 +105,9 @@ function PlaylistMode({
     useMutation({
       mutationFn: (params: { enrollmentId: string }) =>
         completeEnrollmentFn(params.enrollmentId),
+      onError: (error) => {
+        toast.error(error instanceof Error ? error.message : 'Gagal menyimpan, coba lagi.');
+      },
     });
 
   const { data: categoryClasses = [] } = useQuery({
@@ -501,6 +505,9 @@ function LearnContent() {
 
   const { mutate: updateProgressMutate, isPending: isUpdating } = useMutation({
     mutationFn: updateProgressFn,
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : 'Gagal menyimpan, coba lagi.');
+    },
   });
 
   const isLoading = isLoadingClass || isLoadingProgress;

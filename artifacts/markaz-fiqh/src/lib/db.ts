@@ -512,6 +512,7 @@ export async function checkEnrollment(userId: string, classId: string): Promise<
 export type LocalInvoiceItem = {
   id: string;
   classId: string;
+  bundleId?: string;
   title: string;
   price: number;
   coverImage: string;
@@ -654,7 +655,7 @@ export async function getInvoice(invoiceId: string): Promise<LocalInvoice> {
     .from('invoices')
     .select(`
       id, total_amount, status, mayar_invoice_id, paid_at,
-      invoice_items ( id, class_id, price, classes ( id, title, cover_image ) )
+      invoice_items ( id, class_id, bundle_id, price, classes ( id, title, cover_image ) )
     `)
     .eq('id', invoiceId)
     .single();
@@ -667,6 +668,7 @@ export async function getInvoice(invoiceId: string): Promise<LocalInvoice> {
     items: ((data.invoice_items as any[]) ?? []).map((item: any) => ({
       id: item.id as string,
       classId: item.class_id as string,
+      bundleId: item.bundle_id as string | undefined,
       title: item.classes?.title ?? '',
       price: item.price as number,
       coverImage: item.classes?.cover_image ?? '',

@@ -28,11 +28,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import type { CartClassItem, CartBundleItem } from '@/context/CartContext';
 import { formatPrice } from '@/pages/CatalogPage';
-import {
-  useListRecommendedClasses,
-  getListRecommendedClassesQueryKey,
-} from '@workspace/api-client-react';
-import { createCheckout, simulateSuccess, getInvoice, validateVoucher } from '@/lib/db';
+import { createCheckout, simulateSuccess, getInvoice, validateVoucher, listClasses } from '@/lib/db';
 import type { LocalInvoice } from '@/lib/db';
 
 function formatDuration(totalMinutes: number | null): string | null {
@@ -367,7 +363,7 @@ function BundleCartItem({
 
 function CartContent() {
   const { user } = useAuth();
-  const { items, isLoading, removeFromCart, isRemoving } = useCart();
+  const { items, isLoading, removeFromCart, isRemoving, classIdsInCart } = useCart();
   const [, setLocation] = useLocation();
   const search = useSearch();
   const queryClient = useQueryClient();
@@ -393,15 +389,17 @@ function CartContent() {
 
   const handleRemoveAndRefreshRecommended = async (id: string) => {
     await removeFromCart(id);
-    if (user) {
-      queryClient.invalidateQueries({ queryKey: getListRecommendedClassesQueryKey({ userId: user.id }) });
-    }
   };
 
-  const recommendedQuery = useListRecommendedClasses(
-    { userId: user?.id ?? '', limit: 4 },
-    { query: { enabled: !!user, queryKey: getListRecommendedClassesQueryKey({ userId: user?.id ?? '', limit: 4 }) } },
-  );
+  const { data: allClasses = [] } = useQuery({
+    queryKey: ['classes', 'all'],
+    queryFn: () => listClasses(),
+    enabled: !!user,
+  });
+  // Kelas rekomendasi: kelas published yang belum ada di keranjang, maks 4
+  const recommendedClasses = allClasses
+    .filter((cls) => !classIdsInCart.has(cls.id))
+    .slice(0, 4);
 
   const createCheckoutMutation = useMutation({ mutationFn: createCheckout });
   const simulateSuccessMutation = useMutation({
@@ -762,7 +760,7 @@ function CartContent() {
           </div>
         )}
 
-        {!isLoading && (recommendedQuery.data?.length ?? 0) > 0 && (
+        {!isLoading && recommendedClasses.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -774,8 +772,8 @@ function CartContent() {
               <h2 className="font-serif text-xl font-bold text-foreground">Kamu Mungkin Juga Suka</h2>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-              {(recommendedQuery.data ?? []).map((cls: any) => (
-                <RecommendationCardConnected key={cls.id} cls={cls} />
+              {recommendedClasses.map((cls) => (
+                <RecommendationCardConnected key={cls.id} cls={cls as any} />
               ))}
             </div>
           </motion.div>
@@ -788,16 +786,12 @@ function CartContent() {
 function RecommendationCardConnected({ cls }: { cls: any }) {
   const { user } = useAuth();
   const { addToCart, isAdding } = useCart();
-  const queryClient = useQueryClient();
   const [added, setAdded] = useState(false);
 
   const handleAdd = async (classId: string) => {
     try {
       await addToCart(classId);
       setAdded(true);
-      if (user) {
-        queryClient.invalidateQueries({ queryKey: getListRecommendedClassesQueryKey({ userId: user.id }) });
-      }
       toast.success('Berhasil ditambahkan ke keranjang');
     } catch (error) {
       console.error('Gagal menambahkan ke keranjang:', error);

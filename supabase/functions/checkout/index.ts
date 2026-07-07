@@ -106,11 +106,16 @@ Deno.serve(async (req) => {
         voucherClassId = voucherRow.class_id;
         voucherDiscountPrice = voucherRow.discount_price;
 
-        // Catat pemakaian voucher
-        await supabaseAdmin
-          .from('class_vouchers')
-          .update({ used_count: (voucherRow.used_count ?? 0) + 1 })
-          .eq('id', voucherRow.id);
+        // Catat pemakaian voucher secara atomic (cegah race condition)
+        const { data: voucherUpdateResult, error: voucherUpdateError } = await supabaseAdmin
+          .rpc('increment_voucher_usage', { voucher_id: voucherRow.id });
+
+        if (voucherUpdateError || !voucherUpdateResult?.length) {
+          return new Response(
+            JSON.stringify({ error: 'Kode voucher sudah tidak berlaku atau kuota habis.' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+          );
+        }
       }
     }
 

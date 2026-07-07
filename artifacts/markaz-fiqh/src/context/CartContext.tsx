@@ -1,5 +1,6 @@
 import React, { createContext, useContext } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { listCartItems, addCartItem, removeCartItem } from '@/lib/db';
 import type { CartItem, CartClassItem, CartBundleItem } from '@/lib/db';
 import { useAuth } from '@/context/AuthContext';
@@ -40,6 +41,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     },
     onError: (error) => {
       console.error('Gagal menambahkan ke keranjang:', error);
+      toast.error('Gagal menambahkan ke keranjang, coba lagi.');
     },
   });
 
@@ -50,6 +52,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     },
     onError: (error) => {
       console.error('Gagal menghapus dari keranjang:', error);
+      toast.error('Gagal menghapus dari keranjang, coba lagi.');
     },
   });
 
