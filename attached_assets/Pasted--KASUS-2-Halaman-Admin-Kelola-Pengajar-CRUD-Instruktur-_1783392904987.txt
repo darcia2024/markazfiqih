@@ -1,0 +1,124 @@
+# KASUS 2 — Halaman Admin: Kelola Pengajar (CRUD Instruktur)
+
+**Dependency:** tidak ada, bisa langsung jalan. Backend API instruktur sudah 100% lengkap
+(`artifacts/api-server/src/routes/instructors.ts` — GET/POST/PUT/DELETE `/instructors`),
+dan hook React Query-nya sudah ter-generate (`useListInstructors`, `useCreateInstructor`,
+`useUpdateInstructor`, `useDeleteInstructor` di `@workspace/api-client-react`).
+Tinggal bikin halamannya saja.
+
+**Bonus temuan:** di `AdminLayout.tsx` sudah ada link sidebar "Pengguna & Akses" ke
+`/admin/users`, tapi halaman itu tidak pernah dibuat (dead link, 404 kalau diklik).
+Dibiarkan saja untuk sekarang, bukan bagian dari task ini.
+
+---
+
+## Prompt untuk Replit Agent
+
+```
+Buat halaman admin baru untuk kelola pengajar/instruktur, mengikuti pola dan
+styling yang PERSIS SAMA seperti artifacts/markaz-fiqh/src/pages/admin/AdminClassesPage.tsx
+(halaman itu jadi referensi pola: Dialog untuk form tambah/edit, AlertDialog
+untuk konfirmasi hapus, toast untuk feedback, komponen dari @/components/ui).
+
+Backend API-nya sudah lengkap, JANGAN diubah:
+- GET /api/instructors — list semua instruktur, tiap item punya field
+  id, name, bio, photoUrl, classCount (jumlah kelas published milik instruktur ini)
+- POST /api/instructors — body: { name, bio, photoUrl }
+- PUT /api/instructors/:id — body sama seperti POST
+- DELETE /api/instructors/:id
+
+Hook React Query yang sudah ter-generate dan siap dipakai (dari
+@workspace/api-client-react, cek generated/api.ts untuk signature persisnya):
+useListInstructors, useCreateInstructor, useUpdateInstructor, useDeleteInstructor
+— JANGAN edit file generated ini, hanya konsumsi hook-nya saja.
+
+## 1. Buat file artifacts/markaz-fiqh/src/pages/admin/AdminInstructorsPage.tsx
+
+Struktur halaman:
+
+a) Header halaman dengan judul "Kelola Pengajar" dan tombol "Tambah Pengajar Baru"
+   di kanan atas (pola sama seperti tombol "Tambah Kelas" di AdminClassesPage)
+
+b) Grid/list card untuk tiap instruktur, masing-masing card menampilkan:
+   - Foto (pakai komponen Avatar dari @/components/ui/avatar, AvatarImage
+     dari photoUrl, AvatarFallback dari inisial nama kalau foto kosong —
+     pola AvatarFallback-nya sama seperti yang dipakai di AdminLayout.tsx
+     untuk foto admin)
+   - Nama instruktur
+   - Bio (potong dengan line-clamp kalau kepanjangan, jangan bikin card
+     jadi tinggi sebelah)
+   - Badge/teks kecil jumlah kelas: "X kelas published"
+   - Tombol Edit dan tombol Hapus (ikon pensil dan ikon trash dari lucide-react,
+     ikuti style tombol icon-only yang dipakai di AdminClassesPage)
+
+c) Dialog form tambah/edit (satu Dialog dipakai untuk keduanya, mode
+   ditentukan dari state `editingInstructor`, sama persis pola-nya dengan
+   `editingClass` di AdminClassesPage), berisi:
+   - Input Nama (wajib, tidak boleh kosong)
+   - Textarea Bio (opsional)
+   - Input URL Foto (type="url", opsional), dan di sebelah/bawah input ini
+     tampilkan preview foto kecil bulat (pakai Avatar juga) yang otomatis
+     update tiap kali value berubah, supaya admin bisa lihat hasil sebelum
+     submit
+   - Tombol submit disabled saat isPending, tampilkan spinner Loader2
+     seperti di AdminClassesPage
+
+d) AlertDialog konfirmasi hapus (pola PERSIS sama seperti AlertDialog hapus
+   kelas di AdminClassesPage baris ~511-531), dengan tambahan: KALAU
+   classCount instruktur yang mau dihapus lebih dari 0, tampilkan
+   AlertDialogDescription dengan warning tambahan yang jelas, sesuatu
+   seperti: "Pengajar ini masih mengajar X kelas. Menghapusnya akan ikut
+   menghapus SEMUA kelas tersebut secara permanen (karena ada relasi
+   cascade di database). Yakin ingin lanjut?" — pakai warna teks
+   destructive/merah untuk kalimat warning ini.
+
+e) Semua aksi (create/update/delete) pakai onSuccess untuk invalidate
+   query list instruktur dan tutup dialog, serta toast sukses/gagal —
+   ikuti pola exact yang dipakai di AdminClassesPage untuk mutation
+   create/update/delete kelas.
+
+## 2. Daftarkan route baru
+
+Di artifacts/markaz-fiqh/src/App.tsx, tambahkan:
+  import AdminInstructorsPage from '@/pages/admin/AdminInstructorsPage';
+  ...
+  <Route path="/admin/instructors" component={AdminInstructorsPage} />
+
+Letakkan route ini di antara rute /admin/classes dan /admin/orders yang
+sudah ada, supaya urutan tetap rapi.
+
+## 3. Tambahkan link navigasi di sidebar admin
+
+Di artifacts/markaz-fiqh/src/components/admin/AdminLayout.tsx, di array
+NAV_ITEMS, tambahkan entry baru untuk halaman ini. Import ikon yang cocok
+dari lucide-react (misal `UserCog` atau `Users2` — JANGAN pakai ikon
+`Users` karena sudah dipakai untuk entry "Pengguna & Akses" yang sudah ada).
+Letakkan entry baru ini tepat SETELAH entry "Manajemen Kelas" dan SEBELUM
+"Pesanan", karena secara alur kerja mengelola pengajar berdekatan dengan
+mengelola kelas:
+
+  { title: 'Manajemen Pengajar', url: '/admin/instructors', icon: UserCog },
+
+Tidak perlu mengubah entry "Pengguna & Akses" (/admin/users) yang sudah
+ada — itu di luar scope task ini.
+
+## 4. TIDAK PERLU diubah
+
+Dropdown "Pilih pengajar" di form kelas AdminClassesPage.tsx yang sekarang
+cuma menampilkan instruktur yang sudah ada — biarkan seperti itu, TIDAK
+perlu ditambah opsi "tambah pengajar baru" langsung dari situ, karena
+sekarang sudah ada halaman khusus untuk itu.
+
+## Test manual setelah selesai
+
+1. Buka /admin/instructors — pastikan list instruktur yang sudah ada
+   (Faqih Ubaidillah Rozan, Muthiah Fairuzi, dll) muncul dengan benar
+2. Tambah pengajar baru, isi nama + bio + foto, submit, pastikan muncul
+   di list
+3. Edit pengajar yang baru dibuat, ubah bio-nya, submit, pastikan berubah
+4. Coba hapus pengajar yang classCount > 0 (misal salah satu pengajar
+   fiqih tematik yang sudah punya banyak kelas) — pastikan warning
+   soal cascade delete muncul jelas sebelum konfirmasi
+5. Buka /admin/classes, buat kelas baru — pastikan dropdown pengajar
+   menampilkan pengajar yang baru saja dibuat di halaman /admin/instructors
+```

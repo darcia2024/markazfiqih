@@ -1,0 +1,223 @@
+# KASUS 3 — Supabase Auth Google Login (Frontend)
+
+**Dependency:** Supabase project harus sudah ada, dan Google OAuth provider sudah
+diaktifkan di dashboard Supabase (Authentication → Providers → Google, isi Client ID
+& Secret dari Google Cloud Console). Catat `Project URL` dan `anon public key`
+dari Settings → API sebelum mulai.
+
+**Wajib dilakukan MANUAL oleh Daru di Supabase Dashboard (bukan lewat Replit Agent):**
+1. Authentication → URL Configuration → tambahkan Site URL dan Redirect URLs
+   sesuai domain Vercel nanti (untuk development, tambahkan juga
+   `http://localhost:PORT/login` sesuai port dev server)
+2. Authentication → Providers → Google → aktifkan, isi Client ID & Secret
+
+**Temuan penting yang jadi dasar prompt ini:** paket `@workspace/api-client-react`
+(dipakai semua halaman untuk fetch data) TERNYATA sudah punya fungsi bawaan
+`setAuthTokenGetter()` di `lib/api-client-react/src/custom-fetch.ts` yang otomatis
+menempelkan header `Authorization: Bearer <token>` ke SETIAP request kalau
+fungsi ini dikonfigurasi. Fungsi ini belum pernah dipanggil di mana pun di
+codebase. Artinya kita TIDAK perlu ubah satu-satu tempat yang manggil API —
+cukup panggil `setAuthTokenGetter` sekali di titik masuk aplikasi.
+
+---
+
+## Prompt untuk Replit Agent
+
+```
+Ganti sistem mock login yang ada sekarang di
+artifacts/markaz-fiqh/src/context/AuthContext.tsx menjadi Supabase Auth
+dengan Google Sign-In yang sebenarnya.
+
+## 1. Environment variables
+
+Tambahkan ke .env.example (buat file ini kalau belum ada) di
+artifacts/markaz-fiqh:
+  VITE_SUPABASE_URL=
+  VITE_SUPABASE_ANON_KEY=
+
+Pastikan kedua env var ini dibaca lewat import.meta.env di Vite.
+
+## 2. Install dependency
+
+Install @supabase/supabase-js di artifacts/markaz-fiqh.
+
+## 3. Buat Supabase client
+
+Buat file baru artifacts/markaz-fiqh/src/lib/supabase.ts:
+
+  import { createClient } from '@supabase/supabase-js';
+
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('VITE_SUPABASE_URL dan VITE_SUPABASE_ANON_KEY wajib diisi di .env');
+  }
+
+  export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+## 4. Buat tabel user_profiles untuk simpan nickname
+
+Data nickname (dari flow onboarding nama panggilan yang sudah ada di
+OnboardingNamaPage.tsx) TIDAK bisa lagi disimpan di localStorage karena
+sekarang harus konsisten lintas device. Buat schema Drizzle baru di
+lib/db/src/schema/userProfiles.ts:
+
+  import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
+
+  export const userProfilesTable = pgTable("user_profiles", {
+    userId: text("user_id").primaryKey(),
+    nickname: text("nickname"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  });
+
+Daftarkan export tabel ini di file index/barrel export lib/db yang sudah
+ada (cek bagaimana tabel lain seperti classesTable di-export dari
+lib/db/src/index.ts atau sejenisnya, ikuti pola yang sama).
+
+Generate migration Drizzle untuk tabel baru ini (cek script migration yang
+sudah ada di lib/db, biasanya lewat drizzle-kit).
+
+## 5. Buat endpoint backend sederhana untuk nickname
+
+Di artifacts/api-server/src/routes/, buat file baru user-profile.ts:
+
+  GET /api/user-profile?userId=xxx
+    → return { userId, nickname } (nickname null kalau belum pernah diisi,
+      dan kalau row belum ada sama sekali di database, tetap return
+      { userId, nickname: null } dengan status 200, JANGAN 404)
+
+  PUT /api/user-profile
+    → body: { userId, nickname }
+    → upsert ke tabel user_profiles (insert kalau belum ada row untuk
+      userId itu, update kalau sudah ada — pakai onConflictDoUpdate dari
+      drizzle, cek pola upsert yang mungkin sudah dipakai di file lain
+      seperti cart.ts untuk konsistensi gaya)
+
+Daftarkan route baru ini di artifacts/api-server/src/routes/index.ts
+seperti route-route lain yang sudah ada.
+
+CATATAN: endpoint ini untuk sekarang TIDAK perlu diproteksi middleware
+auth apapun dulu — itu bagian dari task terpisah (Kasus 4). Fokus di
+task ini murni ganti mekanisme login saja.
+
+## 6. Rombak AuthContext.tsx
+
+Ganti isi artifacts/markaz-fiqh/src/context/AuthContext.tsx:
+
+- Import supabase client dari '@/lib/supabase'
+- Hapus semua logic localStorage.getItem/setItem('markaz_mock_user')
+- Di useEffect awal (menggantikan baca localStorage):
+  a. Panggil supabase.auth.getSession() untuk cek sesi yang sedang aktif
+  b. Kalau ada session, ambil session.user lalu panggil
+     GET /api/user-profile?userId=<session.user.id> untuk ambil nickname,
+     baru set state user lengkap dengan nickname tersebut
+  c. Subscribe ke supabase.auth.onAuthStateChange((event, session) => {...})
+     untuk update state user setiap kali status auth berubah (login baru,
+     logout, token refresh) — pastikan unsubscribe di cleanup function
+     useEffect
+
+- User type (yang sudah ada) tetap dipertahankan strukturnya:
+    id, name, email, avatar_url, nickname: string | null
+  Tapi sekarang mapping dari Supabase session.user:
+    id: session.user.id  (UUID asli dari Supabase, BUKAN lagi "mock-1")
+    name: session.user.user_metadata?.full_name ?? session.user.email ?? 'Pengguna'
+    email: session.user.email ?? ''
+    avatar_url: session.user.user_metadata?.avatar_url ?? ''
+    nickname: diambil dari GET /api/user-profile seperti di atas
+
+- Fungsi login(redirect?: string) diganti total, jadi:
+
+    const login = (redirect?: string) => {
+      const destination = redirect && redirect !== '/' ? redirect : '/dashboard';
+      supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/login?redirect=${encodeURIComponent(destination)}`,
+        },
+      });
+    };
+
+  (Google akan redirect balik ke /login?redirect=... dengan session baru,
+  lalu useEffect di LoginPage.tsx yang SUDAH ADA — yang mendeteksi user
+  lalu redirect ke redirectUrl — akan tetap jalan seperti biasa TANPA
+  perlu diubah, karena struktur query param redirect-nya sama persis
+  dengan yang sudah dipakai sekarang.)
+
+- Fungsi logout() diganti jadi:
+    const logout = async () => {
+      await supabase.auth.signOut();
+      setUser(null);
+      setLocation('/');
+    };
+
+- Fungsi setNickname(nickname: string) diganti jadi: update state user
+  secara optimistic dulu (langsung tampil di UI), lalu panggil
+  PUT /api/user-profile di background untuk persist. TIDAK perlu diubah
+  jadi async/await di sisi pemanggil — cek OnboardingNamaPage.tsx yang
+  memanggil setNickname(trimmed) tanpa await, itu harus tetap bisa jalan
+  apa adanya tanpa perlu diubah:
+
+    const setNickname = (nickname: string) => {
+      setUser((prev) => (prev ? { ...prev, nickname } : prev));
+      fetch('/api/user-profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user?.id, nickname }),
+      }).catch((err) => console.error('Gagal simpan nickname:', err));
+    };
+
+  (Sesuaikan base URL fetch ini kalau backend di-deploy terpisah dari
+  frontend — cek bagaimana request ke backend lain dilakukan di project
+  ini, apakah ada base URL yang perlu ditambahkan.)
+
+## 7. Wire up setAuthTokenGetter di titik masuk aplikasi
+
+Di artifacts/markaz-fiqh/src/main.tsx (atau di dalam AuthProvider saat
+pertama kali dijalankan — pilih titik yang paling awal), panggil:
+
+  import { setAuthTokenGetter } from '@workspace/api-client-react';
+  import { supabase } from '@/lib/supabase';
+
+  setAuthTokenGetter(async () => {
+    const { data } = await supabase.auth.getSession();
+    return data.session?.access_token ?? null;
+  });
+
+Ini membuat SETIAP request yang dibuat lewat hook-hook generated
+(useListCartItems, useAddCartItem, dst di seluruh aplikasi) otomatis
+membawa token akses Supabase yang valid di header Authorization, tanpa
+perlu mengubah satu pun pemanggilan hook yang sudah ada di halaman-halaman
+lain (CartContext, ClassDetailPage, CatalogPage, dll — semua ini TIDAK
+perlu disentuh sama sekali).
+
+## 8. JANGAN diubah
+
+- LoginPage.tsx — sudah benar, tombol "Masuk dengan Google" sudah
+  memanggil login(redirectUrl), tidak perlu diubah
+- OnboardingNamaPage.tsx — sudah benar, tidak perlu diubah
+- ProtectedRoute.tsx — logic-nya (cek user null/tidak) tetap sama, tidak
+  perlu diubah di task ini
+- Semua halaman yang memakai user.id (CartContext, DashboardPage,
+  MyClassesPage, dll) — TIDAK perlu diubah, karena user.id tetap ada di
+  struktur yang sama, hanya isinya sekarang UUID asli
+
+## Test manual setelah selesai
+
+1. Klik "Masuk dengan Google" di /login — pastikan redirect ke halaman
+   pilih akun Google beneran (bukan lagi mock 500ms delay)
+2. Setelah pilih akun, pastikan balik ke aplikasi dan otomatis login
+   dengan nama & foto asli dari akun Google tersebut
+3. Kalau ini akun baru (belum pernah isi nickname), pastikan diarahkan
+   ke /onboarding-nama seperti biasa
+4. Refresh halaman setelah login — pastikan tetap login (sesi tidak
+   hilang)
+5. Logout, pastikan kembali ke halaman utama dan sesi benar-benar hilang
+   (refresh halaman, tidak otomatis login lagi)
+6. Buka DevTools → Network saat menambah kelas ke keranjang — pastikan
+   request ke /api/cart membawa header Authorization: Bearer <token panjang>
+```

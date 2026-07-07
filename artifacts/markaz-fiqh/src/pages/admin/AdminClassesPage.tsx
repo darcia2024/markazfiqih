@@ -47,8 +47,11 @@ import {
   useCreateClass,
   useUpdateClass,
   useDeleteClass,
+  useGetClassById,
+  getGetClassByIdQueryKey,
   getListClassesQueryKey,
   type ClassSummary,
+  type ClassDetail,
 } from '@workspace/api-client-react';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -62,6 +65,7 @@ type ClassFormState = {
   level: 'pemula' | 'menengah' | 'lanjutan' | '';
   category: string;
   instructorId: string;
+  youtubePlaylistId: string;
   gdriveMateriUrl: string;
   waGroupUrl: string;
 };
@@ -76,11 +80,12 @@ const EMPTY_FORM: ClassFormState = {
   level: '',
   category: '',
   instructorId: '',
+  youtubePlaylistId: '',
   gdriveMateriUrl: '',
   waGroupUrl: '',
 };
 
-function classToForm(cls: ClassSummary): ClassFormState {
+function classToForm(cls: ClassDetail): ClassFormState {
   return {
     title: cls.title,
     description: cls.description,
@@ -91,8 +96,9 @@ function classToForm(cls: ClassSummary): ClassFormState {
     level: cls.level ?? '',
     category: cls.category ?? '',
     instructorId: cls.instructor.id,
-    gdriveMateriUrl: '',
-    waGroupUrl: '',
+    youtubePlaylistId: cls.youtubePlaylistId ?? '',
+    gdriveMateriUrl: cls.gdriveMateriUrl ?? '',
+    waGroupUrl: cls.waGroupUrl ?? '',
   };
 }
 
@@ -109,6 +115,14 @@ export default function AdminClassesPage() {
   const instructorsQuery = useListInstructors();
   const classes = classesQuery.data ?? [];
   const instructors = instructorsQuery.data ?? [];
+
+  const editingId = editingClass?.id ?? '';
+  const { data: editingClassDetail } = useGetClassById(editingId, {
+    query: {
+      queryKey: getGetClassByIdQueryKey(editingId),
+      enabled: !!editingClass && dialogOpen,
+    },
+  });
 
   const createMutation = useCreateClass({
     mutation: {
@@ -157,6 +171,13 @@ export default function AdminClassesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [instructors]);
 
+  useEffect(() => {
+    if (editingClassDetail && editingClass) {
+      setForm(classToForm(editingClassDetail));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editingClassDetail]);
+
   const filtered = classes.filter((c) =>
     c.title.toLowerCase().includes(search.toLowerCase())
   );
@@ -169,7 +190,20 @@ export default function AdminClassesPage() {
 
   function openEditDialog(cls: ClassSummary) {
     setEditingClass(cls);
-    setForm(classToForm(cls));
+    setForm({
+      title: cls.title,
+      description: cls.description,
+      coverImage: cls.coverImage,
+      basePrice: String(cls.basePrice),
+      discountPrice: cls.discountPrice != null ? String(cls.discountPrice) : '',
+      status: cls.status,
+      level: cls.level ?? '',
+      category: cls.category ?? '',
+      instructorId: cls.instructor.id,
+      youtubePlaylistId: cls.youtubePlaylistId ?? '',
+      gdriveMateriUrl: '',
+      waGroupUrl: '',
+    });
     setDialogOpen(true);
   }
 
@@ -191,6 +225,7 @@ export default function AdminClassesPage() {
       level: form.level || null,
       category: form.category || null,
       instructorId: form.instructorId,
+      youtubePlaylistId: form.youtubePlaylistId.trim() || null,
       gdriveMateriUrl: form.gdriveMateriUrl.trim() || null,
       waGroupUrl: form.waGroupUrl.trim() || null,
     };
@@ -471,6 +506,17 @@ export default function AdminClassesPage() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="class-youtube-playlist">Link Playlist YouTube</Label>
+                <Input
+                  id="class-youtube-playlist"
+                  type="url"
+                  placeholder="https://www.youtube.com/playlist?list=..."
+                  value={form.youtubePlaylistId}
+                  onChange={(e) => setForm((p) => ({ ...p, youtubePlaylistId: e.target.value }))}
+                  data-testid="input-class-youtube-playlist"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="class-gdrive-materi">Link Google Drive Materi (PDF)</Label>

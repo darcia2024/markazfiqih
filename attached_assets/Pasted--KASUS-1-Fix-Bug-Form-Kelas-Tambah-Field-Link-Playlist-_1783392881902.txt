@@ -1,0 +1,89 @@
+# KASUS 1 — Fix Bug Form Kelas + Tambah Field Link Playlist YouTube
+
+**Dependency:** tidak ada, bisa langsung jalan.
+**File yang disentuh:** `artifacts/markaz-fiqh/src/pages/admin/AdminClassesPage.tsx` (satu file saja)
+
+---
+
+## Prompt untuk Replit Agent
+
+```
+Di file artifacts/markaz-fiqh/src/pages/admin/AdminClassesPage.tsx ada 2 perbaikan
+yang harus dilakukan sekaligus di file yang sama:
+
+## BUG FIX
+
+Ada function yang mengubah data kelas (objek `cls`) menjadi form state, dipanggil
+saat tombol "Edit" pada sebuah kelas diklik. Saat ini function tersebut
+hardcode dua field berikut jadi string kosong, alih-alih mengambil dari data
+kelas yang sebenarnya:
+
+  gdriveMateriUrl: '',
+  waGroupUrl: '',
+
+Perbaiki agar mengambil dari data asli:
+
+  gdriveMateriUrl: cls.gdriveMateriUrl ?? '',
+  waGroupUrl: cls.waGroupUrl ?? '',
+
+Bug ini menyebabkan: setiap kali admin membuka kelas manapun untuk diedit
+(walau cuma mau ubah judul misalnya) lalu submit, link Google Drive materi
+dan link Grup WhatsApp kelas tersebut ikut terhapus karena dikirim ulang
+sebagai string kosong ke backend.
+
+## FITUR BARU — Field Link Playlist YouTube
+
+Tambahkan input baru "Link Playlist YouTube" di form tambah/edit kelas.
+Field ini WAJIB ada karena kolom youtubePlaylistId sudah ada di database
+dan backend (lihat lib/db/src/schema/classes.ts dan
+artifacts/api-server/src/routes/classes.ts) tapi form admin belum punya
+input untuk mengisinya sama sekali — jadi sekarang admin tidak bisa
+menempelkan link YouTube ke kelas manapun.
+
+Detail implementasi:
+
+1. Tambahkan ke type ClassFormState:
+   youtubePlaylistId: string;
+
+2. Tambahkan ke EMPTY_FORM:
+   youtubePlaylistId: '',
+
+3. Di function yang convert data kelas ke form state (yang dibenerin di
+   BUG FIX di atas), tambahkan juga:
+   youtubePlaylistId: cls.youtubePlaylistId ?? '',
+
+4. Tambahkan elemen form baru, letakkan TEPAT SEBELUM blok
+   "Link Google Drive Materi (PDF)" yang sudah ada, dengan struktur JSX
+   dan styling yang identik (Label + Input), seperti ini:
+
+   <div className="space-y-2">
+     <Label htmlFor="class-youtube-playlist">Link Playlist YouTube</Label>
+     <Input
+       id="class-youtube-playlist"
+       type="url"
+       placeholder="https://www.youtube.com/playlist?list=..."
+       value={form.youtubePlaylistId}
+       onChange={(e) => setForm((p) => ({ ...p, youtubePlaylistId: e.target.value }))}
+       data-testid="input-class-youtube-playlist"
+     />
+   </div>
+
+5. Di handler submit, tambahkan ke payload yang dikirim ke backend:
+   youtubePlaylistId: form.youtubePlaylistId.trim() || null,
+   (ikuti pola yang sama persis dengan gdriveMateriUrl dan waGroupUrl yang
+   sudah ada di payload submit itu)
+
+Field ini TIDAK butuh perubahan apapun di artifacts/api-server atau
+lib/db — backend dan schema-nya sudah mendukung youtubePlaylistId
+sepenuhnya, hanya form UI-nya saja yang perlu dilengkapi.
+
+## Test manual setelah selesai
+
+1. Buka /admin/classes
+2. Edit kelas yang SUDAH punya isi di Link GDrive Materi dan Link Grup WA
+3. Tanpa mengubah apapun, langsung klik "Simpan Perubahan"
+4. Buka lagi kelas yang sama — pastikan Link GDrive Materi dan Link Grup WA
+   MASIH ADA (tidak hilang)
+5. Isi field "Link Playlist YouTube" yang baru dengan link contoh, simpan,
+   buka lagi — pastikan tersimpan dengan benar
+```
