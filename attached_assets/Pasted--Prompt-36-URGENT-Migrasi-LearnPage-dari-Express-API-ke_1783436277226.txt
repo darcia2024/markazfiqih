@@ -1,0 +1,208 @@
+# Prompt 36 (URGENT): Migrasi LearnPage dari Express API ke Supabase Direct
+
+## Root Cause
+`LearnPage.tsx` masih menggunakan hooks dari `@workspace/api-client-react`
+(`useGetClassById`, `useGetClassDars`, `useListProgress`, `useUpdateProgress`,
+`useListEnrollments`, `useCompleteEnrollment`, `useListClasses`) — ini adalah
+hooks generated yang memanggil backend Express, padahal backend Express
+sudah lama ditinggalkan (tidak dipakai di production, digantikan akses
+langsung ke Supabase via `src/lib/db.ts`, seperti semua halaman lain di
+project ini).
+
+Akibatnya: setiap kali user membuka halaman "Mulai Belajar"
+(`/learn/:classId`), semua fetch dari hooks Express tersebut gagal (backend
+tidak berjalan), sehingga `classDetail` selalu `undefined`, dan halaman
+selalu menampilkan "Kelas tidak ditemukan" — padahal data kelas dan
+enrollment-nya benar-benar ada dan valid di Supabase. Ini bug kritis: user
+yang sudah membayar tidak bisa mengakses kelas yang sudah mereka enroll.
+
+## Fix — Migrasi Penuh ke `src/lib/db.ts`
+
+Edit `artifacts/markaz-fiqh/src/pages/LearnPage.tsx`.
+
+### 1. Ganti Import
+Hapus import dari `@workspace/api-client-react`:
+```tsx
+import {
+  useGetClassById,
+  useGetClassDars,
+  useListProgress,
+  useListClasses,
+  useUpdateProgress,
+  useListEnrollments,
+  useCompleteEnrollment,
+  type ClassDarsModule,
+  type DarsItem,
+} from '@workspace/api-client-react';
+import { getListProgressQueryKey } from '@workspace/api-client-react';
+```
+
+Ganti dengan import dari `@/lib/db` dan `@tanstack/react-query` langsung
+(pola `useQuery`/`useMutation` manual, ikuti persis gaya yang sudah dipakai
+di halaman lain seperti `CartPage.tsx` atau `DashboardPage.tsx` untuk
+konsistensi).
+
+### 2. Fungsi Baru yang Perlu Ditambahkan ke `src/lib/db.ts`
+
+Cek dulu fungsi yang SUDAH ada di `db.ts` sebelum menambah — `getClassById`
+(sudah lengkap, termasuk `modules` dan `dars` di dalamnya, TIDAK perlu
+fungsi terpisah untuk `getClassDars`), `listClasses`, dan `listEnrollments`
+sudah tersedia dan bisa dipakai langsung.
+
+Yang PERLU ditambahkan (belum ada):
+
+```ts
+// ─── PROGRESS ─────────────────────────────────────────────────────────────
+
+export async function listProgress(userId: string, classId: string) {
+  const { data, error } = await supabase
+    .from('progress')
+    .select('id, dars_id, is_completed, user_id, dars!inner(module_id, modules!inner(class_id))')
+    .eq('user_id', userId)
+    .eq('dars.modules.class_id', classId);
+  if (error) throw error;
+  return (data ?? []).map((p: any) => ({
+    id: p.id as string,
+    darsId: p.dars_id as string,
+    isCompleted: p.is_completed as boolean,
+  }));
+}
+
+export async function updateProgress(params: {
+  userId: string;
+  darsId: string;
+  isCompleted: boolean;
+}) {
+  const { error } = await supabase
+    .from('progress')
+    .upsert(
+      { user_id: params.userId, dars_id: params.darsId, is_completed: params.isCompleted },
+      { onConflict: 'user_id,dars_id' },
+    );
+  if (error) throw error;
+}
+
+// ─── COMPLETE ENROLLMENT ────────────────────────────────────────────────────
+
+export async function completeEnrollment(enrollmentId: string) {
+  const { error } = await supabase
+    .from('enrollments')
+    .update({ is_completed: true })
+    .eq('id', enrollmentId);
+  if (error) throw error;
+}
+```
+
+PENTING: sebelum menulis `listProgress`, cek dulu struktur tabel `progress`
+yang sebenarnya di database (kolom apa saja yang ada, termasuk apakah ada
+foreign key `dars_id` dan relasi ke `modules`/`classes` seperti yang
+diasumsikan di atas) — query di atas adalah asumsi berdasarkan pola nama
+kolom yang konsisten dengan tabel lain di project, tapi WAJIB diverifikasi
+dulu terhadap skema sebenarnya sebelum dipakai, supaya tidak menembak
+kolom/relasi yang tidak ada (kejadian serupa seperti bug bundle_id
+sebelumnya). Jika strukturnya berbeda dari asumsi di atas, sesuaikan
+query-nya berdasarkan skema yang sebenarnya ada.
+
+Juga cek apakah tabel `enrollments` punya kolom `is_completed` (kemungkinan
+besar ada, berdasarkan pola skema project) sebelum menulis
+`completeEnrollment`.
+
+### 3. Ganti Pemanggilan di `LearnContent`
+
+Ganti:
+```tsx
+const { data: classDetail, isLoading: isLoadingClass } = useGetClassById(classId ?? '');
+const { data: modules = [], isLoading: isLoadingDars } = useGetClassDars(classId ?? '');
+const { data: progressItems = [], isLoading: isLoadingProgress } = useListProgress(
+  user?.id ?? '',
+  classId ?? '',
+  { query: { enabled: !!user?.id && !!classId } },
+);
+const { data: enrollments = [] } = useListEnrollments(user?.id ?? '', {
+  query: { enabled: !!user?.id },
+});
+const { mutate: updateProgress, isPending: isUpdating } = useUpdateProgress();
+```
+
+Menjadi pola `useQuery`/`useMutation` manual, contoh:
+```tsx
+const { data: classDetail, isLoading: isLoadingClass } = useQuery({
+  queryKey: ['class', classId],
+  queryFn: () => getClassById(classId!),
+  enabled: !!classId,
+});
+
+// modules langsung dari classDetail.modules — TIDAK perlu query terpisah
+const modules = classDetail?.modules ?? [];
+
+const { data: progressItems = [], isLoading: isLoadingProgress } = useQuery({
+  queryKey: ['progress', user?.id, classId],
+  queryFn: () => listProgress(user!.id, classId!),
+  enabled: !!user?.id && !!classId,
+});
+
+const { data: enrollments = [] } = useQuery({
+  queryKey: ['enrollments', user?.id],
+  queryFn: () => listEnrollments(user!.id),
+  enabled: !!user?.id,
+});
+
+const { mutate: updateProgressMutate, isPending: isUpdating } = useMutation({
+  mutationFn: updateProgress, // fungsi dari db.ts; cek konflik nama dengan variabel lokal — rename salah satu jika perlu (misal `updateProgressMutate` untuk hasil mutation, `updateProgressFn` untuk import dari db.ts)
+});
+```
+
+Sesuaikan seluruh pemanggilan `updateProgress(...)` di file ini (ada di
+`handleMarkDone` dan `handleUnmarkDone`) supaya cocok dengan signature baru
+(sekarang `updateProgress` dari `db.ts` menerima satu object
+`{ userId, darsId, isCompleted }`, bukan format lama `{ data: {...} }` ala
+Express client).
+
+Ganti pemanggilan `useCompleteEnrollment()` (dipakai di `PlaylistMode`) —
+cari penggunaannya, biasanya berbentuk:
+```tsx
+const { mutate: completeEnrollment, isPending: isCompleting, isSuccess: isCompleted } = useCompleteEnrollment();
+```
+Ganti jadi:
+```tsx
+const { mutate: completeEnrollmentMutate, isPending: isCompleting, isSuccess: isCompleted } = useMutation({
+  mutationFn: (params: { enrollmentId: string }) => completeEnrollment(params.enrollmentId),
+});
+```
+Dan sesuaikan pemanggilannya (`onClick={() => enrollmentId && completeEnrollment({ enrollmentId, userId })}`)
+supaya cocok dengan signature baru (fungsi `completeEnrollment` di
+`db.ts` hanya butuh `enrollmentId`, tidak butuh `userId`).
+
+### 4. Ganti `getListProgressQueryKey`
+Cari penggunaan `getListProgressQueryKey(user?.id ?? '', classId ?? '')`
+(dipakai di `invalidateProgress`), ganti dengan query key manual yang
+konsisten dengan key yang dipakai di `useQuery` progress di atas, misal
+`['progress', user?.id, classId]`.
+
+### 5. Ganti `formatPrice` import
+Baris `import { formatPrice } from '@/data/mockClasses';` — cek apakah file
+`src/data/mockClasses.ts` ini juga peninggalan lama yang seharusnya tidak
+dipakai lagi. Kalau ada fungsi `formatPrice` yang sudah dipakai secara
+konsisten di halaman lain (cek `CatalogPage.tsx`, di sana ada
+`formatPrice` yang diexport), pakai itu sebagai gantinya untuk konsistensi.
+Kalau ternyata `formatPrice` tidak dipakai sama sekali di `LearnPage.tsx`
+(cek dengan grep), boleh dihapus importnya.
+
+## Yang Tidak Boleh Berubah
+- Struktur UI/JSX halaman ini tidak diubah, murni mengganti sumber data
+- Playlist Mode dan Normal Mode tetap berjalan seperti desainnya sekarang
+- Fitur "Materi Belum Tersedia" (dari perbaikan sebelumnya) tetap ada
+
+## Setelah Selesai
+1. Verifikasi struktur tabel `progress` dan kolom `is_completed` di
+   `enrollments` sebelum menulis query — laporkan hasil pengecekan ini.
+2. Test bahwa halaman `/learn/:classId` sekarang bisa menampilkan kelas
+   dengan benar untuk kelas yang punya playlist YouTube (seperti Fiqih
+   Zakat Fitri) maupun yang punya modul/dars biasa.
+3. Kasih ringkasan semua perubahan file (`db.ts` dan `LearnPage.tsx`).
+4. **Penting**: setelah ini bekerja, cek juga apakah ada halaman lain di
+   project yang masih memakai hooks dari `@workspace/api-client-react`
+   (grep seluruh `artifacts/markaz-fiqh/src` untuk
+   `from '@workspace/api-client-react'`) — laporkan daftarnya supaya bisa
+   dijadwalkan migrasi berikutnya kalau masih ada, karena kemungkinan
+   besar itu semua juga rusak dengan gejala serupa.

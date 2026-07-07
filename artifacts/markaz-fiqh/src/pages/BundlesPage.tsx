@@ -122,23 +122,25 @@ function BundleCard({ bundle, index }: { bundle: BundleItem; index: number }) {
           )}
         </div>
 
-        {/* Daftar kelas */}
-        <div className="flex-1 px-5 py-4">
+        {/* Daftar kelas — chip grid, natural height, no flex-1 */}
+        <div className="px-5 py-4">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-2.5">
             {bundle.classes.length} Kelas di dalamnya
           </p>
-          <ul className="space-y-1.5">
+          <div className="flex flex-wrap gap-1.5">
             {bundle.classes.map((cls) => (
-              <li key={cls.id} className="flex items-center gap-2 text-sm text-foreground">
-                <div className="h-1.5 w-1.5 rounded-full bg-primary/60 shrink-0" />
-                <span className="line-clamp-1">{cls.title}</span>
-              </li>
+              <span
+                key={cls.id}
+                className="inline-flex items-center px-2.5 py-1 rounded-full bg-primary/8 border border-primary/15 text-xs font-medium text-foreground/80"
+              >
+                {cls.title}
+              </span>
             ))}
-          </ul>
+          </div>
         </div>
 
-        {/* Footer harga + tombol */}
-        <div className="px-5 pb-5 pt-3 border-t border-border flex items-center justify-between gap-4">
+        {/* Footer harga + tombol — mt-auto mendorong ke bawah card */}
+        <div className="mt-auto px-5 pb-5 pt-3 border-t border-border flex items-center justify-between gap-4">
           <div className="flex flex-col">
             <div className="flex items-center gap-1.5">
               <Tag className="h-3.5 w-3.5 text-muted-foreground" />

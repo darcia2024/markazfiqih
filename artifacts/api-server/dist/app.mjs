@@ -72968,7 +72968,7 @@ function shouldShowDeprecationWarning() {
 if (shouldShowDeprecationWarning()) console.warn("\u26A0\uFE0F  Node.js 20 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 22 or later. For more information, visit: https://github.com/orgs/supabase/discussions/45715");
 
 // src/middlewares/requireAuth.ts
-var supabaseUrl = process.env.SUPABASE_URL;
+var supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
 var serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!supabaseUrl || !serviceRoleKey) {
   throw new Error("SUPABASE_URL dan SUPABASE_SERVICE_ROLE_KEY wajib diisi");
@@ -73003,7 +73003,7 @@ function requireAdmin(req, res, next) {
 }
 
 // src/middlewares/optionalAuth.ts
-var supabaseUrl2 = process.env.SUPABASE_URL;
+var supabaseUrl2 = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
 var serviceRoleKey2 = process.env.SUPABASE_SERVICE_ROLE_KEY;
 var supabaseAdmin2 = supabaseUrl2 && serviceRoleKey2 ? createClient(supabaseUrl2, serviceRoleKey2) : null;
 async function optionalAuth(req, res, next) {

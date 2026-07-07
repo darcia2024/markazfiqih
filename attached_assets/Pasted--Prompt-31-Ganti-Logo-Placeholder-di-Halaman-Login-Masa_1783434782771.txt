@@ -1,0 +1,68 @@
+# Prompt 31: Ganti Logo Placeholder di Halaman Login
+
+## Masalah
+Halaman Login (`LoginPage.tsx`) masih menampilkan icon generik `BookOpen`
+sebagai placeholder logo di dua tempat, bukan logo asli Markaz Fiqih yang
+ada di `public/logo.png` — sama seperti masalah yang sudah diperbaiki
+sebelumnya di sidebar (`AppShell.tsx`).
+
+## Fix
+Edit file `artifacts/markaz-fiqh/src/pages/LoginPage.tsx`.
+
+### 1. Logo besar di panel kiri (background merah)
+Cari:
+```tsx
+<div className="relative z-10 flex items-center gap-3">
+  <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-primary-foreground text-primary">
+    <BookOpen className="h-6 w-6" />
+  </div>
+  <span className="font-serif text-2xl font-bold tracking-tight">Markaz Fiqh</span>
+</div>
+```
+
+Ganti menjadi:
+```tsx
+<div className="relative z-10 flex items-center gap-3">
+  <img src="/logo.png" alt="Markaz Fiqih" className="h-10 w-auto brightness-0 invert" />
+</div>
+```
+
+(`brightness-0 invert` dipakai karena logo tampil di atas background merah
+— pola yang sama dengan perbaikan logo di sidebar sebelumnya.)
+
+### 2. Logo kecil versi mobile (tampil di atas background putih)
+Cari:
+```tsx
+<div className="lg:hidden flex items-center justify-center gap-2 mb-8">
+  <div className="flex h-8 w-8 items-center justify-center rounded-sm bg-primary text-primary-foreground">
+    <BookOpen className="h-5 w-5" />
+  </div>
+  <span className="font-serif text-2xl font-bold tracking-tight text-primary">Markaz Fiqh</span>
+</div>
+```
+
+Ganti menjadi:
+```tsx
+<div className="lg:hidden flex items-center justify-center gap-2 mb-8">
+  <img src="/logo.png" alt="Markaz Fiqih" className="h-8 w-auto" />
+</div>
+```
+
+(Tidak pakai filter invert di sini karena elemen ini tampil di atas
+background putih, bukan merah — logo tetap ditampilkan dengan warna
+aslinya.)
+
+### 3. Cek import
+Setelah kedua perubahan di atas, cek apakah `BookOpen` masih dipakai di
+tempat lain dalam file ini (misal untuk state "Kelas tidak ditemukan" atau
+elemen lain) — kalau tidak dipakai lagi sama sekali, hapus importnya dari
+baris `import { BookOpen } from 'lucide-react';`. Kalau masih dipakai di
+tempat lain, biarkan importnya.
+
+## Yang tidak boleh berubah
+- Layout, ukuran panel, dan teks lain di halaman login tidak berubah
+- Tombol "Masuk dengan Google" dan elemen lain tidak disentuh
+
+## Setelah selesai
+Konfirmasi logo sudah tampil dengan benar di kedua tempat (panel kiri dan
+versi mobile), dan tidak ada import yang error.

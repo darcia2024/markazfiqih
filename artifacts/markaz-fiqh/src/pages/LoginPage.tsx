@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
-import { BookOpen } from 'lucide-react';
 import { FcGoogle } from 'react-icons/fc';
 import { motion } from 'framer-motion';
 
@@ -46,10 +45,7 @@ export default function LoginPage() {
         </div>
 
         <div className="relative z-10 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-primary-foreground text-primary">
-            <BookOpen className="h-6 w-6" />
-          </div>
-          <span className="font-serif text-2xl font-bold tracking-tight">Markaz Fiqh</span>
+          <img src="/logo.png" alt="Markaz Fiqih" className="h-10 w-auto brightness-0 invert" />
         </div>
 
         <div className="relative z-10 max-w-lg space-y-6">
@@ -78,10 +74,7 @@ export default function LoginPage() {
         >
           <div className="text-center lg:text-left space-y-2">
             <div className="lg:hidden flex items-center justify-center gap-2 mb-8">
-              <div className="flex h-8 w-8 items-center justify-center rounded-sm bg-primary text-primary-foreground">
-                <BookOpen className="h-5 w-5" />
-              </div>
-              <span className="font-serif text-2xl font-bold tracking-tight text-primary">Markaz Fiqh</span>
+              <img src="/logo.png" alt="Markaz Fiqih" className="h-8 w-auto" />
             </div>
             
             <h2 className="font-serif text-3xl font-bold text-foreground">Selamat Datang</h2>

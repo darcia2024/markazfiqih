@@ -169,8 +169,8 @@ export async function getClassById(id: string) {
     gdriveMateriUrl: data.gdrive_materi_url as string | null,
     waGroupUrl: data.wa_group_url as string | null,
     instructor: inst
-      ? { id: inst.id, name: inst.name, photoUrl: inst.photo_url, bio: inst.bio ?? '' }
-      : { id: '', name: 'Pengajar', photoUrl: '', bio: '' },
+      ? { id: inst.id, name: inst.name, photoUrl: inst.photo_url, bio: inst.bio ?? '', classCount: 0 }
+      : { id: '', name: 'Pengajar', photoUrl: '', bio: '', classCount: 0 },
     modules,
     moduleCount: modules.length,
     totalDurationMinutes: modules
@@ -565,6 +565,57 @@ export async function simulateSuccess(invoiceId: string): Promise<{ success: boo
     throw new Error(err.error ?? 'Simulasi gagal');
   }
   return res.json();
+}
+
+// ─── PROGRESS ─────────────────────────────────────────────────────────────────
+// Catatan skema: tabel `progress` tidak punya kolom `is_completed`.
+// Keberadaan sebuah row berarti dars tersebut sudah selesai (ditandai completed_at).
+// updateProgress melakukan upsert (isCompleted=true) atau delete (isCompleted=false).
+
+export async function listProgress(userId: string, classId: string) {
+  const { data, error } = await supabase
+    .from('progress')
+    .select('id, dars_id, dars!inner(module_id, modules!inner(class_id))')
+    .eq('user_id', userId)
+    .eq('dars.modules.class_id', classId);
+  if (error) throw error;
+  return (data ?? []).map((p: any) => ({
+    id: p.id as string,
+    darsId: p.dars_id as string,
+    isCompleted: true, // row ada = selesai; tidak ada row = belum selesai
+  }));
+}
+
+export async function updateProgress(params: {
+  userId: string;
+  darsId: string;
+  isCompleted: boolean;
+}) {
+  // Hapus row yang ada dulu (idempotent) — tidak butuh unique constraint di DB
+  const { error: delError } = await supabase
+    .from('progress')
+    .delete()
+    .eq('user_id', params.userId)
+    .eq('dars_id', params.darsId);
+  if (delError) throw delError;
+
+  // Kalau ditandai selesai, insert row baru
+  if (params.isCompleted) {
+    const { error } = await supabase
+      .from('progress')
+      .insert({ user_id: params.userId, dars_id: params.darsId });
+    if (error) throw error;
+  }
+}
+
+// ─── COMPLETE ENROLLMENT ────────────────────────────────────────────────────
+
+export async function completeEnrollment(enrollmentId: string) {
+  const { error } = await supabase
+    .from('enrollments')
+    .update({ is_completed: true })
+    .eq('id', enrollmentId);
+  if (error) throw error;
 }
 
 export async function getInvoice(invoiceId: string): Promise<LocalInvoice> {

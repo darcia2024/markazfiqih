@@ -25,19 +25,19 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthContext';
 import { formatPrice } from '@/data/mockClasses';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  useGetClassById,
-  useGetClassDars,
-  useListProgress,
-  useListClasses,
-  useUpdateProgress,
-  useListEnrollments,
-  useCompleteEnrollment,
-  type ClassDarsModule,
-  type DarsItem,
-} from '@workspace/api-client-react';
-import { useQueryClient } from '@tanstack/react-query';
-import { getListProgressQueryKey } from '@workspace/api-client-react';
+  getClassById,
+  listProgress,
+  listEnrollments,
+  listClasses,
+  updateProgress as updateProgressFn,
+  completeEnrollment as completeEnrollmentFn,
+} from '@/lib/db';
+
+// ── Local types (sesuai return getClassById dari db.ts) ───────────────────────
+type DarsItem = { id: string; title: string; durationMinutes: number | null; orderIndex: number };
+type ClassDarsModule = { id: string; title: string; orderIndex: number; durationMinutes: number; dars: DarsItem[] };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function formatDuration(min: number | null) {
@@ -100,12 +100,17 @@ function PlaylistMode({
   gdriveMateriUrl?: string | null;
   waGroupUrl?: string | null;
 }) {
-  const { mutate: completeEnrollment, isPending: isCompleting, isSuccess: isCompleted } =
-    useCompleteEnrollment();
+  const { mutate: completeEnrollmentMutate, isPending: isCompleting, isSuccess: isCompleted } =
+    useMutation({
+      mutationFn: (params: { enrollmentId: string }) =>
+        completeEnrollmentFn(params.enrollmentId),
+    });
 
-  const { data: categoryClasses = [] } = useListClasses(
-    classCategory ? { category: classCategory } : undefined,
-  );
+  const { data: categoryClasses = [] } = useQuery({
+    queryKey: ['classes', { category: classCategory }],
+    queryFn: () => listClasses(classCategory ? { category: classCategory } : undefined),
+    enabled: !!classCategory,
+  });
   const relatedClasses = categoryClasses.filter((c) => c.id !== classId).slice(0, 3);
 
   return (
@@ -161,7 +166,7 @@ function PlaylistMode({
               ) : (
                 <Button
                   size="lg"
-                  onClick={() => enrollmentId && completeEnrollment({ enrollmentId, userId })}
+                  onClick={() => enrollmentId && completeEnrollmentMutate({ enrollmentId })}
                   disabled={isCompleting || !enrollmentId}
                   className="gap-2"
                 >
@@ -407,19 +412,32 @@ function LearnContent() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const { data: classDetail, isLoading: isLoadingClass } = useGetClassById(classId ?? '');
-  const { data: modules = [], isLoading: isLoadingDars } = useGetClassDars(classId ?? '');
-  const { data: progressItems = [], isLoading: isLoadingProgress } = useListProgress(
-    user?.id ?? '',
-    classId ?? '',
-    { query: { enabled: !!user?.id && !!classId } },
-  );
-  const { data: enrollments = [] } = useListEnrollments(user?.id ?? '', {
-    query: { enabled: !!user?.id },
+  const { data: classDetail, isLoading: isLoadingClass } = useQuery({
+    queryKey: ['class', classId],
+    queryFn: () => getClassById(classId!),
+    enabled: !!classId,
   });
-  const { mutate: updateProgress, isPending: isUpdating } = useUpdateProgress();
 
-  const isLoading = isLoadingClass || isLoadingDars || isLoadingProgress;
+  // modules langsung dari classDetail — tidak perlu query terpisah
+  const modules = classDetail?.modules ?? [];
+
+  const { data: progressItems = [], isLoading: isLoadingProgress } = useQuery({
+    queryKey: ['progress', user?.id, classId],
+    queryFn: () => listProgress(user!.id, classId!),
+    enabled: !!user?.id && !!classId,
+  });
+
+  const { data: enrollments = [] } = useQuery({
+    queryKey: ['enrollments', user?.id],
+    queryFn: () => listEnrollments(user!.id),
+    enabled: !!user?.id,
+  });
+
+  const { mutate: updateProgressMutate, isPending: isUpdating } = useMutation({
+    mutationFn: updateProgressFn,
+  });
+
+  const isLoading = isLoadingClass || isLoadingProgress;
 
   // Build Set<darsId> from progress API response
   const completedIds = useMemo(
@@ -454,14 +472,14 @@ function LearnContent() {
 
   const invalidateProgress = useCallback(() => {
     queryClient.invalidateQueries({
-      queryKey: getListProgressQueryKey(user?.id ?? '', classId ?? ''),
+      queryKey: ['progress', user?.id, classId],
     });
   }, [queryClient, user?.id, classId]);
 
   const handleMarkDone = useCallback(() => {
     if (!user?.id || !resolvedActiveDarsId) return;
-    updateProgress(
-      { data: { userId: user.id, darsId: resolvedActiveDarsId, isCompleted: true } },
+    updateProgressMutate(
+      { userId: user.id, darsId: resolvedActiveDarsId, isCompleted: true },
       {
         onSuccess: () => {
           invalidateProgress();
@@ -469,15 +487,15 @@ function LearnContent() {
         },
       },
     );
-  }, [user?.id, resolvedActiveDarsId, updateProgress, invalidateProgress, nextEntry]);
+  }, [user?.id, resolvedActiveDarsId, updateProgressMutate, invalidateProgress, nextEntry]);
 
   const handleUnmarkDone = useCallback(() => {
     if (!user?.id || !resolvedActiveDarsId) return;
-    updateProgress(
-      { data: { userId: user.id, darsId: resolvedActiveDarsId, isCompleted: false } },
+    updateProgressMutate(
+      { userId: user.id, darsId: resolvedActiveDarsId, isCompleted: false },
       { onSuccess: invalidateProgress },
     );
-  }, [user?.id, resolvedActiveDarsId, updateProgress, invalidateProgress]);
+  }, [user?.id, resolvedActiveDarsId, updateProgressMutate, invalidateProgress]);
 
   if (isLoading) {
     return (

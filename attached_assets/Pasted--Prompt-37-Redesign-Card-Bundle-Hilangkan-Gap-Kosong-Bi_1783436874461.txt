@@ -1,0 +1,85 @@
+# Prompt 37: Redesign Card Bundle — Hilangkan Gap Kosong, Bikin Lebih Rapi
+
+## Masalah
+Card di `BundlesPage.tsx` (komponen `BundleCard`) punya area "Daftar kelas"
+dengan `className="flex-1"` yang otomatis meregang mengisi sisa tinggi card
+(karena grid menyamakan tinggi semua card sebaris). Akibatnya, bundle
+dengan sedikit kelas (misal "Fiqih Thaharah" cuma 2 kelas, "Fiqih
+Pernikahan" 3 kelas) punya area kosong besar di bawah list-nya, sementara
+bundle "Seluruh Rekaman" (16 kelas) memenuhi card secara wajar. Selain itu
+list kelas yang ditampilkan (bullet titik + teks, 1 kolom vertikal) terasa
+polos dan kurang rapi terutama untuk daftar panjang seperti "Seluruh
+Rekaman".
+
+Edit `artifacts/markaz-fiqh/src/pages/BundlesPage.tsx`, komponen
+`BundleCard`.
+
+## Perubahan
+
+### 1. Ubah Layout Daftar Kelas jadi Badge/Chip Grid
+Ganti area "Daftar kelas" dari list vertikal 1 kolom dengan bullet, menjadi
+kumpulan chip/badge kecil yang di-wrap otomatis (flex-wrap), supaya:
+- Lebih ringkas secara visual (chip lebih compact dari baris penuh)
+- Chip akan otomatis wrap mengisi ruang secara natural sesuai jumlah kelas,
+  sehingga bundle dengan sedikit kelas tidak menyisakan gap kosong besar
+  seperti sekarang (list vertikal panjang ke bawah)
+
+Contoh struktur:
+```tsx
+<div className="px-5 py-4">
+  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-2.5">
+    {bundle.classes.length} Kelas di dalamnya
+  </p>
+  <div className="flex flex-wrap gap-1.5">
+    {bundle.classes.map((cls) => (
+      <span
+        key={cls.id}
+        className="inline-flex items-center px-2.5 py-1 rounded-full bg-primary/8 border border-primary/15 text-xs font-medium text-foreground/80"
+      >
+        {cls.title}
+      </span>
+    ))}
+  </div>
+</div>
+```
+
+Hapus `flex-1` dari div pembungkus area ini — biarkan tingginya menyesuaikan
+konten secara alami (natural height), BUKAN dipaksa mengisi sisa ruang card.
+
+### 2. Samakan Tinggi Card Secara Visual Tanpa Memaksa via `flex-1`
+Karena area daftar kelas sekarang tidak lagi `flex-1` (tidak meregang),
+card dengan kelas sedikit akan secara alami menjadi lebih pendek dari card
+dengan kelas banyak dalam satu baris grid. Ini SECARA UMUM diperbolehkan
+(card tidak harus sama tinggi persis), TAPI supaya tetap terlihat rapi
+dalam grid:
+- Pertahankan footer (harga + tombol "Tambah ke Keranjang") tetap
+  menempel di bagian bawah card menggunakan `mt-auto` pada wrapper
+  footer-nya (bukan `flex-1` di tengah), sehingga meskipun card
+  tinggi berbeda-beda, footer tetap konsisten berada tepat di bawah
+  konten card masing-masing (bukan di bawah grid).
+- Pastikan wrapper utama card (`div` dengan class `h-full flex flex-col
+  rounded-xl ...`) tetap `h-full` sehingga card yang pendek tetap
+  meregang mengisi tinggi sel grid-nya (row height grid), tapi kontennya
+  sendiri tidak dipaksa meregang — cukup footer yang didorong ke bawah
+  dengan `mt-auto`.
+
+### 3. Sedikit Polesan Visual Tambahan
+- Beri sedikit lebih banyak padding vertikal pada header card (logo +
+  judul + badge hemat) supaya proporsinya lebih seimbang dengan area
+  chip kelas yang sekarang lebih ringkas.
+- Badge "Hemat X%" boleh dipertahankan style-nya, tapi cek posisinya tetap
+  rapi terhadap judul bundle yang panjang (misal "Seluruh Rekaman") di
+  berbagai ukuran layar.
+
+## Yang Tidak Boleh Berubah
+- Data yang ditampilkan (`bundle.title`, `bundle.description`,
+  `bundle.classes`, harga) tidak berubah
+- Fungsi tombol "Tambah ke Keranjang" / "Di Keranjang" (`handleCartAction`)
+  tidak diubah logikanya
+- `BundleCardSkeleton` boleh disesuaikan sedikit supaya representasinya
+  konsisten dengan layout baru (opsional, tidak wajib)
+
+## Setelah Selesai
+Konfirmasi card sekarang tidak lagi punya gap kosong besar di bundle yang
+kelasnya sedikit, dan tampilan chip kelas terlihat rapi baik untuk 2 kelas
+maupun 16 kelas.
