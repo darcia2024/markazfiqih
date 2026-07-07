@@ -1,0 +1,126 @@
+# Prompt 46: Audit & Perbaikan Tampilan Mobile — Seluruh Web
+
+## Konteks
+Beberapa bagian penting website ini menyembunyikan navigasi sepenuhnya di
+layar kecil tanpa ada penggantinya, sehingga user mobile tidak bisa
+mengakses menu sama sekali. Ini prioritas utama untuk diperbaiki (Bagian
+A), baru dilanjutkan dengan audit responsive yang lebih umum di halaman
+lain (Bagian B). Kerjakan berurutan sesuai bagian di bawah, jangan
+digabung sekaligus.
+
+---
+
+## Bagian A (PRIORITAS TINGGI) — Navigasi Mobile yang Hilang Total
+
+### A1. Sidebar Internal (`AppShell.tsx`)
+Komponen `AppSidebar` sekarang `hidden lg:flex` — di layar di bawah `lg`
+breakpoint, sidebar (berisi menu Dashboard, Katalog Kelas, Paket Bundle,
+Kelas Saya, progress widget, profil user, logout) hilang total tanpa
+pengganti. User mobile yang sudah login TIDAK BISA mengakses menu apapun
+di halaman-halaman ini (Dashboard, Katalog, My Classes, Cart, Learn, dll).
+
+Perbaikan:
+- Tambahkan **top bar mobile** yang muncul hanya di layar kecil (`lg:hidden`),
+  berisi: logo kecil di kiri, tombol hamburger (icon `Menu` dari
+  lucide-react) di kanan yang membuka sidebar sebagai **drawer/overlay**
+  dari sisi kiri layar.
+- Sidebar yang sekarang (`AppSidebar`) tetap dipakai sebagai konten drawer
+  ini di mobile — gunakan state `isOpen` (boolean, `useState` di
+  `AppShell`) untuk mengontrol visibility drawer, dengan animasi slide-in
+  dari kiri (bisa pakai `framer-motion` yang sudah dipakai di banyak
+  tempat lain di project ini untuk animasi konsisten) dan overlay gelap
+  semi-transparan di belakang drawer yang menutup drawer saat diklik.
+- Tombol close (icon `X`) di dalam drawer, atau cukup klik overlay/klik
+  salah satu menu item untuk otomatis menutup drawer setelah navigasi.
+- Konten utama (`{children}`) tidak perlu `lg:pl-[240px]` di mobile
+  (padding kiri untuk sidebar tetap) — pastikan di mobile kontennya full
+  width tanpa padding kiri yang tidak perlu.
+- Pastikan drawer memiliki `z-index` yang lebih tinggi dari elemen lain
+  agar tidak tertimpa konten halaman.
+
+### A2. Menu Navbar Landing Page (`Navbar.tsx`)
+Menu nav ("Katalog", "Paket Bundle", "Kelas Saya") sekarang `hidden
+md:flex` tanpa pengganti di mobile. User mobile yang membuka landing page
+tidak bisa mengakses menu ini sama sekali (kecuali logo dan tombol
+Masuk/avatar yang tetap terlihat).
+
+Perbaikan:
+- Tambahkan tombol hamburger (`Menu` icon) yang muncul hanya di mobile
+  (`md:hidden`), diposisikan di sisi kanan sebelum/berdekatan dengan
+  tombol "Masuk" atau avatar user.
+- Saat diklik, tampilkan dropdown/panel menu berisi link "Katalog",
+  "Paket Bundle", "Kelas Saya" tersusun vertikal — bisa berupa dropdown
+  sederhana yang muncul di bawah navbar (mirip pola `DropdownMenu` yang
+  sudah dipakai di file ini untuk menu avatar user), atau full drawer
+  serupa dengan yang dibuat di A1 kalau terasa lebih konsisten.
+- Pastikan tombol ini accessible (ada `aria-label`) dan menu tertutup
+  otomatis setelah salah satu link diklik atau saat klik di luar area
+  menu.
+
+---
+
+## Bagian B — Audit Responsive Umum di Halaman Lain
+
+Setelah Bagian A selesai, cek halaman-halaman berikut untuk masalah
+responsive yang lebih umum (elemen terpotong, grid yang tidak menyesuaikan,
+padding/font yang terlalu besar di layar kecil, tombol yang saling
+bertabrakan, dsb). Untuk setiap halaman, buka dan simulasikan lebar layar
+mobile (~375px) dan perbaiki masalah yang ditemukan:
+
+1. **`LandingPage.tsx`** — cek semua section (Hero, Cara Belajar, Kelas
+   Pilihan, Kategori, Tentang Kami, Pengajar, Galeri, Sosial, Footer):
+   pastikan grid multi-kolom collapse dengan baik ke 1 kolom di mobile,
+   teks besar (terutama judul Hero yang baru-baru ini diperbesar) tidak
+   overflow/terpotong, padding horizontal cukup (tidak mepet ke tepi
+   layar).
+2. **`CatalogPage.tsx`** — filter bar (Search, Semua Level, Semua
+   Kategori, Terbaru) yang sekarang mungkin berjajar horizontal, pastikan
+   di mobile bisa di-scroll horizontal atau collapse dengan rapi, tidak
+   memotong/menumpuk aneh.
+3. **`BundlesPage.tsx`** — grid card bundle, pastikan collapse ke 1 kolom
+   dengan baik di mobile, chip daftar kelas tetap wrap rapi.
+4. **`CartPage.tsx`** — grid 2 kolom (daftar item + ringkasan belanja),
+   pastikan collapse ke 1 kolom stack vertikal di mobile dengan urutan
+   yang masuk akal (item dulu, ringkasan+tombol checkout di bawah).
+5. **`ClassDetailPage.tsx`** — layout 2 kolom (konten + sidebar harga),
+   pastikan sidebar harga collapse ke bawah konten (bukan disamping) di
+   mobile, dan tetap mudah diakses (pertimbangkan sticky button harga di
+   bagian bawah layar mobile kalau desain sekarang membuat tombol beli
+   terlalu jauh di bawah setelah scroll panjang).
+6. **`LearnPage.tsx`** — sidebar modul (kalau ada, untuk Normal Mode) dan
+   player video, pastikan layout menyesuaikan mobile dengan baik.
+7. **`LoginPage.tsx`** — sudah punya versi mobile terpisah (`lg:hidden`
+   untuk logo kecil), cek keseluruhan halaman tetap proporsional di layar
+   kecil.
+8. **Admin Panel** (`AdminClassesPage.tsx` dan halaman admin lain) — ini
+   prioritas lebih rendah karena biasanya diakses dari desktop, tapi cek
+   sekilas apakah ada elemen yang benar-benar rusak/tidak bisa dipakai di
+   mobile (tabel yang overflow tanpa scroll horizontal, dsb) dan perbaiki
+   kalau ditemukan masalah signifikan.
+
+Untuk setiap masalah yang ditemukan di Bagian B, gunakan pendekatan
+Tailwind responsive classes yang sudah menjadi pola project ini
+(`sm:`, `md:`, `lg:` prefix) — jangan menambah breakpoint custom baru
+kecuali benar-benar diperlukan.
+
+---
+
+## Yang Tidak Boleh Berubah
+- Tampilan desktop (layar `lg` ke atas) yang sudah ada TIDAK BOLEH
+  berubah — semua perbaikan ini murni menambahkan/memperbaiki behavior di
+  breakpoint kecil, bukan mendesain ulang tampilan desktop.
+- Semua fungsi/logika (cart, auth, navigasi) tidak diubah — murni
+  penyesuaian tampilan.
+- Warna, font, dan komponen UI yang sudah ada tetap dipakai (jangan
+  menambah dependency baru untuk drawer/menu — gunakan pola yang sudah
+  ada di project seperti `framer-motion` dan `DropdownMenu` dari
+  `components/ui`).
+
+## Setelah Selesai
+1. Konfirmasi drawer sidebar mobile dan mobile menu navbar sudah berfungsi
+   dan bisa diakses semua menu.
+2. Kasih ringkasan halaman mana saja di Bagian B yang mengalami perbaikan
+   dan masalah spesifik apa yang diperbaiki di masing-masing halaman.
+3. Kalau ada halaman yang setelah dicek ternyata sudah cukup responsive
+   tanpa perlu perubahan, laporkan juga supaya jelas cakupan yang sudah
+   dicek.

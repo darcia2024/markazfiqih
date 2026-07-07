@@ -1,0 +1,91 @@
+# Prompt 44: Tambah Field "Jumlah Pertemuan" ke Form Edit Kelas di Admin Panel
+
+## Konteks
+Admin Panel (`AdminClassesPage.tsx`) sudah punya form edit kelas yang
+lengkap — Judul, Deskripsi, Cover Image, Harga Normal & Diskon, Pengajar,
+Level, Kategori, Status, Link Playlist YouTube, Link Gdrive Materi, Link
+Grup WhatsApp. Karena semua halaman (Landing Page, Katalog, Detail Kelas)
+mengambil data langsung dari tabel `classes` yang sama, mengedit field di
+sini otomatis terpantul ke semua tempat tanpa perlu ubah kode lagi.
+
+Field yang belum ada di form ini: `meetingCount` (jumlah pertemuan) —
+field baru yang dipakai untuk menampilkan info yang lebih relevan pada
+kelas berbasis playlist YouTube (yang tidak punya breakdown modul/dars
+manual), menggantikan tampilan "0 modul/0 menit" yang tidak informatif.
+
+## Fix
+
+Edit `artifacts/markaz-fiqh/src/pages/admin/AdminClassesPage.tsx`.
+
+### 1. Update `ClassFormState` Type
+Tambahkan field baru:
+```ts
+type ClassFormState = {
+  // ...field yang sudah ada...
+  meetingCount: string; // disimpan sebagai string di form, dikonversi ke number saat submit
+};
+```
+
+### 2. Update `EMPTY_FORM`
+Tambahkan `meetingCount: ''` ke default form kosong.
+
+### 3. Update `classToForm`
+Tambahkan mapping dari data kelas ke form:
+```ts
+meetingCount: cls.meetingCount != null ? String(cls.meetingCount) : '',
+```
+
+### 4. Tambahkan Input Field di Form JSX
+Tambahkan input baru, idealnya diletakkan berdekatan dengan field Harga
+Normal/Diskon atau field Level/Kategori (di grid 2 kolom yang sudah ada,
+sesuaikan mana yang secara visual lebih pas):
+
+```tsx
+<div className="space-y-2">
+  <Label htmlFor="class-meeting-count">Jumlah Pertemuan</Label>
+  <Input
+    id="class-meeting-count"
+    type="number"
+    placeholder="Contoh: 2"
+    value={form.meetingCount}
+    onChange={(e) => setForm((p) => ({ ...p, meetingCount: e.target.value }))}
+    data-testid="input-class-meeting-count"
+  />
+  <p className="text-xs text-muted-foreground">
+    Khusus kelas berbasis playlist video (tanpa breakdown modul manual).
+    Ditampilkan sebagai "X Pertemuan" di halaman kelas.
+  </p>
+</div>
+```
+
+### 5. Update `handleSubmit`
+Cari bagian `handleSubmit` yang mengonversi form ke payload untuk
+create/update kelas (kemungkinan memakai fungsi dari `src/lib/db.ts` untuk
+insert/update ke tabel `classes`). Tambahkan konversi `meetingCount` dari
+string ke number (atau `null` kalau kosong), dan sertakan pada payload
+yang dikirim:
+```ts
+meetingCount: form.meetingCount ? parseInt(form.meetingCount, 10) : null,
+```
+
+### 6. Cek Fungsi CRUD Kelas di `src/lib/db.ts`
+Cek fungsi yang dipakai untuk membuat/mengupdate kelas dari Admin Panel
+(kemungkinan `createClass`, `updateClass`, atau sejenisnya) — pastikan
+fungsi tersebut menerima dan menyertakan `meeting_count` pada payload
+insert/update ke Supabase. Kalau field ini belum ditangani di fungsi
+tersebut, tambahkan.
+
+## Yang Tidak Boleh Berubah
+- Field lain di form tidak berubah
+- Struktur tabel `classes` tidak diubah lagi (kolom `meeting_count` sudah
+  ada dari migrasi sebelumnya)
+
+## Setelah Selesai
+1. Konfirmasi field baru sudah muncul di form Admin Panel dan bisa
+   disimpan dengan benar (test dengan mengedit salah satu kelas, isi
+   jumlah pertemuan, simpan, lalu cek di database apakah tersimpan).
+2. Konfirmasi juga: apakah form Admin Panel untuk kelas ini sekarang
+   sudah benar-benar mencakup SEMUA field yang ada di tabel `classes` di
+   database (bandingkan kolom tabel `classes` dengan field yang ada di
+   form) — laporkan kalau masih ada field lain yang terlewat sehingga
+   tidak bisa diedit dari Admin Panel.

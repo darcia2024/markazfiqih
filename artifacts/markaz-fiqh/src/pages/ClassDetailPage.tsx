@@ -207,14 +207,25 @@ export default function ClassDetailPage() {
 
                 {/* Quick stats row */}
                 <div className="flex flex-wrap gap-4 text-sm text-muted-foreground pt-1">
-                  <span className="flex items-center gap-1.5">
-                    <BookOpen className="w-4 h-4" />
-                    {cls.moduleCount} modul
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    <Clock className="w-4 h-4" />
-                    Total {formatDuration(totalMinutes)}
-                  </span>
+                  {cls.youtubePlaylistId && cls.modules.length === 0 ? (
+                    cls.meetingCount ? (
+                      <span className="flex items-center gap-1.5">
+                        <PlaySquare className="w-4 h-4" />
+                        {cls.meetingCount} Pertemuan
+                      </span>
+                    ) : null
+                  ) : (
+                    <>
+                      <span className="flex items-center gap-1.5">
+                        <BookOpen className="w-4 h-4" />
+                        {cls.moduleCount} modul
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <Clock className="w-4 h-4" />
+                        Total {formatDuration(totalMinutes)}
+                      </span>
+                    </>
+                  )}
                   <span className="flex items-center gap-1.5">
                     <Infinity className="w-4 h-4" />
                     Akses seumur hidup
@@ -229,11 +240,18 @@ export default function ClassDetailPage() {
                 transition={{ duration: 0.5, delay: 0.1 }}
                 className="aspect-video rounded-xl overflow-hidden bg-muted shadow-sm"
               >
-                <img
-                  src={cls.coverImage}
-                  alt={cls.title}
-                  className="w-full h-full object-cover"
-                />
+                {cls.coverImage ? (
+                  <img
+                    src={cls.coverImage}
+                    alt={cls.title}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                    <PlaySquare className="w-10 h-10 opacity-40" />
+                    <span className="text-sm font-medium opacity-60">{cls.title}</span>
+                  </div>
+                )}
               </motion.div>
 
               {/* Instructor */}
@@ -473,16 +491,29 @@ export default function ClassDetailPage() {
                   </p>
 
                   <div className="space-y-3 text-sm">
-                    <div className="flex items-start gap-2.5">
-                      <BookOpen className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                      <span>
-                        <strong>{cls.moduleCount}</strong> modul video pelajaran
-                      </span>
-                    </div>
-                    <div className="flex items-start gap-2.5">
-                      <Clock className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                      <span>Total {formatDuration(totalMinutes)} materi video</span>
-                    </div>
+                    {cls.youtubePlaylistId && cls.modules.length === 0 ? (
+                      cls.meetingCount ? (
+                        <div className="flex items-start gap-2.5">
+                          <PlaySquare className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                          <span>
+                            <strong>{cls.meetingCount}</strong> pertemuan video pelajaran
+                          </span>
+                        </div>
+                      ) : null
+                    ) : (
+                      <>
+                        <div className="flex items-start gap-2.5">
+                          <BookOpen className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                          <span>
+                            <strong>{cls.moduleCount}</strong> modul video pelajaran
+                          </span>
+                        </div>
+                        <div className="flex items-start gap-2.5">
+                          <Clock className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                          <span>Total {formatDuration(totalMinutes)} materi video</span>
+                        </div>
+                      </>
+                    )}
                     <div className="flex items-start gap-2.5">
                       <Infinity className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                       <span>Akses seumur hidup (lifetime)</span>

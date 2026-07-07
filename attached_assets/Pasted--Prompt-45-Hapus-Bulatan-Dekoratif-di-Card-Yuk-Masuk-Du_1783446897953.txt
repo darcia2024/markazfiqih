@@ -1,0 +1,67 @@
+# Prompt 45: Hapus Bulatan Dekoratif di Card "Yuk, Masuk Dulu"
+
+## Masalah
+Card prompt login (`ProtectedRoute.tsx`, ditampilkan saat user belum login
+mencoba akses halaman yang butuh auth) punya 2 elemen bulatan dekoratif
+besar transparan di pojok (kanan atas dan kiri bawah) yang terlihat norak
+dan tidak elegan.
+
+## Fix
+Edit `artifacts/markaz-fiqh/src/components/ProtectedRoute.tsx`.
+
+Ganti seluruh blok `if (!user) { ... }` menjadi:
+
+```tsx
+if (!user) {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-[hsl(var(--brand-red-tint))] p-4">
+      <div className="bg-white rounded-[20px] shadow-xl border border-border p-10 max-w-md w-full text-center">
+        <div className="mx-auto w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-[hsl(var(--brand-red-hover))] flex items-center justify-center mb-6 shadow-md">
+          <BookLock className="h-7 w-7 text-white" />
+        </div>
+
+        <h2 className="font-serif text-2xl font-bold text-foreground">
+          Yuk, Masuk Dulu
+        </h2>
+        <p className="text-muted-foreground mt-2 mb-8">
+          Masuk sebentar untuk lanjut menjelajahi kelas-kelas fiqih pilihanmu.
+        </p>
+
+        <Button asChild className="w-full" size="lg">
+          <Link href={`/login?redirect=${encodeURIComponent(location)}`}>
+            <LogIn className="h-4 w-4 mr-2" />
+            Masuk dengan Google
+          </Link>
+        </Button>
+
+        <p className="text-xs text-muted-foreground/70 mt-4">
+          Belum pernah ke sini? Akun baru otomatis dibuat saat pertama kali masuk.
+        </p>
+      </div>
+    </div>
+  );
+}
+```
+
+Perubahan dari versi sebelumnya:
+- Kedua elemen bulatan dekoratif dihapus total (tidak ada `absolute
+  rounded-full` lagi di manapun dalam card ini)
+- Icon container diubah dari lingkaran besar (`rounded-full`, 80px) jadi
+  rounded-square lebih kecil dan proporsional (`rounded-2xl`, 64px) —
+  kesan lebih modern/elegan, bukan bulat besar
+- `overflow-hidden` pada card induk dihapus (tidak diperlukan lagi karena
+  tidak ada elemen dekoratif yang perlu dipotong)
+- Semua `relative z-10` yang sebelumnya dipakai untuk mengangkat konten di
+  atas bulatan dekoratif dihapus (tidak diperlukan lagi)
+- Ditambahkan `border border-border` tipis pada card untuk memberi
+  ketegasan visual tanpa perlu elemen dekoratif tambahan
+
+## Yang Tidak Boleh Berubah
+- Semua teks tidak diubah
+- Fungsi tombol "Masuk dengan Google" (link ke `/login?redirect=...`)
+  tidak diubah
+- State loading (`isLoading`) di atas blok ini tidak disentuh
+
+## Setelah Selesai
+Konfirmasi card sekarang tampil clean tanpa bulatan dekoratif, dengan
+icon dan border yang lebih rapi.

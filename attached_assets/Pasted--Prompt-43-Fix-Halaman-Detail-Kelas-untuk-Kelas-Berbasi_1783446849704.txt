@@ -1,0 +1,158 @@
+# Prompt 43: Fix Halaman Detail Kelas untuk Kelas Berbasis Playlist (Stats, Cover, Sidebar)
+
+## Konteks
+`ClassDetailPage.tsx` sudah punya penanganan yang benar untuk bagian
+"Kurikulum" (menampilkan pesan khusus untuk kelas playlist, bukan
+accordion modul kosong). Tapi ada 3 bagian lain di halaman yang sama BELUM
+menangani kondisi kelas playlist (`cls.youtubePlaylistId && cls.modules
+.length === 0`), sehingga masih menampilkan "0 modul" dan "Total 0 menit"
+mentah-mentah:
+
+1. **Quick stats row** (baris ~208-222, di bawah judul kelas)
+2. **Sidebar "Yang kamu dapatkan"** (baris ~469-489)
+3. **Cover image kelas** yang tampil abu-abu polos karena `cls.coverImage`
+   kosong di database untuk kelas-kelas Fiqih Tematik (belum diisi admin)
+
+Field `meetingCount` sudah tersedia di data kelas (ditambahkan pada
+perbaikan sebelumnya, sudah ada di `getClassById` hasil `src/lib/db.ts`).
+
+## Fix
+
+Edit `artifacts/markaz-fiqh/src/pages/ClassDetailPage.tsx`.
+
+### 1. Quick Stats Row
+Ganti:
+```tsx
+<div className="flex flex-wrap gap-4 text-sm text-muted-foreground pt-1">
+  <span className="flex items-center gap-1.5">
+    <BookOpen className="w-4 h-4" />
+    {cls.moduleCount} modul
+  </span>
+  <span className="flex items-center gap-1.5">
+    <Clock className="w-4 h-4" />
+    Total {formatDuration(totalMinutes)}
+  </span>
+  <span className="flex items-center gap-1.5">
+    <Infinity className="w-4 h-4" />
+    Akses seumur hidup
+  </span>
+</div>
+```
+
+Menjadi kondisional berdasarkan apakah kelas playlist atau modul biasa:
+```tsx
+<div className="flex flex-wrap gap-4 text-sm text-muted-foreground pt-1">
+  {cls.youtubePlaylistId && cls.modules.length === 0 ? (
+    cls.meetingCount ? (
+      <span className="flex items-center gap-1.5">
+        <PlaySquare className="w-4 h-4" />
+        {cls.meetingCount} Pertemuan
+      </span>
+    ) : null
+  ) : (
+    <>
+      <span className="flex items-center gap-1.5">
+        <BookOpen className="w-4 h-4" />
+        {cls.moduleCount} modul
+      </span>
+      <span className="flex items-center gap-1.5">
+        <Clock className="w-4 h-4" />
+        Total {formatDuration(totalMinutes)}
+      </span>
+    </>
+  )}
+  <span className="flex items-center gap-1.5">
+    <Infinity className="w-4 h-4" />
+    Akses seumur hidup
+  </span>
+</div>
+```
+(`PlaySquare` sudah di-import di file ini, dipakai di bagian Kurikulum.)
+
+### 2. Sidebar "Yang Kamu Dapatkan"
+Ganti baris:
+```tsx
+<div className="flex items-start gap-2.5">
+  <BookOpen className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+  <span>
+    <strong>{cls.moduleCount}</strong> modul video pelajaran
+  </span>
+</div>
+<div className="flex items-start gap-2.5">
+  <Clock className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+  <span>Total {formatDuration(totalMinutes)} materi video</span>
+</div>
+```
+
+Menjadi kondisional serupa:
+```tsx
+{cls.youtubePlaylistId && cls.modules.length === 0 ? (
+  cls.meetingCount ? (
+    <div className="flex items-start gap-2.5">
+      <PlaySquare className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+      <span>
+        <strong>{cls.meetingCount}</strong> pertemuan video pelajaran
+      </span>
+    </div>
+  ) : null
+) : (
+  <>
+    <div className="flex items-start gap-2.5">
+      <BookOpen className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+      <span>
+        <strong>{cls.moduleCount}</strong> modul video pelajaran
+      </span>
+    </div>
+    <div className="flex items-start gap-2.5">
+      <Clock className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+      <span>Total {formatDuration(totalMinutes)} materi video</span>
+    </div>
+  </>
+)}
+```
+Baris lain di sidebar ini (Akses seumur hidup, Pembayaran aman, dst) tidak
+diubah.
+
+### 3. Cover Image Fallback
+Cover image sekarang menampilkan `<img src={cls.coverImage} />` polos —
+kalau `cls.coverImage` kosong/string kosong, browser menampilkan gambar
+rusak atau area abu-abu kosong (sesuai screenshot). Tambahkan fallback:
+
+```tsx
+<motion.div
+  initial={{ opacity: 0 }}
+  animate={{ opacity: 1 }}
+  transition={{ duration: 0.5, delay: 0.1 }}
+  className="aspect-video rounded-xl overflow-hidden bg-muted shadow-sm"
+>
+  {cls.coverImage ? (
+    <img
+      src={cls.coverImage}
+      alt={cls.title}
+      className="w-full h-full object-cover"
+    />
+  ) : (
+    <div className="w-full h-full flex flex-col items-center justify-center gap-2 text-muted-foreground">
+      <PlaySquare className="w-10 h-10 opacity-40" />
+      <span className="text-sm font-medium opacity-60">{cls.title}</span>
+    </div>
+  )}
+</motion.div>
+```
+(Fallback ini sekadar placeholder yang lebih rapi daripada gambar rusak —
+solusi jangka panjang untuk cover image asli adalah admin mengupload
+gambar cover lewat Admin Panel per kelas, itu di luar cakupan perbaikan
+kode ini.)
+
+## Yang Tidak Boleh Berubah
+- Bagian "Kurikulum" yang sudah menangani playlist mode dengan benar tidak
+  diubah
+- Data lain (judul, deskripsi, harga, instruktur) tidak berubah
+- Untuk kelas yang memang punya modul/dars manual, tampilan tetap seperti
+  semula (tidak terpengaruh perubahan ini)
+
+## Setelah Selesai
+Konfirmasi bahwa kelas berbasis playlist (seperti Fiqih Zakat Fitri)
+sekarang menampilkan jumlah pertemuan alih-alih "0 modul/0 menit" di
+kedua tempat (quick stats dan sidebar), dan cover image menampilkan
+fallback yang rapi ketika kosong.
