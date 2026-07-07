@@ -99,7 +99,7 @@ function BundleCard({ bundle, index }: { bundle: BundleItem; index: number }) {
     >
       <div className="h-full flex flex-col rounded-xl border border-border bg-card overflow-hidden shadow-sm hover:shadow-lg transition-shadow">
         {/* Header kartu */}
-        <div className="bg-gradient-to-br from-primary/8 to-primary/3 px-5 pt-5 pb-4 border-b border-border">
+        <div className="px-5 pt-5 pb-4 border-b border-border">
           <div className="flex items-start justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 shrink-0">
@@ -131,7 +131,7 @@ function BundleCard({ bundle, index }: { bundle: BundleItem; index: number }) {
             {bundle.classes.map((cls) => (
               <span
                 key={cls.id}
-                className="inline-flex items-center px-2.5 py-1 rounded-full bg-primary/8 border border-primary/15 text-xs font-medium text-foreground/80"
+                className="inline-flex items-center px-2.5 py-1 rounded-full bg-white border border-border text-xs font-medium text-foreground/80"
               >
                 {cls.title}
               </span>
