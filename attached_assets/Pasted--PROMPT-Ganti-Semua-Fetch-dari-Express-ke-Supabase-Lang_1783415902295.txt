@@ -1,0 +1,464 @@
+# PROMPT — Ganti Semua Fetch dari Express ke Supabase Langsung
+
+## Konteks
+
+Backend Express (`/api/...`) sedang tidak bisa diakses di production. Solusi:
+ganti semua fetch data di frontend supaya langsung query ke Supabase menggunakan
+`@supabase/supabase-js` yang sudah terpasang. File `src/lib/supabase.ts` sudah ada
+dan sudah export `supabase` client — tinggal dipakai.
+
+JANGAN ubah apapun di `artifacts/api-server/` atau `lib/`.
+JANGAN ubah `AuthContext.tsx`, `main.tsx`, `supabase.ts`.
+Hanya ubah file-file yang disebutkan di bawah.
+
+---
+
+## 1. Buat file baru: `src/lib/db.ts`
+
+File ini berisi semua fungsi query Supabase yang akan dipakai halaman-halaman frontend.
+
+```typescript
+// src/lib/db.ts
+import { supabase } from './supabase';
+
+// ─── CLASSES ────────────────────────────────────────────────────────────────
+
+export async function listClasses(params?: {
+  search?: string;
+  category?: string;
+  level?: string;
+  instructorId?: string;
+  status?: string;
+}) {
+  let query = supabase
+    .from('classes')
+    .select(`
+      id, title, description, cover_image, base_price, discount_price,
+      status, level, category, youtube_playlist_id,
+      instructors ( id, name, photo_url )
+    `)
+    .eq('status', 'published')
+    .order('created_at', { ascending: false });
+
+  if (params?.search) {
+    query = query.ilike('title', `%${params.search}%`);
+  }
+  if (params?.category) {
+    query = query.eq('category', params.category);
+  }
+  if (params?.level) {
+    query = query.eq('level', params.level);
+  }
+  if (params?.instructorId) {
+    query = query.eq('instructor_id', params.instructorId);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []).map((c: any) => ({
+    id: c.id,
+    title: c.title,
+    description: c.description,
+    coverImage: c.cover_image,
+    basePrice: c.base_price,
+    discountPrice: c.discount_price,
+    status: c.status,
+    level: c.level,
+    category: c.category,
+    youtubePlaylistId: c.youtube_playlist_id,
+    instructor: c.instructors
+      ? { id: c.instructors.id, name: c.instructors.name, photoUrl: c.instructors.photo_url }
+      : null,
+  }));
+}
+
+export async function getClassById(id: string) {
+  const { data, error } = await supabase
+    .from('classes')
+    .select(`
+      id, title, description, cover_image, base_price, discount_price,
+      status, level, category, youtube_playlist_id, gdrive_materi_url, wa_group_url,
+      instructors ( id, name, photo_url, bio ),
+      modules (
+        id, title, order_index,
+        dars ( id, title, description, youtube_video_id, duration_minutes, order_index )
+      )
+    `)
+    .eq('id', id)
+    .single();
+  if (error) throw error;
+  return {
+    id: data.id,
+    title: data.title,
+    description: data.description,
+    coverImage: data.cover_image,
+    basePrice: data.base_price,
+    discountPrice: data.discount_price,
+    status: data.status,
+    level: data.level,
+    category: data.category,
+    youtubePlaylistId: data.youtube_playlist_id,
+    gdriveMateriUrl: data.gdrive_materi_url,
+    waGroupUrl: data.wa_group_url,
+    instructor: data.instructors,
+    modules: (data.modules ?? [])
+      .sort((a: any, b: any) => a.order_index - b.order_index)
+      .map((m: any) => ({
+        id: m.id,
+        title: m.title,
+        orderIndex: m.order_index,
+        dars: (m.dars ?? [])
+          .sort((a: any, b: any) => a.order_index - b.order_index)
+          .map((d: any) => ({
+            id: d.id,
+            title: d.title,
+            description: d.description,
+            youtubeVideoId: d.youtube_video_id,
+            durationMinutes: d.duration_minutes,
+            orderIndex: d.order_index,
+          })),
+      })),
+    moduleCount: (data.modules ?? []).length,
+    totalDurationMinutes: (data.modules ?? [])
+      .flatMap((m: any) => m.dars ?? [])
+      .reduce((acc: number, d: any) => acc + (d.duration_minutes ?? 0), 0),
+  };
+}
+
+// ─── INSTRUCTORS ─────────────────────────────────────────────────────────────
+
+export async function listInstructors() {
+  const { data, error } = await supabase
+    .from('instructors')
+    .select('id, name, bio, photo_url')
+    .order('name');
+  if (error) throw error;
+  return (data ?? []).map((i: any) => ({
+    id: i.id,
+    name: i.name,
+    bio: i.bio,
+    photoUrl: i.photo_url,
+  }));
+}
+
+// ─── TESTIMONIALS ─────────────────────────────────────────────────────────────
+
+export async function listTestimonials() {
+  const { data, error } = await supabase
+    .from('testimonials')
+    .select('id, name, role, content, photo_url, is_published, order_index')
+    .eq('is_published', true)
+    .order('order_index');
+  if (error) throw error;
+  return (data ?? []).map((t: any) => ({
+    id: t.id,
+    name: t.name,
+    role: t.role,
+    content: t.content,
+    photoUrl: t.photo_url,
+    isPublished: t.is_published,
+    orderIndex: t.order_index,
+  }));
+}
+
+// ─── SITE SETTINGS ──────────────────────────────────────────────────────────
+
+export async function getSettings() {
+  const { data, error } = await supabase
+    .from('site_settings')
+    .select('*')
+    .eq('id', 1)
+    .single();
+  if (error && error.code !== 'PGRST116') throw error;
+  return data ?? null;
+}
+
+// ─── CART ────────────────────────────────────────────────────────────────────
+
+export async function listCartItems(userId: string) {
+  const { data, error } = await supabase
+    .from('cart_items')
+    .select(`
+      id, added_at,
+      classes ( id, title, cover_image, base_price, discount_price )
+    `)
+    .eq('user_id', userId);
+  if (error) throw error;
+  return (data ?? []).map((item: any) => ({
+    id: item.id,
+    addedAt: item.added_at,
+    class: item.classes
+      ? {
+          id: item.classes.id,
+          title: item.classes.title,
+          coverImage: item.classes.cover_image,
+          basePrice: item.classes.base_price,
+          discountPrice: item.classes.discount_price,
+        }
+      : null,
+  }));
+}
+
+export async function addCartItem(userId: string, classId: string) {
+  const { error } = await supabase
+    .from('cart_items')
+    .insert({ user_id: userId, class_id: classId });
+  if (error) throw error;
+}
+
+export async function removeCartItem(itemId: string) {
+  const { error } = await supabase
+    .from('cart_items')
+    .delete()
+    .eq('id', itemId);
+  if (error) throw error;
+}
+
+// ─── ENROLLMENTS ─────────────────────────────────────────────────────────────
+
+export async function listEnrollments(userId: string) {
+  const { data, error } = await supabase
+    .from('enrollments')
+    .select(`
+      id, enrolled_at, is_completed,
+      classes ( id, title, cover_image, base_price, discount_price, level, category,
+        instructors ( id, name, photo_url )
+      )
+    `)
+    .eq('user_id', userId);
+  if (error) throw error;
+  return (data ?? []).map((e: any) => ({
+    id: e.id,
+    enrolledAt: e.enrolled_at,
+    isCompleted: e.is_completed,
+    class: e.classes
+      ? {
+          id: e.classes.id,
+          title: e.classes.title,
+          coverImage: e.classes.cover_image,
+          basePrice: e.classes.base_price,
+          discountPrice: e.classes.discount_price,
+          level: e.classes.level,
+          category: e.classes.category,
+          instructor: e.classes.instructors,
+        }
+      : null,
+  }));
+}
+
+export async function checkEnrollment(userId: string, classId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from('enrollments')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('class_id', classId)
+    .maybeSingle();
+  return !!data;
+}
+```
+
+---
+
+## 2. Tambah RLS policies di Supabase (jalankan di SQL Editor)
+
+```sql
+-- Classes: publik bisa baca yang published
+ALTER TABLE classes ENABLE ROW LEVEL SECURITY;
+CREATE POLICY IF NOT EXISTS "Public read published classes" ON classes
+  FOR SELECT USING (status = 'published');
+
+-- Instructors: publik bisa baca
+ALTER TABLE instructors ENABLE ROW LEVEL SECURITY;
+CREATE POLICY IF NOT EXISTS "Public read instructors" ON instructors
+  FOR SELECT USING (true);
+
+-- Testimonials: publik bisa baca yang published
+ALTER TABLE testimonials ENABLE ROW LEVEL SECURITY;
+CREATE POLICY IF NOT EXISTS "Public read testimonials" ON testimonials
+  FOR SELECT USING (is_published = true);
+
+-- Site settings: publik bisa baca
+ALTER TABLE site_settings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY IF NOT EXISTS "Public read settings" ON site_settings
+  FOR SELECT USING (true);
+
+-- Cart items: user hanya bisa baca/tulis cart miliknya sendiri
+ALTER TABLE cart_items ENABLE ROW LEVEL SECURITY;
+CREATE POLICY IF NOT EXISTS "Users manage own cart" ON cart_items
+  FOR ALL USING (auth.uid()::text = user_id);
+
+-- Enrollments: user hanya bisa baca enrollment miliknya
+ALTER TABLE enrollments ENABLE ROW LEVEL SECURITY;
+CREATE POLICY IF NOT EXISTS "Users read own enrollments" ON enrollments
+  FOR SELECT USING (auth.uid()::text = user_id);
+
+-- Modules: publik bisa baca
+ALTER TABLE modules ENABLE ROW LEVEL SECURITY;
+CREATE POLICY IF NOT EXISTS "Public read modules" ON modules
+  FOR SELECT USING (true);
+
+-- Dars: publik bisa baca
+ALTER TABLE dars ENABLE ROW LEVEL SECURITY;
+CREATE POLICY IF NOT EXISTS "Public read dars" ON dars
+  FOR SELECT USING (true);
+```
+
+---
+
+## 3. Edit `src/pages/CatalogPage.tsx`
+
+Ganti import dari `@workspace/api-client-react`:
+```typescript
+// HAPUS baris ini:
+import { useListClasses, useListInstructors } from '@workspace/api-client-react';
+
+// TAMBAH baris ini:
+import { useQuery } from '@tanstack/react-query';
+import { listClasses, listInstructors } from '@/lib/db';
+```
+
+Ganti query hooks di dalam komponen CatalogPage:
+```typescript
+// HAPUS:
+const classesQuery = useListClasses({ ... });
+// GANTI dengan:
+const classesQuery = useQuery({
+  queryKey: ['classes', search, selectedCategory, selectedLevel, selectedInstructor],
+  queryFn: () => listClasses({
+    search: search || undefined,
+    category: selectedCategory || undefined,
+    level: selectedLevel || undefined,
+    instructorId: selectedInstructor || undefined,
+  }),
+});
+
+// HAPUS:
+const instructorsQuery = useListInstructors();
+// GANTI dengan:
+const instructorsQuery = useQuery({
+  queryKey: ['instructors'],
+  queryFn: listInstructors,
+});
+```
+
+Sesuaikan akses data dari response — kalau sebelumnya `classesQuery.data?.data` atau
+`classesQuery.data?.classes`, sekarang langsung `classesQuery.data` (array langsung).
+Cek pola akses yang dipakai di CatalogPage dan sesuaikan.
+
+---
+
+## 4. Edit `src/pages/ClassDetailPage.tsx`
+
+Ganti:
+```typescript
+// HAPUS:
+import { useGetClassById } from '@workspace/api-client-react';
+const { data: cls, isLoading, isError } = useGetClassById(id ?? '');
+
+// GANTI dengan:
+import { useQuery } from '@tanstack/react-query';
+import { getClassById } from '@/lib/db';
+const { data: cls, isLoading, isError } = useQuery({
+  queryKey: ['class', id],
+  queryFn: () => getClassById(id ?? ''),
+  enabled: !!id,
+});
+```
+
+---
+
+## 5. Edit `src/context/CartContext.tsx`
+
+Ganti semua hook dari `@workspace/api-client-react` dengan fungsi dari `@/lib/db`:
+
+```typescript
+// HAPUS semua import dari @workspace/api-client-react di CartContext
+// TAMBAH:
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { listCartItems, addCartItem, removeCartItem } from '@/lib/db';
+
+// Di dalam CartProvider, ganti:
+const cartQuery = useQuery({
+  queryKey: ['cart', user?.id],
+  queryFn: () => listCartItems(user!.id),
+  enabled: !!user?.id,
+});
+
+const queryClient = useQueryClient();
+
+const addMutation = useMutation({
+  mutationFn: ({ classId }: { classId: string }) =>
+    addCartItem(user!.id, classId),
+  onSuccess: () => queryClient.invalidateQueries({ queryKey: ['cart', user?.id] }),
+});
+
+const removeMutation = useMutation({
+  mutationFn: ({ id }: { id: string }) => removeCartItem(id),
+  onSuccess: () => queryClient.invalidateQueries({ queryKey: ['cart', user?.id] }),
+});
+```
+
+Sesuaikan semua akses ke `cartQuery.data`, `addMutation`, `removeMutation` dengan
+struktur data baru dari `@/lib/db` (field sudah di-mapping ke camelCase di `db.ts`).
+
+---
+
+## 6. Edit `src/pages/LandingPage.tsx`
+
+Ganti:
+```typescript
+// HAPUS:
+import { useListTestimonials, useGetSettings } from '@workspace/api-client-react';
+const testimonialsQuery = useListTestimonials();
+const settingsQuery = useGetSettings();
+
+// GANTI dengan:
+import { useQuery } from '@tanstack/react-query';
+import { listTestimonials, getSettings } from '@/lib/db';
+const testimonialsQuery = useQuery({ queryKey: ['testimonials'], queryFn: listTestimonials });
+const settingsQuery = useQuery({ queryKey: ['settings'], queryFn: getSettings });
+```
+
+---
+
+## 7. Edit `src/pages/DashboardPage.tsx` dan `src/pages/MyClassesPage.tsx`
+
+Ganti:
+```typescript
+// HAPUS:
+import { useListEnrollments } from '@workspace/api-client-react';
+const { data: enrollments } = useListEnrollments(user?.id ?? '', { ... });
+
+// GANTI dengan:
+import { useQuery } from '@tanstack/react-query';
+import { listEnrollments } from '@/lib/db';
+const { data: enrollments = [], isLoading } = useQuery({
+  queryKey: ['enrollments', user?.id],
+  queryFn: () => listEnrollments(user!.id),
+  enabled: !!user?.id,
+});
+```
+
+---
+
+## 8. Setelah semua edit selesai
+
+Jalankan:
+```bash
+pnpm --filter @workspace/markaz-fiqh run typecheck
+```
+
+Kalau ada error TypeScript karena perbedaan struktur data (field naming dll),
+sesuaikan akses field-nya dengan apa yang dikembalikan fungsi di `db.ts`.
+
+Kalau typecheck bersih:
+```bash
+git add -A
+git commit -m "feat: ganti semua fetch API ke Supabase langsung (bypass Express)"
+git push origin main
+```
+
+Kalau push kena auth error:
+```bash
+git push https://USERNAME@github.com/darcia2024/markazfiqih.git
+```

@@ -25,12 +25,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthContext';
-import {
-  useListClasses,
-  useListInstructors,
-  useListTestimonials,
-  useGetSettings,
-} from '@workspace/api-client-react';
+import { useQuery } from '@tanstack/react-query';
+import { listClasses, listInstructors, listTestimonials, getSettings } from '@/lib/db';
 import {
   ClassCard,
   ClassCardSkeleton,
@@ -534,18 +530,23 @@ export default function LandingPage() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const [, setLocation] = useLocation();
 
-  const classesQuery = useListClasses({ sort: 'newest' });
-  const instructorsQuery = useListInstructors();
-  const testimonialsQuery = useListTestimonials();
-  const settingsQuery = useGetSettings();
+  const classesQuery = useQuery({ queryKey: ['classes'], queryFn: () => listClasses() });
+  const instructorsQuery = useQuery({ queryKey: ['instructors'], queryFn: listInstructors });
+  const testimonialsQuery = useQuery({ queryKey: ['testimonials'], queryFn: listTestimonials });
+  const settingsQuery = useQuery({ queryKey: ['settings'], queryFn: getSettings });
 
   const allClasses: ClassSummary[] = Array.isArray(classesQuery.data) ? classesQuery.data : [];
-  const instructors = Array.isArray(instructorsQuery.data) ? instructorsQuery.data : [];
+  const rawInstructors = Array.isArray(instructorsQuery.data) ? instructorsQuery.data : [];
+  const instructors = rawInstructors.map((inst) => ({
+    ...inst,
+    bio: inst.bio ?? undefined,
+    classCount: allClasses.filter((cls) => cls.instructor?.id === inst.id).length,
+  }));
   const testimonials = Array.isArray(testimonialsQuery.data) ? testimonialsQuery.data : [];
   const settings = settingsQuery.data;
 
   const featuredTestimonials = useMemo(() => testimonials.slice(0, 1), [testimonials]);
-  const socialLinks = useMemo(() => buildSocialLinks(settings), [settings]);
+  const socialLinks = useMemo(() => buildSocialLinks(settings ?? undefined), [settings]);
 
   const featuredClasses = useMemo(() => allClasses.slice(0, 6), [allClasses]);
 

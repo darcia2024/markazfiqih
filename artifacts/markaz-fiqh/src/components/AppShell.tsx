@@ -10,7 +10,8 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { useListEnrollments, type EnrollmentItem } from '@workspace/api-client-react';
+import { useQuery } from '@tanstack/react-query';
+import { listEnrollments, type EnrollmentItem } from '@/lib/db';
 
 const NAV_ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -58,8 +59,10 @@ export function AppSidebar({ isAdmin }: { isAdmin: boolean }) {
     user?.nickname?.[0]?.toUpperCase() ?? user?.name?.[0]?.toUpperCase() ?? 'U';
   const displayName = user?.nickname ?? user?.name ?? 'Pengguna';
 
-  const { data: enrollments = [] } = useListEnrollments(user?.id ?? '', {
-    query: { enabled: !!user?.id },
+  const { data: enrollments = [] } = useQuery({
+    queryKey: ['enrollments', user?.id],
+    queryFn: () => listEnrollments(user!.id),
+    enabled: !!user?.id,
   });
 
   return (

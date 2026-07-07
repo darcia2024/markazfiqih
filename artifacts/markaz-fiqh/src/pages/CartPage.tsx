@@ -25,12 +25,10 @@ import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import { formatPrice } from '@/pages/CatalogPage';
 import {
-  useRemoveCartItem,
   useListRecommendedClasses,
   useCreateCheckout,
   useSimulateCheckoutSuccess,
   useGetCheckout,
-  getListCartItemsQueryKey,
   getListRecommendedClassesQueryKey,
 } from '@workspace/api-client-react';
 import type { Invoice } from '@workspace/api-client-react';
@@ -207,7 +205,7 @@ function WaitingForPaymentView({
 
 function CartContent() {
   const { user } = useAuth();
-  const { items, isLoading } = useCart();
+  const { items, isLoading, removeFromCart, isRemoving } = useCart();
   const [, setLocation] = useLocation();
   const search = useSearch();
   const queryClient = useQueryClient();
@@ -225,16 +223,13 @@ function CartContent() {
   );
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const removeMutation = useRemoveCartItem({
-    mutation: {
-      onSuccess: () => {
-        if (user) {
-          queryClient.invalidateQueries({ queryKey: getListCartItemsQueryKey({ userId: user.id }) });
-          queryClient.invalidateQueries({ queryKey: getListRecommendedClassesQueryKey({ userId: user.id }) });
-        }
-      },
-    },
-  });
+  // Cart removal via CartContext (Supabase direct); recommended classes cache invalidated separately
+  const handleRemoveAndRefreshRecommended = async (id: string) => {
+    await removeFromCart(id);
+    if (user) {
+      queryClient.invalidateQueries({ queryKey: getListRecommendedClassesQueryKey({ userId: user.id }) });
+    }
+  };
 
   const recommendedQuery = useListRecommendedClasses(
     { userId: user?.id ?? '', limit: 4 },
@@ -250,7 +245,7 @@ function CartContent() {
   }, 0);
 
   const handleRemove = (id: string) => {
-    removeMutation.mutate({ id });
+    void handleRemoveAndRefreshRecommended(id);
   };
 
   const handleCheckout = async () => {
@@ -280,7 +275,7 @@ function CartContent() {
       const paidInvoice = await simulateSuccessMutation.mutateAsync({ id: invoice.id });
       setInvoice(paidInvoice as unknown as Invoice);
       setCheckoutStep('success');
-      queryClient.invalidateQueries({ queryKey: getListCartItemsQueryKey({ userId: user!.id }) });
+      queryClient.invalidateQueries({ queryKey: ['cart', user!.id] });
     } finally {
       setIsProcessing(false);
     }
@@ -289,7 +284,7 @@ function CartContent() {
   const handlePaymentSuccess = (paidInvoice: Invoice) => {
     setInvoice(paidInvoice);
     setCheckoutStep('success');
-    queryClient.invalidateQueries({ queryKey: getListCartItemsQueryKey({ userId: user!.id }) });
+    queryClient.invalidateQueries({ queryKey: ['cart', user!.id] });
     // Bersihkan query param dari URL
     window.history.replaceState(null, '', '/keranjang');
   };
@@ -485,7 +480,7 @@ function CartContent() {
                           </div>
                           <button
                             onClick={() => handleRemove(item.id)}
-                            disabled={removeMutation.isPending}
+                            disabled={isRemoving}
                             className="text-muted-foreground hover:text-destructive transition-colors p-1.5 rounded-md hover:bg-destructive/10"
                             aria-label="Hapus dari keranjang"
                           >

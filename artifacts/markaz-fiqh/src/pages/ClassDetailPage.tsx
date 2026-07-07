@@ -28,7 +28,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { formatPrice } from '@/data/mockClasses';
-import { useGetClassById } from '@workspace/api-client-react';
+import { useQuery } from '@tanstack/react-query';
+import { getClassById } from '@/lib/db';
 import { FacilitasCard } from '@/components/FacilitasCard';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
@@ -120,7 +121,11 @@ const PLACEHOLDER_DARS_PER_MODULE = 3;
 export default function ClassDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
-  const { data: cls, isLoading, isError } = useGetClassById(id ?? '');
+  const { data: cls, isLoading, isError } = useQuery({
+    queryKey: ['class', id],
+    queryFn: () => getClassById(id ?? ''),
+    enabled: !!id,
+  });
   // TODO: ganti isEnrolledDemo dengan pengecekan enrollment asli setelah backend siap
   const isEnrolledDemo =
     new URLSearchParams(window.location.search).get('demo') === 'enrolled';

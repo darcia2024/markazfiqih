@@ -14,7 +14,8 @@ import {
 
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
-import { useListClasses, useListInstructors } from '@workspace/api-client-react';
+import { useQuery } from '@tanstack/react-query';
+import { listClasses, listInstructors } from '@/lib/db';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -381,17 +382,45 @@ function CatalogContent() {
   const [sort, setSort] = useState<'newest' | 'price_asc' | 'price_desc' | 'popular'>('newest');
   const [selectedInstructorId, setSelectedInstructorId] = useState<string | null>(null);
 
-  const classesQuery = useListClasses({
-    search: search || undefined,
-    level: level === 'all' ? undefined : level,
-    category: category === 'all' ? undefined : category,
-    instructorId: selectedInstructorId ?? undefined,
-    sort,
+  const classesQuery = useQuery({
+    queryKey: ['classes', search, level, category, selectedInstructorId],
+    queryFn: () => listClasses({
+      search: search || undefined,
+      level: level === 'all' ? undefined : level,
+      category: category === 'all' ? undefined : category,
+      instructorId: selectedInstructorId ?? undefined,
+    }),
   });
-  const instructorsQuery = useListInstructors();
+  const instructorsQuery = useQuery({
+    queryKey: ['instructors'],
+    queryFn: listInstructors,
+  });
 
   const classes = (classesQuery.data ?? []) as ClassSummary[];
-  const instructors = instructorsQuery.data ?? [];
+  const rawInstructors = instructorsQuery.data ?? [];
+  const instructors = rawInstructors.map((inst) => ({
+    ...inst,
+    classCount: classes.filter((cls) => cls.instructor?.id === inst.id).length,
+  }));
+
+  const sortedClasses = useMemo(() => {
+    const arr = [...classes];
+    switch (sort) {
+      case 'price_asc':
+        arr.sort((a, b) => (a.discountPrice ?? a.basePrice) - (b.discountPrice ?? b.basePrice));
+        break;
+      case 'price_desc':
+        arr.sort((a, b) => (b.discountPrice ?? b.basePrice) - (a.discountPrice ?? a.basePrice));
+        break;
+      case 'popular':
+        arr.sort((a, b) => b.moduleCount - a.moduleCount);
+        break;
+      case 'newest':
+      default:
+        break; // sudah diurutkan by created_at DESC dari Supabase
+    }
+    return arr;
+  }, [classes, sort]);
 
   const isLoading = classesQuery.isLoading;
   const isEmpty = !isLoading && classes.length === 0;
@@ -485,7 +514,7 @@ function CatalogContent() {
                 Array.from({ length: 8 }).map((_, i) => <ClassCardSkeleton key={i} />)}
 
               {!isLoading &&
-                classes.map((cls, idx) => <ClassCard key={cls.id} cls={cls} index={idx} />)}
+                sortedClasses.map((cls, idx) => <ClassCard key={cls.id} cls={cls} index={idx} />)}
 
               {isEmpty && (
                 <EmptyState

@@ -19,10 +19,8 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/context/AuthContext';
-import {
-  useListEnrollments,
-  type EnrollmentItem,
-} from '@workspace/api-client-react';
+import { useQuery } from '@tanstack/react-query';
+import { listEnrollments, type EnrollmentItem } from '@/lib/db';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function formatDuration(min: number | null) {
@@ -204,8 +202,10 @@ function MyClassesContent() {
   const { user } = useAuth();
   const [activeFilter, setActiveFilter] = useState('Semua');
 
-  const { data: enrollments = [], isLoading } = useListEnrollments(user?.id ?? '', {
-    query: { enabled: !!user?.id },
+  const { data: enrollments = [], isLoading } = useQuery({
+    queryKey: ['enrollments', user?.id],
+    queryFn: () => listEnrollments(user!.id),
+    enabled: !!user?.id,
   });
 
   const search = new URLSearchParams(window.location.search);
