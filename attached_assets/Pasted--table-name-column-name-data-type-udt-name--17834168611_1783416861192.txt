@@ -1,0 +1,73 @@
+| table_name    | column_name         | data_type                | udt_name    |
+| ------------- | ------------------- | ------------------------ | ----------- |
+| cart_items    | id                  | uuid                     | uuid        |
+| cart_items    | user_id             | text                     | text        |
+| cart_items    | class_id            | uuid                     | uuid        |
+| cart_items    | added_at            | timestamp with time zone | timestamptz |
+| classes       | id                  | uuid                     | uuid        |
+| classes       | title               | text                     | text        |
+| classes       | description         | text                     | text        |
+| classes       | cover_image         | text                     | text        |
+| classes       | base_price          | integer                  | int4        |
+| classes       | discount_price      | integer                  | int4        |
+| classes       | status              | text                     | text        |
+| classes       | level               | text                     | text        |
+| classes       | category            | text                     | text        |
+| classes       | instructor_id       | uuid                     | uuid        |
+| classes       | created_at          | timestamp with time zone | timestamptz |
+| classes       | updated_at          | timestamp with time zone | timestamptz |
+| classes       | youtube_playlist_id | text                     | text        |
+| classes       | gdrive_materi_url   | text                     | text        |
+| classes       | wa_group_url        | text                     | text        |
+| dars          | id                  | uuid                     | uuid        |
+| dars          | module_id           | uuid                     | uuid        |
+| dars          | title               | text                     | text        |
+| dars          | order_index         | integer                  | int4        |
+| dars          | duration_minutes    | integer                  | int4        |
+| dars          | created_at          | timestamp with time zone | timestamptz |
+| enrollments   | id                  | uuid                     | uuid        |
+| enrollments   | user_id             | text                     | text        |
+| enrollments   | class_id            | uuid                     | uuid        |
+| enrollments   | enrolled_at         | timestamp with time zone | timestamptz |
+| enrollments   | is_completed        | boolean                  | bool        |
+| instructors   | id                  | uuid                     | uuid        |
+| instructors   | name                | text                     | text        |
+| instructors   | bio                 | text                     | text        |
+| instructors   | photo_url           | text                     | text        |
+| instructors   | created_at          | timestamp with time zone | timestamptz |
+| instructors   | updated_at          | timestamp with time zone | timestamptz |
+| modules       | id                  | uuid                     | uuid        |
+| modules       | class_id            | uuid                     | uuid        |
+| modules       | title               | text                     | text        |
+| modules       | order_index         | integer                  | int4        |
+| modules       | duration_minutes    | integer                  | int4        |
+| modules       | created_at          | timestamp with time zone | timestamptz |
+| site_settings | id                  | integer                  | int4        |
+| site_settings | founder_name        | text                     | text        |
+| site_settings | founder_bio         | text                     | text        |
+| site_settings | founder_photo_url   | text                     | text        |
+| site_settings | social_instagram    | text                     | text        |
+| site_settings | social_facebook     | text                     | text        |
+| site_settings | social_tiktok       | text                     | text        |
+| site_settings | social_youtube      | text                     | text        |
+| site_settings | student_count_label | text                     | text        |
+| site_settings | updated_at          | timestamp with time zone | timestamptz |
+| site_settings | site_name           | text                     | text        |
+| site_settings | tagline             | text                     | text        |
+| site_settings | logo_url            | text                     | text        |
+| site_settings | contact_email       | text                     | text        |
+| site_settings | contact_phone       | text                     | text        |
+| site_settings | address             | text                     | text        |
+| testimonials  | id                  | uuid                     | uuid        |
+| testimonials  | content             | text                     | text        |
+| testimonials  | name                | text                     | text        |
+| testimonials  | role                | text                     | text        |
+| testimonials  | is_published        | boolean                  | bool        |
+| testimonials  | order_index         | integer                  | int4        |
+| testimonials  | created_at          | timestamp with time zone | timestamptz |
+| testimonials  | updated_at          | timestamp with time zone | timestamptz |
+| testimonials  | photo_url           | text                     | text        |
+| user_profiles | user_id             | text                     | text        |
+| user_profiles | nickname            | text                     | text        |
+| user_profiles | created_at          | timestamp with time zone | timestamptz |
+| user_profiles | updated_at          | timestamp with time zone | timestamptz |

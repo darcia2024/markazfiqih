@@ -85,7 +85,7 @@ export async function getClassById(id: string) {
       instructors ( id, name, photo_url, bio ),
       modules (
         id, title, order_index,
-        dars ( id, title, description, youtube_video_id, duration_minutes, order_index )
+        dars ( id, title, duration_minutes, order_index )
       )
     `)
     .eq('id', id)
@@ -113,8 +113,6 @@ export async function getClassById(id: string) {
         dars: darsSorted.map((d: any) => ({
           id: d.id as string,
           title: d.title as string,
-          description: d.description as string | null,
-          youtubeVideoId: d.youtube_video_id as string | null,
           durationMinutes: d.duration_minutes as number | null,
           orderIndex: d.order_index as number,
         })),
