@@ -2,7 +2,7 @@ import { toast } from 'sonner';
 import { Link, useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
-import { Package2, ShoppingCart, Check, Tag } from 'lucide-react';
+import { Package2, ShoppingCart, Tag, ArrowRight } from 'lucide-react';
 
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
@@ -139,48 +139,28 @@ function BundleCard({ bundle, index }: { bundle: BundleItem; index: number }) {
           </div>
         </div>
 
-        {/* Footer harga + tombol — mt-auto mendorong ke bawah card */}
-        <div className="mt-auto px-5 pb-5 pt-3 border-t border-border flex items-center justify-between gap-4">
-          <div className="flex flex-col">
-            <div className="flex items-center gap-1.5">
-              <Tag className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground line-through">
-                {formatPrice(bundle.normalPrice)}
-              </span>
-            </div>
-            <span className="text-xl font-bold text-primary leading-tight">
-              {formatPrice(bundle.bundlePrice)}
+        {/* Harga — mt-auto mendorong ke bawah card, sebelum footer button */}
+        <div className="mt-auto px-5 pb-3 pt-3 border-t border-border">
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <Tag className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground line-through">
+              {formatPrice(bundle.normalPrice)}
             </span>
           </div>
-
-          <motion.div whileTap={{ scale: 0.92 }}>
-            <Button
-              size="sm"
-              variant={inCart ? 'outline' : 'default'}
-              className="shrink-0 gap-1.5"
-              disabled={isAdding}
-              onClick={handleCartAction}
-            >
-              <AnimatePresence mode="wait">
-                <motion.span
-                  key={inCart ? 'added' : 'add'}
-                  initial={{ scale: 0, rotate: -90 }}
-                  animate={{ scale: 1, rotate: 0 }}
-                  exit={{ scale: 0, rotate: 90 }}
-                  transition={{ duration: 0.2 }}
-                  className="flex items-center"
-                >
-                  {inCart ? (
-                    <Check className="w-3.5 h-3.5" />
-                  ) : (
-                    <ShoppingCart className="w-3.5 h-3.5" />
-                  )}
-                </motion.span>
-              </AnimatePresence>
-              {inCart ? 'Di Keranjang' : 'Tambah ke Keranjang'}
-            </Button>
-          </motion.div>
+          <span className="text-xl font-bold text-primary leading-tight">
+            {formatPrice(bundle.bundlePrice)}
+          </span>
         </div>
+
+        {/* Full-width gradient footer button — konsisten dengan ClassCard */}
+        <button
+          onClick={handleCartAction}
+          disabled={isAdding}
+          className="w-full py-3 px-4 bg-gradient-to-r from-primary to-[hsl(var(--brand-red-hover))] text-white text-sm font-semibold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-60"
+        >
+          {inCart ? 'Lihat di Keranjang' : 'Tambah ke Keranjang'}
+          <ArrowRight className="h-4 w-4 shrink-0" />
+        </button>
       </div>
     </motion.div>
   );
@@ -202,13 +182,13 @@ function BundleCardSkeleton() {
           <Skeleton key={i} className="h-4 w-full" />
         ))}
       </div>
-      <div className="px-5 pb-5 pt-3 border-t border-border flex items-center justify-between">
-        <div className="space-y-1">
-          <Skeleton className="h-3 w-20" />
-          <Skeleton className="h-6 w-28" />
-        </div>
-        <Skeleton className="h-9 w-36 rounded-md" />
+      {/* Price skeleton */}
+      <div className="px-5 pb-3 pt-3 border-t border-border space-y-1">
+        <Skeleton className="h-3 w-20" />
+        <Skeleton className="h-6 w-28" />
       </div>
+      {/* Footer button skeleton */}
+      <Skeleton className="w-full h-11 rounded-none" />
     </div>
   );
 }

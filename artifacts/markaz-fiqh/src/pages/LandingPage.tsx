@@ -6,7 +6,6 @@ import {
   Library,
   GraduationCap,
   ArrowRight,
-  ChevronRight,
   Instagram,
   Facebook,
   Youtube,
@@ -366,11 +365,11 @@ function CategorySection({
                     </div>
 
                     {/* Footer dengan pemisah */}
-                    <div className="border-t border-white/10 mt-4 pt-4 flex items-center justify-between">
+                    <div className="border-t border-white/15 mt-4 pt-4 flex items-center justify-between">
                       <p className="text-sm font-semibold text-[hsl(var(--brand-gold-pale))]">
                         {count} Kelas
                       </p>
-                      <ChevronRight className="h-4 w-4 text-white/50 group-hover:text-white/90 group-hover:translate-x-1 transition-all duration-200" />
+                      <ArrowRight className="h-4 w-4 text-white/50 group-hover:text-white/90 group-hover:translate-x-1 transition-all duration-200" />
                     </div>
                   </div>
                 </Link>
@@ -515,6 +514,8 @@ function TeachersSection({
                     {INSTRUCTOR_ROLE_LABEL}
                   </p>
                 </div>
+                {/* Separator antara header (avatar+nama) dan bio */}
+                <div className="border-t border-border w-full" />
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   {instructor.bio || `Mengampu ${instructor.classCount} kelas fiqih di Markaz Fiqih.`}
                 </p>
