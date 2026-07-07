@@ -293,25 +293,33 @@ export function ClassCard({ cls, index }: { cls: ClassSummary; index: number }) 
                   </>
                 )}
               </div>
-              <Button
-                size="sm"
-                variant={inCart ? 'outline' : 'default'}
-                className="shrink-0 text-xs h-8 gap-1"
-                disabled={isAdding}
-                onClick={handleCartAction}
-              >
-                {inCart ? (
-                  <>
-                    <Check className="w-3.5 h-3.5" />
-                    Di Keranjang
-                  </>
-                ) : (
-                  <>
-                    <ShoppingCart className="w-3.5 h-3.5" />
-                    Tambah
-                  </>
-                )}
-              </Button>
+              <motion.div whileTap={{ scale: 0.92 }}>
+                <Button
+                  size="sm"
+                  variant={inCart ? 'outline' : 'default'}
+                  className="shrink-0 text-xs h-8 gap-1"
+                  disabled={isAdding}
+                  onClick={handleCartAction}
+                >
+                  <AnimatePresence mode="wait">
+                    <motion.span
+                      key={inCart ? 'added' : 'add'}
+                      initial={{ scale: 0, rotate: -90 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      exit={{ scale: 0, rotate: 90 }}
+                      transition={{ duration: 0.2 }}
+                      className="flex items-center"
+                    >
+                      {inCart ? (
+                        <Check className="w-3.5 h-3.5" />
+                      ) : (
+                        <ShoppingCart className="w-3.5 h-3.5" />
+                      )}
+                    </motion.span>
+                  </AnimatePresence>
+                  {inCart ? 'Di Keranjang' : 'Tambah'}
+                </Button>
+              </motion.div>
             </div>
           </div>
         </div>

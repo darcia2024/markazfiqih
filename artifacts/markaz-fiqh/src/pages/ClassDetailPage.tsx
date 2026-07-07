@@ -1,5 +1,5 @@
 import { useParams, Link, useLocation } from 'wouter';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft,
   BookOpen,
@@ -422,20 +422,33 @@ export default function ClassDetailPage() {
 
                     {/* CTA Button */}
                     <div className="p-6 space-y-4">
-                      <Button
-                        size="lg"
-                        variant={inCart ? 'outline' : 'default'}
-                        className="w-full text-base font-semibold gap-2"
-                        disabled={isAdding}
-                        onClick={handleBuyClick}
-                      >
-                        {inCart ? (
-                          <Check className="w-4 h-4" />
-                        ) : (
-                          <ShoppingCart className="w-4 h-4" />
-                        )}
-                        {inCart ? 'Di Keranjang' : 'Tambah ke Keranjang'}
-                      </Button>
+                      <motion.div whileTap={{ scale: 0.92 }}>
+                        <Button
+                          size="lg"
+                          variant={inCart ? 'outline' : 'default'}
+                          className="w-full text-base font-semibold gap-2"
+                          disabled={isAdding}
+                          onClick={handleBuyClick}
+                        >
+                          <AnimatePresence mode="wait">
+                            <motion.span
+                              key={inCart ? 'added' : 'add'}
+                              initial={{ scale: 0, rotate: -90 }}
+                              animate={{ scale: 1, rotate: 0 }}
+                              exit={{ scale: 0, rotate: 90 }}
+                              transition={{ duration: 0.2 }}
+                              className="flex items-center"
+                            >
+                              {inCart ? (
+                                <Check className="w-4 h-4" />
+                              ) : (
+                                <ShoppingCart className="w-4 h-4" />
+                              )}
+                            </motion.span>
+                          </AnimatePresence>
+                          {inCart ? 'Di Keranjang' : 'Tambah ke Keranjang'}
+                        </Button>
+                      </motion.div>
 
                       {!user && (
                         <p className="text-xs text-center text-muted-foreground">
