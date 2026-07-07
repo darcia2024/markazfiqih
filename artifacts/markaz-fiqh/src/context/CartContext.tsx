@@ -9,6 +9,7 @@ export type { CartItem, CartClassItem, CartBundleItem };
 type CartContextType = {
   items: CartItem[];
   count: number;
+  subtotal: number;
   isLoading: boolean;
   classIdsInCart: Set<string>;
   bundleIdsInCart: Set<string>;
@@ -53,6 +54,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   });
 
   const items: CartItem[] = cartQuery.data ?? [];
+
+  const subtotal = items.reduce((sum, item) => {
+    if (item.type === 'bundle') {
+      return sum + item.bundle.bundlePrice;
+    }
+    return sum + (item.class.discountPrice ?? item.class.basePrice);
+  }, 0);
+
   const classIdsInCart = new Set(
     items.filter((i): i is CartClassItem => i.type === 'class').map((i) => i.classId),
   );
@@ -79,6 +88,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       value={{
         items,
         count: items.length,
+        subtotal,
         isLoading: cartQuery.isLoading,
         classIdsInCart,
         bundleIdsInCart,

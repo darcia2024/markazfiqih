@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react';
+import { FloatingCartBar } from '@/components/FloatingCartBar';
 import { Link, useLocation } from 'wouter';
 import {
   LayoutGrid,
@@ -227,6 +228,9 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="lg:pl-[240px] pt-14 lg:pt-0 min-h-screen flex flex-col">
         {children}
       </div>
+
+      {/* Floating cart bar — muncul di semua halaman internal saat keranjang ada isinya */}
+      <FloatingCartBar />
     </div>
   );
 }
