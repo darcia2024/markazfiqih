@@ -8,6 +8,7 @@ import testimonialsRouter from "./testimonials";
 import settingsRouter from "./settings";
 import enrollmentsRouter from "./enrollments";
 import darsRouter from "./dars";
+import userProfileRouter from "./user-profile";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(testimonialsRouter);
 router.use(settingsRouter);
 router.use(enrollmentsRouter);
 router.use(darsRouter);
+router.use(userProfileRouter);
 
 export default router;

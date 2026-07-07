@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useLocation } from 'wouter';
+import { type User as SupabaseUser } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 
 export type User = {
   id: string;
@@ -19,74 +21,85 @@ export type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+async function fetchNickname(userId: string): Promise<string | null> {
+  try {
+    const res = await fetch(`/api/user-profile?userId=${encodeURIComponent(userId)}`);
+    if (!res.ok) return null;
+    const data = await res.json() as { nickname: string | null };
+    return data.nickname ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function supabaseUserToAppUser(supabaseUser: SupabaseUser, nickname: string | null): User {
+  return {
+    id: supabaseUser.id,
+    name: supabaseUser.user_metadata?.full_name ?? supabaseUser.email ?? 'Pengguna',
+    email: supabaseUser.email ?? '',
+    avatar_url: supabaseUser.user_metadata?.avatar_url ?? '',
+    nickname,
+  };
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [, setLocation] = useLocation();
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('markaz_mock_user');
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (e) {
-        // ignore parse error
+    let mounted = true;
+
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!mounted) return;
+      if (session?.user) {
+        const nickname = await fetchNickname(session.user.id);
+        if (mounted) setUser(supabaseUserToAppUser(session.user, nickname));
       }
-    }
-    setIsLoading(false);
+      if (mounted) setIsLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        if (!mounted) return;
+        if (session?.user) {
+          const nickname = await fetchNickname(session.user.id);
+          if (mounted) setUser(supabaseUserToAppUser(session.user, nickname));
+        } else {
+          if (mounted) setUser(null);
+        }
+      },
+    );
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const login = (redirect?: string) => {
-    setIsLoading(true);
-    // Simulate network delay
-    setTimeout(() => {
-      // Pertahankan nickname yang sudah ada kalau user login ulang
-      let existingNickname: string | null = null;
-      const storedUser = localStorage.getItem('markaz_mock_user');
-      if (storedUser) {
-        try {
-          const parsed = JSON.parse(storedUser) as User;
-          existingNickname = parsed.nickname ?? null;
-        } catch (e) {
-          // ignore parse error
-        }
-      }
-
-      const mockUser: User = {
-        id: "mock-1",
-        name: "Ahmad Fauzi",
-        email: "ahmad@example.com",
-        avatar_url: "https://ui-avatars.com/api/?name=Ahmad+Fauzi&background=064e3b&color=fff",
-        nickname: existingNickname,
-      };
-      setUser(mockUser);
-      localStorage.setItem('markaz_mock_user', JSON.stringify(mockUser));
-      setIsLoading(false);
-
-      // Jika tidak ada redirect spesifik (default '/'), arahkan ke /dashboard
-      const destination = redirect && redirect !== '/' ? redirect : '/dashboard';
-
-      if (mockUser.nickname) {
-        setLocation(destination);
-      } else {
-        setLocation(`/onboarding-nama?redirect=${encodeURIComponent(destination)}`);
-      }
-    }, 500);
+    const destination = redirect && redirect !== '/' ? redirect : '/dashboard';
+    supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/login?redirect=${encodeURIComponent(destination)}`,
+      },
+    });
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
-    localStorage.removeItem('markaz_mock_user');
     setLocation('/');
   };
 
   const setNickname = (nickname: string) => {
-    setUser((prev) => {
-      if (!prev) return prev;
-      const updated: User = { ...prev, nickname };
-      localStorage.setItem('markaz_mock_user', JSON.stringify(updated));
-      return updated;
-    });
+    setUser((prev) => (prev ? { ...prev, nickname } : prev));
+    fetch('/api/user-profile', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: user?.id, nickname }),
+    }).catch((err) => console.error('Gagal simpan nickname:', err));
   };
 
   return (

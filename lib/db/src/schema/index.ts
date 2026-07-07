@@ -9,3 +9,4 @@ export * from "./invoices";
 export * from "./invoiceItems";
 export * from "./testimonials";
 export * from "./site-settings";
+export * from "./userProfiles";
