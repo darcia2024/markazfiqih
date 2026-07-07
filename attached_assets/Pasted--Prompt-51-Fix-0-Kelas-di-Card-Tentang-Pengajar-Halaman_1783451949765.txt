@@ -1,0 +1,62 @@
+# Prompt 51: Fix "0 Kelas" di Card "Tentang Pengajar" (Halaman Learn)
+
+## Root Cause
+Di `LearnPage.tsx`, card "Tentang Pengajar" menampilkan
+`classDetail.instructor.classCount` — tapi field `classCount` ini TIDAK
+PERNAH disertakan pada object `instructor` yang dikembalikan oleh
+`getClassById()` di `src/lib/db.ts`. Objek `instructor` yang dikembalikan
+hanya berisi `{ id, name, photoUrl, bio }`, tanpa jumlah kelas. Akibatnya
+`instructorClassCount` selalu `undefined`, yang dirender sebagai "0 kelas"
+di UI.
+
+## Fix
+
+Edit `artifacts/markaz-fiqh/src/lib/db.ts`, fungsi `getClassById`.
+
+Tambahkan query terpisah untuk menghitung jumlah kelas published milik
+instruktur yang sama, lalu sertakan sebagai `classCount` pada object
+`instructor`:
+
+```ts
+// Setelah query utama kelas berhasil didapat, sebelum return:
+let instructorClassCount = 0;
+if (inst?.id) {
+  const { count } = await supabase
+    .from('classes')
+    .select('id', { count: 'exact', head: true })
+    .eq('instructor_id', inst.id)
+    .eq('status', 'published');
+  instructorClassCount = count ?? 0;
+}
+
+return {
+  // ...field lain yang sudah ada, tidak berubah...
+  instructor: inst
+    ? { id: inst.id, name: inst.name, photoUrl: inst.photo_url, bio: inst.bio ?? '', classCount: instructorClassCount }
+    : { id: '', name: 'Pengajar', photoUrl: '', bio: '', classCount: 0 },
+  // ...
+};
+```
+
+Sesuaikan juga type/interface terkait (kemungkinan ada type untuk return
+value `getClassById`, misal `ClassDetail`) supaya `classCount` dikenali
+TypeScript pada object `instructor`.
+
+## Cek Tempat Lain yang Mungkin Terpengaruh Sama
+
+Cari penggunaan lain dari pola serupa (`instructor.classCount` atau akses
+`.classCount` pada object instructor) di seluruh
+`artifacts/markaz-fiqh/src` — kemungkinan ada di `ClassDetailPage.tsx`
+juga (halaman detail kelas, yang punya card instruktur serupa). Kalau ada,
+pastikan halaman tersebut juga mendapat data `classCount` yang benar
+(karena sama-sama memakai `getClassById`, perbaikan di atas seharusnya
+otomatis memperbaiki semua tempat yang memakai fungsi ini).
+
+## Yang Tidak Boleh Berubah
+- Field lain pada return value `getClassById` tidak berubah
+- Query utama kelas (modules, dars, dll) tidak berubah, hanya
+  menambahkan satu query count tambahan untuk instruktur
+
+## Setelah Selesai
+Konfirmasi jumlah kelas instruktur sekarang tampil dengan benar (bukan "0
+kelas") di halaman Learn dan halaman lain yang menampilkan info serupa.

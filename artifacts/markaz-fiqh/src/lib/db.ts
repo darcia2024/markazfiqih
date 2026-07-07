@@ -132,6 +132,17 @@ export async function getClassById(id: string) {
   const inst = data.instructors as any;
   const rawModules = (data.modules ?? []) as any[];
 
+  // Hitung jumlah kelas published milik instruktur ini
+  let instructorClassCount = 0;
+  if (inst?.id) {
+    const { count } = await supabase
+      .from('classes')
+      .select('id', { count: 'exact', head: true })
+      .eq('instructor_id', inst.id)
+      .eq('status', 'published');
+    instructorClassCount = count ?? 0;
+  }
+
   const modules = rawModules
     .sort((a, b) => a.order_index - b.order_index)
     .map((m) => {
@@ -170,7 +181,7 @@ export async function getClassById(id: string) {
     gdriveMateriUrl: data.gdrive_materi_url as string | null,
     waGroupUrl: data.wa_group_url as string | null,
     instructor: inst
-      ? { id: inst.id, name: inst.name, photoUrl: inst.photo_url, bio: inst.bio ?? '', classCount: 0 }
+      ? { id: inst.id, name: inst.name, photoUrl: inst.photo_url, bio: inst.bio ?? '', classCount: instructorClassCount }
       : { id: '', name: 'Pengajar', photoUrl: '', bio: '', classCount: 0 },
     modules,
     moduleCount: modules.length,

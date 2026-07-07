@@ -1,0 +1,172 @@
+# Prompt 53: Fix Temuan "Perlu Perbaikan" dari Audit Keamanan & Kode
+
+## Konteks
+Lanjutan dari audit menyeluruh sebelumnya. 3 temuan KRITIS (is_admin
+exploit, RLS progress mati, enrollments tanpa policy UPDATE) sudah
+diperbaiki lewat SQL terpisah (`52-fix-kritis-rls-security.sql`, sudah
+dijalankan). Sekarang perbaiki 7 temuan tingkat "Perlu Perbaikan" di
+bawah ini. Kerjakan berurutan per section.
+
+---
+
+## Section 1 — Tambahkan `onError` dengan Toast di Semua Mutation yang Masih Silent
+
+### 1a. `LearnPage.tsx`
+Cari `useMutation` untuk `completeEnrollment` dan `updateProgress` (dari
+migrasi sebelumnya) — keduanya TIDAK punya `onError`. Tambahkan:
+```ts
+onError: (error) => {
+  toast.error(error instanceof Error ? error.message : 'Gagal menyimpan, coba lagi.');
+},
+```
+Import `toast` dari sumber yang sudah dipakai di file lain seperti
+`CartPage.tsx` (kemungkinan `sonner` atau toast hook custom — cek importnya
+di file yang sudah pakai toast untuk konsistensi).
+
+### 1b. `CartContext.tsx`
+Pada `addMutation` dan `removeMutation`, `onError` sekarang hanya
+`console.error(...)`. Tambahkan `toast.error(...)` di kedua tempat,
+dengan pesan yang jelas (misal "Gagal menambahkan ke keranjang, coba
+lagi." dan "Gagal menghapus dari keranjang, coba lagi.").
+
+### 1c. Tiga Catch Block Tanpa Toast
+Perbaiki `catch` block yang hanya `console.error` di:
+- `CatalogPage.tsx` (sekitar baris 228, aksi tambah ke keranjang)
+- `CartPage.tsx` (sekitar baris 803, aksi tambah dari rekomendasi)
+- `ClassDetailPage.tsx` (sekitar baris 154, aksi tambah ke keranjang)
+
+Tambahkan `toast.error(...)` pada masing-masing, konsisten dengan pola
+error handling yang sudah benar di `handleCheckout`/`handleSimulateSuccess`
+pada `CartPage.tsx`.
+
+---
+
+## Section 2 — Fix Race Condition Voucher (`used_count`)
+
+Edit `supabase/functions/checkout/index.ts`.
+
+Ganti pola read-then-write untuk validasi & increment voucher (baca
+`used_count`, cek `< max_uses`, lalu update terpisah) dengan atomic
+update. Buat fungsi Postgres berikut lewat SQL manual dan panggil lewat
+`.rpc()` dari edge function:
+```sql
+CREATE OR REPLACE FUNCTION increment_voucher_usage(voucher_id UUID)
+RETURNS TABLE(id UUID) AS $$
+BEGIN
+  RETURN QUERY
+  UPDATE class_vouchers
+  SET used_count = used_count + 1
+  WHERE class_vouchers.id = voucher_id
+    AND (max_uses IS NULL OR used_count < max_uses)
+  RETURNING class_vouchers.id;
+END;
+$$ LANGUAGE plpgsql;
+```
+Kasih tahu saya (Darcia) bahwa SQL ini perlu dijalankan manual di Supabase
+SQL Editor — cantumkan di ringkasan akhir.
+
+Lalu di edge function, ganti pola read-then-write dengan:
+```ts
+const { data: voucherUpdateResult, error: voucherUpdateError } = await supabaseAdmin
+  .rpc('increment_voucher_usage', { voucher_id: voucherId });
+
+if (voucherUpdateError || !voucherUpdateResult?.length) {
+  return new Response(
+    JSON.stringify({ error: 'Kode voucher sudah tidak berlaku atau kuota habis.' }),
+    { status: 400, headers: corsHeaders },
+  );
+}
+```
+
+## Section 3 — Pindahkan Increment `used_count` ke `simulate-success`
+
+Masih di alur voucher: `used_count` sekarang di-increment saat **checkout**
+(saat invoice dibuat), bukan saat **pembayaran benar-benar sukses**. Kalau
+user tidak menyelesaikan pembayaran, voucher tetap terpakai sia-sia.
+
+- Di `supabase/functions/checkout/index.ts`: HAPUS logic increment
+  `used_count` dari sini (voucher tetap divalidasi di sini untuk
+  menghitung harga, tapi TIDAK di-increment).
+- Di `supabase/functions/simulate-success/index.ts`: TAMBAHKAN logic
+  untuk increment `used_count` pada voucher yang dipakai invoice ini
+  (gunakan fungsi `increment_voucher_usage` yang sama dari Section 2),
+  dilakukan bersamaan dengan proses lain di situ (update invoice jadi
+  `paid`, buat enrollment). Perlu mengetahui voucher mana yang dipakai —
+  cek apakah ada cara untuk menyimpan referensi voucher pada invoice atau
+  invoice_items saat checkout (mungkin perlu menambah kolom `voucher_id`
+  pada `invoices` atau `invoice_items` supaya `simulate-success` tahu
+  voucher mana yang harus di-increment; kalau kolom ini belum ada,
+  laporkan ke saya perlu migrasi tambahan sebelum bisa
+  mengimplementasikan section ini dengan benar).
+
+## Section 4 — Blokir `simulate-success` di Production
+
+Edit `supabase/functions/simulate-success/index.ts`.
+
+Tambahkan pengecekan di awal fungsi menggunakan environment variable baru
+khusus `ALLOW_SIMULATE_SUCCESS` — kalau variable ini tidak di-set ke
+`'true'`, endpoint tetap boleh berjalan seperti sekarang (karena Mayar
+belum aktif, masih menunggu KYC). Ini hanya menyiapkan mekanismenya, BUKAN
+mengaktifkan blokir sekarang — cukup siapkan agar nanti saat Mayar live,
+saya tinggal set environment variable untuk menonaktifkan endpoint ini
+tanpa perlu deploy ulang kode.
+
+## Section 5 — `getInvoice()` Sertakan `bundle_id`
+
+Edit `src/lib/db.ts`, fungsi `getInvoice()`. Tambahkan `bundle_id` ke
+`select` pada query `invoice_items`, dan sertakan pada object yang
+dikembalikan (field `bundleId`).
+
+## Section 6 — Bersihkan Policy Duplikat di `user_profiles`
+
+Jalankan dulu untuk melihat semua policy yang ada:
+```sql
+SELECT policyname, cmd FROM pg_policies WHERE tablename = 'user_profiles' ORDER BY cmd, policyname;
+```
+Untuk setiap operasi (SELECT/INSERT/UPDATE) yang punya lebih dari satu
+policy dengan fungsi yang sama, hapus yang duplikat dan sisakan satu saja
+(perhatikan: untuk UPDATE, pastikan yang disisakan adalah policy yang
+sudah diperbaiki di SQL fix kritis sebelumnya, jangan sampai menghapus
+yang benar). Laporkan hasil pembersihan.
+
+## Section 7 — Migrasi `CartPage.tsx` dan Admin Pages dari Express ke `db.ts`
+
+Ini pekerjaan lebih besar, kerjakan terakhir setelah section 1-6 selesai:
+
+### 7a. `CartPage.tsx`
+Ganti `useListRecommendedClasses` (dari `@workspace/api-client-react`)
+dengan pemanggilan `listClasses()` dari `src/lib/db.ts` yang sudah ada,
+diikuti filter/limit di sisi client untuk mendapatkan efek "rekomendasi"
+yang setara (misal ambil beberapa kelas published secara acak/terbaru,
+exclude yang sudah ada di cart).
+
+### 7b. Admin Pages (`AdminClassesPage.tsx`, `AdminInstructorsPage.tsx`,
+`AdminSettingsPage.tsx`, `AdminTestimonialsPage.tsx`)
+Untuk masing-masing halaman, ganti hooks Express (`useListX`,
+`useCreateX`, `useUpdateX`, `useDeleteX`) dengan fungsi CRUD dari
+`src/lib/db.ts`. Cek dulu fungsi CRUD yang sudah ada di `db.ts` untuk
+masing-masing entity — kalau belum ada (misal belum ada `createClass`,
+`updateClass`, `deleteClass`), buat dulu mengikuti pola fungsi lain yang
+sudah ada di file yang sama, dengan pola `useMutation` manual
+menggantikan hooks generated.
+
+**PENTING**: sebelum mengganti setiap CRUD, verifikasi dulu struktur
+tabel yang sebenarnya di database (`information_schema.columns`) untuk
+memastikan field yang dipakai memang ada — jangan berasumsi dari schema
+Drizzle atau dari route Express lama, supaya tidak mengulang bug
+`bundle_id` yang pernah terjadi sebelumnya.
+
+---
+
+## Yang Tidak Boleh Berubah
+- Alur transaksi yang sudah diverifikasi benar (beli kelas individual,
+  beli bundle) tidak diubah strukturnya, hanya ditambah error handling
+- UI/tampilan halaman tidak berubah, murni perbaikan logic dan keamanan
+
+## Setelah Selesai
+1. Konfirmasi setiap section sudah selesai dengan ringkasan singkat
+2. Untuk Section 3, laporkan apakah perlu migrasi kolom tambahan pada
+   `invoices`/`invoice_items` sebelum bisa diimplementasikan penuh
+3. Untuk Section 7, laporkan progress migrasi per halaman — kalau ada
+   yang terlalu berisiko untuk diselesaikan sekaligus, boleh dipecah jadi
+   sesi terpisah dan laporkan sisanya
