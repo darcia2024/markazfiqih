@@ -1,0 +1,16 @@
+{
+  "buildCommand": "cd ../.. && pnpm --filter @workspace/markaz-fiqh run build",
+  "outputDirectory": "dist/public",
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://GANTI-DENGAN-URL-BACKEND-VERCEL.vercel.app/api/:path*"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/assets/(.*)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+    }
+  ]
+}
