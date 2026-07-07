@@ -94,7 +94,7 @@ async function buildInvoiceResponse(invoiceId: string) {
 
 // ── GET /checkout/:id — cek status invoice (untuk polling setelah redirect dari Mayar)
 router.get("/checkout/:id", requireAuth, async (req, res): Promise<void> => {
-  const { id } = req.params;
+  const { id } = req.params as { id: string };
 
   const response = await buildInvoiceResponse(id);
   if (!response) {

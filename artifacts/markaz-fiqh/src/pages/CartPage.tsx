@@ -176,7 +176,7 @@ function WaitingForPaymentView({
   onFailed: () => void;
 }) {
   const { data: invoice } = useGetCheckout(invoiceId, {
-    query: { refetchInterval: 3000 },
+    query: { refetchInterval: 3000 } as any,
   });
 
   useEffect(() => {

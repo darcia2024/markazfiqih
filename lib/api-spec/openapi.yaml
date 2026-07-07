@@ -675,6 +675,8 @@ components:
         - moduleCount
         - totalDurationMinutes
         - youtubePlaylistId
+        - gdriveMateriUrl
+        - waGroupUrl
       properties:
         id:
           type: string
@@ -698,6 +700,10 @@ components:
         category:
           type: ["string", "null"]
         youtubePlaylistId:
+          type: ["string", "null"]
+        gdriveMateriUrl:
+          type: ["string", "null"]
+        waGroupUrl:
           type: ["string", "null"]
         instructor:
           $ref: "#/components/schemas/InstructorSummary"

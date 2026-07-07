@@ -44,7 +44,7 @@ router.post("/testimonials", requireAuth, requireAdmin, async (req, res): Promis
 });
 
 router.put("/testimonials/:id", requireAuth, requireAdmin, async (req, res): Promise<void> => {
-  const { id } = req.params;
+  const { id } = req.params as { id: string };
   const body = UpdateTestimonialBody.safeParse(req.body);
   if (!body.success) {
     res.status(400).json({ error: body.error.message });
@@ -72,7 +72,7 @@ router.put("/testimonials/:id", requireAuth, requireAdmin, async (req, res): Pro
 });
 
 router.delete("/testimonials/:id", requireAuth, requireAdmin, async (req, res): Promise<void> => {
-  const { id } = req.params;
+  const { id } = req.params as { id: string };
 
   const [row] = await db.delete(testimonialsTable).where(eq(testimonialsTable.id, id)).returning();
 

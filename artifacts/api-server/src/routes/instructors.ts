@@ -58,7 +58,7 @@ router.post("/instructors", requireAuth, requireAdmin, async (req, res): Promise
 });
 
 router.put("/instructors/:id", requireAuth, requireAdmin, async (req, res): Promise<void> => {
-  const { id } = req.params;
+  const { id } = req.params as { id: string };
   const body = UpdateInstructorBody.safeParse(req.body);
   if (!body.success) {
     res.status(400).json({ error: body.error.message });
@@ -95,7 +95,7 @@ router.put("/instructors/:id", requireAuth, requireAdmin, async (req, res): Prom
 });
 
 router.delete("/instructors/:id", requireAuth, requireAdmin, async (req, res): Promise<void> => {
-  const { id } = req.params;
+  const { id } = req.params as { id: string };
 
   const [deleted] = await db.delete(instructorsTable).where(eq(instructorsTable.id, id)).returning();
 

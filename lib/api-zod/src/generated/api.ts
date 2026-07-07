@@ -107,6 +107,8 @@ export const GetClassByIdResponse = zod.object({
   "level": zod.union([zod.literal('pemula'),zod.literal('menengah'),zod.literal('lanjutan'),zod.literal(null)]).nullable(),
   "category": zod.string().nullable(),
   "youtubePlaylistId": zod.string().nullable(),
+  "gdriveMateriUrl": zod.string().nullable(),
+  "waGroupUrl": zod.string().nullable(),
   "instructor": zod.object({
   "id": zod.string().uuid(),
   "name": zod.string(),

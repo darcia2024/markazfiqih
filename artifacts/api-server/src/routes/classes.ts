@@ -196,7 +196,7 @@ router.get("/classes", optionalAuth, async (req, res): Promise<void> => {
 });
 
 router.get("/classes/:id", async (req, res): Promise<void> => {
-  const { id } = req.params;
+  const { id } = req.params as { id: string };
 
   const rows = await db
     .select({
@@ -324,7 +324,7 @@ router.post("/classes", requireAuth, requireAdmin, async (req, res): Promise<voi
 });
 
 router.put("/classes/:id", requireAuth, requireAdmin, async (req, res): Promise<void> => {
-  const { id } = req.params;
+  const { id } = req.params as { id: string };
   const body = UpdateClassBody.safeParse(req.body);
   if (!body.success) {
     res.status(400).json({ error: body.error.message });
@@ -384,7 +384,7 @@ router.put("/classes/:id", requireAuth, requireAdmin, async (req, res): Promise<
 });
 
 router.delete("/classes/:id", requireAuth, requireAdmin, async (req, res): Promise<void> => {
-  const { id } = req.params;
+  const { id } = req.params as { id: string };
 
   const [deleted] = await db.delete(classesTable).where(eq(classesTable.id, id)).returning();
 

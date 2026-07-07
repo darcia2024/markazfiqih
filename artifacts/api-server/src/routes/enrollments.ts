@@ -143,7 +143,7 @@ router.get("/enrollments", requireAuth, async (req, res): Promise<void> => {
 });
 
 router.put("/enrollments/:id/complete", requireAuth, async (req, res): Promise<void> => {
-  const { id } = req.params;
+  const { id } = req.params as { id: string };
   // Ambil userId dari token — tidak dari query/body
   const userId = req.auth!.userId;
 
