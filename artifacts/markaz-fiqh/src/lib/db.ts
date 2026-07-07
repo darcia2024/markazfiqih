@@ -183,10 +183,12 @@ export async function getClassById(id: string) {
 
 // ─── INSTRUCTORS ──────────────────────────────────────────────────────────────
 
+/** Hanya instruktur aktif — untuk tampilan publik (Katalog, Landing Page). */
 export async function listInstructors() {
   const { data, error } = await supabase
     .from('instructors')
     .select('id, name, bio, photo_url')
+    .eq('is_active', true)
     .order('name');
   if (error) throw error;
   return (data ?? []).map((i: any) => ({
@@ -194,6 +196,22 @@ export async function listInstructors() {
     name: i.name as string,
     bio: i.bio as string | null,
     photoUrl: i.photo_url as string,
+  }));
+}
+
+/** Semua instruktur termasuk nonaktif — khusus Admin Panel. */
+export async function listAllInstructorsForAdmin() {
+  const { data, error } = await supabase
+    .from('instructors')
+    .select('id, name, bio, photo_url, is_active')
+    .order('name');
+  if (error) throw error;
+  return (data ?? []).map((i: any) => ({
+    id: i.id as string,
+    name: i.name as string,
+    bio: i.bio as string | null,
+    photoUrl: i.photo_url as string,
+    isActive: i.is_active as boolean,
   }));
 }
 

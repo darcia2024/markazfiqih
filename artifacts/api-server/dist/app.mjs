@@ -46023,7 +46023,8 @@ var ListInstructorsResponseItem = objectType({
   "name": stringType(),
   "bio": stringType(),
   "photoUrl": stringType(),
-  "classCount": numberType()
+  "classCount": numberType(),
+  "isActive": booleanType()
 });
 var ListInstructorsResponse = arrayType(ListInstructorsResponseItem);
 var CreateInstructorBody = objectType({
@@ -46036,7 +46037,8 @@ var CreateInstructorResponse = objectType({
   "name": stringType(),
   "bio": stringType(),
   "photoUrl": stringType(),
-  "classCount": numberType()
+  "classCount": numberType(),
+  "isActive": booleanType()
 });
 var UpdateInstructorParams = objectType({
   "id": coerce.string().uuid()
@@ -46044,14 +46046,16 @@ var UpdateInstructorParams = objectType({
 var UpdateInstructorBody = objectType({
   "name": stringType().optional(),
   "bio": stringType().optional(),
-  "photoUrl": stringType().optional()
+  "photoUrl": stringType().optional(),
+  "isActive": booleanType().optional()
 });
 var UpdateInstructorResponse = objectType({
   "id": stringType().uuid(),
   "name": stringType(),
   "bio": stringType(),
   "photoUrl": stringType(),
-  "classCount": numberType()
+  "classCount": numberType(),
+  "isActive": booleanType()
 });
 var DeleteInstructorParams = objectType({
   "id": coerce.string().uuid()
@@ -64875,6 +64879,7 @@ var instructorsTable = pgTable("instructors", {
   name: text("name").notNull(),
   bio: text("bio").notNull().default(""),
   photoUrl: text("photo_url").notNull().default(""),
+  isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => /* @__PURE__ */ new Date())
 });
@@ -73333,7 +73338,8 @@ router3.get("/instructors", async (_req, res) => {
     name: instructor.name,
     bio: instructor.bio,
     photoUrl: instructor.photoUrl,
-    classCount: countByInstructor.get(instructor.id) ?? 0
+    classCount: countByInstructor.get(instructor.id) ?? 0,
+    isActive: instructor.isActive
   }));
   res.json(ListInstructorsResponse.parse(result));
 });
@@ -73349,7 +73355,8 @@ router3.post("/instructors", requireAuth, requireAdmin, async (req, res) => {
     name: inserted.name,
     bio: inserted.bio,
     photoUrl: inserted.photoUrl,
-    classCount: 0
+    classCount: 0,
+    isActive: inserted.isActive
   };
   res.status(201).json(CreateInstructorResponse.parse(result));
 });
@@ -73372,7 +73379,8 @@ router3.put("/instructors/:id", requireAuth, requireAdmin, async (req, res) => {
     name: updated.name,
     bio: updated.bio,
     photoUrl: updated.photoUrl,
-    classCount
+    classCount,
+    isActive: updated.isActive
   };
   res.json(UpdateInstructorResponse.parse(result));
 });

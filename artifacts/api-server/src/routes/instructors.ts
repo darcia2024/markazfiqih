@@ -32,6 +32,7 @@ router.get("/instructors", async (_req, res): Promise<void> => {
     bio: instructor.bio,
     photoUrl: instructor.photoUrl,
     classCount: countByInstructor.get(instructor.id) ?? 0,
+    isActive: instructor.isActive,
   }));
 
   res.json(ListInstructorsResponse.parse(result));
@@ -52,6 +53,7 @@ router.post("/instructors", requireAuth, requireAdmin, async (req, res): Promise
     bio: inserted.bio,
     photoUrl: inserted.photoUrl,
     classCount: 0,
+    isActive: inserted.isActive,
   };
 
   res.status(201).json(CreateInstructorResponse.parse(result));
@@ -89,6 +91,7 @@ router.put("/instructors/:id", requireAuth, requireAdmin, async (req, res): Prom
     bio: updated.bio,
     photoUrl: updated.photoUrl,
     classCount,
+    isActive: updated.isActive,
   };
 
   res.json(UpdateInstructorResponse.parse(result));

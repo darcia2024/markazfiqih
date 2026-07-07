@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   Dialog,
@@ -40,12 +41,14 @@ type InstructorFormState = {
   name: string;
   bio: string;
   photoUrl: string;
+  isActive: boolean;
 };
 
 const EMPTY_FORM: InstructorFormState = {
   name: '',
   bio: '',
   photoUrl: '',
+  isActive: true,
 };
 
 function instructorToForm(ins: InstructorSummary): InstructorFormState {
@@ -53,6 +56,7 @@ function instructorToForm(ins: InstructorSummary): InstructorFormState {
     name: ins.name,
     bio: ins.bio ?? '',
     photoUrl: ins.photoUrl ?? '',
+    isActive: ins.isActive ?? true,
   };
 }
 
@@ -73,6 +77,8 @@ export default function AdminInstructorsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Admin melihat SEMUA instruktur (termasuk nonaktif) via Express backend.
+  // GET /api/instructors tidak memfilter is_active — semua row dikembalikan.
   const instructorsQuery = useListInstructors();
   const instructors = instructorsQuery.data ?? [];
 
@@ -155,12 +161,13 @@ export default function AdminInstructorsPage() {
       name: form.name.trim(),
       bio: form.bio.trim() || undefined,
       photoUrl: form.photoUrl.trim() || undefined,
+      isActive: form.isActive,
     };
 
     if (editingInstructor) {
       updateMutation.mutate({ id: editingInstructor.id, data: payload });
     } else {
-      createMutation.mutate({ data: payload });
+      createMutation.mutate({ data: { name: payload.name, bio: payload.bio, photoUrl: payload.photoUrl } });
     }
   }
 
@@ -210,7 +217,11 @@ export default function AdminInstructorsPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {instructors.map((ins) => (
-              <Card key={ins.id} data-testid={`card-instructor-${ins.id}`} className="overflow-hidden">
+              <Card
+                key={ins.id}
+                data-testid={`card-instructor-${ins.id}`}
+                className={`overflow-hidden ${!ins.isActive ? 'opacity-60 border-dashed' : ''}`}
+              >
                 <CardContent className="p-5 flex flex-col gap-4">
                   {/* Avatar + Name + Badge */}
                   <div className="flex items-start gap-3">
@@ -224,9 +235,16 @@ export default function AdminInstructorsPage() {
                       <p className="font-semibold text-foreground text-sm leading-tight truncate">
                         {ins.name}
                       </p>
-                      <Badge variant="secondary" className="mt-1 text-xs font-normal">
-                        {ins.classCount} kelas published
-                      </Badge>
+                      <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                        <Badge variant="secondary" className="text-xs font-normal">
+                          {ins.classCount} kelas published
+                        </Badge>
+                        {!ins.isActive && (
+                          <Badge variant="destructive" className="text-xs font-normal">
+                            Nonaktif
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -328,6 +346,25 @@ export default function AdminInstructorsPage() {
                   Preview foto di sebelah kiri akan otomatis berubah saat URL diisi.
                 </p>
               </div>
+
+              {/* Toggle Aktif — hanya tampil saat edit, bukan tambah baru */}
+              {editingInstructor && (
+                <div className="flex items-center justify-between rounded-lg border border-border px-4 py-3 bg-muted/30">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Status Pengajar</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {form.isActive
+                        ? 'Aktif — tampil di katalog dan landing page'
+                        : 'Nonaktif — tersembunyi dari tampilan publik'}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={form.isActive}
+                    onCheckedChange={(checked) => setForm((p) => ({ ...p, isActive: checked }))}
+                    data-testid="switch-instructor-active"
+                  />
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>

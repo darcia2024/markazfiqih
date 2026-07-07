@@ -24,6 +24,7 @@ export interface InstructorSummary {
   bio: string;
   photoUrl: string;
   classCount: number;
+  isActive: boolean;
 }
 
 export interface ClassInstructor {
@@ -213,6 +214,7 @@ export interface UpdateInstructorRequest {
   name?: string;
   bio?: string;
   photoUrl?: string;
+  isActive?: boolean;
 }
 
 export interface CartItem {

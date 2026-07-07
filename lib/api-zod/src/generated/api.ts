@@ -195,7 +195,8 @@ export const ListInstructorsResponseItem = zod.object({
   "name": zod.string(),
   "bio": zod.string(),
   "photoUrl": zod.string(),
-  "classCount": zod.number()
+  "classCount": zod.number(),
+  "isActive": zod.boolean()
 })
 export const ListInstructorsResponse = zod.array(ListInstructorsResponseItem)
 
@@ -214,7 +215,8 @@ export const CreateInstructorResponse = zod.object({
   "name": zod.string(),
   "bio": zod.string(),
   "photoUrl": zod.string(),
-  "classCount": zod.number()
+  "classCount": zod.number(),
+  "isActive": zod.boolean()
 })
 
 
@@ -228,7 +230,8 @@ export const UpdateInstructorParams = zod.object({
 export const UpdateInstructorBody = zod.object({
   "name": zod.string().optional(),
   "bio": zod.string().optional(),
-  "photoUrl": zod.string().optional()
+  "photoUrl": zod.string().optional(),
+  "isActive": zod.boolean().optional()
 })
 
 export const UpdateInstructorResponse = zod.object({
@@ -236,7 +239,8 @@ export const UpdateInstructorResponse = zod.object({
   "name": zod.string(),
   "bio": zod.string(),
   "photoUrl": zod.string(),
-  "classCount": zod.number()
+  "classCount": zod.number(),
+  "isActive": zod.boolean()
 })
 
 
