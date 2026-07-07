@@ -97,8 +97,8 @@ function HeroSection({
         {/* Gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-[hsl(var(--brand-red-deep))]/90 via-[hsl(var(--brand-red-deep))]/40 to-transparent" />
 
-        {/* Top-right: social icons */}
-        <div className="absolute top-5 right-5 z-10 flex items-center gap-2">
+        {/* Bottom-right: social icons */}
+        <div className="absolute bottom-5 right-5 z-10 flex items-center gap-2">
           <span className="text-xs font-medium text-white/90 mr-1">Ikuti Kami</span>
           {socialLinks.map(({ label, icon: Icon, href }) => (
             <a
