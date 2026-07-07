@@ -1,0 +1,67 @@
+# Prompt 25 (Revisi — Simpel): Tambah Aksen Warna Gold
+
+## Koreksi dari Prompt Sebelumnya
+Prompt 25 versi awal (ornamen ribbon SVG + diamond) **tidak perlu
+dikerjakan** — itu terlalu rumit dari yang diminta. Kalau prompt itu sudah
+sempat dijalankan, boleh di-revert komponennya, tapi kalau belum, cukup
+abaikan dan kerjakan prompt ini sebagai gantinya.
+
+## Yang Diminta (Simpel)
+Website sekarang murni merah + putih tanpa sentuhan warna ketiga. Tambahkan
+aksen warna **gold** (pakai `hsl(var(--accent))` yang sudah ada di CSS
+variables, sudah dipakai di tombol CTA "Jelajahi Kelas") di beberapa titik
+yang sekarang masih polos merah-putih saja — supaya tampilan terasa lebih
+hidup, tanpa menambah elemen dekoratif rumit (tidak perlu SVG ribbon,
+ornamen diamond, atau sejenisnya). Cukup pemakaian warna gold pada elemen
+yang sudah ada: border, teks aktif, ikon, garis pemisah, dsb.
+
+Tetap pertahankan aturan dasar: background merah (`--primary` / gradient
+merah brand), teks putih di atas background merah, aksen gold sebagai
+warna ketiga — proporsinya tetap merah dan putih dominan, gold secukupnya
+sebagai highlight.
+
+## Titik yang Perlu Disentuh
+
+### 1. `AppSidebar` (di `artifacts/markaz-fiqh/src/components/AppShell.tsx`)
+Sidebar ini solid merah + putih tanpa gold sama sekali, padahal dipakai di
+semua halaman internal (Dashboard, Katalog, My Classes, Learn, Cart, dll)
+— jadi ini titik paling berdampak untuk diperbaiki:
+- Menu item yang sedang aktif (state `isActive`, sekarang `bg-white text-
+  primary`) — tambahkan aksen gold, misal border kiri tipis warna gold
+  (`border-l-2 border-[hsl(var(--accent))]`) di sebelah menu aktif itu.
+- Icon pada menu (Dashboard, Katalog Kelas, Kelas Saya) boleh diberi warna
+  gold saat hover atau saat aktif, alih-alih tetap putih/merah polos.
+- Divider/border yang sudah ada (`border-white/10`, `border-white/20`) di
+  bawah header logo dan di atas area profil user — pertimbangkan salah
+  satu di antaranya diberi warna gold tipis (`border-[hsl(var(--accent))]/
+  30`) sebagai aksen, tidak perlu semuanya.
+
+### 2. Cek Halaman Lain yang Juga Polos Merah-Putih
+Cek `LandingPage.tsx`, `DashboardPage.tsx`, `CatalogPage.tsx`, dan halaman
+lain — cari section/elemen yang saat ini murni merah solid atau putih
+polos tanpa gold sama sekali (badge, divider, border card, garis
+underline pada heading, dll), dan tambahkan aksen gold tipis di beberapa
+titik yang terasa pas. Contoh penerapan yang wajar:
+- Underline tipis gold di bawah heading section
+- Border tipis gold pada card yang di-hover
+- Warna gold untuk ikon-ikon kecil yang sebelumnya default merah/putih
+- Divider/separator garis dengan warna gold alih-alih abu-abu netral, di
+  tempat yang berdekatan dengan area merah brand
+
+Jangan mengubah semua elemen sekaligus — pilih titik-titik yang paling
+terasa "kosong"/polos dan beri sentuhan gold di situ. Tujuannya distribusi
+merata sebagai aksen, bukan mendominasi.
+
+## Yang Tidak Boleh Berubah
+- Warna dasar background tetap merah (`--primary` dan turunannya), teks
+  tetap putih di atas merah — proporsi warna tidak berubah drastis
+- Tidak ada perubahan layout atau struktur komponen, murni penyesuaian
+  warna pada elemen yang sudah ada
+- Warna gold yang dipakai harus dari CSS variables yang sudah ada
+  (`--accent`, `--brand-gold-hover`, `--brand-gold-pale`) — tidak
+  menambah warna hex baru di luar palet project
+- Tidak menambahkan elemen dekoratif baru (SVG, ornamen, ilustrasi) —
+  murni penyesuaian warna pada elemen yang sudah ada
+
+## Setelah selesai
+Kasih ringkasan titik-titik mana saja yang diberi aksen gold.

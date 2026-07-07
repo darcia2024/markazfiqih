@@ -18,6 +18,7 @@ import {
   CreditCard,
   Unlock,
   TrendingUp,
+  MessageCircle,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -33,6 +34,14 @@ import {
   ClassCardSkeleton,
   type ClassSummary,
 } from '@/pages/CatalogPage';
+
+// ── Helper: konversi nomor lokal ke format wa.me (internasional) ────────────
+function toWaUrl(phone: string): string {
+  const digits = phone.replace(/\D/g, '');
+  if (digits.startsWith('62')) return `https://wa.me/${digits}`;
+  if (digits.startsWith('0')) return `https://wa.me/62${digits.slice(1)}`;
+  return `https://wa.me/${digits}`;
+}
 
 // ── Ikon TikTok (belum tersedia di lucide-react, jadi pakai SVG custom) ────
 function TikTokIcon({ className }: { className?: string }) {
@@ -86,48 +95,56 @@ function HeroSection({
   socialLinks: Array<{ label: string; icon: typeof Instagram | typeof TikTokIcon; href: string }>;
 }) {
   return (
-    <section className="bg-gradient-to-r from-primary to-[hsl(var(--brand-red-hover))]">
-      <div className="relative overflow-hidden">
+    <section className="relative bg-gradient-to-br from-primary to-[hsl(var(--brand-red-hover))] overflow-hidden">
+      {/* Grid dekoratif sangat subtle */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0"
+        style={{
+          backgroundImage:
+            'linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px)',
+          backgroundSize: '48px 48px',
+        }}
+      />
 
-        {/* Layout utama: 2 kolom flex, centered vertically */}
-        <div className="relative z-10 flex items-center h-[520px] sm:h-[580px] px-8 sm:px-12">
+      {/* Konten — satu kolom, center penuh */}
+      <div className="relative z-10 flex flex-col items-center text-center px-5 sm:px-8 py-16 sm:py-20">
 
-          {/* Kolom kiri: badge + judul besar + deskripsi + CTA */}
-          <div className="flex-1 max-w-2xl">
-
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 border border-white/20 bg-white/10 rounded-full px-4 py-1.5 mb-6">
-              <span className="h-1.5 w-1.5 rounded-full bg-[hsl(var(--accent))]" />
-              <span className="text-xs font-medium text-white/80 tracking-wide">
-                Kelas Terverifikasi &amp; Fleksibel
-              </span>
-            </div>
-
-            <h1 className="font-serif text-5xl sm:text-6xl lg:text-7xl font-bold text-white leading-[1.05] tracking-tight text-center">
-              Belajar Fiqih Terstruktur.{' '}
-              <span className="block">Berkembang Lebih Cepat.</span>
-            </h1>
-            <p className="text-white/80 text-base mt-5 leading-relaxed max-w-lg">
-              Markaz Fiqih menghadirkan kelas-kelas fiqih madzhab Syafi'i yang tersusun rapi,
-              dibimbing langsung oleh para pengajar berkompeten — mulai dari thaharah hingga
-              kajian kitab klasik, semua bisa kamu pelajari sesuai ritme belajarmu sendiri.
-            </p>
-            <div className="mt-7">
-              <Button
-                asChild
-                size="lg"
-                className="h-[48px] px-8 text-sm font-semibold rounded-[10px] bg-[hsl(var(--accent))] text-white hover:bg-[hsl(var(--brand-gold-hover))]"
-              >
-                <Link href="/katalog">Jelajahi Kelas</Link>
-              </Button>
-            </div>
-          </div>
-
+        {/* Badge pill */}
+        <div className="inline-flex items-center gap-2 border border-white/15 bg-white/10 rounded-full px-4 py-1.5 mb-7">
+          <span className="h-1.5 w-1.5 rounded-full bg-[hsl(var(--accent))]" />
+          <span className="text-xs font-medium text-white/80 tracking-wide">
+            Kelas Terverifikasi &amp; Fleksibel
+          </span>
         </div>
 
-        {/* Social icons — pojok kanan bawah */}
-        <div className="absolute bottom-5 right-5 z-10 flex items-center gap-2">
-          <span className="text-xs font-medium text-white/90 mr-1">Ikuti Kami</span>
+        {/* Judul */}
+        <h1 className="font-serif text-5xl sm:text-6xl lg:text-7xl font-bold text-white leading-[1.1] tracking-tight max-w-4xl">
+          Belajar Fiqih Terstruktur.{' '}
+          <span className="block">Berkembang Lebih Cepat.</span>
+        </h1>
+
+        {/* Deskripsi */}
+        <p className="text-white/75 text-base mt-6 leading-relaxed max-w-xl">
+          Markaz Fiqih menghadirkan kelas-kelas fiqih madzhab Syafi'i yang tersusun rapi,
+          dibimbing langsung oleh para pengajar berkompeten — mulai dari thaharah hingga
+          kajian kitab klasik, semua bisa kamu pelajari sesuai ritme belajarmu sendiri.
+        </p>
+
+        {/* CTA */}
+        <div className="mt-8">
+          <Button
+            asChild
+            size="lg"
+            className="h-[48px] px-8 text-sm font-semibold rounded-[10px] bg-[hsl(var(--accent))] text-white hover:bg-[hsl(var(--brand-gold-hover))]"
+          >
+            <Link href="/katalog">Jelajahi Kelas</Link>
+          </Button>
+        </div>
+
+        {/* Social links */}
+        <div className="mt-10 flex items-center gap-3">
+          <span className="text-xs font-medium text-white/75">Ikuti Kami</span>
           {socialLinks.map(({ label, icon: Icon, href }) => (
             <a
               key={label}
@@ -141,6 +158,7 @@ function HeroSection({
             </a>
           ))}
         </div>
+
       </div>
     </section>
   );
@@ -181,7 +199,7 @@ function HowItWorksSection() {
       <div className="container mx-auto px-5 sm:px-8 lg:px-16 py-16 max-w-[1200px]">
         {/* Blok teks atas */}
         <div className="max-w-2xl mb-8">
-          <p className="text-xs font-semibold tracking-wider text-primary uppercase">
+          <p className="text-xs font-semibold tracking-wider text-[hsl(var(--accent))] uppercase">
             Cara Belajar
           </p>
           <h2 className="font-serif text-2xl sm:text-3xl font-bold mt-2 text-foreground">
@@ -214,7 +232,7 @@ function HowItWorksSection() {
                 >
                   {/* Icon */}
                   <div className="h-10 w-10 rounded-full bg-white/15 flex items-center justify-center mb-3">
-                    <Icon className="h-5 w-5 text-white" />
+                    <Icon className="h-5 w-5 text-[hsl(var(--accent))]" />
                   </div>
 
                   {/* Step badge */}
@@ -280,7 +298,7 @@ function FeaturedClassesSection({
             asChild
             variant="outline"
             size="lg"
-            className="h-[44px] px-6 text-sm font-semibold rounded-[10px] border-2 border-primary text-primary hover:bg-[hsl(var(--brand-red-tint))] hover:border-brand-red-hover hover:text-brand-red-hover"
+            className="h-[44px] px-6 text-sm font-semibold rounded-[10px] border-2 border-[hsl(var(--accent))] text-[hsl(var(--accent))] hover:bg-[hsl(var(--accent))]/5 hover:border-[hsl(var(--brand-gold-hover))] hover:text-[hsl(var(--brand-gold-hover))]"
           >
             <Link href="/katalog">
               Lihat Semua Kelas
@@ -304,7 +322,7 @@ function CategorySection({
   if (!isLoading && categoryCounts.length === 0) return null;
 
   return (
-    <section className="bg-[hsl(var(--brand-red-tint))]">
+    <section className="bg-background">
       <div className="container mx-auto px-5 sm:px-8 lg:px-16 py-12 sm:py-16 max-w-[1200px]">
         <h2 className="font-serif text-[26px] font-semibold text-foreground leading-8 mb-6">
           Kategori Kelas
@@ -371,13 +389,13 @@ function AboutSection({
   testimonials: Array<{ id: string; name: string; role: string | null; content: string }>;
 }) {
   return (
-    <section className="bg-[hsl(var(--brand-red-tint))]">
+    <section className="bg-background">
       <div className="container mx-auto px-5 sm:px-8 lg:px-16 py-16 max-w-[1200px]">
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-10 lg:gap-14 items-start">
 
           {/* Kolom kiri — teks (3/5 lebar) */}
           <div className="lg:col-span-3">
-            <p className="text-xs font-semibold tracking-wider text-primary uppercase mb-4">
+            <p className="text-xs font-semibold tracking-wider text-[hsl(var(--accent))] uppercase mb-4">
               Tentang Kami
             </p>
 
@@ -520,9 +538,9 @@ const GALLERY_PHOTOS = [
 
 function GallerySection() {
   return (
-    <section className="bg-[hsl(var(--brand-red-tint))]">
+    <section className="bg-background">
       <div className="container mx-auto px-5 sm:px-8 lg:px-16 py-12 sm:py-16 max-w-[1200px]">
-        <p className="text-xs font-semibold tracking-wider text-primary uppercase mb-2">
+        <p className="text-xs font-semibold tracking-wider text-[hsl(var(--accent))] uppercase mb-2">
           Galeri
         </p>
         <h2 className="font-serif text-[26px] font-semibold text-foreground leading-8 mb-2">
@@ -554,34 +572,55 @@ function GallerySection() {
 // ── Sosial Media ─────────────────────────────────────────────────────────
 function SocialSection({
   socialLinks,
+  contactPhone,
 }: {
   socialLinks: Array<{ label: string; icon: typeof Instagram | typeof TikTokIcon; href: string }>;
+  contactPhone: string | null;
 }) {
   return (
-    <section className="bg-[hsl(var(--brand-red-tint))]">
-      <div className="container mx-auto px-5 sm:px-8 lg:px-16 py-12 max-w-[1200px] text-center">
-        <h2 className="font-serif text-[22px] font-semibold text-foreground leading-8 mb-1">
-          Ikuti Kami
+    <section className="bg-gradient-to-br from-primary to-[hsl(var(--brand-red-hover))]">
+      <div className="container mx-auto px-5 sm:px-8 lg:px-16 py-14 max-w-[1200px] text-center">
+        <h2 className="font-serif text-2xl font-bold text-white mb-2">
+          Ikuti &amp; Hubungi Kami
         </h2>
-        <p className="text-sm text-muted-foreground mb-6">
-          Dapatkan kajian dan info kelas terbaru di media sosial kami
+        <p className="text-sm text-white/70 mb-10 max-w-md mx-auto">
+          Dapatkan kajian, info kelas terbaru, dan tanya langsung ke admin kami
+          di media sosial atau WhatsApp.
         </p>
 
-        <div className="flex items-center justify-center gap-3">
+        {/* Ikon sosial media dengan label */}
+        <div className="flex items-end justify-center gap-5 flex-wrap mb-10">
           {socialLinks.map(({ label, icon: Icon, href }) => (
-            <Button
+            <a
               key={label}
-              asChild
-              variant="ghost"
-              size="icon"
-              className="h-11 w-11 rounded-full bg-card border border-border text-primary hover:text-primary"
+              href={href || '#'}
+              aria-label={label}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col items-center gap-2 group"
             >
-              <a href={href || '#'} aria-label={label} target="_blank" rel="noopener noreferrer">
+              <span className="h-12 w-12 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white group-hover:bg-[hsl(var(--accent))] group-hover:border-[hsl(var(--accent))] group-hover:scale-110 group-hover:shadow-lg transition-all duration-200">
                 <Icon className="h-5 w-5" />
-              </a>
-            </Button>
+              </span>
+              <span className="text-[11px] font-medium text-white/60 group-hover:text-white/90 transition-colors">
+                {label}
+              </span>
+            </a>
           ))}
         </div>
+
+        {/* Tombol WhatsApp Admin — hanya tampil kalau contactPhone tersedia */}
+        {contactPhone && (
+          <a
+            href={toWaUrl(contactPhone)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2.5 h-[48px] px-7 rounded-[10px] bg-[hsl(var(--accent))] text-white text-sm font-semibold hover:bg-[hsl(var(--brand-gold-hover))] hover:scale-[1.02] shadow-lg transition-all duration-200"
+          >
+            <MessageCircle className="h-4.5 w-4.5 shrink-0" />
+            Chat Admin via WhatsApp
+          </a>
+        )}
       </div>
     </section>
   );
@@ -682,7 +721,7 @@ export default function LandingPage() {
 
         <GallerySection />
 
-        <SocialSection socialLinks={socialLinks} />
+        <SocialSection socialLinks={socialLinks} contactPhone={settings?.contactPhone ?? null} />
       </main>
 
       <LandingFooter socialLinks={socialLinks} />

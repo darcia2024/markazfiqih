@@ -527,6 +527,32 @@ function LearnContent() {
     );
   }
 
+  // ── No content: kelas sudah published tapi belum ada modul/dars maupun playlist ──
+  const hasNoContent = !classDetail.youtubePlaylistId && classDetail.modules.length === 0;
+
+  if (hasNoContent) {
+    return (
+      <AppShell>
+        <div className="flex-1 flex items-center justify-center flex-col gap-4 text-center px-4 py-16">
+          <BookOpen className="w-12 h-12 text-muted-foreground" />
+          <div>
+            <h1 className="font-serif text-2xl font-bold text-foreground">
+              Materi Belum Tersedia
+            </h1>
+            <p className="text-muted-foreground mt-2 max-w-md">
+              Kelas &ldquo;{classDetail.title}&rdquo; sudah bisa kamu akses, tapi materinya
+              sedang disiapkan oleh pengajar. Kami akan kabari begitu materi
+              sudah bisa ditonton.
+            </p>
+          </div>
+          <Button asChild variant="outline">
+            <Link href="/my-classes">Kembali ke Kelas Saya</Link>
+          </Button>
+        </div>
+      </AppShell>
+    );
+  }
+
   // ── Normal mode: existing modul/dars breakdown ────────────────────────────────
   return (
     <AppShell>

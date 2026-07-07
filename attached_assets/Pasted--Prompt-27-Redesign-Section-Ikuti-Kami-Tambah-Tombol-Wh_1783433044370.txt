@@ -1,0 +1,81 @@
+# Prompt 27: Redesign Section "Ikuti Kami" + Tambah Tombol WhatsApp Admin
+
+## Konteks
+Link sosial media Markaz Fiqih sudah diupdate langsung di database
+(`site_settings` — bukan hardcode di kode, jadi tidak perlu diubah di
+sini). Data `contactPhone` (nomor WA admin) juga sudah tersedia di
+`getSettings()` tapi belum dipakai untuk tombol WhatsApp yang bisa
+langsung diklik dari landing page.
+
+Section "Ikuti Kami" saat ini (`SocialSection` di `LandingPage.tsx`,
+sekitar baris 495-528) hanya berupa deretan ikon bulat polos, terasa
+kurang menarik. Redesign section ini supaya lebih hidup, dan tambahkan
+tombol WhatsApp Admin sebagai CTA tambahan.
+
+## Perubahan
+
+Edit `artifacts/markaz-fiqh/src/pages/LandingPage.tsx`, fungsi
+`SocialSection`.
+
+### 1. Tambahkan prop `contactPhone`
+Update signature fungsi untuk menerima `contactPhone: string | null` dari
+parent, dan cari tempat `<SocialSection ... />` dipanggil (dekat akhir
+file, di komponen utama `LandingPage`) — pastikan `settings?.contactPhone`
+diteruskan sebagai prop baru ini.
+
+### 2. Redesign Visual Section
+Alih-alih ikon bulat polos berjajar, buat card/panel yang lebih menarik:
+- Background section boleh tetap `bg-[hsl(var(--brand-red-tint))]` (pink
+  pucat) atau diubah jadi card gradient crimson solid yang membungkus
+  seluruh konten section (pilih yang secara visual lebih menyatu dengan
+  section-section lain di sekitarnya — cek section sebelum dan sesudahnya
+  untuk konsistensi warna berselang-seling).
+- Ikon sosial media: pertahankan sebagai tombol bulat, tapi beri sedikit
+  peningkatan — hover effect yang lebih jelas (scale + shadow berwarna
+  sesuai brand platform masing-masing opsional, atau tetap gold/crimson
+  brand konsisten), dan ukuran sedikit lebih besar untuk kemudahan klik
+  di mobile (`h-12 w-12` alih-alih `h-11 w-11`).
+- Tambahkan label kecil di bawah tiap ikon (misal "Instagram",
+  "Facebook", dst) supaya lebih jelas dan aksesibel, alih-alih ikon polos
+  tanpa keterangan.
+
+### 3. Tambahkan Tombol WhatsApp Admin
+Di bawah deretan ikon sosial media, tambahkan tombol CTA terpisah yang
+lebih menonjol untuk menghubungi admin via WhatsApp:
+- Tombol dengan ikon WhatsApp (cek apakah `lucide-react` punya ikon
+  WhatsApp — kalau tidak ada, gunakan ikon `MessageCircle` sebagai
+  gantinya, atau buat SVG custom sederhana mengikuti pola `TikTokIcon`
+  yang sudah ada di file ini sebagai referensi cara membuat ikon custom)
+- Label tombol: "Chat Admin via WhatsApp" atau serupa (sesuaikan supaya
+  natural, boleh diringkas)
+- Link tombol: `https://wa.me/<nomor tanpa awalan 0, ganti jadi 62>` —
+  konversi format nomor dari `contactPhone` (misal `082357510135` menjadi
+  `6282357510135`) sebelum dipasang ke URL `wa.me`. Buat fungsi kecil
+  helper untuk konversi ini di dalam file (atau di `src/lib/` kalau mau
+  dipakai ulang di tempat lain), tangani kemungkinan nomor sudah berformat
+  `+62` atau `62` di awal (jangan double-convert).
+- Kalau `contactPhone` kosong/null, tombol ini tidak perlu ditampilkan
+  sama sekali (return `null` untuk elemen tombol WA, bagian ikon sosial
+  media lain tetap tampil).
+- Style tombol: solid warna hijau WhatsApp standar (`#25D366` atau
+  turunannya) TIDAK perlu diikuti secara ketat — gunakan warna brand gold
+  (`hsl(var(--accent))`) sebagai warna tombol supaya konsisten dengan
+  palet Markaz Fiqih, bukan hijau WhatsApp generik.
+
+### 4. Copy Teks
+Pertahankan judul "Ikuti Kami" dan deskripsi yang sudah ada, atau
+sesuaikan sedikit kalau perlu supaya mengalir natural dengan tambahan
+tombol WA (misal ubah deskripsi jadi menyebutkan juga bisa hubungi admin
+langsung) — gunakan gaya bahasa yang konsisten dengan teks lain di file
+ini.
+
+## Yang tidak boleh berubah
+- Data link sosial media tetap dari `socialLinks` prop yang sudah ada
+  (sumber dari database via `buildSocialLinks`) — tidak diubah caranya
+- Warna brand tetap dari CSS variables yang sudah ada
+- Section lain di LandingPage.tsx tidak disentuh
+
+## Setelah selesai
+Konfirmasi bahwa tombol WA hanya muncul kalau `contactPhone` tersedia, dan
+format nomor sudah benar dikonversi ke format internasional untuk link
+`wa.me`.

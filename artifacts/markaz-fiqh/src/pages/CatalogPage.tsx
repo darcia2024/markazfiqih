@@ -86,7 +86,7 @@ function CatalogHeader() {
                   animate={{ scale: 1, opacity: 1 }}
                   exit={{ scale: 0.5, opacity: 0 }}
                   transition={{ type: 'spring', stiffness: 500, damping: 15 }}
-                  className="absolute -top-1 -right-1 flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-primary-foreground"
+                  className="absolute -top-1 -right-1 flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-[hsl(var(--accent))] px-1 text-[10px] font-bold leading-none text-white"
                 >
                   {count > 9 ? '9+' : count}
                 </motion.span>
@@ -153,7 +153,7 @@ export function InstructorSection({
                 }
                 className={`flex flex-col items-center gap-2 shrink-0 w-24 p-2 rounded-lg transition-colors ${
                   selectedInstructorId === instructor.id
-                    ? 'bg-primary/5 ring-1 ring-primary/30'
+                    ? 'bg-[hsl(var(--accent))]/5 ring-1 ring-[hsl(var(--accent))]/40'
                     : 'hover:bg-muted'
                 }`}
               >

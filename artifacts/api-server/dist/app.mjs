@@ -53439,14 +53439,19 @@ import pg3 from "pg";
 // ../../lib/db/src/schema/index.ts
 var schema_exports = {};
 __export(schema_exports, {
+  BUNDLE_STATUS_VALUES: () => BUNDLE_STATUS_VALUES,
   CLASS_LEVEL_VALUES: () => CLASS_LEVEL_VALUES,
   CLASS_STATUS_VALUES: () => CLASS_STATUS_VALUES,
   INVOICE_STATUS_VALUES: () => INVOICE_STATUS_VALUES,
+  bundleClassesTable: () => bundleClassesTable,
+  bundlesTable: () => bundlesTable,
   cartItemsTable: () => cartItemsTable,
   classVouchersTable: () => classVouchersTable,
   classesTable: () => classesTable,
   darsTable: () => darsTable,
   enrollmentsTable: () => enrollmentsTable,
+  insertBundleClassSchema: () => insertBundleClassSchema,
+  insertBundleSchema: () => insertBundleSchema,
   insertCartItemSchema: () => insertCartItemSchema,
   insertClassSchema: () => insertClassSchema,
   insertClassVoucherSchema: () => insertClassVoucherSchema,
@@ -64953,17 +64958,32 @@ var insertProgressSchema = createInsertSchema(progressTable).omit({
   completedAt: true
 });
 
+// ../../lib/db/src/schema/bundles.ts
+var BUNDLE_STATUS_VALUES = ["draft", "published"];
+var bundlesTable = pgTable("bundles", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  title: text("title").notNull(),
+  description: text("description").notNull().default(""),
+  normalPrice: integer("normal_price").notNull(),
+  bundlePrice: integer("bundle_price").notNull(),
+  status: text("status", { enum: BUNDLE_STATUS_VALUES }).notNull().default("draft"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => /* @__PURE__ */ new Date())
+});
+var insertBundleSchema = createInsertSchema(bundlesTable).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
+});
+
 // ../../lib/db/src/schema/cartItems.ts
-var cartItemsTable = pgTable(
-  "cart_items",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    userId: text("user_id").notNull(),
-    classId: uuid("class_id").notNull().references(() => classesTable.id, { onDelete: "cascade" }),
-    addedAt: timestamp("added_at", { withTimezone: true }).notNull().defaultNow()
-  },
-  (table) => [unique("cart_items_user_class_unique").on(table.userId, table.classId)]
-);
+var cartItemsTable = pgTable("cart_items", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").notNull(),
+  classId: uuid("class_id").references(() => classesTable.id, { onDelete: "cascade" }),
+  bundleId: uuid("bundle_id").references(() => bundlesTable.id, { onDelete: "cascade" }),
+  addedAt: timestamp("added_at", { withTimezone: true }).notNull().defaultNow()
+});
 var insertCartItemSchema = createInsertSchema(cartItemsTable).omit({
   id: true,
   addedAt: true
@@ -64989,7 +65009,8 @@ var insertInvoiceSchema = createInsertSchema(invoicesTable).omit({
 var invoiceItemsTable = pgTable("invoice_items", {
   id: uuid("id").primaryKey().defaultRandom(),
   invoiceId: uuid("invoice_id").notNull().references(() => invoicesTable.id, { onDelete: "cascade" }),
-  classId: uuid("class_id").notNull().references(() => classesTable.id, { onDelete: "cascade" }),
+  classId: uuid("class_id").references(() => classesTable.id, { onDelete: "cascade" }),
+  bundleId: uuid("bundle_id").references(() => bundlesTable.id, { onDelete: "set null" }),
   price: integer("price").notNull()
 });
 var insertInvoiceItemSchema = createInsertSchema(invoiceItemsTable).omit({
@@ -65064,6 +65085,20 @@ var insertClassVoucherSchema = createInsertSchema(classVouchersTable).omit({
   id: true,
   usedCount: true,
   createdAt: true
+});
+
+// ../../lib/db/src/schema/bundleClasses.ts
+var bundleClassesTable = pgTable(
+  "bundle_classes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    bundleId: uuid("bundle_id").notNull().references(() => bundlesTable.id, { onDelete: "cascade" }),
+    classId: uuid("class_id").notNull().references(() => classesTable.id, { onDelete: "cascade" })
+  },
+  (table) => [unique("bundle_classes_bundle_class_unique").on(table.bundleId, table.classId)]
+);
+var insertBundleClassSchema = createInsertSchema(bundleClassesTable).omit({
+  id: true
 });
 
 // ../../lib/db/src/index.ts

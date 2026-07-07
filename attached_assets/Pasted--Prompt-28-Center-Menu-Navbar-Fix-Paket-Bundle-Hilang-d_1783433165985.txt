@@ -1,0 +1,78 @@
+# Prompt 28: Center Menu Navbar + Fix "Paket Bundle" Hilang di Sidebar Dashboard
+
+## Masalah 1 — Menu Navbar Tidak Center
+Menu navbar ("Katalog", "Paket Bundle", "Kelas Saya") di landing page saat
+ini menempel di sebelah kiri (dekat logo), padahal seharusnya berada di
+tengah header secara horizontal.
+
+## Masalah 2 — "Paket Bundle" Tidak Muncul di Sidebar Dashboard
+Setelah login, sidebar (`AppSidebar` di `AppShell.tsx`, dipakai di semua
+halaman internal seperti Dashboard, Katalog, Kelas Saya) tidak menampilkan
+menu "Paket Bundle" — karena array `NAV_ITEMS` di file tersebut belum
+memasukkan route `/paket-bundle` yang sudah dibuat sebelumnya (dari fitur
+Paket Bundle). Menu ini cuma ada di `Navbar.tsx` (dipakai di landing page),
+tidak di sidebar internal.
+
+---
+
+## Fix 1 — Edit `artifacts/markaz-fiqh/src/components/Navbar.tsx`
+
+Ubah struktur agar menu nav center secara horizontal terhadap header, logo
+tetap di kiri, dan tombol "Masuk"/avatar user tetap di kanan.
+
+Pastikan struktur akhir seperti ini (sesuaikan className kalau versi yang
+ada di project sedikit berbeda, prinsipnya adalah 3 kolom: logo kiri, menu
+center absolute, aksi kanan):
+
+```tsx
+<div className="relative flex h-16 items-center justify-between">
+  <Link href="/" className="flex items-center transition-opacity hover:opacity-90">
+    <img src="/logo.png" alt="Markaz Fiqih" className="h-10 w-auto" />
+  </Link>
+
+  <nav className="hidden md:flex items-center gap-6 absolute left-1/2 -translate-x-1/2">
+    <Link href="/katalog" className="text-sm font-medium text-white/80 hover:text-white transition-colors">
+      Katalog
+    </Link>
+    <Link href="/paket-bundle" className="text-sm font-medium text-white/80 hover:text-white transition-colors">
+      Paket Bundle
+    </Link>
+    <Link href="/my-classes" className="text-sm font-medium text-white/80 hover:text-white transition-colors">
+      Kelas Saya
+    </Link>
+  </nav>
+
+  {/* ...bagian kanan (tombol Masuk / avatar / cart) tetap seperti sebelumnya, tidak diubah... */}
+</div>
+```
+
+Pastikan link "Paket Bundle" mengarah ke `/paket-bundle` (route yang sudah
+ada dari fitur bundle sebelumnya).
+
+## Fix 2 — Edit `artifacts/markaz-fiqh/src/components/AppShell.tsx`
+
+Tambahkan item "Paket Bundle" ke array `NAV_ITEMS` supaya muncul di sidebar
+saat user sudah login:
+
+```tsx
+const NAV_ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/katalog', label: 'Katalog Kelas', icon: LayoutGrid },
+  { href: '/paket-bundle', label: 'Paket Bundle', icon: Package },
+  { href: '/my-classes', label: 'Kelas Saya', icon: BookMarked },
+];
+```
+
+Tambahkan `Package` ke import dari `lucide-react` di bagian atas file
+(cek import yang sudah ada, tambahkan `Package` ke daftar icon yang
+di-import).
+
+## Yang tidak boleh berubah
+- Route `/paket-bundle` dan halaman `BundlesPage.tsx` itu sendiri tidak
+  diubah — hanya menambahkan link ke menu navigasi
+- Style/warna menu lain tidak berubah, hanya posisi (center) dan
+  penambahan 1 item baru
+
+## Setelah selesai
+Konfirmasi menu navbar sudah center dan "Paket Bundle" sudah muncul baik
+di navbar landing page maupun sidebar dashboard.

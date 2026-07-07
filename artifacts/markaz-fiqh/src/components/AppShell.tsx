@@ -2,11 +2,11 @@ import type { ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
 import {
   LayoutGrid,
-  BookOpen,
   BookMarked,
   Settings,
   LayoutDashboard,
   LogOut,
+  Package,
   type LucideIcon,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
@@ -16,6 +16,7 @@ import { listEnrollments, type EnrollmentItem } from '@/lib/db';
 const NAV_ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/katalog', label: 'Katalog Kelas', icon: LayoutGrid },
+  { href: '/paket-bundle', label: 'Paket Bundle', icon: Package },
   { href: '/my-classes', label: 'Kelas Saya', icon: BookMarked },
 ];
 
@@ -41,7 +42,7 @@ function ProgressWidget({ enrollments }: { enrollments: EnrollmentItem[] }) {
         </div>
         <div className="h-1.5 rounded-full bg-white/20 overflow-hidden">
           <div
-            className="h-full bg-white rounded-full transition-all"
+            className="h-full bg-[hsl(var(--accent))] rounded-full transition-all"
             style={{ width: `${overallProgress}%` }}
           />
         </div>
@@ -67,14 +68,9 @@ export function AppSidebar({ isAdmin }: { isAdmin: boolean }) {
 
   return (
     <aside className="hidden lg:flex fixed inset-y-0 left-0 w-[240px] h-full flex-col bg-gradient-to-b from-primary to-[hsl(var(--brand-red-hover))] border-r border-white/10 z-40">
-      <div className="h-20 flex items-center px-6 border-b border-white/10">
+      <div className="h-20 flex items-center px-6 border-b border-[hsl(var(--accent))]/30">
         <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-sm bg-white text-primary">
-            <BookOpen className="h-5 w-5" />
-          </div>
-          <span className="font-serif text-lg font-bold tracking-tight text-white">
-            Markaz Fiqih
-          </span>
+          <img src="/logo.png" alt="Markaz Fiqih" className="h-9 w-auto brightness-0 invert" />
         </Link>
       </div>
 
@@ -90,11 +86,11 @@ export function AppSidebar({ isAdmin }: { isAdmin: boolean }) {
               href={href}
               className={
                 isActive
-                  ? 'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-semibold text-primary bg-white shadow-[0_4px_12px_rgba(0,0,0,0.15)]'
+                  ? 'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-semibold text-primary bg-white shadow-[0_4px_12px_rgba(0,0,0,0.15)] border-l-2 border-[hsl(var(--accent))]'
                   : 'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 hover:scale-[1.02] transition-friendly'
               }
             >
-              <Icon className="h-4 w-4" />
+              <Icon className={`h-4 w-4 ${isActive ? 'text-[hsl(var(--accent))]' : ''}`} />
               {label}
             </Link>
           );

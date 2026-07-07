@@ -237,7 +237,7 @@ function ProgressSidebar({ enrollments }: { enrollments: EnrollmentItem[] }) {
                 </div>
                 <div className="h-1.5 rounded-full bg-muted overflow-hidden mt-1">
                   <motion.div
-                    className={`h-full rounded-full ${pct === 100 ? 'bg-success' : 'bg-primary'}`}
+                    className={`h-full rounded-full ${pct === 100 ? 'bg-success' : 'bg-[hsl(var(--accent))]'}`}
                     initial={{ width: 0 }}
                     animate={{ width: `${pct}%` }}
                     transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
@@ -286,7 +286,7 @@ function DashboardContent() {
           className="flex items-start justify-between gap-4"
         >
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-primary mb-2">
+            <p className="text-xs font-semibold uppercase tracking-wider text-[hsl(var(--accent))] mb-2">
               {getGreeting()}
             </p>
             <h1 className="font-serif text-3xl sm:text-4xl font-bold text-foreground leading-tight">
