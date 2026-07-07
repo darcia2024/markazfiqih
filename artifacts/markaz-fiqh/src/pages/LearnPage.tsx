@@ -179,6 +179,72 @@ function PlaylistMode({
                 </Button>
               )}
             </div>
+
+            {/* Mobile: kartu pengajar + fasilitas + kelas lain (di desktop tampil di sidebar kanan) */}
+            <div className="flex flex-col gap-4 lg:hidden">
+              {/* Tentang Pengajar */}
+              <div className="bg-card rounded-2xl border p-5 space-y-3">
+                <p className="text-sm font-semibold text-foreground">Tentang Pengajar</p>
+                <div className="flex items-start gap-3">
+                  <Avatar className="w-12 h-12 shrink-0">
+                    <AvatarImage src={instructorPhotoUrl} alt={instructorName} />
+                    <AvatarFallback className="bg-primary/10 text-primary font-bold">
+                      {instructorName.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-foreground">{instructorName}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {instructorClassCount} kelas
+                    </p>
+                    {instructorBio && (
+                      <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+                        {instructorBio}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Fasilitas Kelas */}
+              {(gdriveMateriUrl || waGroupUrl) && (
+                <div className="bg-card rounded-2xl border overflow-hidden">
+                  <FacilitasCard gdriveMateriUrl={gdriveMateriUrl} waGroupUrl={waGroupUrl} />
+                </div>
+              )}
+
+              {/* Kelas Lainnya */}
+              {classCategory && relatedClasses.length > 0 && (
+                <div className="bg-card rounded-2xl border p-5 space-y-4">
+                  <p className="text-sm font-semibold text-foreground">
+                    Kelas Lainnya{classCategory ? ` — ${classCategory}` : ''}
+                  </p>
+                  <div className="space-y-3">
+                    {relatedClasses.map((cls) => (
+                      <Link
+                        key={cls.id}
+                        href={`/class/${cls.id}`}
+                        className="flex items-start gap-3 group"
+                      >
+                        <img
+                          src={cls.coverImage}
+                          alt={cls.title}
+                          className="w-16 h-11 rounded-lg object-cover shrink-0"
+                        />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-foreground line-clamp-2 group-hover:text-primary transition-colors leading-snug">
+                            {cls.title}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {formatPrice(cls.discountPrice ?? cls.basePrice)}
+                          </p>
+                        </div>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* ── Right sidebar (desktop only) ── */}

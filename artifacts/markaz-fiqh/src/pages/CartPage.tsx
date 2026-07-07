@@ -59,7 +59,7 @@ function EmptyCart() {
       <p className="text-muted-foreground max-w-sm mb-6">
         Yuk jelajahi katalog kelas atau paket bundle kami dan mulai perjalanan belajar kamu hari ini.
       </p>
-      <div className="flex gap-3">
+      <div className="flex flex-col sm:flex-row gap-3">
         <Button asChild size="lg">
           <Link href="/katalog">Jelajahi Katalog Kelas</Link>
         </Button>
@@ -773,7 +773,7 @@ function CartContent() {
               <Sparkles className="w-5 h-5 text-primary" />
               <h2 className="font-serif text-xl font-bold text-foreground">Kamu Mungkin Juga Suka</h2>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               {(recommendedQuery.data ?? []).map((cls: any) => (
                 <RecommendationCardConnected key={cls.id} cls={cls} />
               ))}

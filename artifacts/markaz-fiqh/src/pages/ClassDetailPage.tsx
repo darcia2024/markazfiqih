@@ -161,7 +161,7 @@ export default function ClassDetailPage() {
 
   return (
     <AppShell>
-      <main className="flex-1">
+      <main className="flex-1 pb-20 lg:pb-0">
         {/* ── Breadcrumb ── */}
         <div className="border-b bg-muted/30">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl py-3">
@@ -538,10 +538,53 @@ export default function ClassDetailPage() {
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t py-8 text-center text-sm text-muted-foreground">
+      {/* Footer — pb-20 lg:pb-0 memberi ruang dari sticky buy bar di mobile */}
+      <footer className="border-t py-8 pb-24 lg:pb-8 text-center text-sm text-muted-foreground">
         © 2026 Markaz Fiqh. Semua Hak Dilindungi.
       </footer>
+
+      {/* Mobile sticky buy bar — hanya muncul di bawah lg, disembunyikan jika sudah enrolled */}
+      {!isEnrolledDemo && (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 border-t bg-background/95 backdrop-blur-sm px-4 py-3 flex items-center justify-between gap-3 shadow-[0_-4px_16px_rgba(0,0,0,0.08)]">
+          <div className="min-w-0">
+            {hasDiscount ? (
+              <>
+                <p className="text-[11px] text-muted-foreground line-through leading-none">
+                  {formatPrice(cls.basePrice)}
+                </p>
+                <p className="text-lg font-bold text-primary leading-snug">
+                  {formatPrice(cls.discountPrice!)}
+                </p>
+              </>
+            ) : (
+              <p className="text-lg font-bold text-primary leading-snug">
+                {formatPrice(cls.basePrice)}
+              </p>
+            )}
+          </div>
+          <button
+            onClick={handleBuyClick}
+            disabled={isAdding}
+            className={`shrink-0 inline-flex items-center justify-center gap-2 h-10 px-5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-60 ${
+              inCart
+                ? 'border border-border bg-background text-foreground hover:bg-muted'
+                : 'bg-primary text-primary-foreground hover:bg-primary/90'
+            }`}
+          >
+            {inCart ? (
+              <>
+                <Check className="w-4 h-4" />
+                Di Keranjang
+              </>
+            ) : (
+              <>
+                <ShoppingCart className="w-4 h-4" />
+                Tambah ke Keranjang
+              </>
+            )}
+          </button>
+        </div>
+      )}
     </AppShell>
   );
 }

@@ -23,7 +23,7 @@ function BundlesHeader() {
   return (
     <div className="flex items-center justify-between px-4 lg:px-10 pt-6 lg:pt-8 pb-2">
       <div>
-        <h1 className="font-serif text-[32px] font-bold text-foreground leading-tight">
+        <h1 className="font-serif text-xl lg:text-[32px] font-bold text-foreground leading-tight">
           Paket Bundle
         </h1>
         <p className="text-muted-foreground text-sm mt-1">
