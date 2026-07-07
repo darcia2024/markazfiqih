@@ -1,15 +1,13 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, userProfilesTable } from "@workspace/db";
+import { requireAuth } from "../middlewares/requireAuth";
 
 const router: IRouter = Router();
 
-router.get("/user-profile", async (req, res) => {
-  const userId = req.query.userId as string | undefined;
-
-  if (!userId) {
-    return res.status(400).json({ error: "userId query param is required" });
-  }
+router.get("/user-profile", requireAuth, async (req, res) => {
+  // userId diambil dari token — abaikan query param userId dari client
+  const userId = req.auth!.userId;
 
   const rows = await db
     .select()
@@ -21,12 +19,10 @@ router.get("/user-profile", async (req, res) => {
   return res.json({ userId, nickname: row?.nickname ?? null });
 });
 
-router.put("/user-profile", async (req, res) => {
-  const { userId, nickname } = req.body as { userId?: string; nickname?: string };
-
-  if (!userId) {
-    return res.status(400).json({ error: "userId is required" });
-  }
+router.put("/user-profile", requireAuth, async (req, res) => {
+  // userId diambil dari token — abaikan body userId dari client
+  const userId = req.auth!.userId;
+  const { nickname } = req.body as { nickname?: string };
 
   await db
     .insert(userProfilesTable)

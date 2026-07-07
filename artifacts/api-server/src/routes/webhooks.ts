@@ -28,13 +28,12 @@ router.post("/webhooks/mayar", async (req, res): Promise<void> => {
   // PENTING: endpoint ini HARUS tolak request tanpa signature valid.
   // Hapus comment di bawah ini setelah blok TODO di atas diisi.
 
-  const WEBHOOK_SECRET_CONFIGURED = !!process.env.MAYAR_WEBHOOK_SECRET;
-  if (!WEBHOOK_SECRET_CONFIGURED) {
-    // Selama Mayar belum dikonfigurasi, tolak semua request ke endpoint ini
-    // untuk menghindari enrollment gratis tanpa verifikasi.
-    res.status(503).json({ error: "Payment gateway not configured" });
-    return;
-  }
+  // ── KEAMANAN WAJIB: tolak SEMUA request sampai verifikasi signature diimplementasi ──
+  // Endpoint ini TIDAK boleh memproses payload apapun sebelum verifikasi
+  // kriptografis (HMAC) selesai diisi berdasarkan dokumentasi Mayar.
+  // Menghapus blok ini sebelum implementasi signature = celah enrollment gratis.
+  res.status(501).json({ error: "Webhook signature verification not yet implemented. Complete the TODO in webhooks.ts first." });
+  return;
 
   // ── LANGKAH 2: Parse Payload ────────────────────────────────────────────────
   // TODO: sesuaikan field ini dengan payload Mayar yang sesungguhnya.

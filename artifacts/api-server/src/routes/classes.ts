@@ -13,6 +13,7 @@ import {
 } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/requireAuth";
 import { requireAdmin } from "../middlewares/requireAdmin";
+import { optionalAuth } from "../middlewares/optionalAuth";
 
 const router: IRouter = Router();
 
@@ -86,13 +87,21 @@ router.get("/classes/recommended", requireAuth, async (req, res): Promise<void> 
   res.json(ListClassesResponse.parse(result));
 });
 
-router.get("/classes", async (req, res): Promise<void> => {
+const ADMIN_USER_IDS_SET = new Set(
+  (process.env.ADMIN_USER_IDS ?? "").split(",").map((id) => id.trim()).filter(Boolean),
+);
+
+router.get("/classes", optionalAuth, async (req, res): Promise<void> => {
   const params = ListClassesQueryParams.safeParse(req.query);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
     return;
   }
-  const { search, level, category, instructorId, sort, includeAll } = params.data;
+  const { search, level, category, instructorId, sort } = params.data;
+
+  // includeAll hanya diizinkan kalau requester terbukti admin via token
+  const isAdmin = !!req.auth && ADMIN_USER_IDS_SET.has(req.auth.userId);
+  const includeAll = params.data.includeAll && isAdmin;
 
   const conditions = includeAll ? [] : [eq(classesTable.status, "published")];
   if (search) {
