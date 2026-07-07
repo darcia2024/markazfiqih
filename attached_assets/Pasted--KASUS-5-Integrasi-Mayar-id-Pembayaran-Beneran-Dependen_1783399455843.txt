@@ -1,0 +1,174 @@
+# KASUS 5 — Integrasi Mayar.id (Pembayaran Beneran)
+
+**Dependency:** WAJIB jalan setelah Kasus 4 (backend auth) selesai, karena endpoint
+checkout perlu tahu siapa user yang benar-benar login. Selain itu, dependency
+utama yang BELUM ada: akun Mayar.id aktif + akses API key mereka.
+
+**Status saat ini di codebase (sudah gue konfirmasi baca kodenya langsung):**
+- `artifacts/api-server/src/routes/checkout.ts` cuma punya 3 endpoint:
+  `POST /checkout` (bikin invoice pending di database kita sendiri),
+  `POST /checkout/:id/simulate-success`, `POST /checkout/:id/simulate-fail`
+  — TIDAK ADA satupun pemanggilan ke API Mayar.
+- Kolom `mayarInvoiceId` sudah disiapkan di `lib/db/src/schema/invoices.ts`
+  tapi belum pernah diisi/dipakai.
+- Di frontend, `artifacts/markaz-fiqh/src/pages/CartPage.tsx`, fungsi
+  `handleCheckout` cuma manggil `createCheckoutMutation` (bikin invoice
+  lokal), lalu fungsi `handleSimulateSuccess` langsung manggil
+  `simulateSuccessMutation` yang membuat invoice itu "lunas" seketika,
+  tanpa pernah benar-benar terjadi pembayaran. Ini yang harus diganti.
+- Teks "Panel Pembayaran Mayar" yang ada sekarang di CartPage.tsx cuma
+  UI kosmetik, tidak terhubung ke apapun.
+
+---
+
+## Langkah 0 — yang perlu Daru siapkan DULU sebelum prompt di bawah bisa jalan
+
+1. Daftar akun Mayar.id (kalau belum), lengkapi verifikasi bisnis
+2. Buka dokumentasi API Mayar (biasanya di dashboard mereka, cari bagian
+   "API" atau "Developer" atau "Integrasi"), lalu cari jawaban untuk:
+   - Endpoint untuk membuat invoice/payment link baru (method, URL, body
+     yang dibutuhkan — biasanya minimal: amount, judul produk, email
+     pembeli, redirect URL setelah bayar)
+   - Format response-nya seperti apa (field mana yang berisi payment URL
+     yang harus dibuka user, field mana yang jadi ID unik invoice di
+     sisi Mayar)
+   - Apakah mereka punya webhook untuk notifikasi status bayar berubah?
+     Kalau ya: bagaimana cara mereka kirim webhook (payload-nya seperti
+     apa), dan bagaimana cara verifikasi bahwa webhook itu benar dari
+     Mayar (biasanya lewat signature di header, dicocokkan dengan secret
+     key)
+   - Apakah ada sandbox/testing mode sebelum ke live production?
+3. Catat API key (dan webhook secret kalau ada) dari dashboard Mayar
+
+Begitu poin-poin di atas udah lo dapetin, kirim ke gue detailnya (boleh
+screenshot dokumentasi API-nya), biar prompt di bawah ini gue sesuaikan
+persis dengan bentuk API mereka yang sebenarnya — placeholder di bawah
+ini masih asumsi pola umum payment gateway (create invoice → redirect
+user → webhook konfirmasi), belum tentu sama persis dengan Mayar.
+
+---
+
+## Prompt untuk Replit Agent (JALANKAN SETELAH Langkah 0 beres & prompt ini disesuaikan)
+
+```
+[GANTI BAGIAN BERTANDA <<< >>> DI BAWAH INI DENGAN DETAIL ASLI DARI
+DOKUMENTASI API MAYAR SEBELUM DIJALANKAN]
+
+Ganti flow checkout simulasi di artifacts/api-server/src/routes/checkout.ts
+dengan integrasi Mayar.id yang sebenarnya.
+
+## 1. Environment variables
+
+Tambahkan ke .env.example di artifacts/api-server:
+  MAYAR_API_KEY=
+  MAYAR_WEBHOOK_SECRET=
+  MAYAR_BASE_URL=<<< isi base URL API Mayar, misal https://api.mayar.id/hl/v1 >>>
+
+## 2. Endpoint POST /checkout — sambungkan ke Mayar
+
+Setelah kode yang sudah ada selesai membuat invoice + invoice_items di
+database lokal (jangan diubah bagian ini), TAMBAHKAN pemanggilan ke API
+Mayar untuk membuat payment link:
+
+  <<< METHOD >>> <<< MAYAR_BASE_URL >>>/<<< endpoint create invoice/payment link Mayar >>>
+  Headers: Authorization: <<< format auth Mayar, misal Bearer {MAYAR_API_KEY} >>>
+  Body: {
+    <<< field-field yang dibutuhkan Mayar, kemungkinan besar:
+        amount: totalAmount (dari invoice yang baru dibuat),
+        description / itemName: judul kelas-kelas yang dibeli,
+        email pembeli (kalau Mayar butuh, ambil dari req.auth user via
+        supabase admin client, atau kalau user Google punya email di
+        JWT claim, ambil dari situ),
+        redirectUrl: URL kembali ke web kita setelah selesai bayar,
+        misal `${FRONTEND_URL}/keranjang?invoice={invoice.id}` >>>
+  }
+
+  Simpan ID invoice yang dikembalikan Mayar ke kolom mayarInvoiceId di
+  baris invoice yang baru dibuat (kolom ini sudah ada di schema, tinggal
+  update pakai db.update(invoicesTable).set({ mayarInvoiceId: ... })).
+
+  Response endpoint /checkout ke frontend TAMBAHKAN field baru
+  paymentUrl (URL halaman bayar Mayar yang harus dibuka user) di samping
+  response invoice yang sudah ada sekarang. Update juga schema Zod
+  CreateCheckoutResponse di openapi.yaml + jalankan
+  `pnpm --filter @workspace/api-spec run codegen` supaya tipe di frontend
+  ikut update.
+
+## 3. Buat endpoint webhook baru
+
+Buat file baru artifacts/api-server/src/routes/webhooks.ts:
+
+  POST /webhooks/mayar
+    - Ambil signature dari header <<< nama header signature Mayar >>>
+    - Verifikasi signature ini valid menggunakan MAYAR_WEBHOOK_SECRET
+      (<<< isi cara verifikasi sesuai dokumentasi Mayar, biasanya HMAC
+      SHA256 dari raw body dibandingkan dengan signature di header >>>)
+    - KALAU signature TIDAK valid: langsung return 401, JANGAN proses
+      apapun dari body
+    - KALAU valid, baca status pembayaran dari body webhook
+      (<<< field status dari payload Mayar >>>). Kalau statusnya berarti
+      "lunas/paid", cari invoice lokal berdasarkan mayarInvoiceId yang
+      cocok, lalu jalankan logic yang SAMA PERSIS dengan yang ada di
+      endpoint /checkout/:id/simulate-success sekarang (update status
+      invoice jadi paid, buat enrollment untuk tiap kelas di invoice
+      tersebut kalau belum ada, kosongkan cart user itu) — pertimbangkan
+      extract logic ini ke function terpisah bernama markInvoiceAsPaid(id)
+      supaya bisa dipakai baik dari webhook maupun (di development) dari
+      endpoint simulate-success, tanpa duplikasi kode.
+
+  Daftarkan router baru ini di routes/index.ts. PENTING: endpoint ini
+  TIDAK boleh dipasangi middleware requireAuth (webhook datang dari
+  server Mayar, bukan dari user yang login) — keamanannya murni dari
+  verifikasi signature di atas.
+
+## 4. Batasi endpoint simulasi supaya tidak bisa dipakai di production
+
+Di checkout.ts, bungkus route /checkout/:id/simulate-success dan
+/checkout/:id/simulate-fail dengan pengecekan:
+
+  if (process.env.NODE_ENV === "production") {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+
+di baris paling atas kedua handler tersebut (sebelum logic lain apapun),
+supaya endpoint ini tetap berguna untuk testing di development tapi tidak
+bisa dipanggil siapapun di production untuk dapat kelas gratis tanpa
+bayar.
+
+## 5. Frontend — CartPage.tsx
+
+Di function handleCheckout: setelah createCheckoutMutation berhasil dan
+response sekarang menyertakan field paymentUrl baru, GANTI logic yang
+sekarang set checkoutStep ke 'paying', jadi langsung
+window.location.href = createdInvoice.paymentUrl (redirect user keluar
+ke halaman pembayaran Mayar yang sebenarnya).
+
+Buat halaman/step baru "menunggu-konfirmasi" yang muncul kalau user
+kembali dari Mayar (deteksi dari query param invoice=<id> yang kita
+sisipkan di redirectUrl tadi). Halaman ini:
+- Ambil data invoice terbaru dari backend (buat endpoint baru
+  GET /checkout/:id kalau belum ada, protected requireAuth + cek
+  kepemilikan invoice seperti pola di Kasus 4)
+- Kalau status masih "pending", polling ulang tiap 3 detik (karena
+  webhook Mayar mungkin belum sempat masuk)
+- Kalau status sudah "paid", tampilkan CartSuccessView yang sudah ada
+- Kalau status "failed", tampilkan pesan gagal dengan tombol "Coba Lagi"
+  yang kembali ke halaman keranjang
+
+Blok UI "Panel Pembayaran Mayar" dengan pilihan metode QRIS/e-wallet/VA/
+kartu yang ada sekarang di CartPage.tsx SUDAH TIDAK RELEVAN dan boleh
+dihapus, karena pemilihan metode pembayaran akan terjadi di halaman Mayar
+sendiri (di luar web kita), bukan di UI kita.
+
+## Test manual setelah selesai (pakai mode sandbox Mayar kalau tersedia)
+
+1. Checkout kelas dari keranjang, pastikan redirect ke halaman Mayar asli
+2. Selesaikan pembayaran test di Mayar, pastikan redirect balik ke web
+   kita dan menampilkan halaman "menunggu konfirmasi"
+3. Pastikan setelah beberapa detik (setelah webhook Mayar masuk),
+   halaman otomatis update ke halaman sukses dan kelas sudah muncul di
+   "Kelas Saya"
+4. Coba akses /checkout/:id/simulate-success langsung di production
+   (atau environment dengan NODE_ENV=production) — pastikan dapat 404
+```

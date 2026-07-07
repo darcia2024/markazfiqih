@@ -10,7 +10,10 @@ Platform belajar fiqih madzhab Syafi'i secara terstruktur — kelas, modul, dan 
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `SUPABASE_DATABASE_URL` — Supabase Postgres connection string (Session/Transaction pooler)
+- Required secrets (set via Replit Secrets):
+  - `SUPABASE_DATABASE_URL` — Supabase Postgres connection string (Settings → Database → URI)
+  - `VITE_SUPABASE_URL` — Supabase project URL (Settings → API → Project URL)
+  - `VITE_SUPABASE_ANON_KEY` — Supabase anon/public key (Settings → API → Project API Keys)
 
 ## Stack
 

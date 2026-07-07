@@ -1,0 +1,261 @@
+# KASUS 4 — Backend: Verifikasi Token Supabase + Proteksi Admin
+
+**Dependency:** WAJIB jalan SETELAH Kasus 3 (Supabase Auth Google Frontend) selesai,
+karena butuh token asli dari Supabase untuk diverifikasi.
+
+**Pendekatan yang dipakai di prompt ini (penting, baca dulu):**
+Semua endpoint yang butuh `userId` (cart, checkout, enrollments, progress) SAAT INI
+sudah menerima `userId` sebagai parameter dari client (lewat query atau body), dan
+kontrak API (`openapi.yaml` + generated client) sudah dibangun mengasumsikan
+`userId` dikirim begitu. Daripada merombak seluruh skema OpenAPI dan generate
+ulang client (yang berisiko tinggi kalau dikerjakan oleh AI agent sekaligus),
+prompt ini pakai pendekatan yang lebih aman dan tetap menutup celahnya 100%:
+
+**Backend akan MENGABAIKAN nilai `userId` yang dikirim client, dan MENGGANTINYA
+dengan `userId` hasil verifikasi token JWT.** Jadi client tetap boleh mengirim
+`userId` di body/query seperti biasa (tidak perlu ubah kode frontend di
+CartContext dll), tapi nilai itu tidak pernah benar-benar dipakai untuk baca/tulis
+data — yang dipakai selalu `req.auth.userId` dari token yang sudah diverifikasi
+server. Dengan begitu tidak mungkin lagi ada orang yang bisa akses data user lain
+dengan cara mengarang `userId` di request.
+
+---
+
+## Prompt untuk Replit Agent
+
+```
+Tambahkan verifikasi token Supabase Auth di seluruh backend
+artifacts/api-server, supaya endpoint tidak lagi percaya begitu saja pada
+userId yang dikirim client.
+
+## 1. Environment variables backend
+
+Tambahkan ke .env.example di artifacts/api-server:
+  SUPABASE_URL=
+  SUPABASE_SERVICE_ROLE_KEY=
+  ADMIN_USER_IDS=
+
+SUPABASE_SERVICE_ROLE_KEY diambil dari Supabase Dashboard → Settings → API
+→ service_role key. INI RAHASIA, jangan pernah dipakai di frontend, hanya
+di backend. ADMIN_USER_IDS diisi comma-separated UUID user Supabase yang
+boleh akses panel admin (untuk sekarang cukup solo-admin, isi satu UUID
+milik Daru).
+
+## 2. Install dependency
+
+Install @supabase/supabase-js di artifacts/api-server.
+
+## 3. Buat middleware requireAuth
+
+Buat file baru artifacts/api-server/src/middlewares/requireAuth.ts:
+
+  import type { Request, Response, NextFunction } from "express";
+  import { createClient } from "@supabase/supabase-js";
+
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    throw new Error("SUPABASE_URL dan SUPABASE_SERVICE_ROLE_KEY wajib diisi");
+  }
+
+  const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+
+  declare global {
+    namespace Express {
+      interface Request {
+        auth?: { userId: string };
+      }
+    }
+  }
+
+  export async function requireAuth(req: Request, res: Response, next: NextFunction): Promise<void> {
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith("Bearer ")) {
+      res.status(401).json({ error: "Missing or invalid Authorization header" });
+      return;
+    }
+
+    const token = authHeader.slice("Bearer ".length);
+    const { data, error } = await supabaseAdmin.auth.getUser(token);
+
+    if (error || !data.user) {
+      res.status(401).json({ error: "Invalid or expired token" });
+      return;
+    }
+
+    req.auth = { userId: data.user.id };
+    next();
+  }
+
+## 4. Buat middleware requireAdmin
+
+Buat file baru artifacts/api-server/src/middlewares/requireAdmin.ts, JALAN
+SETELAH requireAuth (asumsikan req.auth sudah terisi):
+
+  import type { Request, Response, NextFunction } from "express";
+
+  const ADMIN_USER_IDS = new Set(
+    (process.env.ADMIN_USER_IDS ?? "").split(",").map((id) => id.trim()).filter(Boolean),
+  );
+
+  export function requireAdmin(req: Request, res: Response, next: NextFunction): void {
+    if (!req.auth || !ADMIN_USER_IDS.has(req.auth.userId)) {
+      res.status(403).json({ error: "Admin access required" });
+      return;
+    }
+    next();
+  }
+
+## 5. Terapkan requireAuth + override userId di endpoint milik-user
+
+Untuk SETIAP route di bawah ini: tambahkan `requireAuth` sebagai middleware
+di route tersebut, lalu di dalam handler, SETELAH zod parsing berhasil,
+GANTI nilai userId dari hasil parse dengan `req.auth!.userId` sebelum
+dipakai untuk query/insert ke database. Jangan hapus zod parsing yang
+sudah ada (biarkan tetap validasi bentuk request), cukup override nilai
+userId-nya saja.
+
+a) artifacts/api-server/src/routes/classes.ts
+   - GET /classes/recommended → tambahkan requireAuth, override userId
+
+b) artifacts/api-server/src/routes/cart.ts
+   - GET /cart → tambahkan requireAuth, override userId
+   - POST /cart → tambahkan requireAuth, override userId
+   - DELETE /cart/:id → tambahkan requireAuth. Route ini TIDAK punya
+     parameter userId sama sekali sekarang (cuma hapus by id), jadi
+     TAMBAHKAN pengecekan kepemilikan: sebelum delete, SELECT dulu cart
+     item tersebut, cek apakah item.userId === req.auth!.userId. Kalau
+     tidak cocok atau item tidak ditemukan, return 404 (jangan 403, supaya
+     tidak bocor informasi soal keberadaan item milik orang lain). Baru
+     kalau cocok, lanjutkan delete seperti biasa.
+
+c) artifacts/api-server/src/routes/checkout.ts
+   - POST /checkout → tambahkan requireAuth, override userId
+   - POST /checkout/:id/simulate-success → tambahkan requireAuth. Setelah
+     invoice ditemukan by id, TAMBAHKAN pengecekan: kalau
+     invoice.userId !== req.auth!.userId, return 404 (bukan invoice milik
+     user yang sedang login, jangan lanjutkan proses)
+   - POST /checkout/:id/simulate-fail → tambahkan pengecekan kepemilikan
+     yang sama persis seperti simulate-success di atas
+
+d) artifacts/api-server/src/routes/enrollments.ts
+   - GET /enrollments → tambahkan requireAuth, override userId
+   - PUT /enrollments/:id/complete → tambahkan requireAuth. Ganti cara
+     ambil userId yang sekarang dari req.query/req.body, jadi dari
+     req.auth!.userId
+
+e) artifacts/api-server/src/routes/dars.ts
+   - GET /progress → tambahkan requireAuth, override userId
+   - POST /progress → tambahkan requireAuth, override userId
+   - GET /classes/:classId/dars TIDAK perlu diproteksi (cuma struktur
+     modul & dars, bukan data personal)
+
+## 6. Terapkan requireAuth + requireAdmin di endpoint admin-only
+
+Endpoint berikut HANYA boleh diakses admin, tambahkan requireAuth lalu
+requireAdmin sebagai middleware berurutan (requireAuth dulu baru
+requireAdmin, karena requireAdmin butuh req.auth yang diisi requireAuth):
+
+  artifacts/api-server/src/routes/classes.ts
+    POST /classes, PUT /classes/:id, DELETE /classes/:id
+
+  artifacts/api-server/src/routes/instructors.ts
+    POST /instructors, PUT /instructors/:id, DELETE /instructors/:id
+
+  artifacts/api-server/src/routes/testimonials.ts
+    POST /testimonials, PUT /testimonials/:id, DELETE /testimonials/:id
+
+  artifacts/api-server/src/routes/settings.ts
+    PUT /settings
+
+Endpoint GET yang sifatnya publik di semua route di atas (list/detail
+untuk ditampilkan ke pengunjung katalog) TIDAK perlu diproteksi sama
+sekali — biarkan seperti sekarang.
+
+## 7. Buat endpoint GET /api/auth/me untuk cek status admin dari frontend
+
+Buat file baru artifacts/api-server/src/routes/auth.ts:
+
+  import { Router, type IRouter } from "express";
+  import { requireAuth } from "../middlewares/requireAuth";
+
+  const router: IRouter = Router();
+
+  const ADMIN_USER_IDS = new Set(
+    (process.env.ADMIN_USER_IDS ?? "").split(",").map((id) => id.trim()).filter(Boolean),
+  );
+
+  router.get("/auth/me", requireAuth, (req, res): void => {
+    res.json({
+      userId: req.auth!.userId,
+      isAdmin: ADMIN_USER_IDS.has(req.auth!.userId),
+    });
+  });
+
+  export default router;
+
+Daftarkan router baru ini di artifacts/api-server/src/routes/index.ts
+seperti router lain yang sudah ada.
+
+## 8. Frontend — kirim token di setiap request
+
+Middleware requireAuth di atas butuh header Authorization di setiap
+request yang diproteksi. Ini SUDAH otomatis terpasang kalau Kasus 3
+(Supabase Auth Google Frontend) sudah selesai dikerjakan lebih dulu,
+karena setAuthTokenGetter sudah dikonfigurasi di sana untuk menempelkan
+Bearer token ke semua request lewat @workspace/api-client-react. TIDAK
+ADA perubahan tambahan yang perlu dilakukan di sisi ini.
+
+## 9. Frontend — tambahkan isAdmin ke User type dan cek saat login
+
+Di artifacts/markaz-fiqh/src/context/AuthContext.tsx:
+- Tambahkan field isAdmin: boolean ke type User
+- Setelah session didapat (baik dari getSession() awal maupun dari
+  onAuthStateChange), panggil GET /api/auth/me (pakai fetch biasa,
+  header Authorization: Bearer <session.access_token> disisipkan manual
+  di sini karena ini bukan lewat hook generated) dan simpan hasil
+  isAdmin ke state user
+
+## 10. Frontend — buat komponen RequireAdminRoute
+
+Buat file baru artifacts/markaz-fiqh/src/components/RequireAdminRoute.tsx,
+mirip pola ProtectedRoute.tsx yang sudah ada, tapi dengan aturan:
+- Kalau isLoading → tampilkan spinner (sama seperti ProtectedRoute)
+- Kalau user null (belum login) → redirect ke /login dengan redirect
+  param mengarah ke halaman admin yang dituju
+- Kalau user ada tapi user.isAdmin === false → redirect ke "/" (bukan ke
+  halaman "Yuk Masuk Dulu" seperti ProtectedRoute, karena user ini memang
+  sudah login tapi bukan admin)
+- Kalau user.isAdmin === true → render children
+
+## 11. Bungkus semua route admin di App.tsx
+
+Di artifacts/markaz-fiqh/src/App.tsx, bungkus komponen dari SEMUA route
+berikut dengan RequireAdminRoute:
+  /admin, /admin/classes, /admin/orders, /admin/testimonials,
+  /admin/settings, /admin/instructors (yang dibuat di Kasus 2)
+
+Contoh pola pembungkusan (sesuaikan dengan cara routing wouter yang
+dipakai di file ini):
+  <Route path="/admin">
+    {() => <RequireAdminRoute><AdminDashboardPage /></RequireAdminRoute>}
+  </Route>
+
+## Test manual setelah selesai
+
+1. Logout total, coba akses /admin/classes langsung lewat URL — harus
+   redirect ke /login
+2. Login dengan akun Google yang BUKAN ada di ADMIN_USER_IDS — coba akses
+   /admin/classes — harus redirect ke "/" (bukan malah bisa masuk)
+3. Login dengan akun yang ADA di ADMIN_USER_IDS — pastikan bisa akses
+   semua halaman admin seperti biasa
+4. Pakai Postman/curl, coba GET /api/cart?userId=<uuid-user-lain-random>
+   tanpa header Authorization sama sekali — harus dapat 401
+5. Pakai Postman/curl, login sebagai User A, ambil access_token dari
+   DevTools (Application → cek session Supabase), lalu coba
+   GET /api/cart?userId=<uuid-User-B> dengan token User A di header —
+   pastikan yang kebalikan yang keluar adalah cart milik User A (bukan
+   User B), karena userId di query diabaikan dan diganti dari token
+6. Coba DELETE /cart/:id memakai id milik cart User lain — harus dapat 404
+```
