@@ -14,6 +14,9 @@ Platform belajar fiqih madzhab Syafi'i secara terstruktur — kelas, modul, dan 
   - `SUPABASE_DATABASE_URL` — Supabase Postgres connection string (Settings → Database → URI)
   - `VITE_SUPABASE_URL` — Supabase project URL (Settings → API → Project URL)
   - `VITE_SUPABASE_ANON_KEY` — Supabase anon/public key (Settings → API → Project API Keys)
+  - `SUPABASE_URL` — same as VITE_SUPABASE_URL, used by the backend
+  - `SUPABASE_SERVICE_ROLE_KEY` — service_role key for backend auth (Settings → API → Project API Keys)
+  - `SESSION_SECRET` — secret for session signing (any random string)
 
 ## Stack
 

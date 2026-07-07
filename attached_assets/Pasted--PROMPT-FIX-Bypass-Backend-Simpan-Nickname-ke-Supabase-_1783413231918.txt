@@ -1,0 +1,155 @@
+# PROMPT FIX — Bypass Backend, Simpan Nickname ke Supabase Langsung
+
+## Konteks masalah
+
+Backend Express (`artifacts/api-server`) sedang bermasalah di production Vercel
+(timeout). Tapi frontend sudah 99% jalan — Supabase Auth Google sudah bekerja,
+tinggal 1 hal yang masih bergantung ke backend Express: penyimpanan nickname user
+di endpoint `/api/user-profile`.
+
+Solusi: **simpan nickname langsung ke Supabase database** (lewat Supabase client
+yang sudah ada), tanpa perlu lewat backend Express sama sekali.
+
+## Yang perlu diubah
+
+### 1. Buat tabel `user_profiles` di Supabase
+
+Buka Supabase Dashboard → SQL Editor → jalankan SQL ini:
+
+```sql
+CREATE TABLE IF NOT EXISTS user_profiles (
+  user_id TEXT PRIMARY KEY,
+  nickname TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can read own profile"
+ON user_profiles FOR SELECT
+USING (auth.uid()::text = user_id);
+
+CREATE POLICY "Users can insert own profile"
+ON user_profiles FOR INSERT
+WITH CHECK (auth.uid()::text = user_id);
+
+CREATE POLICY "Users can update own profile"
+ON user_profiles FOR UPDATE
+USING (auth.uid()::text = user_id);
+```
+
+### 2. Edit `artifacts/markaz-fiqh/src/context/AuthContext.tsx`
+
+Ganti fungsi `fetchNickname` yang sekarang manggil `/api/user-profile` dengan
+versi yang langsung query ke Supabase:
+
+HAPUS fungsi ini:
+```typescript
+async function fetchNickname(userId: string): Promise<string | null> {
+  try {
+    const res = await fetch(`/api/user-profile?userId=${encodeURIComponent(userId)}`);
+    if (!res.ok) return null;
+    const data = await res.json() as { nickname: string | null };
+    return data.nickname ?? null;
+  } catch {
+    return null;
+  }
+}
+```
+
+GANTI dengan:
+```typescript
+async function fetchNickname(userId: string): Promise<string | null> {
+  try {
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('nickname')
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (error) return null;
+    return data?.nickname ?? null;
+  } catch {
+    return null;
+  }
+}
+```
+
+### 3. Edit fungsi `setNickname` di `AuthContext.tsx`
+
+Ganti bagian yang fetch ke `/api/user-profile` dengan upsert langsung ke Supabase.
+
+CARI fungsi `setNickname` yang isinya:
+```typescript
+const setNickname = (nickname: string) => {
+  setUser((prev) => (prev ? { ...prev, nickname } : prev));
+  fetch('/api/user-profile', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ userId: user?.id, nickname }),
+  }).catch((err) => console.error('Gagal simpan nickname:', err));
+};
+```
+
+GANTI dengan:
+```typescript
+const setNickname = (nickname: string) => {
+  setUser((prev) => (prev ? { ...prev, nickname } : prev));
+  if (user?.id) {
+    supabase
+      .from('user_profiles')
+      .upsert({ user_id: user.id, nickname, updated_at: new Date().toISOString() })
+      .then(({ error }) => {
+        if (error) console.error('Gagal simpan nickname:', error);
+      });
+  }
+};
+```
+
+### 4. Hapus fetch `/api/auth/me` dari AuthContext (kalau ada)
+
+Cari di `AuthContext.tsx` baris yang manggil `/api/auth/me` untuk cek `isAdmin`.
+Ganti dengan hardcode `isAdmin: false` untuk sekarang (fitur admin bisa diaktifkan
+nanti setelah backend Express beres):
+
+Cari:
+```typescript
+isAdmin: ADMIN_USER_IDS.has(req.auth!.userId),
+```
+atau baris yang fetch `/api/auth/me` di AuthContext, ganti semua `isAdmin` dari
+API response dengan `isAdmin: false`.
+
+Kalau di `buildUser` function ada `fetchIsAdmin` atau fetch ke `/api/auth/me`,
+hapus itu dan hardcode `isAdmin: false`.
+
+### 5. Pastikan tidak ada fetch lain ke backend Express di AuthContext
+
+Cek seluruh `AuthContext.tsx` — kalau ada baris fetch ke `/api/...` selain yang
+sudah diganti di atas, hapus atau replace dengan `null`/`false` untuk sementara.
+
+## Setelah selesai edit
+
+Jalankan di terminal Replit:
+```bash
+pnpm --filter @workspace/markaz-fiqh run typecheck
+```
+
+Kalau tidak ada error TypeScript, lanjut:
+```bash
+git add -A
+git commit -m "fix: bypass backend Express, nickname dan auth langsung ke Supabase"
+git push origin main
+```
+
+Kalau push kena error auth, pakai:
+```bash
+git push https://USERNAME@github.com/darcia2024/markazfiqih.git
+```
+
+## Yang TIDAK perlu diubah
+
+- `artifacts/api-server/` — jangan disentuh sama sekali
+- `lib/` — jangan disentuh
+- Komponen React lainnya — jangan disentuh
+- `main.tsx` — sudah benar, jangan disentuh
+- `lib/supabase.ts` — sudah benar, jangan disentuh

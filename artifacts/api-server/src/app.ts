@@ -26,10 +26,15 @@ app.use(
     },
   }),
 );
-// Allow requests from the frontend. Set FRONTEND_URL in the environment to
-// restrict to a specific origin (e.g. the Vercel deployment URL). Falls back
-// to '*' so the API works out-of-the-box in development and before the
-// frontend domain is known.
+// Allow requests from the frontend. In production, FRONTEND_URL must be set
+// to the deployed frontend origin — startup fails if it's missing. In
+// development, permissive CORS is acceptable.
+const isProduction = process.env.NODE_ENV === "production";
+if (isProduction && !process.env.FRONTEND_URL) {
+  throw new Error(
+    "FRONTEND_URL wajib diisi di environment production untuk keamanan CORS.",
+  );
+}
 app.use(cors({ origin: process.env.FRONTEND_URL ?? "*" }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
