@@ -72,7 +72,7 @@ export async function listClasses(params?: {
     .from('classes')
     .select(`
       id, title, description, cover_image, base_price, discount_price,
-      status, level, category, youtube_playlist_id,
+      status, level, category, youtube_playlist_id, meeting_count,
       instructors ( id, name, photo_url ),
       modules ( id, dars ( id, duration_minutes ) )
     `)
@@ -101,6 +101,7 @@ export async function listClasses(params?: {
       category: c.category as string | null,
       youtubePlaylistId: c.youtube_playlist_id as string | null,
       moduleCount: modules.length as number,
+      meetingCount: (c.meeting_count ?? null) as number | null,
       totalDurationMinutes: dars.reduce(
         (acc: number, d: any) => acc + (d.duration_minutes ?? 0),
         0,
@@ -117,7 +118,7 @@ export async function getClassById(id: string) {
     .from('classes')
     .select(`
       id, title, description, cover_image, base_price, discount_price,
-      status, level, category, youtube_playlist_id, gdrive_materi_url, wa_group_url,
+      status, level, category, youtube_playlist_id, gdrive_materi_url, wa_group_url, meeting_count,
       instructors ( id, name, photo_url, bio ),
       modules (
         id, title, order_index,
@@ -173,6 +174,7 @@ export async function getClassById(id: string) {
       : { id: '', name: 'Pengajar', photoUrl: '', bio: '', classCount: 0 },
     modules,
     moduleCount: modules.length,
+    meetingCount: (data.meeting_count ?? null) as number | null,
     totalDurationMinutes: modules
       .flatMap((m) => m.dars)
       .reduce((acc, d) => acc + (d.durationMinutes ?? 0), 0),

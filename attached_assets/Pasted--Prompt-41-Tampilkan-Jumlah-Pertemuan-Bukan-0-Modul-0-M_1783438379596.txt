@@ -1,0 +1,54 @@
+# Prompt 41: Tampilkan Jumlah Pertemuan (Bukan "0 Modul/0 Menit") untuk Kelas Berbasis Playlist
+
+## Konteks
+Kelas-kelas Fiqih Tematik (seperti "Fiqih Zakat Fitri", "Fiqih Talak", dll)
+diakses lewat playlist YouTube langsung (Playlist Mode di `LearnPage.tsx`),
+BUKAN lewat breakdown modul/dars manual. Karena tabel `modules`/`dars`
+untuk kelas-kelas ini memang kosong (bukan bug), `ClassCard` yang baru
+diredesign menampilkan "0 Modul" dan "0 menit" di checklist, yang terlihat
+aneh dan tidak informatif.
+
+Kolom baru `meeting_count` (jumlah pertemuan) sudah ditambahkan ke tabel
+`classes` dan diisi datanya untuk semua kelas Fiqih Tematik (lihat SQL
+terpisah yang sudah dijalankan: `40-tambah-kolom-meeting-count.sql`).
+
+## Fix
+
+### 1. Update `getClassById` dan `listClasses` di `src/lib/db.ts`
+Tambahkan field `meetingCount` ke hasil query di kedua fungsi ini (ambil
+dari kolom `meeting_count` yang sudah ada di tabel `classes`). Sesuaikan
+juga type/interface terkait (`ClassSummary` atau sejenisnya) supaya field
+baru ini dikenali TypeScript.
+
+### 2. Update `ClassCard` di `CatalogPage.tsx`
+Pada bagian checklist detail kelas (dari redesign sebelumnya: Pengajar, 0
+Modul, 0 menit) — ubah logikanya:
+
+- **Kalau kelas punya modul/dars beneran** (`cls.moduleCount > 0`):
+  tampilkan checklist seperti sekarang (Pengajar, Jumlah Modul, Durasi).
+- **Kalau kelas tidak punya modul/dars TAPI punya `meetingCount`**
+  (kelas berbasis playlist): tampilkan checklist yang lebih relevan:
+  - Nama Pengajar (tetap)
+  - "X Pertemuan" (dari `meetingCount`)
+  - Sembunyikan baris durasi kalau tidak relevan/tidak ada datanya, atau
+    ganti jadi keterangan lain yang masuk akal seperti "Akses Selamanya"
+    kalau ingin tetap ada 3 baris checklist untuk konsistensi visual —
+    pilih yang terasa lebih pas secara UX.
+- **Kalau kelas tidak punya keduanya** (moduleCount 0 dan meetingCount
+  null/0): tampilkan checklist minimal (cukup Pengajar saja, atau
+  sembunyikan baris yang datanya kosong) — jangan menampilkan angka "0"
+  mentah-mentah ke user dalam kondisi apapun.
+
+Terapkan logika yang sama di komponen card lain yang menampilkan info
+serupa kalau ada (cek apakah ada card kelas lain yang reuse pola serupa
+selain `ClassCard`).
+
+## Yang Tidak Boleh Berubah
+- Layout footer gradient dan style checklist (bullet checkmark) dari
+  redesign sebelumnya tidak diubah — hanya isi/logic data yang ditampilkan
+- Data lain (harga, judul, level, instruktur) tidak berubah
+
+## Setelah Selesai
+Konfirmasi kelas berbasis playlist (seperti Fiqih Zakat Fitri) sekarang
+menampilkan jumlah pertemuan alih-alih "0 Modul · 0 menit", dan kelas yang
+memang punya modul/dars manual tetap menampilkan data itu seperti biasa.

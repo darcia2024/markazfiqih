@@ -1,0 +1,53 @@
+# Prompt 42: Ganti Background Pink Jadi Putih di Card Bundle
+
+## Masalah
+Card bundle di `BundlesPage.tsx` (komponen `BundleCard`) sekarang punya
+dua area berwarna pink pucat yang seharusnya putih:
+
+1. **Header card** (bagian atas berisi icon, judul bundle, badge "Hemat
+   X%", dan deskripsi) — background-nya pakai gradient pink pucat
+   (`bg-gradient-to-br from-primary/8 to-primary/3` atau warna sejenis
+   yang menghasilkan tint pink).
+2. **Chip/badge daftar kelas** (list nama kelas di dalam bundle, yang
+   ditampilkan sebagai pill/chip kecil rounded) — background chip-nya juga
+   pink pucat dengan border pink.
+
+## Fix
+Edit `artifacts/markaz-fiqh/src/pages/BundlesPage.tsx`, komponen
+`BundleCard`.
+
+### 1. Header Card
+Cari div pembungkus header card (berisi icon `Package2`, judul, badge
+"Hemat X%", deskripsi) yang saat ini punya class background gradient/tint
+pink (kemungkinan `bg-gradient-to-br from-primary/8 to-primary/3` atau
+serupa). Ganti backgroundnya jadi putih polos (`bg-white` atau hapus saja
+class background-nya sehingga mewarisi `bg-card` dari parent). Pertahankan
+`border-b border-border` di bawahnya sebagai pemisah dari konten.
+
+Icon container kecil (kotak bulat dengan icon `Package2` di dalamnya) yang
+mungkin juga punya background pink (`bg-primary/10`) — ini BOLEH tetap
+dipertahankan sebagai aksen kecil (bukan yang dikeluhkan), fokus utama
+adalah background besar header card dan chip kelas.
+
+### 2. Chip Daftar Kelas
+Cari elemen chip/pill yang menampilkan nama tiap kelas di dalam bundle
+(list "X Kelas di dalamnya"). Kelas CSS chip tersebut kemungkinan memakai
+warna seperti `bg-primary/8`, `border-primary/15`, atau kombinasi warna
+pink pucat sejenis. Ganti jadi:
+```tsx
+className="inline-flex items-center px-2.5 py-1 rounded-full bg-white border border-border text-xs font-medium text-foreground/80"
+```
+(background putih dengan border netral abu-abu tipis, bukan lagi
+menggunakan warna primary/pink sama sekali untuk chip ini.)
+
+## Yang Tidak Boleh Berubah
+- Layout card (header, daftar kelas, footer harga+tombol) tidak berubah
+  strukturnya
+- Footer tombol gradient crimson (dari redesign sebelumnya) TETAP seperti
+  itu — yang diubah hanya background header dan chip, bukan tombol
+- Badge hijau "Hemat X%" tidak berubah warnanya
+- Data yang ditampilkan tidak berubah
+
+## Setelah Selesai
+Konfirmasi header card dan chip kelas sekarang berwarna putih/netral,
+bukan pink lagi.

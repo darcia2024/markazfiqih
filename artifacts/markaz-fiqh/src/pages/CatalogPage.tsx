@@ -186,8 +186,21 @@ export type ClassSummary = {
   category: string | null;
   instructor: { id: string; name: string; photoUrl: string };
   moduleCount: number;
+  meetingCount: number | null;
   totalDurationMinutes: number | null;
 };
+
+// Bullet checkmark row — reused inside ClassCard checklist
+function CheckItem({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-2 text-sm text-foreground/80">
+      <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary/10 text-primary shrink-0">
+        <Check className="h-2.5 w-2.5" />
+      </span>
+      <span className="truncate">{children}</span>
+    </div>
+  );
+}
 
 export function ClassCard({ cls, index }: { cls: ClassSummary; index: number }) {
   const hasDiscount = cls.discountPrice != null;
@@ -263,28 +276,30 @@ export function ClassCard({ cls, index }: { cls: ClassSummary; index: number }) 
             {/* Separator */}
             <div className="border-t border-border" />
 
-            {/* Checkmark detail list */}
+            {/* Checkmark detail list
+                • moduleCount > 0  → modul-based: tampilkan modul + durasi (jika > 0)
+                • meetingCount > 0 → playlist: tampilkan pertemuan + "Akses Selamanya"
+                • keduanya 0/null  → tampilkan pengajar saja, sembunyikan baris kosong
+            */}
             <div className="flex flex-col gap-1.5">
-              <div className="flex items-center gap-2 text-sm text-foreground/80">
-                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary/10 text-primary shrink-0">
-                  <Check className="h-2.5 w-2.5" />
-                </span>
-                <span className="truncate">{cls.instructor.name}</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-foreground/80">
-                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary/10 text-primary shrink-0">
-                  <Check className="h-2.5 w-2.5" />
-                </span>
-                {cls.moduleCount} Modul
-              </div>
-              {durationLabel && (
-                <div className="flex items-center gap-2 text-sm text-foreground/80">
-                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary/10 text-primary shrink-0">
-                    <Check className="h-2.5 w-2.5" />
-                  </span>
-                  {durationLabel}
-                </div>
-              )}
+              {/* Baris 1: Pengajar — selalu tampil */}
+              <CheckItem>{cls.instructor.name}</CheckItem>
+
+              {cls.moduleCount > 0 ? (
+                <>
+                  {/* Kelas berbasis modul/dars */}
+                  <CheckItem>{cls.moduleCount} Modul</CheckItem>
+                  {(cls.totalDurationMinutes ?? 0) > 0 && (
+                    <CheckItem>{durationLabel}</CheckItem>
+                  )}
+                </>
+              ) : (cls.meetingCount ?? 0) > 0 ? (
+                <>
+                  {/* Kelas berbasis playlist YouTube */}
+                  <CheckItem>{cls.meetingCount} Pertemuan</CheckItem>
+                  <CheckItem>Akses Selamanya</CheckItem>
+                </>
+              ) : null}
             </div>
 
             {/* Price */}
