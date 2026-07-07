@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useParams, Link } from 'wouter';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft,
   BookOpen,
@@ -149,7 +149,13 @@ function PlaylistMode({
 
               {isCompleted ? (
                 <div className="inline-flex items-center gap-2 rounded-lg bg-success-pale border border-success-pale px-4 py-3">
-                  <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 10 }}
+                  >
+                    <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
+                  </motion.div>
                   <span className="font-semibold text-success">Kelas telah ditandai selesai</span>
                 </div>
               ) : (
@@ -581,10 +587,24 @@ function LearnContent() {
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 pt-2">
               {isDone ? (
                 <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-2 rounded-lg bg-success-pale border border-success-pale px-4 py-2.5">
-                    <CheckCircle2 className="w-4 h-4 text-success" />
-                    <span className="text-sm font-semibold text-success">Sudah Selesai</span>
-                  </div>
+                  <AnimatePresence>
+                    <motion.div
+                      key="done-badge"
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ type: 'spring', stiffness: 400, damping: 10 }}
+                      className="flex items-center gap-2 rounded-lg bg-success-pale border border-success-pale px-4 py-2.5"
+                    >
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 10, delay: 0.05 }}
+                      >
+                        <CheckCircle2 className="w-4 h-4 text-success" />
+                      </motion.div>
+                      <span className="text-sm font-semibold text-success">Sudah Selesai</span>
+                    </motion.div>
+                  </AnimatePresence>
                   <Button
                     variant="ghost"
                     size="sm"

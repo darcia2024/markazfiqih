@@ -44,8 +44,10 @@ function KelasCard({ enrollment, index }: { enrollment: EnrollmentItem; index: n
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: index * 0.08 }}
-      className="flex flex-col rounded-lg border bg-card shadow-sm hover:shadow-lg hover:-translate-y-1 transition-friendly overflow-hidden"
+      whileHover={{ y: -4 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ duration: 0.2 }}
+      className="flex flex-col rounded-lg border bg-card shadow-sm hover:shadow-lg transition-friendly overflow-hidden"
     >
       {/* Cover */}
       <div className="relative aspect-video overflow-hidden bg-muted">

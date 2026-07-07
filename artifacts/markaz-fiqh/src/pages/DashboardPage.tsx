@@ -70,8 +70,10 @@ function KelasCard({ enrollment, index }: { enrollment: EnrollmentItem; index: n
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: index * 0.08 }}
-      className="flex flex-col rounded-lg border bg-card shadow-sm hover:shadow-lg hover:-translate-y-1 transition-friendly overflow-hidden"
+      whileHover={{ y: -4 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ duration: 0.2 }}
+      className="flex flex-col rounded-lg border bg-card shadow-sm hover:shadow-lg transition-friendly overflow-hidden"
     >
       {/* Cover */}
       <div className="relative aspect-video overflow-hidden bg-muted">
@@ -236,9 +238,11 @@ function ProgressSidebar({ enrollments }: { enrollments: EnrollmentItem[] }) {
                   </span>
                 </div>
                 <div className="h-1.5 rounded-full bg-muted overflow-hidden mt-1">
-                  <div
+                  <motion.div
                     className={`h-full rounded-full ${pct === 100 ? 'bg-success' : 'bg-primary'}`}
-                    style={{ width: `${pct}%` }}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${pct}%` }}
+                    transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
                   />
                 </div>
               </div>
