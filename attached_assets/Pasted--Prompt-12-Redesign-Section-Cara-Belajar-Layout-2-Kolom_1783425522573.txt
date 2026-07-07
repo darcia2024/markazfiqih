@@ -1,0 +1,64 @@
+# Prompt 12: Redesign Section "Cara Belajar" — Layout 2 Kolom (Teks + Grid Card)
+
+## Konteks
+Section "Cara Belajar" di landing page saat ini menampilkan judul + 5 card
+horizontal dalam satu baris (`grid-cols-1 sm:grid-cols-3 lg:grid-cols-5`).
+Mau diubah jadi layout 2 kolom: teks deskripsi singkat di kiri, dan
+card-card langkahnya di kanan dalam bentuk grid 2 kolom.
+
+Edit file: `artifacts/markaz-fiqh/src/pages/LandingPage.tsx`, fungsi
+`HowItWorksSection` (sekitar baris 172–226). Jangan ubah data
+`HOW_IT_WORKS` array-nya (baris 144–170) — isi title/description/icon tetap
+sama persis.
+
+## Perubahan Layout
+
+Ubah struktur section dari 1 kolom (judul di atas, grid card di bawah) jadi
+2 kolom side-by-side di layar besar (`lg:` breakpoint ke atas), dan tetap
+stack vertikal di mobile (judul+teks dulu, baru card grid di bawahnya).
+
+### Kolom kiri (sekitar 40% lebar, `lg:col-span-2` dari total 5 kolom grid)
+- Label "Cara Belajar" (pertahankan style yang sudah ada: `text-xs
+  font-semibold tracking-wider text-primary uppercase`)
+- Judul "Belajar Jadi Lebih Terarah" (pertahankan style yang sudah ada)
+- Tambahkan paragraf deskripsi baru di bawah judul, style mirip paragraf
+  hero section di atasnya (`text-muted-foreground text-base mt-3
+  leading-relaxed`):
+
+  ```
+  Biar proses belajarmu makin jelas arahnya, ini lima langkah yang bakal
+  kamu lalui — dari eksplor kelas sampai pantau progress belajar, semua
+  dirancang biar simpel dan nggak ribet.
+  ```
+
+- Di kolom kiri ini, sejajarkan konten secara vertikal ke tengah relatif
+  terhadap tinggi grid card di kanan (pakai `lg:flex lg:flex-col
+  lg:justify-center` pada wrapper kolom kiri, karena tinggi grid card di
+  kanan bisa 3 baris).
+
+### Kolom kanan (sekitar 60% lebar, `lg:col-span-3`)
+- Card-card `HOW_IT_WORKS` disusun dalam grid **2 kolom** di semua ukuran
+  layar `sm:` ke atas (`grid-cols-1 sm:grid-cols-2 gap-4`) — bukan lagi 5
+  kolom sejajar.
+- Karena jumlah item ganjil (5), card terakhir (index 4, "Belajar & Pantau
+  Progress") akan otomatis jadi satu-satunya item di baris ketiga — itu
+  tidak masalah, biarkan begitu (jangan pakai `col-span-2` khusus untuk
+  card terakhir kecuali terlihat aneh secara visual saat preview).
+- Style tiap card (gradient merah, badge "Langkah N", watermark angka besar
+  di pojok kanan bawah, hover shadow+translate) **tidak berubah sama
+  sekali** — cuma posisi grid-nya yang berubah dari 5 kolom jadi 2 kolom.
+
+### Struktur grid pembungkus
+Gunakan satu `<div className="grid grid-cols-1 lg:grid-cols-5 gap-8
+lg:gap-10 items-start">` sebagai container utama section, dengan kolom kiri
+`lg:col-span-2` dan kolom kanan `lg:col-span-3` di dalamnya.
+
+## Yang tidak boleh berubah
+- Konten dan urutan `HOW_IT_WORKS` array
+- Warna, gradient, border, shadow, dan semua styling visual card individual
+- Padding section (`py-16`), max-width container (`max-w-[1200px]`), dan
+  padding horizontal (`px-5 sm:px-8 lg:px-16`)
+- Section lain di LandingPage.tsx (Hero, Kelas Pilihan, dll) tidak disentuh
+
+## Setelah selesai
+Kasih ringkasan singkat perubahan apa saja yang dilakukan di file ini.

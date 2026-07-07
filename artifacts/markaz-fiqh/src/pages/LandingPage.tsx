@@ -173,52 +173,65 @@ function HowItWorksSection() {
   return (
     <section className="bg-background">
       <div className="container mx-auto px-5 sm:px-8 lg:px-16 py-16 max-w-[1200px]">
-        <p className="text-xs font-semibold tracking-wider text-primary uppercase">
-          Cara Belajar
-        </p>
-        <h2 className="font-serif text-2xl sm:text-3xl font-bold mt-2 mb-8 text-foreground">
-          Belajar Jadi Lebih Terarah
-        </h2>
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-10 items-start">
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-          {HOW_IT_WORKS.map((step, index) => {
-            const stepNum = index + 1;
-            const isLast = index === HOW_IT_WORKS.length - 1;
-            const Icon = step.icon;
-            return (
-              <div
-                key={step.title}
-                className={[
-                  'relative rounded-lg overflow-hidden bg-gradient-to-br from-primary to-[hsl(var(--brand-red-hover))] p-5 text-white hover:shadow-lg hover:-translate-y-1 transition-all duration-300',
-                  isLast
-                    ? 'border border-[hsl(var(--brand-gold))]/40 shadow-[0_0_20px_rgba(184,134,46,0.15)]'
-                    : '',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-              >
-                {/* Icon */}
-                <div className="h-10 w-10 rounded-full bg-white/15 flex items-center justify-center mb-3">
-                  <Icon className="h-5 w-5 text-white" />
+          {/* Kolom kiri — label + judul + deskripsi */}
+          <div className="lg:col-span-2 lg:flex lg:flex-col lg:justify-center">
+            <p className="text-xs font-semibold tracking-wider text-primary uppercase">
+              Cara Belajar
+            </p>
+            <h2 className="font-serif text-2xl sm:text-3xl font-bold mt-2 text-foreground">
+              Belajar Jadi Lebih Terarah
+            </h2>
+            <p className="text-muted-foreground text-base mt-3 leading-relaxed">
+              Biar proses belajarmu makin jelas arahnya, ini lima langkah yang bakal
+              kamu lalui — dari eksplor kelas sampai pantau progress belajar, semua
+              dirancang biar simpel dan nggak ribet.
+            </p>
+          </div>
+
+          {/* Kolom kanan — grid 2 kolom */}
+          <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {HOW_IT_WORKS.map((step, index) => {
+              const stepNum = index + 1;
+              const isLast = index === HOW_IT_WORKS.length - 1;
+              const Icon = step.icon;
+              return (
+                <div
+                  key={step.title}
+                  className={[
+                    'relative rounded-lg overflow-hidden bg-gradient-to-br from-primary to-[hsl(var(--brand-red-hover))] p-5 text-white hover:shadow-lg hover:-translate-y-1 transition-all duration-300',
+                    isLast
+                      ? 'border border-[hsl(var(--brand-gold))]/40 shadow-[0_0_20px_rgba(184,134,46,0.15)]'
+                      : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                >
+                  {/* Icon */}
+                  <div className="h-10 w-10 rounded-full bg-white/15 flex items-center justify-center mb-3">
+                    <Icon className="h-5 w-5 text-white" />
+                  </div>
+
+                  {/* Step badge */}
+                  <span className="inline-block text-[10px] font-bold uppercase tracking-wider text-white/70 bg-white/10 px-2 py-1 rounded-full mb-2">
+                    Langkah {stepNum}
+                  </span>
+
+                  <p className="font-serif font-semibold text-base leading-snug">
+                    {step.title}
+                  </p>
+                  <p className="text-sm text-white/70 mt-1 leading-relaxed">{step.description}</p>
+
+                  {/* Watermark number */}
+                  <span className="absolute bottom-2 right-4 font-serif text-6xl font-bold text-white/10 leading-none select-none">
+                    {stepNum}
+                  </span>
                 </div>
+              );
+            })}
+          </div>
 
-                {/* Step badge */}
-                <span className="inline-block text-[10px] font-bold uppercase tracking-wider text-white/70 bg-white/10 px-2 py-1 rounded-full mb-2">
-                  Langkah {stepNum}
-                </span>
-
-                <p className="font-serif font-semibold text-base leading-snug">
-                  {step.title}
-                </p>
-                <p className="text-sm text-white/70 mt-1 leading-relaxed">{step.description}</p>
-
-                {/* Watermark number */}
-                <span className="absolute bottom-2 right-4 font-serif text-6xl font-bold text-white/10 leading-none select-none">
-                  {stepNum}
-                </span>
-              </div>
-            );
-          })}
         </div>
       </div>
     </section>
