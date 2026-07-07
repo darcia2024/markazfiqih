@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "mkdir -p public",
+  "buildCommand": "mkdir -p public && echo 'API server - lihat /api untuk endpoint' > public/index.html",
   "outputDirectory": "public",
   "rewrites": [
     { "source": "/(.*)", "destination": "/api/index" }
