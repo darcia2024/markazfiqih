@@ -14,8 +14,8 @@ import {
   SimulateCheckoutSuccessParams,
   SimulateCheckoutFailParams,
 } from "@workspace/api-zod";
-import { requireAuth } from "../middlewares/requireAuth";
-import { markInvoiceAsPaid } from "../lib/invoice-helpers";
+import { requireAuth } from "../middlewares/requireAuth.js";
+import { markInvoiceAsPaid } from "../lib/invoice-helpers.js";
 
 const router: IRouter = Router();
 

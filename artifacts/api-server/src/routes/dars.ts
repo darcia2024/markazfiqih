@@ -14,7 +14,7 @@ import {
   UpsertProgressBody,
   UpsertProgressResponse,
 } from "@workspace/api-zod";
-import { requireAuth } from "../middlewares/requireAuth";
+import { requireAuth } from "../middlewares/requireAuth.js";
 
 const router: IRouter = Router();
 

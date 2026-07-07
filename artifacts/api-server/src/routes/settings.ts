@@ -2,8 +2,8 @@ import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, siteSettingsTable } from "@workspace/db";
 import { GetSettingsResponse, UpdateSettingsBody, UpdateSettingsResponse } from "@workspace/api-zod";
-import { requireAuth } from "../middlewares/requireAuth";
-import { requireAdmin } from "../middlewares/requireAdmin";
+import { requireAuth } from "../middlewares/requireAuth.js";
+import { requireAdmin } from "../middlewares/requireAdmin.js";
 
 const router: IRouter = Router();
 

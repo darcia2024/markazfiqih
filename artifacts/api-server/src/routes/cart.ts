@@ -2,7 +2,7 @@ import { Router, type IRouter } from "express";
 import { and, eq } from "drizzle-orm";
 import { db, cartItemsTable, classesTable, instructorsTable, modulesTable } from "@workspace/db";
 import { AddCartItemBody, ListCartItemsQueryParams, RemoveCartItemParams } from "@workspace/api-zod";
-import { requireAuth } from "../middlewares/requireAuth";
+import { requireAuth } from "../middlewares/requireAuth.js";
 
 const router: IRouter = Router();
 

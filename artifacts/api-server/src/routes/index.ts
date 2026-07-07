@@ -1,16 +1,16 @@
 import { Router, type IRouter } from "express";
-import healthRouter from "./health";
-import classesRouter from "./classes";
-import instructorsRouter from "./instructors";
-import cartRouter from "./cart";
-import checkoutRouter from "./checkout";
-import testimonialsRouter from "./testimonials";
-import settingsRouter from "./settings";
-import enrollmentsRouter from "./enrollments";
-import darsRouter from "./dars";
-import userProfileRouter from "./user-profile";
-import authRouter from "./auth";
-import webhooksRouter from "./webhooks";
+import healthRouter from "./health.js";
+import classesRouter from "./classes.js";
+import instructorsRouter from "./instructors.js";
+import cartRouter from "./cart.js";
+import checkoutRouter from "./checkout.js";
+import testimonialsRouter from "./testimonials.js";
+import settingsRouter from "./settings.js";
+import enrollmentsRouter from "./enrollments.js";
+import darsRouter from "./dars.js";
+import userProfileRouter from "./user-profile.js";
+import authRouter from "./auth.js";
+import webhooksRouter from "./webhooks.js";
 
 const router: IRouter = Router();
 

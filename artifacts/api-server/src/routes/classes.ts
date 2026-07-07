@@ -11,9 +11,9 @@ import {
   UpdateClassBody,
   UpdateClassResponse,
 } from "@workspace/api-zod";
-import { requireAuth } from "../middlewares/requireAuth";
-import { requireAdmin } from "../middlewares/requireAdmin";
-import { optionalAuth } from "../middlewares/optionalAuth";
+import { requireAuth } from "../middlewares/requireAuth.js";
+import { requireAdmin } from "../middlewares/requireAdmin.js";
+import { optionalAuth } from "../middlewares/optionalAuth.js";
 
 const router: IRouter = Router();
 

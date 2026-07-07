@@ -2,8 +2,8 @@ import { Router, type IRouter } from "express";
 import { asc, eq } from "drizzle-orm";
 import { db, testimonialsTable } from "@workspace/db";
 import { ListTestimonialsResponse, CreateTestimonialBody, CreateTestimonialResponse, UpdateTestimonialBody, UpdateTestimonialResponse } from "@workspace/api-zod";
-import { requireAuth } from "../middlewares/requireAuth";
-import { requireAdmin } from "../middlewares/requireAdmin";
+import { requireAuth } from "../middlewares/requireAuth.js";
+import { requireAdmin } from "../middlewares/requireAdmin.js";
 
 const router: IRouter = Router();
 

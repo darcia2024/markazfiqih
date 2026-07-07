@@ -1,7 +1,7 @@
 import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, invoicesTable } from "@workspace/db";
-import { markInvoiceAsPaid } from "../lib/invoice-helpers";
+import { markInvoiceAsPaid } from "../lib/invoice-helpers.js";
 // TODO: uncomment dan isi saat dokumentasi webhook Mayar sudah didapat
 // import { createHmac } from "node:crypto";
 
