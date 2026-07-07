@@ -5,7 +5,8 @@
     "tsBuildInfoFile": ".tsbuildinfo",
     "outDir": "dist",
     "rootDir": ".",
-    "types": ["node"]
+    "types": ["node"],
+    "esModuleInterop": true
   },
   "include": ["src", "api"],
   "references": [
