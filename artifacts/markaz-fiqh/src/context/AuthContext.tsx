@@ -24,40 +24,27 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 async function fetchNickname(userId: string): Promise<string | null> {
   try {
-    const res = await fetch(`/api/user-profile?userId=${encodeURIComponent(userId)}`);
-    if (!res.ok) return null;
-    const data = await res.json() as { nickname: string | null };
-    return data.nickname ?? null;
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('nickname')
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (error) return null;
+    return data?.nickname ?? null;
   } catch {
     return null;
   }
 }
 
-async function fetchIsAdmin(accessToken: string): Promise<boolean> {
-  try {
-    const res = await fetch('/api/auth/me', {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    });
-    if (!res.ok) return false;
-    const data = await res.json() as { isAdmin: boolean };
-    return data.isAdmin ?? false;
-  } catch {
-    return false;
-  }
-}
-
-async function buildUser(supabaseUser: SupabaseUser, session: Session): Promise<User> {
-  const [nickname, isAdmin] = await Promise.all([
-    fetchNickname(supabaseUser.id),
-    fetchIsAdmin(session.access_token),
-  ]);
+async function buildUser(supabaseUser: SupabaseUser, _session: Session): Promise<User> {
+  const nickname = await fetchNickname(supabaseUser.id);
   return {
     id: supabaseUser.id,
     name: supabaseUser.user_metadata?.full_name ?? supabaseUser.email ?? 'Pengguna',
     email: supabaseUser.email ?? '',
     avatar_url: supabaseUser.user_metadata?.avatar_url ?? '',
     nickname,
-    isAdmin,
+    isAdmin: false,
   };
 }
 
@@ -113,12 +100,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const setNickname = (nickname: string) => {
+    // Tangkap userId sekarang agar tidak stale saat async selesai
+    const currentUserId = user?.id;
+    const previousNickname = user?.nickname ?? null;
     setUser((prev) => (prev ? { ...prev, nickname } : prev));
-    fetch('/api/user-profile', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: user?.id, nickname }),
-    }).catch((err) => console.error('Gagal simpan nickname:', err));
+    if (currentUserId) {
+      supabase
+        .from('user_profiles')
+        .upsert({ user_id: currentUserId, nickname, updated_at: new Date().toISOString() })
+        .then(({ error }) => {
+          if (error) {
+            console.error('Gagal simpan nickname:', error);
+            // Rollback ke nickname sebelumnya jika upsert gagal
+            setUser((prev) =>
+              prev && prev.id === currentUserId
+                ? { ...prev, nickname: previousNickname }
+                : prev,
+            );
+          }
+        });
+    }
   };
 
   return (
