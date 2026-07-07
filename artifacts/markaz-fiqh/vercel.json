@@ -7,6 +7,10 @@
     {
       "source": "/api/:path*",
       "destination": "https://markazfiqih-three.vercel.app/api/:path*"
+    },
+    {
+      "source": "/((?!assets/).*)",
+      "destination": "/index.html"
     }
   ],
   "headers": [
