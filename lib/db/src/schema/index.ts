@@ -10,3 +10,4 @@ export * from "./invoiceItems";
 export * from "./testimonials";
 export * from "./site-settings";
 export * from "./userProfiles";
+export * from "./classVouchers";

@@ -35,6 +35,15 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Parse body — ambil voucherCode kalau ada
+    let voucherCode: string | null = null;
+    try {
+      const body = await req.json();
+      voucherCode = body?.voucherCode ? String(body.voucherCode).toUpperCase().trim() : null;
+    } catch {
+      // body kosong atau bukan JSON — tidak apa-apa
+    }
+
     // Pakai service role untuk operasi database (bypass RLS)
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -55,8 +64,49 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Hitung total
+    // ── Validasi voucher (kalau ada) ─────────────────────────────────────────
+    let voucherApplied = false;
+    let voucherClassId: string | null = null;
+    let voucherDiscountPrice: number | null = null;
+
+    if (voucherCode) {
+      const classIds = cartItems.map((item: any) => item.class_id);
+
+      const { data: voucherRow } = await supabaseAdmin
+        .from('class_vouchers')
+        .select('id, class_id, discount_price, max_uses, used_count')
+        .in('class_id', classIds)
+        .eq('code', voucherCode)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      const isVoucherValid =
+        voucherRow &&
+        (voucherRow.max_uses === null || (voucherRow.used_count ?? 0) < voucherRow.max_uses);
+
+      if (!isVoucherValid) {
+        return new Response(
+          JSON.stringify({ error: 'Kode voucher tidak valid untuk kelas di keranjang ini.' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      voucherApplied = true;
+      voucherClassId = voucherRow.class_id;
+      voucherDiscountPrice = voucherRow.discount_price;
+
+      // Catat pemakaian voucher
+      await supabaseAdmin
+        .from('class_vouchers')
+        .update({ used_count: (voucherRow.used_count ?? 0) + 1 })
+        .eq('id', voucherRow.id);
+    }
+
+    // Hitung total (dengan harga voucher kalau ada)
     const totalAmount = cartItems.reduce((sum: number, item: any) => {
+      if (voucherApplied && item.class_id === voucherClassId) {
+        return sum + voucherDiscountPrice!;
+      }
       const price = item.classes?.discount_price ?? item.classes?.base_price ?? 0;
       return sum + price;
     }, 0);
@@ -74,11 +124,14 @@ Deno.serve(async (req) => {
 
     if (invoiceError) throw invoiceError;
 
-    // Buat invoice items
+    // Buat invoice items (harga sudah mencerminkan voucher)
     const invoiceItems = cartItems.map((item: any) => ({
       invoice_id: invoice.id,
       class_id: item.class_id,
-      price: item.classes?.discount_price ?? item.classes?.base_price ?? 0,
+      price:
+        voucherApplied && item.class_id === voucherClassId
+          ? voucherDiscountPrice!
+          : (item.classes?.discount_price ?? item.classes?.base_price ?? 0),
     }));
 
     const { error: itemsError } = await supabaseAdmin.from('invoice_items').insert(invoiceItems);
@@ -112,13 +165,13 @@ Deno.serve(async (req) => {
     //   return new Response(JSON.stringify({
     //     id: invoice.id,
     //     paymentUrl: mayarData.data?.link,
+    //     voucherApplied,
     //   }), {
     //     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     //   });
     // }
 
     // Development fallback (sebelum Mayar aktif):
-    // Return invoice tanpa paymentUrl supaya CartPage tampilkan simulasi
     return new Response(
       JSON.stringify({
         id: invoice.id,
@@ -127,11 +180,15 @@ Deno.serve(async (req) => {
         status: invoice.status,
         mayarInvoiceId: null,
         paymentUrl: null,
+        voucherApplied,
         items: cartItems.map((item: any) => ({
           id: item.id,
           classId: item.class_id,
           title: item.classes?.title ?? '',
-          price: item.classes?.discount_price ?? item.classes?.base_price ?? 0,
+          price:
+            voucherApplied && item.class_id === voucherClassId
+              ? voucherDiscountPrice!
+              : (item.classes?.discount_price ?? item.classes?.base_price ?? 0),
           coverImage: item.classes?.cover_image ?? '',
         })),
       }),

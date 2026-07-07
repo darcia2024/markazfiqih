@@ -1,0 +1,165 @@
+# Prompt 11: Kelas Safinatunnaja (Fiqih Kitab) + Sistem Kode Voucher
+
+## Konteks
+Kelas baru "Safinatunnaja" sudah ready untuk kategori Fiqih Kitab. Harga normal
+Rp180.000, harga presale Rp150.000 kalau user masukin kode voucher saat checkout.
+Link rekaman (YouTube/Gdrive) belum ada — akan diisi admin belakangan lewat
+Admin Panel setelah kelas ini dibuat.
+
+Voucher untuk sekarang **khusus dipakai di kelas ini saja** (bukan sistem
+voucher umum lintas kelas) — tapi struktur tabelnya dibuat cukup generic biar
+gampang di-reuse nanti kalau ada kelas lain yang butuh voucher serupa.
+
+Jalankan section per section, jangan digabung.
+
+---
+
+## Section 1 — Tambah kolom `is_presale` + data kelas Safinatunnaja
+
+### 1a. Migration SQL (jalankan manual di Supabase SQL Editor)
+Tidak perlu bikin migration lewat Drizzle dulu — cukup kasih gue SQL yang bisa
+gue jalankan manual di Supabase SQL Editor, supaya konsisten dengan cara admin
+role kemarin ditambahkan. Setelah gue jalankan, baru update `schema/classes.ts`
+biar Drizzle schema-nya sinkron (tanpa generate migration baru, cukup edit
+schema file-nya).
+
+Insert data kelas baru ke tabel `classes`:
+```sql
+INSERT INTO classes (
+  title, description, cover_image, base_price, discount_price,
+  status, level, category, instructor_id
+) VALUES (
+  'Safinatunnaja',
+  'Kajian kitab Safinatunnaja — dasar-dasar fiqih madzhab Syafi''i untuk pemula.',
+  '', -- cover_image diisi admin nanti lewat Admin Panel
+  180000,
+  150000,
+  'draft', -- ganti ke 'published' setelah admin isi konten & cover
+  'pemula',
+  'Fiqih Kitab',
+  'GANTI_DENGAN_INSTRUCTOR_ID_YANG_SESUAI'
+);
+```
+Catatan buat gue (Darcia) yang jalanin manual: perlu isi `instructor_id` yang
+benar dari tabel `instructors` sebelum eksekusi — Agent tidak tahu ID-nya.
+
+### 1b. Tabel voucher (SQL, jalankan manual juga)
+```sql
+CREATE TABLE class_vouchers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+  code TEXT NOT NULL,
+  discount_price INTEGER NOT NULL, -- harga final setelah voucher dipakai
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  max_uses INTEGER, -- NULL = unlimited
+  used_count INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (class_id, code)
+);
+
+ALTER TABLE class_vouchers ENABLE ROW LEVEL SECURITY;
+
+-- Publik boleh baca voucher aktif untuk validasi kode di frontend
+CREATE POLICY "Public can validate active vouchers"
+  ON class_vouchers FOR SELECT
+  USING (is_active = true);
+
+-- Hanya service role (edge function) yang boleh update used_count
+-- (tidak perlu policy tambahan, edge function pakai service role key yang bypass RLS)
+```
+
+Contoh insert voucher untuk Safinatunnaja (jalankan manual setelah section 1a,
+pakai `class_id` dari kelas yang baru diinsert):
+```sql
+INSERT INTO class_vouchers (class_id, code, discount_price, max_uses)
+VALUES ('GANTI_DENGAN_CLASS_ID_SAFINATUNNAJA', 'PRESALE150', 150000, NULL);
+```
+
+### 1c. Update Drizzle schema
+Buat file baru `lib/db/src/schema/classVouchers.ts` yang merefleksikan tabel
+`class_vouchers` di atas, ikuti pola yang sama persis dengan file schema lain
+di folder yang sama (pakai `pgTable`, `createInsertSchema`, export type
+`InsertClassVoucher` dan `ClassVoucher`). Tambahkan referensi ke `classesTable`
+untuk kolom `class_id`. Export dari `lib/db/src/schema/index.ts` juga.
+
+---
+
+## Section 2 — Fungsi voucher di `src/lib/db.ts`
+
+Tambahkan dua fungsi baru di `artifacts/markaz-fiqh/src/lib/db.ts`, ikuti pola
+fungsi lain yang sudah ada di file ini (langsung query Supabase, bukan lewat
+Express):
+
+1. `validateVoucher(classId: string, code: string)` — query tabel
+   `class_vouchers` untuk `class_id` + `code` (case-insensitive, uppercase
+   sebelum query) yang `is_active = true`. Kalau `max_uses` tidak null dan
+   `used_count >= max_uses`, anggap tidak valid. Return
+   `{ valid: true, discountPrice: number } | { valid: false, message: string }`.
+   Pesan error untuk kode salah: "Kode voucher tidak valid atau sudah tidak
+   berlaku."
+
+2. Cek fungsi `createCheckout` yang sudah ada (baris ~347) — jangan diubah di
+   step ini, akan diupdate di Section 3 untuk terima parameter voucher.
+
+---
+
+## Section 3 — Update Edge Function `checkout` untuk terima kode voucher
+
+Edit `supabase/functions/checkout/index.ts`:
+
+- Terima body request `{ voucherCode?: string }` (parse dari `req.json()`,
+  optional).
+- Setelah ambil `cartItems`, kalau ada `voucherCode`:
+  - Untuk tiap item di cart, cek apakah ada row di `class_vouchers` yang cocok
+    `class_id` + `code` (uppercase match) + `is_active = true`.
+  - Kalau ketemu dan valid (cek `max_uses` vs `used_count` sama seperti di
+    Section 2), pakai `discount_price` dari voucher (override
+    `discount_price`/`base_price` kelas itu) untuk hitung `totalAmount` dan
+    `invoice_items`.
+  - Kalau `voucherCode` diisi tapi tidak match ke kelas manapun di cart,
+    return error 400: `{ error: 'Kode voucher tidak valid untuk kelas di keranjang ini.' }`
+  - Kalau valid dan dipakai, increment `used_count` pada row voucher tersebut
+    (pakai `supabaseAdmin`, bypass RLS).
+- Field response tambahan: sertakan `voucherApplied: boolean` di response JSON
+  akhir.
+- Jangan ubah bagian Mayar integration yang sudah di-comment — biarkan seperti
+  itu.
+
+---
+
+## Section 4 — UI input kode voucher di CartPage
+
+Edit `artifacts/markaz-fiqh/src/pages/CartPage.tsx`:
+
+- Tambahkan state `voucherCode` (string) dan `voucherStatus`
+  (`'idle' | 'valid' | 'invalid'`) di komponen `CartContent`.
+- Di bagian "Ringkasan Belanja" (sebelum tombol "Lanjutkan ke Pembayaran"),
+  tambahkan input teks kecil + tombol "Pakai" untuk kode voucher, dengan style
+  konsisten sama komponen lain di card itu (border, rounded, text-sm — cek
+  komponen Input yang sudah dipakai di file lain seperti `AdminSettingsPage`
+  atau form lain di `components/ui/`).
+- Saat tombol "Pakai" diklik, panggil `validateVoucher` untuk **setiap** class
+  id yang ada di cart, ambil yang pertama valid (karena voucher ini scoped ke
+  satu kelas). Kalau valid: tampilkan badge hijau kecil "Voucher diterapkan"
+  dan update tampilan subtotal (kurangi selisih harga kelas yang dapat
+  voucher). Kalau tidak valid: tampilkan pesan error merah kecil di bawah
+  input, jangan pakai `alert()`.
+- Update `handleCheckout` supaya kirim `voucherCode` (kalau ada dan valid) ke
+  `createCheckout`.
+- Update fungsi `createCheckout` di `src/lib/db.ts` supaya terima parameter
+  optional `voucherCode?: string` dan diteruskan sebagai body ke fetch edge
+  function `checkout`.
+
+Jangan ubah struktur/layout lain di CartPage selain penambahan blok voucher
+ini.
+
+---
+
+## Catatan tambahan
+- Semua teks UI pakai Bahasa Indonesia natural, jangan kaku/robotic, konsisten
+  sama copy yang sudah ada di file lain (lihat `EmptyCart`, `CartSuccessView`
+  untuk contoh gaya bahasa).
+- Jangan tambahkan dependency baru.
+- Setelah selesai semua section, kasih gue ringkasan singkat: file apa saja
+  yang berubah, dan SQL apa saja yang masih perlu gue jalankan manual di
+  Supabase (dengan urutan yang benar).

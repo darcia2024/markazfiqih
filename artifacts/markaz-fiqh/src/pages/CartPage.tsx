@@ -18,6 +18,7 @@ import { toast } from 'sonner';
 import { AppShell } from '@/components/AppShell';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -28,7 +29,7 @@ import {
   useListRecommendedClasses,
   getListRecommendedClassesQueryKey,
 } from '@workspace/api-client-react';
-import { createCheckout, simulateSuccess, getInvoice } from '@/lib/db';
+import { createCheckout, simulateSuccess, getInvoice, validateVoucher } from '@/lib/db';
 import type { LocalInvoice } from '@/lib/db';
 
 function formatDuration(totalMinutes: number | null): string | null {
@@ -223,6 +224,12 @@ function CartContent() {
   );
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // ── Voucher ────────────────────────────────────────────────────────────────
+  const [voucherInputCode, setVoucherInputCode] = useState('');
+  const [appliedVoucher, setAppliedVoucher] = useState<{ classId: string; discountPrice: number } | null>(null);
+  const [voucherError, setVoucherError] = useState<string | null>(null);
+  const [isValidatingVoucher, setIsValidatingVoucher] = useState(false);
+
   // Cart removal via CartContext (Supabase direct); recommended classes cache invalidated separately
   const handleRemoveAndRefreshRecommended = async (id: string) => {
     await removeFromCart(id);
@@ -242,6 +249,9 @@ function CartContent() {
   });
 
   const subtotal = items.reduce((sum, item) => {
+    if (appliedVoucher && item.class.id === appliedVoucher.classId) {
+      return sum + appliedVoucher.discountPrice;
+    }
     const price = item.class.discountPrice ?? item.class.basePrice;
     return sum + price;
   }, 0);
@@ -250,11 +260,39 @@ function CartContent() {
     void handleRemoveAndRefreshRecommended(id);
   };
 
+  const handleApplyVoucher = async () => {
+    const code = voucherInputCode.trim().toUpperCase();
+    if (!code) return;
+    setVoucherError(null);
+    setAppliedVoucher(null);
+    setIsValidatingVoucher(true);
+    try {
+      let firstValid: { classId: string; discountPrice: number } | null = null;
+      for (const item of items) {
+        const result = await validateVoucher(item.class.id, code);
+        if (result.valid) {
+          firstValid = { classId: item.class.id, discountPrice: result.discountPrice };
+          break;
+        }
+      }
+      if (firstValid) {
+        setAppliedVoucher(firstValid);
+      } else {
+        setVoucherError('Kode voucher tidak valid atau sudah tidak berlaku.');
+      }
+    } catch {
+      setVoucherError('Gagal memvalidasi voucher. Coba lagi.');
+    } finally {
+      setIsValidatingVoucher(false);
+    }
+  };
+
   const handleCheckout = async () => {
     if (!user || items.length === 0) return;
     setIsProcessing(true);
     try {
-      const createdInvoice = await createCheckoutMutation.mutateAsync();
+      const voucherCode = appliedVoucher ? voucherInputCode.trim().toUpperCase() : undefined;
+      const createdInvoice = await createCheckoutMutation.mutateAsync(voucherCode);
 
       // Kalau Mayar sudah diintegrasikan dan paymentUrl tersedia → redirect ke sana
       if (createdInvoice.paymentUrl) {
@@ -513,7 +551,67 @@ function CartContent() {
                       <span>{items.length}</span>
                     </div>
                   </div>
+
+                  {/* Input kode voucher */}
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Kode voucher"
+                        value={voucherInputCode}
+                        onChange={(e) => {
+                          setVoucherInputCode(e.target.value);
+                          if (appliedVoucher) setAppliedVoucher(null);
+                          if (voucherError) setVoucherError(null);
+                        }}
+                        className="h-9 text-sm"
+                        disabled={isValidatingVoucher || !!appliedVoucher}
+                        onKeyDown={(e) => { if (e.key === 'Enter') void handleApplyVoucher(); }}
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-9 shrink-0"
+                        onClick={handleApplyVoucher}
+                        disabled={!voucherInputCode.trim() || isValidatingVoucher || !!appliedVoucher}
+                      >
+                        {isValidatingVoucher ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Pakai'}
+                      </Button>
+                    </div>
+                    {appliedVoucher && (
+                      <div className="flex items-center justify-between text-xs text-green-600">
+                        <span className="flex items-center gap-1">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Voucher diterapkan
+                        </span>
+                        <button
+                          className="underline text-muted-foreground hover:text-foreground transition-colors"
+                          onClick={() => { setAppliedVoucher(null); setVoucherInputCode(''); }}
+                        >
+                          Hapus
+                        </button>
+                      </div>
+                    )}
+                    {voucherError && (
+                      <p className="text-xs text-destructive">{voucherError}</p>
+                    )}
+                  </div>
+
                   <Separator />
+
+                  {appliedVoucher && (() => {
+                    const originalItem = items.find(i => i.class.id === appliedVoucher.classId);
+                    const originalPrice = originalItem
+                      ? (originalItem.class.discountPrice ?? originalItem.class.basePrice)
+                      : appliedVoucher.discountPrice;
+                    const savings = originalPrice - appliedVoucher.discountPrice;
+                    return savings > 0 ? (
+                      <div className="flex justify-between text-sm text-green-600">
+                        <span>Diskon voucher</span>
+                        <span>−{formatPrice(savings)}</span>
+                      </div>
+                    ) : null;
+                  })()}
+
                   <div className="flex justify-between font-bold text-base">
                     <span>Subtotal</span>
                     <span className="text-primary">{formatPrice(subtotal)}</span>

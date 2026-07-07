@@ -344,7 +344,36 @@ export type LocalInvoice = {
   items: LocalInvoiceItem[];
 };
 
-export async function createCheckout(): Promise<LocalInvoice> {
+// ─── VOUCHERS ────────────────────────────────────────────────────────────────
+
+export type VoucherResult =
+  | { valid: true; discountPrice: number }
+  | { valid: false; message: string };
+
+export async function validateVoucher(classId: string, code: string): Promise<VoucherResult> {
+  const normalizedCode = code.trim().toUpperCase();
+  const { data, error } = await supabase
+    .from('class_vouchers')
+    .select('id, discount_price, max_uses, used_count')
+    .eq('class_id', classId)
+    .eq('code', normalizedCode)
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (error) throw error;
+
+  if (!data) {
+    return { valid: false, message: 'Kode voucher tidak valid atau sudah tidak berlaku.' };
+  }
+
+  if (data.max_uses !== null && (data.used_count ?? 0) >= data.max_uses) {
+    return { valid: false, message: 'Kode voucher tidak valid atau sudah tidak berlaku.' };
+  }
+
+  return { valid: true, discountPrice: data.discount_price as number };
+}
+
+export async function createCheckout(voucherCode?: string): Promise<LocalInvoice> {
   const { data: { session } } = await supabase.auth.getSession();
   const token = session?.access_token;
   if (!token) throw new Error('Tidak ada sesi login');
@@ -356,6 +385,7 @@ export async function createCheckout(): Promise<LocalInvoice> {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
+    body: JSON.stringify(voucherCode ? { voucherCode } : {}),
   });
 
   if (!res.ok) {
