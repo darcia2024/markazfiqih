@@ -452,6 +452,7 @@ const GALLERY_PHOTOS = [
   { src: '/gallery/foto-3.jpeg', alt: 'Sesi pembelajaran bersama pengajar' },
   { src: '/gallery/foto-4.jpeg', alt: 'Pengajian rutin Markaz Fiqih' },
   { src: '/gallery/foto-5.jpeg', alt: 'Santri belajar fiqih bersama' },
+  { src: '/gallery/foto-6.jpeg', alt: 'Kajian bersama pengajar Markaz Fiqih' },
 ];
 
 function GallerySection() {
