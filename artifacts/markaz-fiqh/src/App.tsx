@@ -22,6 +22,7 @@ import AdminInstructorsPage from '@/pages/admin/AdminInstructorsPage';
 import AdminOrdersPage from '@/pages/admin/AdminOrdersPage';
 import AdminTestimonialsPage from '@/pages/admin/AdminTestimonialsPage';
 import AdminSettingsPage from '@/pages/admin/AdminSettingsPage';
+import BundlesPage from '@/pages/BundlesPage';
 
 const queryClient = new QueryClient();
 
@@ -36,6 +37,7 @@ function Router() {
       <Route path="/class/:id" component={ClassDetailPage} />
       <Route path="/my-classes" component={MyClassesPage} />
       <Route path="/keranjang" component={CartPage} />
+      <Route path="/paket-bundle" component={BundlesPage} />
       <Route path="/learn/:classId" component={LearnPage} />
       <Route path="/admin">
         {() => <RequireAdminRoute><AdminDashboardPage /></RequireAdminRoute>}

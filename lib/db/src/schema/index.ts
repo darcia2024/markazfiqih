@@ -11,3 +11,5 @@ export * from "./testimonials";
 export * from "./site-settings";
 export * from "./userProfiles";
 export * from "./classVouchers";
+export * from "./bundles";
+export * from "./bundleClasses";

@@ -1,30 +1,19 @@
 import React, { createContext, useContext } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { listCartItems, addCartItem, removeCartItem } from '@/lib/db';
+import type { CartItem, CartClassItem, CartBundleItem } from '@/lib/db';
 import { useAuth } from '@/context/AuthContext';
 
-export type CartItem = {
-  id: string;
-  classId: string;
-  addedAt: string;
-  class: {
-    id: string;
-    title: string;
-    coverImage: string;
-    basePrice: number;
-    discountPrice: number | null;
-    instructor: { id: string; name: string; photoUrl: string };
-    moduleCount: number;
-    totalDurationMinutes: number;
-  };
-};
+export type { CartItem, CartClassItem, CartBundleItem };
 
 type CartContextType = {
   items: CartItem[];
   count: number;
   isLoading: boolean;
   classIdsInCart: Set<string>;
+  bundleIdsInCart: Set<string>;
   addToCart: (classId: string) => Promise<void>;
+  addBundleToCart: (bundleId: string) => Promise<void>;
   isAdding: boolean;
   removeFromCart: (itemId: string) => Promise<void>;
   isRemoving: boolean;
@@ -43,7 +32,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   });
 
   const addMutation = useMutation({
-    mutationFn: ({ classId }: { classId: string }) => addCartItem(user!.id, classId),
+    mutationFn: (item: { classId: string } | { bundleId: string }) =>
+      addCartItem(user!.id, item),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cart', user?.id] });
     },
@@ -63,11 +53,21 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   });
 
   const items: CartItem[] = cartQuery.data ?? [];
-  const classIdsInCart = new Set(items.map((i) => i.classId));
+  const classIdsInCart = new Set(
+    items.filter((i): i is CartClassItem => i.type === 'class').map((i) => i.classId),
+  );
+  const bundleIdsInCart = new Set(
+    items.filter((i): i is CartBundleItem => i.type === 'bundle').map((i) => i.bundleId),
+  );
 
   const addToCart = async (classId: string) => {
     if (!user) return;
     await addMutation.mutateAsync({ classId });
+  };
+
+  const addBundleToCart = async (bundleId: string) => {
+    if (!user) return;
+    await addMutation.mutateAsync({ bundleId });
   };
 
   const removeFromCart = async (itemId: string) => {
@@ -81,7 +81,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         count: items.length,
         isLoading: cartQuery.isLoading,
         classIdsInCart,
+        bundleIdsInCart,
         addToCart,
+        addBundleToCart,
         isAdding: addMutation.isPending,
         removeFromCart,
         isRemoving: removeMutation.isPending,

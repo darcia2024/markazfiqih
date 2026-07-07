@@ -37,11 +37,17 @@ _Populate as you build — non-obvious choices a reader couldn't infer from the 
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+Platform belajar fiqih Syafi'i dengan fitur:
+- Katalog kelas individual + halaman Paket Bundle (`/paket-bundle`)
+- Keranjang belanja mendukung kelas individual **dan** bundle
+- Checkout via Supabase Edge Function → Mayar payment gateway (mode dev: simulasi)
+- Enrollment otomatis setelah pembayaran confirmed
+- Dashboard siswa, halaman "Kelas Saya", progress belajar
+- Admin panel (kelas, instruktur, pesanan, testimonial, pengaturan)
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Jangan migrasi ke Replit DB — tetap pakai Supabase (database + auth + edge functions)
 
 ## Gotchas
 

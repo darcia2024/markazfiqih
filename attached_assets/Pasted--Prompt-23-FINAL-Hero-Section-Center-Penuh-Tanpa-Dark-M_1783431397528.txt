@@ -1,0 +1,66 @@
+# Prompt 23 (FINAL): Hero Section — Center Penuh, Tanpa Dark Mode, Tanpa Foto
+
+## Konteks
+Rencana dark mode untuk landing page **dibatalkan** — warna tetap solid
+merah brand seperti sekarang (kalau Tahap 1 dark mode kemarin sempat
+dikerjakan, batalkan/revert perubahan warna gelapnya, kembalikan ke
+gradient merah brand seperti semula).
+
+Hero section sekarang masih terasa berat sebelah — konten teks numpuk di
+kiri, sisi kanan kosong. Keputusan final: TIDAK perlu mengisi sisi kanan
+dengan elemen visual apapun (tidak logo besar, tidak stats card). Sebagai
+gantinya, seluruh konten hero (badge, judul, deskripsi, tombol CTA, social
+links) di-**center penuh** secara horizontal maupun sebagai blok, dan
+tinggi section dikecilkan supaya proporsional (tidak dipaksa setinggi
+sebelumnya untuk mengisi ruang kosong).
+
+Edit file `artifacts/markaz-fiqh/src/pages/LandingPage.tsx`, fungsi
+`HeroSection` (cari definisinya di bagian atas file).
+
+## Perubahan
+
+Ganti seluruh isi `HeroSection` dengan struktur berikut:
+
+1. **Hapus foto background Unsplash sepenuhnya** (tidak dipakai lagi sama
+   sekali).
+2. **Background**: gradient merah brand yang sudah dipakai di section lain
+   (`bg-gradient-to-br from-primary to-[hsl(var(--brand-red-hover))]`),
+   ditambah pattern grid dekoratif sangat subtle di atasnya (garis tipis
+   opacity rendah ~0.06, bisa pakai teknik CSS `linear-gradient` berulang
+   sebagai grid, atau SVG pattern kalau lebih mudah — yang penting sangat
+   halus, tidak mengganggu keterbacaan teks).
+3. **Hero menyatu dengan Navbar** tanpa gap/margin/rounded corner di
+   bagian atas (pertahankan dari perbaikan sebelumnya — pastikan tidak ada
+   `mx-4 mt-4 rounded-[14px]` yang membuat hero jadi card terpisah dari
+   navbar).
+4. **Semua konten di-center** dalam satu kolom vertikal, rata tengah
+   horizontal (`items-center text-center`), urutan dari atas ke bawah:
+   - Badge kecil pill: dot kuning/gold + teks "Kelas Terverifikasi &
+     Fleksibel" (background `bg-white/10` transparan, border tipis
+     `border-white/15`)
+   - Judul: "Belajar Fiqih Terstruktur. Berkembang Lebih Cepat." (teks
+     tidak berubah), ukuran besar (`text-4xl sm:text-5xl lg:text-6xl`),
+     dibatasi lebar `max-w-3xl` supaya wrap rapi, warna putih
+   - Deskripsi paragraf (teks tidak berubah), dibatasi lebar `max-w-xl`,
+     warna `text-white/75`
+   - Tombol CTA "Jelajahi Kelas" (style tetap solid gold seperti sekarang)
+   - Blok "Ikuti Kami" + ikon sosial media di bagian paling bawah, tetap
+     dalam alur normal (bukan `absolute` lagi), dengan jarak yang cukup
+     dari tombol CTA di atasnya
+5. **Tinggi section**: hapus tinggi fixed yang lama (`h-[480px] sm:h-
+   [520px]`) — ganti dengan padding vertikal yang proporsional terhadap
+   konten (misal `py-16 sm:py-20`), sehingga section secara alami
+   menyesuaikan tinggi kontennya, tidak dipaksa tinggi seperti sebelumnya.
+
+## Yang tidak boleh berubah
+- Semua teks konten (judul, deskripsi, label tombol, label badge) — tidak
+  diubah kata-katanya
+- Fungsi/link tombol dan ikon sosial media tetap sama
+- Warna tetap dari CSS variables brand yang sudah ada (primary crimson,
+  accent gold) — tidak ada dark mode, tidak ada warna baru di luar palet
+- Section lain di LandingPage.tsx tidak disentuh
+- Navbar tidak diubah
+
+## Setelah selesai
+Konfirmasi bahwa hero sekarang center penuh, tanpa foto, tanpa dark mode,
+dan menyatu dengan navbar tanpa gap.

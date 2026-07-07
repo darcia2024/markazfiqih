@@ -24,6 +24,42 @@ export type EnrollmentItem = {
   };
 };
 
+export type BundleItem = {
+  id: string;
+  title: string;
+  description: string;
+  normalPrice: number;
+  bundlePrice: number;
+  classes: { id: string; title: string; coverImage: string }[];
+};
+
+export type CartClassItem = {
+  id: string;
+  type: 'class';
+  classId: string;
+  addedAt: string;
+  class: {
+    id: string;
+    title: string;
+    coverImage: string;
+    basePrice: number;
+    discountPrice: number | null;
+    instructor: { id: string; name: string; photoUrl: string };
+    moduleCount: number;
+    totalDurationMinutes: number;
+  };
+};
+
+export type CartBundleItem = {
+  id: string;
+  type: 'bundle';
+  bundleId: string;
+  addedAt: string;
+  bundle: BundleItem;
+};
+
+export type CartItem = CartClassItem | CartBundleItem;
+
 // ─── CLASSES ─────────────────────────────────────────────────────────────────
 
 export async function listClasses(params?: {
@@ -207,55 +243,169 @@ export async function getSettings() {
   };
 }
 
+// ─── BUNDLES ──────────────────────────────────────────────────────────────────
+
+export async function listBundles(): Promise<BundleItem[]> {
+  const { data, error } = await supabase
+    .from('bundles')
+    .select(`
+      id, title, description, normal_price, bundle_price,
+      bundle_classes (
+        class_id,
+        classes ( id, title, cover_image )
+      )
+    `)
+    .eq('status', 'published')
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+
+  return (data ?? []).map((b: any) => ({
+    id: b.id as string,
+    title: b.title as string,
+    description: b.description as string,
+    normalPrice: b.normal_price as number,
+    bundlePrice: b.bundle_price as number,
+    classes: (b.bundle_classes ?? [])
+      .map((bc: any) => bc.classes)
+      .filter(Boolean)
+      .map((cls: any) => ({
+        id: cls.id as string,
+        title: cls.title as string,
+        coverImage: cls.cover_image as string,
+      })),
+  }));
+}
+
+export async function getBundleById(id: string): Promise<BundleItem> {
+  const { data, error } = await supabase
+    .from('bundles')
+    .select(`
+      id, title, description, normal_price, bundle_price,
+      bundle_classes (
+        class_id,
+        classes ( id, title, cover_image )
+      )
+    `)
+    .eq('id', id)
+    .single();
+  if (error) throw error;
+
+  return {
+    id: data.id as string,
+    title: data.title as string,
+    description: data.description as string,
+    normalPrice: data.normal_price as number,
+    bundlePrice: data.bundle_price as number,
+    classes: ((data.bundle_classes as any[]) ?? [])
+      .map((bc: any) => bc.classes)
+      .filter(Boolean)
+      .map((cls: any) => ({
+        id: cls.id as string,
+        title: cls.title as string,
+        coverImage: cls.cover_image as string,
+      })),
+  };
+}
+
 // ─── CART ─────────────────────────────────────────────────────────────────────
 
-export async function listCartItems(userId: string) {
+export async function listCartItems(userId: string): Promise<CartItem[]> {
   const { data, error } = await supabase
     .from('cart_items')
     .select(`
-      id, class_id, added_at,
+      id, class_id, bundle_id, added_at,
       classes (
         id, title, cover_image, base_price, discount_price,
         instructors ( id, name, photo_url ),
         modules ( id, dars ( id, duration_minutes ) )
+      ),
+      bundles (
+        id, title, description, normal_price, bundle_price,
+        bundle_classes (
+          class_id,
+          classes ( id, title, cover_image )
+        )
       )
     `)
     .eq('user_id', userId);
   if (error) throw error;
+
   return (data ?? [])
-    .filter((item: any) => item.classes != null)
-    .map((item: any) => {
-      const cls = item.classes;
-      const modules = cls.modules ?? [];
-      const dars = modules.flatMap((m: any) => m.dars ?? []);
-      return {
-        id: item.id as string,
-        classId: item.class_id as string,
-        addedAt: item.added_at as string,
-        class: {
-          id: cls.id as string,
-          title: cls.title as string,
-          coverImage: cls.cover_image as string,
-          basePrice: cls.base_price as number,
-          discountPrice: cls.discount_price as number | null,
-          instructor: cls.instructors
-            ? { id: cls.instructors.id as string, name: cls.instructors.name as string, photoUrl: cls.instructors.photo_url as string }
-            : { id: '', name: 'Pengajar', photoUrl: '' },
-          moduleCount: modules.length as number,
-          totalDurationMinutes: dars.reduce(
-            (acc: number, d: any) => acc + (d.duration_minutes ?? 0),
-            0,
-          ) as number,
-        },
-      };
-    });
+    .map((item: any): CartItem | null => {
+      // Item bundle
+      if (item.bundle_id && item.bundles) {
+        const b = item.bundles;
+        return {
+          id: item.id as string,
+          type: 'bundle',
+          bundleId: item.bundle_id as string,
+          addedAt: item.added_at as string,
+          bundle: {
+            id: b.id as string,
+            title: b.title as string,
+            description: b.description as string,
+            normalPrice: b.normal_price as number,
+            bundlePrice: b.bundle_price as number,
+            classes: (b.bundle_classes ?? [])
+              .map((bc: any) => bc.classes)
+              .filter(Boolean)
+              .map((cls: any) => ({
+                id: cls.id as string,
+                title: cls.title as string,
+                coverImage: cls.cover_image as string,
+              })),
+          },
+        };
+      }
+
+      // Item kelas biasa
+      if (item.class_id && item.classes) {
+        const cls = item.classes;
+        const modules = cls.modules ?? [];
+        const dars = modules.flatMap((m: any) => m.dars ?? []);
+        return {
+          id: item.id as string,
+          type: 'class',
+          classId: item.class_id as string,
+          addedAt: item.added_at as string,
+          class: {
+            id: cls.id as string,
+            title: cls.title as string,
+            coverImage: cls.cover_image as string,
+            basePrice: cls.base_price as number,
+            discountPrice: cls.discount_price as number | null,
+            instructor: cls.instructors
+              ? { id: cls.instructors.id as string, name: cls.instructors.name as string, photoUrl: cls.instructors.photo_url as string }
+              : { id: '', name: 'Pengajar', photoUrl: '' },
+            moduleCount: modules.length as number,
+            totalDurationMinutes: dars.reduce(
+              (acc: number, d: any) => acc + (d.duration_minutes ?? 0),
+              0,
+            ) as number,
+          },
+        };
+      }
+
+      return null;
+    })
+    .filter((item): item is CartItem => item !== null);
 }
 
-export async function addCartItem(userId: string, classId: string) {
-  const { error } = await supabase
-    .from('cart_items')
-    .insert({ user_id: userId, class_id: classId });
-  if (error) throw error;
+export async function addCartItem(
+  userId: string,
+  item: { classId: string } | { bundleId: string },
+) {
+  if ('bundleId' in item) {
+    const { error } = await supabase
+      .from('cart_items')
+      .insert({ user_id: userId, bundle_id: item.bundleId });
+    if (error) throw error;
+  } else {
+    const { error } = await supabase
+      .from('cart_items')
+      .insert({ user_id: userId, class_id: item.classId });
+    if (error) throw error;
+  }
 }
 
 export async function removeCartItem(itemId: string) {

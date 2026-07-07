@@ -11,6 +11,7 @@ import {
   Sparkles,
   Loader2,
   XCircle,
+  Package2,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
@@ -21,9 +22,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
+import type { CartClassItem, CartBundleItem } from '@/context/CartContext';
 import { formatPrice } from '@/pages/CatalogPage';
 import {
   useListRecommendedClasses,
@@ -54,11 +57,16 @@ function EmptyCart() {
         Keranjang Kamu Masih Kosong
       </h2>
       <p className="text-muted-foreground max-w-sm mb-6">
-        Yuk jelajahi katalog kelas fiqih kami dan mulai perjalanan belajar kamu hari ini.
+        Yuk jelajahi katalog kelas atau paket bundle kami dan mulai perjalanan belajar kamu hari ini.
       </p>
-      <Button asChild size="lg">
-        <Link href="/katalog">Jelajahi Katalog Kelas</Link>
-      </Button>
+      <div className="flex gap-3">
+        <Button asChild size="lg">
+          <Link href="/katalog">Jelajahi Katalog Kelas</Link>
+        </Button>
+        <Button asChild size="lg" variant="outline">
+          <Link href="/paket-bundle">Lihat Paket Bundle</Link>
+        </Button>
+      </div>
     </motion.div>
   );
 }
@@ -204,6 +212,159 @@ function WaitingForPaymentView({
   );
 }
 
+// ── Cart item: kelas biasa ─────────────────────────────────────────────────────
+
+function ClassCartItem({
+  item,
+  appliedVoucher,
+  onRemove,
+  isRemoving,
+}: {
+  item: CartClassItem;
+  appliedVoucher: { classId: string; discountPrice: number } | null;
+  onRemove: (id: string) => void;
+  isRemoving: boolean;
+}) {
+  const hasDiscount = item.class.discountPrice != null;
+  const durationLabel = formatDuration(item.class.totalDurationMinutes);
+  const voucherApplied = appliedVoucher?.classId === item.class.id;
+  const displayPrice = voucherApplied
+    ? appliedVoucher!.discountPrice
+    : (item.class.discountPrice ?? item.class.basePrice);
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 100, height: 0, marginBottom: 0, paddingTop: 0, paddingBottom: 0 }}
+      transition={{ duration: 0.25, ease: 'easeInOut' }}
+      className="flex gap-4 rounded-lg border bg-card p-4 shadow-sm"
+    >
+      <Link href={`/class/${item.class.id}`} className="shrink-0">
+        <div className="w-28 h-20 rounded-md overflow-hidden bg-muted">
+          <img
+            src={item.class.coverImage}
+            alt={item.class.title}
+            className="w-full h-full object-cover"
+          />
+        </div>
+      </Link>
+      <div className="flex-1 min-w-0 flex flex-col">
+        <Link href={`/class/${item.class.id}`}>
+          <h3 className="text-sm font-semibold text-foreground line-clamp-2 hover:text-primary transition-colors">
+            {item.class.title}
+          </h3>
+        </Link>
+        <p className="text-xs text-muted-foreground mt-1">{item.class.instructor.name}</p>
+        <div className="flex items-center gap-3 text-xs text-text-tertiary mt-1.5">
+          <span className="flex items-center gap-1">
+            <BookOpen className="w-3.5 h-3.5" />
+            {item.class.moduleCount} Modul
+          </span>
+          {durationLabel && (
+            <span className="flex items-center gap-1">
+              <Clock className="w-3.5 h-3.5" />
+              {durationLabel}
+            </span>
+          )}
+        </div>
+        <div className="mt-auto pt-2 flex items-center justify-between">
+          <div className="flex items-baseline gap-2">
+            {(hasDiscount || voucherApplied) && !voucherApplied && (
+              <span className="text-xs text-text-tertiary line-through">
+                {formatPrice(item.class.basePrice)}
+              </span>
+            )}
+            {voucherApplied && (
+              <span className="text-xs text-text-tertiary line-through">
+                {formatPrice(item.class.discountPrice ?? item.class.basePrice)}
+              </span>
+            )}
+            <span className="text-sm font-bold text-primary">
+              {formatPrice(displayPrice)}
+            </span>
+          </div>
+          <button
+            onClick={() => onRemove(item.id)}
+            disabled={isRemoving}
+            className="text-muted-foreground hover:text-destructive transition-colors p-1.5 rounded-md hover:bg-destructive/10"
+            aria-label="Hapus dari keranjang"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ── Cart item: bundle ─────────────────────────────────────────────────────────
+
+function BundleCartItem({
+  item,
+  onRemove,
+  isRemoving,
+}: {
+  item: CartBundleItem;
+  onRemove: (id: string) => void;
+  isRemoving: boolean;
+}) {
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 100, height: 0, marginBottom: 0, paddingTop: 0, paddingBottom: 0 }}
+      transition={{ duration: 0.25, ease: 'easeInOut' }}
+      className="flex gap-4 rounded-lg border border-primary/20 bg-primary/3 p-4 shadow-sm"
+    >
+      {/* Ikon bundle */}
+      <div className="shrink-0 w-28 h-20 rounded-md overflow-hidden bg-primary/10 flex items-center justify-center">
+        <Package2 className="h-8 w-8 text-primary/60" />
+      </div>
+      <div className="flex-1 min-w-0 flex flex-col">
+        <div className="flex items-center gap-2 flex-wrap">
+          <h3 className="text-sm font-semibold text-foreground line-clamp-1">
+            {item.bundle.title}
+          </h3>
+          <Badge
+            variant="outline"
+            className="text-[10px] border-primary/30 text-primary bg-primary/5 shrink-0 px-1.5 py-0"
+          >
+            Paket Bundle
+          </Badge>
+        </div>
+        {/* Daftar kelas singkat */}
+        <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
+          {item.bundle.classes.map((c) => c.title).join(' · ')}
+        </p>
+        <p className="text-[11px] text-muted-foreground mt-1">
+          {item.bundle.classes.length} kelas
+        </p>
+        <div className="mt-auto pt-2 flex items-center justify-between">
+          <div className="flex items-baseline gap-2">
+            <span className="text-xs text-text-tertiary line-through">
+              {formatPrice(item.bundle.normalPrice)}
+            </span>
+            <span className="text-sm font-bold text-primary">
+              {formatPrice(item.bundle.bundlePrice)}
+            </span>
+          </div>
+          <button
+            onClick={() => onRemove(item.id)}
+            disabled={isRemoving}
+            className="text-muted-foreground hover:text-destructive transition-colors p-1.5 rounded-md hover:bg-destructive/10"
+            aria-label="Hapus dari keranjang"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 function CartContent() {
   const { user } = useAuth();
   const { items, isLoading, removeFromCart, isRemoving } = useCart();
@@ -224,13 +385,12 @@ function CartContent() {
   );
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // ── Voucher ────────────────────────────────────────────────────────────────
+  // ── Voucher (hanya untuk kelas individual) ─────────────────────────────────
   const [voucherInputCode, setVoucherInputCode] = useState('');
   const [appliedVoucher, setAppliedVoucher] = useState<{ classId: string; discountPrice: number } | null>(null);
   const [voucherError, setVoucherError] = useState<string | null>(null);
   const [isValidatingVoucher, setIsValidatingVoucher] = useState(false);
 
-  // Cart removal via CartContext (Supabase direct); recommended classes cache invalidated separately
   const handleRemoveAndRefreshRecommended = async (id: string) => {
     await removeFromCart(id);
     if (user) {
@@ -248,13 +408,20 @@ function CartContent() {
     mutationFn: (invoiceId: string) => simulateSuccess(invoiceId),
   });
 
+  // Subtotal: bundle pakai bundlePrice, kelas pakai harga (voucher kalau ada)
   const subtotal = items.reduce((sum, item) => {
+    if (item.type === 'bundle') {
+      return sum + item.bundle.bundlePrice;
+    }
+    // kelas biasa
     if (appliedVoucher && item.class.id === appliedVoucher.classId) {
       return sum + appliedVoucher.discountPrice;
     }
-    const price = item.class.discountPrice ?? item.class.basePrice;
-    return sum + price;
+    return sum + (item.class.discountPrice ?? item.class.basePrice);
   }, 0);
+
+  const classItemCount = items.filter((i) => i.type === 'class').length;
+  const bundleItemCount = items.filter((i) => i.type === 'bundle').length;
 
   const handleRemove = (id: string) => {
     void handleRemoveAndRefreshRecommended(id);
@@ -269,6 +436,7 @@ function CartContent() {
     try {
       let firstValid: { classId: string; discountPrice: number } | null = null;
       for (const item of items) {
+        if (item.type !== 'class') continue;
         const result = await validateVoucher(item.class.id, code);
         if (result.valid) {
           firstValid = { classId: item.class.id, discountPrice: result.discountPrice };
@@ -294,14 +462,12 @@ function CartContent() {
       const voucherCode = appliedVoucher ? voucherInputCode.trim().toUpperCase() : undefined;
       const createdInvoice = await createCheckoutMutation.mutateAsync(voucherCode);
 
-      // Kalau Mayar sudah diintegrasikan dan paymentUrl tersedia → redirect ke sana
       if (createdInvoice.paymentUrl) {
         setWaitingInvoiceId(createdInvoice.id);
         window.location.href = createdInvoice.paymentUrl;
         return;
       }
 
-      // Development fallback: tampilkan panel simulasi
       setInvoice(createdInvoice);
       setCheckoutStep('paying');
     } catch (error) {
@@ -316,7 +482,6 @@ function CartContent() {
     setIsProcessing(true);
     try {
       await simulateSuccessMutation.mutateAsync(invoice.id);
-      // Ambil ulang invoice lengkap untuk ditampilkan di success view
       const paidInvoice = await getInvoice(invoice.id);
       setInvoice(paidInvoice);
       setCheckoutStep('success');
@@ -332,7 +497,6 @@ function CartContent() {
     setInvoice(paidInvoice);
     setCheckoutStep('success');
     queryClient.invalidateQueries({ queryKey: ['cart', user!.id] });
-    // Bersihkan query param dari URL
     window.history.replaceState(null, '', '/keranjang');
   };
 
@@ -341,7 +505,7 @@ function CartContent() {
     window.history.replaceState(null, '', '/keranjang');
   };
 
-  // ── Waiting: polling setelah kembali dari Mayar ────────────────────────────
+  // ── Waiting ────────────────────────────────────────────────────────────────
   if (checkoutStep === 'waiting' && waitingInvoiceId) {
     return (
       <WaitingForPaymentView
@@ -456,8 +620,8 @@ function CartContent() {
           <h1 className="font-serif text-3xl font-bold text-foreground">Keranjang Saya</h1>
           <p className="text-muted-foreground mt-1">
             {items.length > 0
-              ? `${items.length} kelas siap untuk didaftarkan`
-              : 'Belum ada kelas di keranjang'}
+              ? `${items.length} item siap untuk didaftarkan`
+              : 'Belum ada item di keranjang'}
           </p>
         </motion.div>
 
@@ -474,68 +638,24 @@ function CartContent() {
             <div className="lg:col-span-3 space-y-4">
               <AnimatePresence>
                 {items.map((item) => {
-                  const hasDiscount = item.class.discountPrice != null;
-                  const durationLabel = formatDuration(item.class.totalDurationMinutes);
+                  if (item.type === 'bundle') {
+                    return (
+                      <BundleCartItem
+                        key={item.id}
+                        item={item}
+                        onRemove={handleRemove}
+                        isRemoving={isRemoving}
+                      />
+                    );
+                  }
                   return (
-                    <motion.div
+                    <ClassCartItem
                       key={item.id}
-                      layout
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 100, height: 0, marginBottom: 0, paddingTop: 0, paddingBottom: 0 }}
-                      transition={{ duration: 0.25, ease: 'easeInOut' }}
-                      className="flex gap-4 rounded-lg border bg-card p-4 shadow-sm"
-                    >
-                      <Link href={`/class/${item.class.id}`} className="shrink-0">
-                        <div className="w-28 h-20 rounded-md overflow-hidden bg-muted">
-                          <img
-                            src={item.class.coverImage}
-                            alt={item.class.title}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      </Link>
-                      <div className="flex-1 min-w-0 flex flex-col">
-                        <Link href={`/class/${item.class.id}`}>
-                          <h3 className="text-sm font-semibold text-foreground line-clamp-2 hover:text-primary transition-colors">
-                            {item.class.title}
-                          </h3>
-                        </Link>
-                        <p className="text-xs text-muted-foreground mt-1">{item.class.instructor.name}</p>
-                        <div className="flex items-center gap-3 text-xs text-text-tertiary mt-1.5">
-                          <span className="flex items-center gap-1">
-                            <BookOpen className="w-3.5 h-3.5" />
-                            {item.class.moduleCount} Modul
-                          </span>
-                          {durationLabel && (
-                            <span className="flex items-center gap-1">
-                              <Clock className="w-3.5 h-3.5" />
-                              {durationLabel}
-                            </span>
-                          )}
-                        </div>
-                        <div className="mt-auto pt-2 flex items-center justify-between">
-                          <div className="flex items-baseline gap-2">
-                            {hasDiscount && (
-                              <span className="text-xs text-text-tertiary line-through">
-                                {formatPrice(item.class.basePrice)}
-                              </span>
-                            )}
-                            <span className="text-sm font-bold text-primary">
-                              {formatPrice(hasDiscount ? item.class.discountPrice! : item.class.basePrice)}
-                            </span>
-                          </div>
-                          <button
-                            onClick={() => handleRemove(item.id)}
-                            disabled={isRemoving}
-                            className="text-muted-foreground hover:text-destructive transition-colors p-1.5 rounded-md hover:bg-destructive/10"
-                            aria-label="Hapus dari keranjang"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    </motion.div>
+                      item={item}
+                      appliedVoucher={appliedVoucher}
+                      onRemove={handleRemove}
+                      isRemoving={isRemoving}
+                    />
                   );
                 })}
               </AnimatePresence>
@@ -545,62 +665,74 @@ function CartContent() {
               <div className="sticky top-24 rounded-xl border bg-card shadow-sm overflow-hidden">
                 <div className="p-5 space-y-4">
                   <h3 className="font-semibold text-foreground text-sm">Ringkasan Belanja</h3>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between text-muted-foreground">
-                      <span>Jumlah Kelas</span>
-                      <span>{items.length}</span>
-                    </div>
-                  </div>
-
-                  {/* Input kode voucher */}
-                  <div className="space-y-2">
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="Kode voucher"
-                        value={voucherInputCode}
-                        onChange={(e) => {
-                          setVoucherInputCode(e.target.value);
-                          if (appliedVoucher) setAppliedVoucher(null);
-                          if (voucherError) setVoucherError(null);
-                        }}
-                        className="h-9 text-sm"
-                        disabled={isValidatingVoucher || !!appliedVoucher}
-                        onKeyDown={(e) => { if (e.key === 'Enter') void handleApplyVoucher(); }}
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-9 shrink-0"
-                        onClick={handleApplyVoucher}
-                        disabled={!voucherInputCode.trim() || isValidatingVoucher || !!appliedVoucher}
-                      >
-                        {isValidatingVoucher ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Pakai'}
-                      </Button>
-                    </div>
-                    {appliedVoucher && (
-                      <div className="flex items-center justify-between text-xs text-green-600">
-                        <span className="flex items-center gap-1">
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                          Voucher diterapkan
-                        </span>
-                        <button
-                          className="underline text-muted-foreground hover:text-foreground transition-colors"
-                          onClick={() => { setAppliedVoucher(null); setVoucherInputCode(''); }}
-                        >
-                          Hapus
-                        </button>
+                  <div className="space-y-1.5 text-sm text-muted-foreground">
+                    {classItemCount > 0 && (
+                      <div className="flex justify-between">
+                        <span>Kelas Individual</span>
+                        <span>{classItemCount}</span>
                       </div>
                     )}
-                    {voucherError && (
-                      <p className="text-xs text-destructive">{voucherError}</p>
+                    {bundleItemCount > 0 && (
+                      <div className="flex justify-between">
+                        <span>Paket Bundle</span>
+                        <span>{bundleItemCount}</span>
+                      </div>
                     )}
                   </div>
+
+                  {/* Input kode voucher — hanya tampil jika ada kelas individual */}
+                  {classItemCount > 0 && (
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Kode voucher"
+                          value={voucherInputCode}
+                          onChange={(e) => {
+                            setVoucherInputCode(e.target.value);
+                            if (appliedVoucher) setAppliedVoucher(null);
+                            if (voucherError) setVoucherError(null);
+                          }}
+                          className="h-9 text-sm"
+                          disabled={isValidatingVoucher || !!appliedVoucher}
+                          onKeyDown={(e) => { if (e.key === 'Enter') void handleApplyVoucher(); }}
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-9 shrink-0"
+                          onClick={handleApplyVoucher}
+                          disabled={!voucherInputCode.trim() || isValidatingVoucher || !!appliedVoucher}
+                        >
+                          {isValidatingVoucher ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Pakai'}
+                        </Button>
+                      </div>
+                      {appliedVoucher && (
+                        <div className="flex items-center justify-between text-xs text-green-600">
+                          <span className="flex items-center gap-1">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            Voucher diterapkan
+                          </span>
+                          <button
+                            className="underline text-muted-foreground hover:text-foreground transition-colors"
+                            onClick={() => { setAppliedVoucher(null); setVoucherInputCode(''); }}
+                          >
+                            Hapus
+                          </button>
+                        </div>
+                      )}
+                      {voucherError && (
+                        <p className="text-xs text-destructive">{voucherError}</p>
+                      )}
+                    </div>
+                  )}
 
                   <Separator />
 
                   {appliedVoucher && (() => {
-                    const originalItem = items.find(i => i.class.id === appliedVoucher.classId);
-                    const originalPrice = originalItem
+                    const originalItem = items.find(
+                      (i) => i.type === 'class' && i.class.id === appliedVoucher.classId,
+                    );
+                    const originalPrice = originalItem && originalItem.type === 'class'
                       ? (originalItem.class.discountPrice ?? originalItem.class.basePrice)
                       : appliedVoucher.discountPrice;
                     const savings = originalPrice - appliedVoucher.discountPrice;

@@ -56,6 +56,16 @@ export function Navbar({ variant = 'default' }: NavbarProps) {
                 Katalog
               </Link>
               <Link
+                href="/paket-bundle"
+                className={
+                  isDark
+                    ? 'text-sm font-medium text-white/70 hover:text-[hsl(var(--accent))] transition-colors'
+                    : 'text-sm font-medium text-white/80 hover:text-white transition-colors'
+                }
+              >
+                Paket Bundle
+              </Link>
+              <Link
                 href="/my-classes"
                 className={
                   isDark

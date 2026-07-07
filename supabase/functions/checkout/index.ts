@@ -50,10 +50,17 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     );
 
-    // Ambil cart items user
+    // Ambil cart items user — join ke classes dan bundles (beserta bundle_classes)
     const { data: cartItems, error: cartError } = await supabaseAdmin
       .from('cart_items')
-      .select('id, class_id, classes(id, title, cover_image, base_price, discount_price)')
+      .select(`
+        id, class_id, bundle_id,
+        classes ( id, title, cover_image, base_price, discount_price ),
+        bundles (
+          id, title, bundle_price,
+          bundle_classes ( class_id, classes ( id, title, cover_image ) )
+        )
+      `)
       .eq('user_id', user.id);
 
     if (cartError) throw cartError;
@@ -64,52 +71,105 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ── Validasi voucher (kalau ada) ─────────────────────────────────────────
+    // ── Validasi voucher (hanya berlaku untuk kelas individual) ──────────────
     let voucherApplied = false;
     let voucherClassId: string | null = null;
     let voucherDiscountPrice: number | null = null;
 
     if (voucherCode) {
-      const classIds = cartItems.map((item: any) => item.class_id);
+      // Kumpulkan semua class_id dari item kelas biasa (bukan bundle)
+      const classIds = cartItems
+        .filter((item: any) => item.class_id != null)
+        .map((item: any) => item.class_id);
 
-      const { data: voucherRow } = await supabaseAdmin
-        .from('class_vouchers')
-        .select('id, class_id, discount_price, max_uses, used_count')
-        .in('class_id', classIds)
-        .eq('code', voucherCode)
-        .eq('is_active', true)
-        .maybeSingle();
+      if (classIds.length > 0) {
+        const { data: voucherRow } = await supabaseAdmin
+          .from('class_vouchers')
+          .select('id, class_id, discount_price, max_uses, used_count')
+          .in('class_id', classIds)
+          .eq('code', voucherCode)
+          .eq('is_active', true)
+          .maybeSingle();
 
-      const isVoucherValid =
-        voucherRow &&
-        (voucherRow.max_uses === null || (voucherRow.used_count ?? 0) < voucherRow.max_uses);
+        const isVoucherValid =
+          voucherRow &&
+          (voucherRow.max_uses === null || (voucherRow.used_count ?? 0) < voucherRow.max_uses);
 
-      if (!isVoucherValid) {
-        return new Response(
-          JSON.stringify({ error: 'Kode voucher tidak valid untuk kelas di keranjang ini.' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        if (!isVoucherValid) {
+          return new Response(
+            JSON.stringify({ error: 'Kode voucher tidak valid untuk kelas di keranjang ini.' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        voucherApplied = true;
+        voucherClassId = voucherRow.class_id;
+        voucherDiscountPrice = voucherRow.discount_price;
+
+        // Catat pemakaian voucher
+        await supabaseAdmin
+          .from('class_vouchers')
+          .update({ used_count: (voucherRow.used_count ?? 0) + 1 })
+          .eq('id', voucherRow.id);
       }
-
-      voucherApplied = true;
-      voucherClassId = voucherRow.class_id;
-      voucherDiscountPrice = voucherRow.discount_price;
-
-      // Catat pemakaian voucher
-      await supabaseAdmin
-        .from('class_vouchers')
-        .update({ used_count: (voucherRow.used_count ?? 0) + 1 })
-        .eq('id', voucherRow.id);
     }
 
-    // Hitung total (dengan harga voucher kalau ada)
-    const totalAmount = cartItems.reduce((sum: number, item: any) => {
-      if (voucherApplied && item.class_id === voucherClassId) {
-        return sum + voucherDiscountPrice!;
+    // ── Validasi bundle: tiap bundle harus punya minimal 1 kelas ─────────────
+    for (const item of cartItems as any[]) {
+      if (item.bundle_id && item.bundles) {
+        const bundleClasses = (item.bundles.bundle_classes ?? [])
+          .map((bc: any) => bc.classes)
+          .filter(Boolean);
+        if (bundleClasses.length === 0) {
+          return new Response(
+            JSON.stringify({ error: `Bundle "${item.bundles.title}" tidak memiliki kelas yang valid. Hubungi admin.` }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
       }
-      const price = item.classes?.discount_price ?? item.classes?.base_price ?? 0;
-      return sum + price;
-    }, 0);
+    }
+
+    // ── Deteksi duplikasi: kelas individual yang juga ada di dalam bundle ─────
+    // Kumpulkan semua class_id yang sudah dicakup oleh bundle dalam keranjang
+    const classIdsCoveredByBundle = new Set<string>();
+    for (const item of cartItems as any[]) {
+      if (item.bundle_id && item.bundles) {
+        for (const bc of (item.bundles.bundle_classes ?? [])) {
+          if (bc.class_id) classIdsCoveredByBundle.add(bc.class_id);
+        }
+      }
+    }
+    // Jika ada item kelas individual yang sudah tercakup bundle, tolak checkout
+    const duplicateClassItems = (cartItems as any[]).filter(
+      (item) => item.class_id && classIdsCoveredByBundle.has(item.class_id)
+    );
+    if (duplicateClassItems.length > 0) {
+      const titles = duplicateClassItems
+        .map((item: any) => item.classes?.title ?? item.class_id)
+        .join(', ');
+      return new Response(
+        JSON.stringify({
+          error: `Keranjang mengandung kelas yang sudah termasuk dalam paket bundle: ${titles}. Hapus kelas individual tersebut sebelum checkout.`,
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // ── Hitung total ──────────────────────────────────────────────────────────
+    let totalAmount = 0;
+    for (const item of cartItems as any[]) {
+      if (item.bundle_id && item.bundles) {
+        // Item bundle — gunakan bundle_price
+        totalAmount += item.bundles.bundle_price ?? 0;
+      } else if (item.class_id && item.classes) {
+        // Item kelas biasa — terapkan voucher kalau ada
+        if (voucherApplied && item.class_id === voucherClassId) {
+          totalAmount += voucherDiscountPrice!;
+        } else {
+          totalAmount += item.classes.discount_price ?? item.classes.base_price ?? 0;
+        }
+      }
+    }
 
     // Buat invoice di database
     const { data: invoice, error: invoiceError } = await supabaseAdmin
@@ -124,18 +184,71 @@ Deno.serve(async (req) => {
 
     if (invoiceError) throw invoiceError;
 
-    // Buat invoice items (harga sudah mencerminkan voucher)
-    const invoiceItems = cartItems.map((item: any) => ({
-      invoice_id: invoice.id,
-      class_id: item.class_id,
-      price:
-        voucherApplied && item.class_id === voucherClassId
-          ? voucherDiscountPrice!
-          : (item.classes?.discount_price ?? item.classes?.base_price ?? 0),
-    }));
+    // ── Buat invoice items ────────────────────────────────────────────────────
+    // Untuk kelas biasa: 1 row per kelas
+    // Untuk bundle: 1 row per kelas DALAM bundle (harga dibagi rata, sisa ke kelas pertama)
+    const invoiceItemsToInsert: any[] = [];
+    const invoiceItemsForResponse: any[] = [];
 
-    const { error: itemsError } = await supabaseAdmin.from('invoice_items').insert(invoiceItems);
-    if (itemsError) throw itemsError;
+    for (const item of cartItems as any[]) {
+      if (item.bundle_id && item.bundles) {
+        const bundle = item.bundles;
+        const bundleClasses = (bundle.bundle_classes ?? [])
+          .map((bc: any) => bc.classes)
+          .filter(Boolean);
+
+        const bundlePrice: number = bundle.bundle_price ?? 0;
+        const classCount = bundleClasses.length;
+
+        if (classCount === 0) continue;
+
+        // Bagi rata harga bundle ke tiap kelas — sisa pembulatan ke kelas pertama
+        const pricePerClass = Math.floor(bundlePrice / classCount);
+        const remainder = bundlePrice - pricePerClass * classCount;
+
+        bundleClasses.forEach((cls: any, idx: number) => {
+          const price = idx === 0 ? pricePerClass + remainder : pricePerClass;
+          invoiceItemsToInsert.push({
+            invoice_id: invoice.id,
+            class_id: cls.id,
+            bundle_id: item.bundle_id,
+            price,
+          });
+          invoiceItemsForResponse.push({
+            id: `${item.id}-${cls.id}`,
+            classId: cls.id,
+            title: cls.title ?? '',
+            price,
+            coverImage: cls.cover_image ?? '',
+          });
+        });
+      } else if (item.class_id && item.classes) {
+        const price =
+          voucherApplied && item.class_id === voucherClassId
+            ? voucherDiscountPrice!
+            : (item.classes.discount_price ?? item.classes.base_price ?? 0);
+
+        invoiceItemsToInsert.push({
+          invoice_id: invoice.id,
+          class_id: item.class_id,
+          price,
+        });
+        invoiceItemsForResponse.push({
+          id: item.id,
+          classId: item.class_id,
+          title: item.classes.title ?? '',
+          price,
+          coverImage: item.classes.cover_image ?? '',
+        });
+      }
+    }
+
+    if (invoiceItemsToInsert.length > 0) {
+      const { error: itemsError } = await supabaseAdmin
+        .from('invoice_items')
+        .insert(invoiceItemsToInsert);
+      if (itemsError) throw itemsError;
+    }
 
     // --- MAYAR INTEGRATION ---
     // Uncomment ini setelah MAYAR_API_KEY tersedia:
@@ -181,16 +294,7 @@ Deno.serve(async (req) => {
         mayarInvoiceId: null,
         paymentUrl: null,
         voucherApplied,
-        items: cartItems.map((item: any) => ({
-          id: item.id,
-          classId: item.class_id,
-          title: item.classes?.title ?? '',
-          price:
-            voucherApplied && item.class_id === voucherClassId
-              ? voucherDiscountPrice!
-              : (item.classes?.discount_price ?? item.classes?.base_price ?? 0),
-          coverImage: item.classes?.cover_image ?? '',
-        })),
+        items: invoiceItemsForResponse,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

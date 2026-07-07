@@ -1,0 +1,85 @@
+# Prompt 24: Fix — Halaman "Mulai Belajar" Kosong Kalau Kelas Belum Ada Konten
+
+## Root Cause
+Di `LearnPage.tsx`, ada gap kondisi yang tidak ditangani:
+
+```js
+const isPlaylistMode = !!(classDetail.youtubePlaylistId && classDetail.modules.length === 0);
+```
+
+Kalau sebuah kelas punya `modules.length === 0` **dan** `youtubePlaylistId`
+juga kosong (kelas yang belum diisi admin sama sekali — belum ada modul/
+dars, belum ada link YouTube), maka `isPlaylistMode` bernilai `false`, dan
+halaman jatuh ke "Normal Mode" (breakdown modul/dars). Tapi karena
+`modules` kosong, `allDars` juga kosong, sehingga `activeEntry` jadi
+`undefined` — akibatnya video placeholder, judul pelajaran, breadcrumb, dan
+mini nav semuanya tidak muncul. Halaman tetap render Sidebar + AppShell,
+tapi area kontennya kosong tanpa pesan penjelas, sehingga terlihat seperti
+error atau bug ke user, padahal sebenarnya kelas tersebut memang belum ada
+materinya.
+
+Ini terjadi pada kelas seperti "Fiqih Tarawih" yang statusnya sudah
+`published` tapi konten (modul/dars atau playlist YouTube) belum diisi.
+
+## Fix
+
+Edit file `artifacts/markaz-fiqh/src/pages/LearnPage.tsx`.
+
+Tambahkan kondisi baru **setelah** pengecekan `isPlaylistMode` dan
+**sebelum** render "Normal mode" (sekitar baris 507-530): kalau
+`classDetail.modules.length === 0` DAN tidak dalam playlist mode (artinya
+benar-benar tidak ada konten sama sekali — bukan modul/dars, bukan
+playlist), tampilkan halaman "Materi Belum Tersedia" yang informatif,
+bukan halaman kosong.
+
+Contoh struktur (sesuaikan style dengan pola `AppShell` + empty state yang
+sudah ada di file lain seperti `MyClassesPage.tsx` untuk konsistensi
+visual):
+
+```tsx
+const hasNoContent = !classDetail.youtubePlaylistId && classDetail.modules.length === 0;
+
+if (hasNoContent) {
+  return (
+    <AppShell>
+      <div className="flex-1 flex items-center justify-center flex-col gap-4 text-center px-4 py-16">
+        <BookOpen className="w-12 h-12 text-muted-foreground" />
+        <div>
+          <h1 className="font-serif text-2xl font-bold text-foreground">
+            Materi Belum Tersedia
+          </h1>
+          <p className="text-muted-foreground mt-2 max-w-md">
+            Kelas "{classDetail.title}" sudah bisa kamu akses, tapi materinya
+            sedang disiapkan oleh pengajar. Kami akan kabari begitu materi
+            sudah bisa ditonton.
+          </p>
+        </div>
+        <Button asChild variant="outline">
+          <Link href="/my-classes">Kembali ke Kelas Saya</Link>
+        </Button>
+      </div>
+    </AppShell>
+  );
+}
+```
+
+Sesuaikan copy teksnya supaya konsisten dengan gaya bahasa yang sudah ada
+di file lain (natural, tidak kaku), dan gunakan komponen `Button`, `Link`,
+`BookOpen`, `AppShell` yang sudah di-import di file ini (cek import di
+bagian atas — `BookOpen` sudah di-import untuk state "Kelas tidak
+ditemukan" di atasnya, jadi tinggal reuse).
+
+Pastikan kondisi ini ditempatkan **setelah** blok `isPlaylistMode` (supaya
+kelas yang punya playlist YouTube tetap masuk ke Playlist Mode seperti
+biasa), dan **sebelum** blok render "Normal mode" (supaya kelas yang punya
+modul/dars tetap berjalan normal seperti biasa). Hanya kelas yang benar-
+benar tidak punya keduanya yang menampilkan pesan baru ini.
+
+## Yang tidak boleh berubah
+- Playlist Mode dan Normal Mode yang sudah berjalan untuk kelas yang punya
+  konten tidak diubah sama sekali
+- Tidak ada perubahan di database atau data kelas
+
+## Setelah selesai
+Konfirmasi baris yang diubah dan pastikan kelas dengan modul/dars normal
+serta kelas dengan playlist YouTube tetap berfungsi seperti sebelumnya.
