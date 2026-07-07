@@ -1,0 +1,298 @@
+# Prompt 22: Fitur "Paket Bundle" — Halaman Terpisah + Cart & Checkout Terintegrasi
+
+## Konteks
+Bundle rekaman adalah paket beberapa kelas yang dijual dengan 1 harga
+diskon gabungan. Data dari klien (dokumen `Harga_Kelas.docx`):
+
+| Bundle | Kelas di dalamnya | Harga Normal | Harga Bundle |
+|---|---|---|---|
+| Fiqih Thaharah | Fiqih Najis, Fiqih Wudhu Mandi Tayammum | 110.000 | 90.000 |
+| Fiqih Shalat | Fiqih Shalat Jama'ah, Fiqih Shalat & Khutbah Jum'at, Fiqih Safar | 170.000 | 140.000 |
+| Fiqih Ibadah | Fiqih Shalat Jama'ah, Fiqih Shalat & Khutbah Jum'at, Fiqih Safar, Fiqih Puasa, Fiqih Zakat Fitri, Fiqih Haji Umrah | 385.000 | 310.000 |
+| Fiqih Pernikahan | Fiqih Nikah, Fiqih Talak, Fiqih Maulud | 190.000 | 150.000 |
+| Seluruh Rekaman | Semua 16 kelas berbayar (lihat catatan di bawah) | 1.090.000 | 800.000 |
+
+Bundle bisa langsung ditambahkan ke keranjang sebagai 1 item, dan saat
+checkout, user ter-enroll ke **semua kelas** di dalam bundle itu sekaligus.
+
+Bundle ditampilkan di **halaman terpisah** dari katalog kelas biasa (bukan
+bercampur dengan kelas individual).
+
+Jalankan section per section, jangan digabung.
+
+---
+
+## Section 1 — Skema Database (SQL manual, jalankan di Supabase SQL Editor)
+
+### 1a. Tabel bundle
+```sql
+CREATE TABLE bundles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  normal_price INTEGER NOT NULL,
+  bundle_price INTEGER NOT NULL,
+  status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'published')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE bundle_classes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  bundle_id UUID NOT NULL REFERENCES bundles(id) ON DELETE CASCADE,
+  class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+  UNIQUE (bundle_id, class_id)
+);
+
+ALTER TABLE bundles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE bundle_classes ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Public can view published bundles"
+  ON bundles FOR SELECT
+  USING (status = 'published');
+
+CREATE POLICY "Public can view bundle classes"
+  ON bundle_classes FOR SELECT
+  USING (true);
+```
+
+### 1b. Ubah `cart_items` supaya bisa menyimpan bundle
+```sql
+ALTER TABLE cart_items ADD COLUMN bundle_id UUID REFERENCES bundles(id) ON DELETE CASCADE;
+ALTER TABLE cart_items ALTER COLUMN class_id DROP NOT NULL;
+ALTER TABLE cart_items ADD CONSTRAINT cart_items_class_or_bundle_check
+  CHECK (
+    (class_id IS NOT NULL AND bundle_id IS NULL) OR
+    (class_id IS NULL AND bundle_id IS NOT NULL)
+  );
+
+-- Ganti unique constraint lama supaya juga cover kombinasi user+bundle
+ALTER TABLE cart_items DROP CONSTRAINT IF EXISTS cart_items_user_class_unique;
+CREATE UNIQUE INDEX cart_items_user_class_unique ON cart_items (user_id, class_id) WHERE class_id IS NOT NULL;
+CREATE UNIQUE INDEX cart_items_user_bundle_unique ON cart_items (user_id, bundle_id) WHERE bundle_id IS NOT NULL;
+```
+
+### 1c. Ubah `invoice_items` supaya bisa mencatat bundle yang dibeli
+```sql
+ALTER TABLE invoice_items ADD COLUMN bundle_id UUID REFERENCES bundles(id) ON DELETE SET NULL;
+ALTER TABLE invoice_items ALTER COLUMN class_id DROP NOT NULL;
+```
+(class_id tetap diisi per-kelas di dalam bundle saat invoice dibuat — lihat
+Section 3 — supaya histori pembelian tetap granular per kelas, kolom
+`bundle_id` di sini hanya sebagai penanda "kelas ini didapat lewat bundle
+apa", bukan pengganti class_id.)
+
+### 1d. Insert data bundle
+Catatan buat saya (Darcia) yang jalankan manual: ganti setiap
+`GANTI_CLASS_ID_...` dengan `id` kelas yang sesuai dari tabel `classes`
+(gunakan `SELECT id, title FROM classes WHERE title = '...'` untuk masing-
+masing kelas sebelum insert).
+
+```sql
+-- Bundle 1: Fiqih Thaharah
+WITH new_bundle AS (
+  INSERT INTO bundles (title, description, normal_price, bundle_price, status)
+  VALUES ('Fiqih Thaharah', 'Bundle 2 kelas: Fiqih Najis + Fiqih Wudhu, Mandi, Tayammum', 110000, 90000, 'draft')
+  RETURNING id
+)
+INSERT INTO bundle_classes (bundle_id, class_id)
+SELECT id, unnest(ARRAY['GANTI_CLASS_ID_NAJIS', 'GANTI_CLASS_ID_WUDHU_MANDI_TAYAMMUM']::uuid[])
+FROM new_bundle;
+
+-- Bundle 2: Fiqih Shalat
+WITH new_bundle AS (
+  INSERT INTO bundles (title, description, normal_price, bundle_price, status)
+  VALUES ('Fiqih Shalat', 'Bundle 3 kelas: Shalat Jama''ah, Shalat & Khutbah Jum''at, Safar', 170000, 140000, 'draft')
+  RETURNING id
+)
+INSERT INTO bundle_classes (bundle_id, class_id)
+SELECT id, unnest(ARRAY['GANTI_CLASS_ID_SHALAT_JAMAAH', 'GANTI_CLASS_ID_SHALAT_KHUTBAH_JUMAT', 'GANTI_CLASS_ID_SAFAR']::uuid[])
+FROM new_bundle;
+
+-- Bundle 3: Fiqih Ibadah
+WITH new_bundle AS (
+  INSERT INTO bundles (title, description, normal_price, bundle_price, status)
+  VALUES ('Fiqih Ibadah', 'Bundle 6 kelas: Shalat Jama''ah, Shalat & Khutbah Jum''at, Safar, Puasa, Zakat Fitri, Haji Umrah', 385000, 310000, 'draft')
+  RETURNING id
+)
+INSERT INTO bundle_classes (bundle_id, class_id)
+SELECT id, unnest(ARRAY[
+  'GANTI_CLASS_ID_SHALAT_JAMAAH', 'GANTI_CLASS_ID_SHALAT_KHUTBAH_JUMAT', 'GANTI_CLASS_ID_SAFAR',
+  'GANTI_CLASS_ID_PUASA', 'GANTI_CLASS_ID_ZAKAT_FITRI', 'GANTI_CLASS_ID_HAJI_UMRAH'
+]::uuid[])
+FROM new_bundle;
+
+-- Bundle 4: Fiqih Pernikahan
+WITH new_bundle AS (
+  INSERT INTO bundles (title, description, normal_price, bundle_price, status)
+  VALUES ('Fiqih Pernikahan', 'Bundle 3 kelas: Fiqih Nikah, Fiqih Talak, Fiqih Maulud', 190000, 150000, 'draft')
+  RETURNING id
+)
+INSERT INTO bundle_classes (bundle_id, class_id)
+SELECT id, unnest(ARRAY['GANTI_CLASS_ID_NIKAH', 'GANTI_CLASS_ID_TALAK', 'GANTI_CLASS_ID_MAULUD']::uuid[])
+FROM new_bundle;
+
+-- Bundle 5: Seluruh Rekaman (16 kelas berbayar — TIDAK termasuk 3 kelas
+-- gratis: Fiqih Alkohol, Fiqih Puasa Syawwal, Fiqih Shalat Ied, dan TIDAK
+-- termasuk Fiqih Badal Haji Umrah / Fiqih Shalat & Khutbah Jum'at sesuai
+-- daftar 16 kelas di dokumen — cocokkan persis 16 judul berikut dengan
+-- tabel classes: Fiqih Najis, Fiqih Wudhu Mandi Tayammum, Fiqih Darah
+-- Wanita, Fiqih Shalat Jum'at Khutbah Jum'at, Fiqih Shalat Jama'ah, Fiqih
+-- Safar, Fiqih Puasa, Fiqih Zakat Fitri, Fiqih Haji Umrah, Fiqih Badal,
+-- Fiqih Muamalah Kontemporer, Fiqih Nikah, Fiqih Talak, Fiqih Kurban,
+-- Fiqih Maulud, Fiqih Islam Itu Mudah.
+-- Saya akan susun array ID-nya manual setelah cross-check nama persis di
+-- database, karena beberapa nama sedikit berbeda dari tabel (mis. "Fiqih
+-- Badal Haji Umrah" di database vs "Fiqih Badal" di dokumen bundle).
+WITH new_bundle AS (
+  INSERT INTO bundles (title, description, normal_price, bundle_price, status)
+  VALUES ('Seluruh Rekaman', 'Akses ke seluruh 16 kelas rekaman fiqih tematik yang tersedia', 1090000, 800000, 'draft')
+  RETURNING id
+)
+INSERT INTO bundle_classes (bundle_id, class_id)
+SELECT id, unnest(ARRAY[
+  'GANTI_SEMUA_16_CLASS_ID_DI_SINI'
+]::uuid[])
+FROM new_bundle;
+```
+
+Semua bundle di-set `status = 'draft'` dulu — ubah manual ke `'published'`
+setelah dicek datanya benar via Admin Panel atau SQL langsung.
+
+---
+
+## Section 2 — Drizzle Schema
+
+Buat file baru `lib/db/src/schema/bundles.ts` dan `lib/db/src/schema/
+bundleClasses.ts`, merefleksikan tabel dari Section 1a, ikuti pola yang
+sama persis dengan file schema lain di folder yang sama (`pgTable`,
+`createInsertSchema`, export type). Export dari `lib/db/src/schema/
+index.ts`.
+
+Update `lib/db/src/schema/cartItems.ts` dan `lib/db/src/schema/
+invoiceItems.ts` supaya field `classId` jadi optional/nullable dan
+tambahkan field `bundleId` optional, sesuai perubahan di Section 1b & 1c.
+
+---
+
+## Section 3 — Fungsi Query di `src/lib/db.ts`
+
+Tambahkan fungsi-fungsi berikut di `artifacts/markaz-fiqh/src/lib/db.ts`,
+ikuti pola fungsi lain yang sudah ada (langsung query Supabase):
+
+1. `listBundles()` — ambil semua bundle `status = 'published'`, join ke
+   `bundle_classes` dan `classes` untuk dapat judul kelas-kelas di
+   dalamnya (untuk ditampilkan di halaman Paket Bundle). Return array
+   dengan struktur: `{ id, title, description, normalPrice, bundlePrice,
+   classes: { id, title, coverImage }[] }`.
+
+2. `getBundleById(id: string)` — detail 1 bundle, struktur sama seperti di
+   atas tapi single object, untuk halaman detail bundle (kalau ada) atau
+   dipakai ulang di cart.
+
+3. Update `addCartItem` (cek fungsi ini di file yang sama) — sekarang
+   perlu bisa menerima **salah satu** dari `classId` atau `bundleId`
+   (bukan dua-duanya). Sesuaikan signature fungsi, misal jadi
+   `addCartItem(userId: string, item: { classId: string } | { bundleId:
+   string })`.
+
+4. Update fungsi yang membaca cart (`listCartItems` — cek nama pastinya di
+   file) supaya join juga ke tabel `bundles` untuk item yang punya
+   `bundle_id`, dan return bentuk data yang membedakan item kelas biasa
+   vs item bundle (misal tambahkan field `type: 'class' | 'bundle'` pada
+   tiap cart item, dan field `bundle` berisi data bundle kalau
+   `type === 'bundle'`).
+
+---
+
+## Section 4 — Edge Function `checkout` Menangani Bundle
+
+Edit `supabase/functions/checkout/index.ts`:
+
+- Saat mengambil cart items, join juga ke `bundles` dan `bundle_classes`
+  untuk item yang punya `bundle_id`.
+- Untuk **item kelas biasa**: perilaku tetap seperti sekarang (1
+  `invoice_items` row per kelas, harga dari `discount_price` atau
+  `base_price`).
+- Untuk **item bundle**: harga yang dipakai untuk total adalah
+  `bundle_price` dari tabel `bundles` (bukan menjumlahkan harga individual
+  tiap kelas). Tapi tetap buat **satu `invoice_items` row per kelas di
+  dalam bundle** (bukan 1 row untuk bundle-nya), dengan:
+  - `class_id` = id kelas tersebut
+  - `bundle_id` = id bundle asalnya
+  - `price` = bagi rata `bundle_price` ke semua kelas dalam bundle itu
+    (misal bundle 90.000 untuk 2 kelas → masing-masing dicatat 45.000),
+    supaya total invoice tetap benar dan histori tetap granular per kelas.
+    Kalau pembagian tidak bulat, sisa pembulatan boleh ditambahkan ke
+    kelas pertama dalam bundle supaya total tetap pas.
+
+Update juga edge function `simulate-success` (`supabase/functions/
+simulate-success/index.ts`) — enrollment sudah otomatis benar karena tetap
+berbasis `class_id` per row di `invoice_items` (tidak perlu logic khusus
+tambahan untuk bundle di sini, karena Section ini sudah memastikan setiap
+kelas dalam bundle punya row `invoice_items` sendiri yang akan di-enroll
+satu-satu seperti biasa).
+
+---
+
+## Section 5 — Halaman "Paket Bundle" (Route Baru)
+
+Buat halaman baru `artifacts/markaz-fiqh/src/pages/BundlesPage.tsx`, ikuti
+pola struktur file `CatalogPage.tsx` yang sudah ada (AppShell, layout,
+style card) untuk konsistensi visual:
+
+- Route baru `/paket-bundle` — daftarkan di `src/App.tsx` mengikuti pola
+  routing yang sudah ada di file itu.
+- Tampilkan grid card bundle dari `listBundles()`. Tiap card menampilkan:
+  judul bundle, deskripsi, badge/list singkat nama kelas di dalamnya,
+  harga normal (dicoret) dan harga bundle, serta tombol "Tambah ke
+  Keranjang" yang memanggil `addToCart` versi bundle dari `CartContext`
+  (lihat Section 6).
+- Tambahkan link ke halaman ini di `Navbar.tsx` (menu baru "Paket Bundle"
+  di samping "Katalog" dan "Kelas Saya") dan pertimbangkan juga
+  menambahkan CTA/banner kecil di landing page yang mengarah ke halaman
+  ini kalau terasa pas (opsional, boleh dilewati kalau membuat landing
+  page terlalu ramai).
+
+---
+
+## Section 6 — Update `CartContext` untuk Mendukung Bundle
+
+Edit `artifacts/markaz-fiqh/src/context/CartContext.tsx`:
+
+- Update tipe `CartItem` supaya bisa merepresentasikan item kelas atau
+  item bundle (lihat Section 3 poin 4 untuk bentuk data dari
+  `listCartItems`).
+- Update `addToCart` supaya bisa menerima bundle: ubah signature jadi
+  menerima union type, atau tambahkan fungsi baru `addBundleToCart
+  (bundleId: string)` terpisah dari `addToCart(classId: string)` yang
+  sudah ada — pilih pendekatan yang membuat pemanggilan di halaman
+  Katalog & Bundle tetap jelas dan tidak ambigu.
+
+---
+
+## Section 7 — Update CartPage Menampilkan Item Bundle
+
+Edit `artifacts/markaz-fiqh/src/pages/CartPage.tsx`:
+
+- Untuk item bertipe bundle di cart, tampilkan card yang sedikit berbeda
+  dari card kelas biasa: judul bundle, badge kecil "Paket Bundle", daftar
+  singkat nama kelas di dalamnya (misal dipisah koma atau list kecil), dan
+  harga bundle (bukan harga per kelas).
+- Perhitungan `subtotal` di halaman ini perlu disesuaikan supaya
+  menjumlahkan harga bundle untuk item bertipe bundle, dan harga kelas
+  seperti biasa untuk item kelas individual.
+- Fitur voucher yang sudah ada sebelumnya (dari Prompt 11) tetap berlaku
+  khusus untuk kelas individual saja — tidak perlu dibuat berlaku untuk
+  bundle di tahap ini.
+
+---
+
+## Catatan Umum
+- Semua teks UI Bahasa Indonesia natural, konsisten gaya bahasa yang sudah
+  ada di file lain.
+- Jangan tambah dependency baru.
+- Setelah semua section selesai, kasih saya ringkasan: file apa saja yang
+  dibuat/diubah, dan urutan SQL yang masih perlu saya jalankan manual
+  (termasuk mengganti semua placeholder `GANTI_CLASS_ID_...` dengan ID
+  asli, dan meng-set status bundle ke `published` setelah verifikasi data).
