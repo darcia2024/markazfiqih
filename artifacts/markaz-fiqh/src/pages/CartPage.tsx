@@ -335,10 +335,11 @@ function CartContent() {
                   return (
                     <motion.div
                       key={item.id}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                      transition={{ duration: 0.25 }}
+                      layout
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 100, height: 0, marginBottom: 0, paddingTop: 0, paddingBottom: 0 }}
+                      transition={{ duration: 0.25, ease: 'easeInOut' }}
                       className="flex gap-4 rounded-lg border bg-card p-4 shadow-sm"
                     >
                       <Link href={`/class/${item.class.id}`} className="shrink-0">
