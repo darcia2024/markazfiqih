@@ -64,8 +64,6 @@ export const CreateClassBody = zod.object({
   "status": zod.enum(['draft', 'published']).optional(),
   "level": zod.union([zod.literal('pemula'),zod.literal('menengah'),zod.literal('lanjutan'),zod.literal(null)]).nullish(),
   "category": zod.string().nullish(),
-  "gdriveMateriUrl": zod.string().nullish(),
-  "waGroupUrl": zod.string().nullish(),
   "instructorId": zod.string().uuid()
 })
 
@@ -80,8 +78,6 @@ export const CreateClassResponse = zod.object({
   "level": zod.union([zod.literal('pemula'),zod.literal('menengah'),zod.literal('lanjutan'),zod.literal(null)]).nullable(),
   "category": zod.string().nullable(),
   "youtubePlaylistId": zod.string().nullable(),
-  "gdriveMateriUrl": zod.string().nullable(),
-  "waGroupUrl": zod.string().nullable(),
   "instructor": zod.object({
   "id": zod.string().uuid(),
   "name": zod.string(),
@@ -111,8 +107,6 @@ export const GetClassByIdResponse = zod.object({
   "level": zod.union([zod.literal('pemula'),zod.literal('menengah'),zod.literal('lanjutan'),zod.literal(null)]).nullable(),
   "category": zod.string().nullable(),
   "youtubePlaylistId": zod.string().nullable(),
-  "gdriveMateriUrl": zod.string().nullable(),
-  "waGroupUrl": zod.string().nullable(),
   "instructor": zod.object({
   "id": zod.string().uuid(),
   "name": zod.string(),
@@ -147,8 +141,6 @@ export const UpdateClassBody = zod.object({
   "status": zod.enum(['draft', 'published']).optional(),
   "level": zod.union([zod.literal('pemula'),zod.literal('menengah'),zod.literal('lanjutan'),zod.literal(null)]).nullish(),
   "category": zod.string().nullish(),
-  "gdriveMateriUrl": zod.string().nullish(),
-  "waGroupUrl": zod.string().nullish(),
   "instructorId": zod.string().uuid().optional()
 })
 
@@ -163,8 +155,6 @@ export const UpdateClassResponse = zod.object({
   "level": zod.union([zod.literal('pemula'),zod.literal('menengah'),zod.literal('lanjutan'),zod.literal(null)]).nullable(),
   "category": zod.string().nullable(),
   "youtubePlaylistId": zod.string().nullable(),
-  "gdriveMateriUrl": zod.string().nullable(),
-  "waGroupUrl": zod.string().nullable(),
   "instructor": zod.object({
   "id": zod.string().uuid(),
   "name": zod.string(),
@@ -303,6 +293,7 @@ export const ListCartItemsResponseItem = zod.object({
   "status": zod.enum(['draft', 'published']),
   "level": zod.union([zod.literal('pemula'),zod.literal('menengah'),zod.literal('lanjutan'),zod.literal(null)]).nullable(),
   "category": zod.string().nullable(),
+  "youtubePlaylistId": zod.string().nullable(),
   "instructor": zod.object({
   "id": zod.string().uuid(),
   "name": zod.string(),
@@ -337,6 +328,7 @@ export const AddCartItemResponse = zod.object({
   "status": zod.enum(['draft', 'published']),
   "level": zod.union([zod.literal('pemula'),zod.literal('menengah'),zod.literal('lanjutan'),zod.literal(null)]).nullable(),
   "category": zod.string().nullable(),
+  "youtubePlaylistId": zod.string().nullable(),
   "instructor": zod.object({
   "id": zod.string().uuid(),
   "name": zod.string(),
@@ -372,6 +364,7 @@ export const CreateCheckoutResponse = zod.object({
   "status": zod.enum(['pending', 'paid', 'failed']),
   "createdAt": zod.string(),
   "paidAt": zod.string().nullable(),
+  "paymentUrl": zod.string().nullish().describe('URL halaman pembayaran Mayar. Diisi saat Mayar sudah diintegrasikan; null selama mode simulasi.'),
   "items": zod.array(zod.object({
   "id": zod.string().uuid(),
   "classId": zod.string().uuid(),
@@ -386,6 +379,49 @@ export const CreateCheckoutResponse = zod.object({
   "status": zod.enum(['draft', 'published']),
   "level": zod.union([zod.literal('pemula'),zod.literal('menengah'),zod.literal('lanjutan'),zod.literal(null)]).nullable(),
   "category": zod.string().nullable(),
+  "youtubePlaylistId": zod.string().nullable(),
+  "instructor": zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "photoUrl": zod.string()
+}),
+  "moduleCount": zod.number(),
+  "totalDurationMinutes": zod.number().nullable()
+})
+}))
+})
+
+
+/**
+ * @summary Get invoice status (untuk polling setelah redirect dari payment gateway)
+ */
+export const GetCheckoutParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const GetCheckoutResponse = zod.object({
+  "id": zod.string().uuid(),
+  "userId": zod.string(),
+  "totalAmount": zod.number(),
+  "status": zod.enum(['pending', 'paid', 'failed']),
+  "createdAt": zod.string(),
+  "paidAt": zod.string().nullable(),
+  "paymentUrl": zod.string().nullish().describe('URL halaman pembayaran Mayar. Diisi saat Mayar sudah diintegrasikan; null selama mode simulasi.'),
+  "items": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "classId": zod.string().uuid(),
+  "price": zod.number(),
+  "class": zod.object({
+  "id": zod.string().uuid(),
+  "title": zod.string(),
+  "description": zod.string(),
+  "coverImage": zod.string(),
+  "basePrice": zod.number(),
+  "discountPrice": zod.number().nullable(),
+  "status": zod.enum(['draft', 'published']),
+  "level": zod.union([zod.literal('pemula'),zod.literal('menengah'),zod.literal('lanjutan'),zod.literal(null)]).nullable(),
+  "category": zod.string().nullable(),
+  "youtubePlaylistId": zod.string().nullable(),
   "instructor": zod.object({
   "id": zod.string().uuid(),
   "name": zod.string(),
@@ -413,6 +449,7 @@ export const SimulateCheckoutSuccessResponse = zod.object({
   "status": zod.enum(['pending', 'paid', 'failed']),
   "createdAt": zod.string(),
   "paidAt": zod.string().nullable(),
+  "paymentUrl": zod.string().nullish().describe('URL halaman pembayaran Mayar. Diisi saat Mayar sudah diintegrasikan; null selama mode simulasi.'),
   "items": zod.array(zod.object({
   "id": zod.string().uuid(),
   "classId": zod.string().uuid(),
@@ -427,6 +464,7 @@ export const SimulateCheckoutSuccessResponse = zod.object({
   "status": zod.enum(['draft', 'published']),
   "level": zod.union([zod.literal('pemula'),zod.literal('menengah'),zod.literal('lanjutan'),zod.literal(null)]).nullable(),
   "category": zod.string().nullable(),
+  "youtubePlaylistId": zod.string().nullable(),
   "instructor": zod.object({
   "id": zod.string().uuid(),
   "name": zod.string(),
@@ -453,6 +491,7 @@ export const SimulateCheckoutFailResponse = zod.object({
   "status": zod.enum(['pending', 'paid', 'failed']),
   "createdAt": zod.string(),
   "paidAt": zod.string().nullable(),
+  "paymentUrl": zod.string().nullish().describe('URL halaman pembayaran Mayar. Diisi saat Mayar sudah diintegrasikan; null selama mode simulasi.'),
   "items": zod.array(zod.object({
   "id": zod.string().uuid(),
   "classId": zod.string().uuid(),
@@ -467,6 +506,7 @@ export const SimulateCheckoutFailResponse = zod.object({
   "status": zod.enum(['draft', 'published']),
   "level": zod.union([zod.literal('pemula'),zod.literal('menengah'),zod.literal('lanjutan'),zod.literal(null)]).nullable(),
   "category": zod.string().nullable(),
+  "youtubePlaylistId": zod.string().nullable(),
   "instructor": zod.object({
   "id": zod.string().uuid(),
   "name": zod.string(),

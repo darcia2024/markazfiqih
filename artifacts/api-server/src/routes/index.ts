@@ -10,11 +10,13 @@ import enrollmentsRouter from "./enrollments";
 import darsRouter from "./dars";
 import userProfileRouter from "./user-profile";
 import authRouter from "./auth";
+import webhooksRouter from "./webhooks";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(authRouter);
+router.use(webhooksRouter);
 router.use(classesRouter);
 router.use(instructorsRouter);
 router.use(cartRouter);

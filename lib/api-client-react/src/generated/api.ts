@@ -1190,6 +1190,83 @@ export const useCreateCheckout = <TError = ErrorType<ErrorResponse>,
       return useMutation(getCreateCheckoutMutationOptions(options));
     }
 
+export const getGetCheckoutUrl = (id: string,) => {
+
+
+
+
+  return `/api/checkout/${id}`
+}
+
+/**
+ * @summary Get invoice status (untuk polling setelah redirect dari payment gateway)
+ */
+export const getCheckout = async (id: string, options?: RequestInit): Promise<Invoice> => {
+
+  return customFetch<Invoice>(getGetCheckoutUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCheckoutQueryKey = (id: string,) => {
+    return [
+    `/api/checkout/${id}`
+    ] as const;
+    }
+
+
+export const getGetCheckoutQueryOptions = <TData = Awaited<ReturnType<typeof getCheckout>>, TError = ErrorType<ErrorResponse>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCheckout>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCheckoutQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCheckout>>> = ({ signal }) => getCheckout(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCheckout>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCheckoutQueryResult = NonNullable<Awaited<ReturnType<typeof getCheckout>>>
+export type GetCheckoutQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Get invoice status (untuk polling setelah redirect dari payment gateway)
+ */
+
+export function useGetCheckout<TData = Awaited<ReturnType<typeof getCheckout>>, TError = ErrorType<ErrorResponse>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCheckout>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCheckoutQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getSimulateCheckoutSuccessUrl = (id: string,) => {
 
 

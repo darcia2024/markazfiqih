@@ -387,6 +387,31 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /checkout/{id}:
+    get:
+      operationId: getCheckout
+      tags: [checkout]
+      summary: Get invoice status (untuk polling setelah redirect dari payment gateway)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Invoice detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Invoice"
+        "404":
+          description: Invoice not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /checkout/{id}/simulate-success:
     post:
       operationId: simulateCheckoutSuccess
@@ -861,6 +886,9 @@ components:
           type: string
         paidAt:
           type: ["string", "null"]
+        paymentUrl:
+          type: ["string", "null"]
+          description: URL halaman pembayaran Mayar. Diisi saat Mayar sudah diintegrasikan; null selama mode simulasi.
         items:
           type: array
           items:

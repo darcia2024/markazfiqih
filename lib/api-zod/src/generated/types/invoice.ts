@@ -16,5 +16,10 @@ export interface Invoice {
   createdAt: string;
   /** @nullable */
   paidAt: string | null;
+  /**
+     * URL halaman pembayaran Mayar. Diisi saat Mayar sudah diintegrasikan; null selama mode simulasi.
+     * @nullable
+     */
+  paymentUrl?: string | null;
   items: InvoiceItem[];
 }

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link, useLocation } from 'wouter';
+import { useState, useEffect } from 'react';
+import { Link, useLocation, useSearch } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft,
@@ -9,6 +9,8 @@ import {
   Clock,
   CheckCircle2,
   Sparkles,
+  Loader2,
+  XCircle,
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -27,6 +29,7 @@ import {
   useListRecommendedClasses,
   useCreateCheckout,
   useSimulateCheckoutSuccess,
+  useGetCheckout,
   getListCartItemsQueryKey,
   getListRecommendedClassesQueryKey,
 } from '@workspace/api-client-react';
@@ -162,14 +165,64 @@ function CartSuccessView({ invoice, onBackToCatalog }: { invoice: Invoice; onBac
   );
 }
 
+/** Tampil setelah user kembali dari Mayar — polling status invoice tiap 3 detik */
+function WaitingForPaymentView({
+  invoiceId,
+  onSuccess,
+  onFailed,
+}: {
+  invoiceId: string;
+  onSuccess: (invoice: Invoice) => void;
+  onFailed: () => void;
+}) {
+  const { data: invoice } = useGetCheckout(invoiceId, {
+    query: { refetchInterval: 3000 },
+  });
+
+  useEffect(() => {
+    if (!invoice) return;
+    if (invoice.status === 'paid') onSuccess(invoice as unknown as Invoice);
+    if (invoice.status === 'failed') onFailed();
+  }, [invoice, onSuccess, onFailed]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="max-w-md mx-auto text-center py-20 px-4"
+    >
+      <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 mb-6">
+        <Loader2 className="h-10 w-10 text-primary animate-spin" />
+      </div>
+      <h2 className="font-serif text-2xl font-bold text-foreground mb-2">
+        Menunggu Konfirmasi Pembayaran
+      </h2>
+      <p className="text-muted-foreground">
+        Halaman ini akan otomatis update setelah pembayaran dikonfirmasi.
+        Jangan tutup tab ini.
+      </p>
+    </motion.div>
+  );
+}
+
 function CartContent() {
   const { user } = useAuth();
   const { items, isLoading } = useCart();
   const [, setLocation] = useLocation();
+  const search = useSearch();
   const queryClient = useQueryClient();
 
-  const [checkoutStep, setCheckoutStep] = useState<'cart' | 'paying' | 'success'>('cart');
+  // Deteksi return dari Mayar: /keranjang?invoice=<id>
+  const returnInvoiceId = new URLSearchParams(search).get('invoice');
+
+  type Step = 'cart' | 'paying' | 'waiting' | 'success' | 'failed';
+  const [checkoutStep, setCheckoutStep] = useState<Step>(
+    returnInvoiceId ? 'waiting' : 'cart',
+  );
   const [invoice, setInvoice] = useState<Invoice | null>(null);
+  const [waitingInvoiceId, setWaitingInvoiceId] = useState<string | null>(
+    returnInvoiceId,
+  );
   const [isProcessing, setIsProcessing] = useState(false);
 
   const removeMutation = useRemoveCartItem({
@@ -205,6 +258,14 @@ function CartContent() {
     setIsProcessing(true);
     try {
       const createdInvoice = await createCheckoutMutation.mutateAsync({ data: { userId: user.id } });
+
+      // Kalau Mayar sudah diintegrasikan dan paymentUrl tersedia → redirect ke sana
+      if (createdInvoice.paymentUrl) {
+        window.location.href = createdInvoice.paymentUrl;
+        return;
+      }
+
+      // Development fallback: tampilkan panel simulasi
       setInvoice(createdInvoice as unknown as Invoice);
       setCheckoutStep('paying');
     } finally {
@@ -225,12 +286,60 @@ function CartContent() {
     }
   };
 
+  const handlePaymentSuccess = (paidInvoice: Invoice) => {
+    setInvoice(paidInvoice);
+    setCheckoutStep('success');
+    queryClient.invalidateQueries({ queryKey: getListCartItemsQueryKey({ userId: user!.id }) });
+    // Bersihkan query param dari URL
+    window.history.replaceState(null, '', '/keranjang');
+  };
+
+  const handlePaymentFailed = () => {
+    setCheckoutStep('failed');
+    window.history.replaceState(null, '', '/keranjang');
+  };
+
+  // ── Waiting: polling setelah kembali dari Mayar ────────────────────────────
+  if (checkoutStep === 'waiting' && waitingInvoiceId) {
+    return (
+      <WaitingForPaymentView
+        invoiceId={waitingInvoiceId}
+        onSuccess={handlePaymentSuccess}
+        onFailed={handlePaymentFailed}
+      />
+    );
+  }
+
+  // ── Failed ─────────────────────────────────────────────────────────────────
+  if (checkoutStep === 'failed') {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="max-w-md mx-auto text-center py-20 px-4"
+      >
+        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-destructive/10 mb-6">
+          <XCircle className="h-10 w-10 text-destructive" />
+        </div>
+        <h2 className="font-serif text-2xl font-bold text-foreground mb-2">Pembayaran Gagal</h2>
+        <p className="text-muted-foreground mb-8">
+          Pembayaran tidak berhasil diproses. Kamu bisa coba lagi atau pilih metode lain.
+        </p>
+        <Button size="lg" onClick={() => setCheckoutStep('cart')}>
+          Kembali ke Keranjang
+        </Button>
+      </motion.div>
+    );
+  }
+
+  // ── Success ────────────────────────────────────────────────────────────────
   if (checkoutStep === 'success' && invoice) {
     return (
       <CartSuccessView invoice={invoice} onBackToCatalog={() => setLocation('/katalog')} />
     );
   }
 
+  // ── Paying (Dev-only simulasi) ─────────────────────────────────────────────
   if (checkoutStep === 'paying' && invoice) {
     return (
       <div className="max-w-2xl mx-auto py-10 lg:py-14 px-4">
@@ -242,21 +351,13 @@ function CartContent() {
             <ArrowLeft className="mr-1.5 h-4 w-4" />
             Kembali ke Keranjang
           </button>
-          <h1 className="font-serif text-2xl font-bold text-foreground">Pembayaran</h1>
+          <h1 className="font-serif text-2xl font-bold text-foreground">Simulasi Pembayaran</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Selesaikan pembayaran untuk mendapatkan akses ke {invoice.items.length} kelas.
+            Mode pengembangan — pembayaran Mayar belum aktif.
           </p>
         </motion.div>
 
         <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
-          <div className="bg-primary px-5 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-white/80" />
-              <span className="text-white text-sm font-semibold tracking-wide">
-                Panel Pembayaran Mayar
-              </span>
-            </div>
-          </div>
           <div className="p-5 space-y-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Ringkasan Invoice
@@ -275,17 +376,17 @@ function CartContent() {
               <span className="text-primary">{formatPrice(invoice.totalAmount)}</span>
             </div>
           </div>
-          <div className="border-t p-5">
+          <div className="border-t p-5 space-y-3">
             <Button
               size="lg"
               className="w-full text-base font-semibold"
               disabled={isProcessing}
               onClick={handleSimulateSuccess}
             >
-              {isProcessing ? 'Memproses…' : `Simulasi Bayar ${formatPrice(invoice.totalAmount)}`}
+              {isProcessing ? 'Memproses…' : `Simulasi Lunas ${formatPrice(invoice.totalAmount)}`}
             </Button>
-            <p className="text-xs text-center text-muted-foreground mt-3">
-              Ini adalah simulasi webhook pembayaran. Tidak ada transaksi nyata yang terjadi.
+            <p className="text-xs text-center text-muted-foreground">
+              Tombol ini hanya muncul di mode pengembangan. Di production, user akan diarahkan ke halaman Mayar.
             </p>
           </div>
         </div>
@@ -293,6 +394,7 @@ function CartContent() {
     );
   }
 
+  // ── Cart ───────────────────────────────────────────────────────────────────
   return (
     <>
       <div className="border-b bg-muted/30">
