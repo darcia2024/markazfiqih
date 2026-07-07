@@ -311,6 +311,7 @@ router.post("/classes", requireAuth, requireAdmin, async (req, res): Promise<voi
     youtubePlaylistId: inserted.youtubePlaylistId,
     gdriveMateriUrl: inserted.gdriveMateriUrl,
     waGroupUrl: inserted.waGroupUrl,
+    meetingCount: inserted.meetingCount,
     instructor: {
       id: instructor.id,
       name: instructor.name,
@@ -371,6 +372,7 @@ router.put("/classes/:id", requireAuth, requireAdmin, async (req, res): Promise<
     youtubePlaylistId: updated.youtubePlaylistId,
     gdriveMateriUrl: updated.gdriveMateriUrl,
     waGroupUrl: updated.waGroupUrl,
+    meetingCount: updated.meetingCount,
     instructor: {
       id: instructor.id,
       name: instructor.name,

@@ -45919,7 +45919,11 @@ var CreateClassBody = objectType({
   "status": enumType(["draft", "published"]).optional(),
   "level": unionType([literalType("pemula"), literalType("menengah"), literalType("lanjutan"), literalType(null)]).nullish(),
   "category": stringType().nullish(),
-  "instructorId": stringType().uuid()
+  "instructorId": stringType().uuid(),
+  "youtubePlaylistId": stringType().nullish(),
+  "gdriveMateriUrl": stringType().nullish(),
+  "waGroupUrl": stringType().nullish(),
+  "meetingCount": numberType().nullish()
 });
 var CreateClassResponse = objectType({
   "id": stringType().uuid(),
@@ -45970,7 +45974,8 @@ var GetClassByIdResponse = objectType({
     "durationMinutes": numberType().nullable()
   })),
   "moduleCount": numberType(),
-  "totalDurationMinutes": numberType().nullable()
+  "totalDurationMinutes": numberType().nullable(),
+  "meetingCount": numberType().nullable()
 });
 var UpdateClassParams = objectType({
   "id": coerce.string().uuid()
@@ -45984,7 +45989,11 @@ var UpdateClassBody = objectType({
   "status": enumType(["draft", "published"]).optional(),
   "level": unionType([literalType("pemula"), literalType("menengah"), literalType("lanjutan"), literalType(null)]).nullish(),
   "category": stringType().nullish(),
-  "instructorId": stringType().uuid().optional()
+  "instructorId": stringType().uuid().optional(),
+  "youtubePlaylistId": stringType().nullish(),
+  "gdriveMateriUrl": stringType().nullish(),
+  "waGroupUrl": stringType().nullish(),
+  "meetingCount": numberType().nullish()
 });
 var UpdateClassResponse = objectType({
   "id": stringType().uuid(),
@@ -73243,6 +73252,7 @@ router2.post("/classes", requireAuth, requireAdmin, async (req, res) => {
     youtubePlaylistId: inserted.youtubePlaylistId,
     gdriveMateriUrl: inserted.gdriveMateriUrl,
     waGroupUrl: inserted.waGroupUrl,
+    meetingCount: inserted.meetingCount,
     instructor: {
       id: instructor.id,
       name: instructor.name,
@@ -73286,6 +73296,7 @@ router2.put("/classes/:id", requireAuth, requireAdmin, async (req, res) => {
     youtubePlaylistId: updated.youtubePlaylistId,
     gdriveMateriUrl: updated.gdriveMateriUrl,
     waGroupUrl: updated.waGroupUrl,
+    meetingCount: updated.meetingCount,
     instructor: {
       id: instructor.id,
       name: instructor.name,

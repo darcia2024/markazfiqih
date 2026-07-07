@@ -64,7 +64,11 @@ export const CreateClassBody = zod.object({
   "status": zod.enum(['draft', 'published']).optional(),
   "level": zod.union([zod.literal('pemula'),zod.literal('menengah'),zod.literal('lanjutan'),zod.literal(null)]).nullish(),
   "category": zod.string().nullish(),
-  "instructorId": zod.string().uuid()
+  "instructorId": zod.string().uuid(),
+  "youtubePlaylistId": zod.string().nullish(),
+  "gdriveMateriUrl": zod.string().nullish(),
+  "waGroupUrl": zod.string().nullish(),
+  "meetingCount": zod.number().nullish()
 })
 
 export const CreateClassResponse = zod.object({
@@ -123,7 +127,8 @@ export const GetClassByIdResponse = zod.object({
   "durationMinutes": zod.number().nullable()
 })),
   "moduleCount": zod.number(),
-  "totalDurationMinutes": zod.number().nullable()
+  "totalDurationMinutes": zod.number().nullable(),
+  "meetingCount": zod.number().nullable()
 })
 
 
@@ -143,7 +148,11 @@ export const UpdateClassBody = zod.object({
   "status": zod.enum(['draft', 'published']).optional(),
   "level": zod.union([zod.literal('pemula'),zod.literal('menengah'),zod.literal('lanjutan'),zod.literal(null)]).nullish(),
   "category": zod.string().nullish(),
-  "instructorId": zod.string().uuid().optional()
+  "instructorId": zod.string().uuid().optional(),
+  "youtubePlaylistId": zod.string().nullish(),
+  "gdriveMateriUrl": zod.string().nullish(),
+  "waGroupUrl": zod.string().nullish(),
+  "meetingCount": zod.number().nullish()
 })
 
 export const UpdateClassResponse = zod.object({

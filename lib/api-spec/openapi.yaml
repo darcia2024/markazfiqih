@@ -715,6 +715,8 @@ components:
           type: integer
         totalDurationMinutes:
           type: ["integer", "null"]
+        meetingCount:
+          type: ["integer", "null"]
     ClassSummary:
       type: object
       required:
@@ -786,6 +788,14 @@ components:
         instructorId:
           type: string
           format: uuid
+        youtubePlaylistId:
+          type: ["string", "null"]
+        gdriveMateriUrl:
+          type: ["string", "null"]
+        waGroupUrl:
+          type: ["string", "null"]
+        meetingCount:
+          type: ["integer", "null"]
     UpdateClassRequest:
       type: object
       properties:
@@ -810,6 +820,14 @@ components:
         instructorId:
           type: string
           format: uuid
+        youtubePlaylistId:
+          type: ["string", "null"]
+        gdriveMateriUrl:
+          type: ["string", "null"]
+        waGroupUrl:
+          type: ["string", "null"]
+        meetingCount:
+          type: ["integer", "null"]
     CreateInstructorRequest:
       type: object
       required: [name]

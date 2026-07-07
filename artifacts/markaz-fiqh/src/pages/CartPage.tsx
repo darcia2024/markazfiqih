@@ -242,7 +242,7 @@ function ClassCartItem({
       className="flex gap-4 rounded-lg border bg-card p-4 shadow-sm"
     >
       <Link href={`/class/${item.class.id}`} className="shrink-0">
-        <div className="w-28 h-20 rounded-md overflow-hidden bg-muted">
+        <div className="w-20 h-16 sm:w-28 sm:h-20 rounded-md overflow-hidden bg-muted">
           <img
             src={item.class.coverImage}
             alt={item.class.title}
@@ -320,7 +320,7 @@ function BundleCartItem({
       className="flex gap-4 rounded-lg border border-primary/20 bg-primary/3 p-4 shadow-sm"
     >
       {/* Ikon bundle */}
-      <div className="shrink-0 w-28 h-20 rounded-md overflow-hidden bg-primary/10 flex items-center justify-center">
+      <div className="shrink-0 w-20 h-16 sm:w-28 sm:h-20 rounded-md overflow-hidden bg-primary/10 flex items-center justify-center">
         <Package2 className="h-8 w-8 text-primary/60" />
       </div>
       <div className="flex-1 min-w-0 flex flex-col">

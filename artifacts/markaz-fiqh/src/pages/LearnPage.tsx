@@ -575,18 +575,20 @@ function LearnContent() {
   return (
     <AppShell>
       <div className="flex-1 flex flex-col lg:flex-row">
-        {/* Sidebar */}
-        <Sidebar
-          modules={modules}
-          classTitle={classDetail.title}
-          activeDarsId={resolvedActiveDarsId}
-          completedIds={completedIds}
-          progressPct={progressPct}
-          onSelectDars={setActiveDarsId}
-        />
+        {/* Sidebar — di desktop tampil di kiri, di mobile tampil di bawah konten */}
+        <div className="order-2 lg:order-1 w-full lg:w-auto">
+          <Sidebar
+            modules={modules}
+            classTitle={classDetail.title}
+            activeDarsId={resolvedActiveDarsId}
+            completedIds={completedIds}
+            progressPct={progressPct}
+            onSelectDars={setActiveDarsId}
+          />
+        </div>
 
         {/* Main: Player + Info */}
-        <main className="flex-1 min-w-0 flex flex-col">
+        <main className="order-1 lg:order-2 flex-1 min-w-0 flex flex-col">
           {/* Video Placeholder */}
           {activeEntry && <VideoPlaceholder title={activeEntry.dars.title} />}
 

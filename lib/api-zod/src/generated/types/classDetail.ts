@@ -34,4 +34,6 @@ export interface ClassDetail {
   moduleCount: number;
   /** @nullable */
   totalDurationMinutes: number | null;
+  /** @nullable */
+  meetingCount: number | null;
 }

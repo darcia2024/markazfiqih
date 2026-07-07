@@ -118,7 +118,7 @@ function HeroSection({
         </div>
 
         {/* Judul */}
-        <h1 className="font-serif text-5xl sm:text-6xl lg:text-7xl font-bold text-white leading-[1.1] tracking-tight max-w-4xl">
+        <h1 className="font-serif text-4xl sm:text-5xl lg:text-7xl font-bold text-white leading-[1.1] tracking-tight max-w-4xl">
           Belajar Fiqih Terstruktur.{' '}
           <span className="block">Berkembang Lebih Cepat.</span>
         </h1>

@@ -65,7 +65,7 @@ function CatalogHeader() {
   const { user } = useAuth();
   const { count } = useCart();
   return (
-    <div className="flex items-center justify-between px-6 lg:px-10 pt-8 pb-2">
+    <div className="flex items-center justify-between px-4 lg:px-10 pt-6 lg:pt-8 pb-2">
       <h1 className="font-serif text-[32px] font-bold text-foreground leading-tight">
         Jelajahi Kelas
       </h1>
@@ -479,7 +479,7 @@ function CatalogContent() {
   return (
     <AppShell>
       <CatalogHeader />
-      <main className="px-6 lg:px-10 py-8 max-w-[1400px]">
+      <main className="px-4 lg:px-10 py-6 lg:py-8 max-w-[1400px]">
 
         {/* Search + filters */}
         <div className="flex flex-col md:flex-row gap-3 mb-8">

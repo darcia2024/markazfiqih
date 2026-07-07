@@ -68,6 +68,7 @@ type ClassFormState = {
   youtubePlaylistId: string;
   gdriveMateriUrl: string;
   waGroupUrl: string;
+  meetingCount: string;
 };
 
 const EMPTY_FORM: ClassFormState = {
@@ -83,6 +84,7 @@ const EMPTY_FORM: ClassFormState = {
   youtubePlaylistId: '',
   gdriveMateriUrl: '',
   waGroupUrl: '',
+  meetingCount: '',
 };
 
 function classToForm(cls: ClassDetail): ClassFormState {
@@ -99,6 +101,7 @@ function classToForm(cls: ClassDetail): ClassFormState {
     youtubePlaylistId: cls.youtubePlaylistId ?? '',
     gdriveMateriUrl: cls.gdriveMateriUrl ?? '',
     waGroupUrl: cls.waGroupUrl ?? '',
+    meetingCount: cls.meetingCount != null ? String(cls.meetingCount) : '',
   };
 }
 
@@ -203,6 +206,7 @@ export default function AdminClassesPage() {
       youtubePlaylistId: cls.youtubePlaylistId ?? '',
       gdriveMateriUrl: '',
       waGroupUrl: '',
+      meetingCount: '',
     });
     setDialogOpen(true);
   }
@@ -228,6 +232,7 @@ export default function AdminClassesPage() {
       youtubePlaylistId: form.youtubePlaylistId.trim() || null,
       gdriveMateriUrl: form.gdriveMateriUrl.trim() || null,
       waGroupUrl: form.waGroupUrl.trim() || null,
+      meetingCount: form.meetingCount ? parseInt(form.meetingCount, 10) : null,
     };
 
     if (editingClass) {
@@ -286,6 +291,7 @@ export default function AdminClassesPage() {
                 Gagal memuat data kelas dari server.
               </div>
             ) : (
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -381,6 +387,7 @@ export default function AdminClassesPage() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             )}
           </CardContent>
         </Card>
@@ -517,6 +524,20 @@ export default function AdminClassesPage() {
                   onChange={(e) => setForm((p) => ({ ...p, youtubePlaylistId: e.target.value }))}
                   data-testid="input-class-youtube-playlist"
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="class-meeting-count">Jumlah Pertemuan</Label>
+                <Input
+                  id="class-meeting-count"
+                  type="number"
+                  placeholder="Contoh: 2"
+                  value={form.meetingCount}
+                  onChange={(e) => setForm((p) => ({ ...p, meetingCount: e.target.value }))}
+                  data-testid="input-class-meeting-count"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Khusus kelas berbasis playlist video (tanpa breakdown modul manual). Ditampilkan sebagai "X Pertemuan" di halaman kelas.
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="class-gdrive-materi">Link Google Drive Materi (PDF)</Label>

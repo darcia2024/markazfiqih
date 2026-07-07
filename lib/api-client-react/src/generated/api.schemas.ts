@@ -88,6 +88,8 @@ export interface ClassDetail {
   moduleCount: number;
   /** @nullable */
   totalDurationMinutes: number | null;
+  /** @nullable */
+  meetingCount: number | null;
 }
 
 export type ClassSummaryStatus = typeof ClassSummaryStatus[keyof typeof ClassSummaryStatus];

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'wouter';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
@@ -13,17 +13,28 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { BookOpen, ShoppingCart } from 'lucide-react';
+import { BookOpen, ShoppingCart, Menu, X } from 'lucide-react';
 
 interface NavbarProps {
   variant?: 'default' | 'dark';
 }
 
+const NAV_LINKS = [
+  { href: '/katalog', label: 'Katalog' },
+  { href: '/paket-bundle', label: 'Paket Bundle' },
+  { href: '/my-classes', label: 'Kelas Saya' },
+];
+
 export function Navbar({ variant = 'default' }: NavbarProps) {
   const { user, logout, isLoading } = useAuth();
   const { count } = useCart();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isDark = variant === 'dark';
+
+  const linkClass = isDark
+    ? 'text-sm font-medium text-white/70 hover:text-[hsl(var(--accent))] transition-colors'
+    : 'text-sm font-medium text-white/80 hover:text-white transition-colors';
 
   return (
     <header
@@ -44,41 +55,17 @@ export function Navbar({ variant = 'default' }: NavbarProps) {
             />
           </Link>
 
-          {/* Menu — center absolut */}
+          {/* Menu desktop — center absolut (tersembunyi di mobile) */}
           <nav className="hidden md:flex items-center gap-6 absolute left-1/2 -translate-x-1/2">
-            <Link
-              href="/katalog"
-              className={
-                isDark
-                  ? 'text-sm font-medium text-white/70 hover:text-[hsl(var(--accent))] transition-colors'
-                  : 'text-sm font-medium text-white/80 hover:text-white transition-colors'
-              }
-            >
-              Katalog
-            </Link>
-            <Link
-              href="/paket-bundle"
-              className={
-                isDark
-                  ? 'text-sm font-medium text-white/70 hover:text-[hsl(var(--accent))] transition-colors'
-                  : 'text-sm font-medium text-white/80 hover:text-white transition-colors'
-              }
-            >
-              Paket Bundle
-            </Link>
-            <Link
-              href="/my-classes"
-              className={
-                isDark
-                  ? 'text-sm font-medium text-white/70 hover:text-[hsl(var(--accent))] transition-colors'
-                  : 'text-sm font-medium text-white/80 hover:text-white transition-colors'
-              }
-            >
-              Kelas Saya
-            </Link>
+            {NAV_LINKS.map(({ href, label }) => (
+              <Link key={href} href={href} className={linkClass}>
+                {label}
+              </Link>
+            ))}
           </nav>
 
-          <div className="flex items-center gap-4">
+          {/* Kanan: cart + avatar/masuk + hamburger */}
+          <div className="flex items-center gap-2 sm:gap-4">
             {!isLoading && user && (
               <Link
                 href="/keranjang"
@@ -102,6 +89,7 @@ export function Navbar({ variant = 'default' }: NavbarProps) {
                 </AnimatePresence>
               </Link>
             )}
+
             {!isLoading && (
               user ? (
                 <DropdownMenu>
@@ -149,9 +137,49 @@ export function Navbar({ variant = 'default' }: NavbarProps) {
                 )
               )
             )}
+
+            {/* Hamburger — hanya tampil di mobile (di bawah md) */}
+            <button
+              className="md:hidden flex items-center justify-center h-9 w-9 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-friendly"
+              onClick={() => setMobileMenuOpen((v) => !v)}
+              aria-label={mobileMenuOpen ? 'Tutup menu' : 'Buka menu'}
+            >
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
           </div>
         </div>
       </div>
+
+      {/* Mobile menu dropdown — slide down */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            key="mobile-menu"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2, ease: 'easeInOut' }}
+            className={`md:hidden overflow-hidden border-t ${isDark ? 'border-white/10 bg-[#0a0908]' : 'border-white/10 bg-gradient-to-b from-[hsl(var(--brand-red-hover))] to-primary/95'}`}
+          >
+            <nav className="flex flex-col px-4 py-3 gap-1">
+              {NAV_LINKS.map(({ href, label }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={`block px-3 py-2.5 rounded-md text-sm font-medium ${
+                    isDark
+                      ? 'text-white/70 hover:text-[hsl(var(--accent))] hover:bg-white/5'
+                      : 'text-white/85 hover:text-white hover:bg-white/10'
+                  } transition-colors`}
+                >
+                  {label}
+                </Link>
+              ))}
+            </nav>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   );
 }
