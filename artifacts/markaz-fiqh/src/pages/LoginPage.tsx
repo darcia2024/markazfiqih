@@ -31,19 +31,6 @@ export default function LoginPage() {
     <div className="min-h-screen flex flex-col lg:flex-row bg-background">
       {/* Visual Side */}
       <div className="hidden lg:flex lg:flex-1 bg-primary flex-col justify-between p-12 text-primary-foreground relative overflow-hidden">
-        {/* Abstract pattern / decoration */}
-        <div className="absolute inset-0 opacity-10 pointer-events-none">
-          <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern id="islamic-pattern" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
-                <path d="M20 0 L40 20 L20 40 L0 20 Z" fill="none" stroke="currentColor" strokeWidth="1"/>
-                <circle cx="20" cy="20" r="8" fill="none" stroke="currentColor" strokeWidth="1"/>
-              </pattern>
-            </defs>
-            <rect x="0" y="0" width="100%" height="100%" fill="url(#islamic-pattern)"/>
-          </svg>
-        </div>
-
         <div className="relative z-10 flex items-center gap-3">
           <img src="/logo.png" alt="Markaz Fiqih" className="h-10 w-auto brightness-0 invert" />
         </div>
