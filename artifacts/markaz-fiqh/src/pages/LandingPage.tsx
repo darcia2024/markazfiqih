@@ -89,9 +89,9 @@ function HeroSection({
       <div className="relative rounded-[14px] overflow-hidden mx-4 mt-4">
         {/* Background image */}
         <img
-          src="https://images.unsplash.com/photo-1585036156171-384164a8c675?w=1200&q=80"
-          alt="Kajian Fiqih"
-          className="w-full h-[480px] sm:h-[520px] object-cover"
+          src="/banner.png"
+          alt="Markaz Fiqih"
+          className="w-full h-[480px] sm:h-[520px] object-cover object-center"
         />
 
         {/* Gradient overlay */}
