@@ -10,13 +10,13 @@ Platform belajar fiqih madzhab Syafi'i secara terstruktur — kelas, modul, dan 
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required secrets (set via Replit Secrets):
-  - `SUPABASE_DATABASE_URL` — Supabase Postgres connection string (Settings → Database → URI)
-  - `VITE_SUPABASE_URL` — Supabase project URL (Settings → API → Project URL)
-  - `VITE_SUPABASE_ANON_KEY` — Supabase anon/public key (Settings → API → Project API Keys)
-  - `SUPABASE_URL` — same as VITE_SUPABASE_URL, used by the backend
-  - `SUPABASE_SERVICE_ROLE_KEY` — service_role key for backend auth (Settings → API → Project API Keys)
-  - `SESSION_SECRET` — secret for session signing (any random string)
+- Required secrets & env vars (set via Replit Secrets / Env Vars):
+  - `VITE_SUPABASE_URL` *(env var)* — Supabase project URL (Settings → API → Project URL); juga dipakai backend sebagai fallback `SUPABASE_URL`
+  - `VITE_SUPABASE_ANON_KEY` *(secret)* — Supabase anon/public key (Settings → API → Project API Keys)
+  - `SUPABASE_SERVICE_ROLE_KEY` *(secret)* — service_role key untuk auth backend (Settings → API → Project API Keys)
+  - `FRONTEND_URL` *(env var)* — URL frontend di Replit, dipakai untuk CORS backend
+  - `ADMIN_USER_IDS` *(env var)* — UUID Supabase user admin, pisahkan koma
+  - `SESSION_SECRET` *(secret)* — sudah diset, tersedia jika dibutuhkan
 
 ## Stack
 

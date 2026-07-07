@@ -63,3 +63,11 @@ packages = ["supabase-cli"]
 [[ports]]
 localPort = 8080
 externalPort = 8080
+
+[userenv]
+
+[userenv.shared]
+VITE_SUPABASE_URL = "https://butibupkkgiujnaoietc.supabase.co"
+FRONTEND_URL = "https://0ad16f07-fc16-499f-b6f2-b7a026e7f700-00-1x34px7003dz7.pike.replit.dev"
+ADMIN_USER_IDS = ""
+LOG_LEVEL = "info"
