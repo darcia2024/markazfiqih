@@ -1,0 +1,103 @@
+# Prompt 17: Redesign Section "Kategori Kelas" + "Tentang Kami"
+
+Edit file `artifacts/markaz-fiqh/src/pages/LandingPage.tsx`. Dua fungsi yang
+diubah: `CategorySection` (sekitar baris 282–338) dan `AboutSection` (sekitar
+baris 341–391). Jangan ubah section lain di file ini, dan jangan ubah props
+yang diterima kedua fungsi ini (`categoryCounts`, `isLoading`,
+`testimonials`) — cukup redesign JSX di dalamnya.
+
+---
+
+## Bagian A — Redesign `CategorySection`
+
+Kondisi sekarang: 2 card kategori (Fiqih Tematik, Fiqih Kitab) solid merah
+polos, icon kecil di kotak putih transparan, layout flat dan terasa kosong
+di card yang lebih pendek isinya (card "Fiqih Kitab" kelihatan lebih kosong
+karena deskripsinya lebih pendek dari card sebelahnya, membuat card jadi
+tidak sama tinggi secara visual).
+
+Redesign dengan mempertahankan warna dasar solid merah (`from-primary to-
+[hsl(var(--brand-red-hover))]`), tapi buat lebih dinamis dan modern:
+
+1. **Icon jadi elemen visual yang lebih besar dan dekoratif** — bukan cuma
+   kotak kecil 48px di pojok kiri atas. Buat versi icon raksasa
+   semi-transparan (misal `opacity-10` sampai `opacity-15`, ukuran besar
+   seperti `h-32 w-32` atau lebih) yang diposisikan absolute di pojok
+   kanan bawah card sebagai watermark dekoratif — mirip pola watermark
+   angka yang sudah dipakai di section "Cara Belajar" (`HowItWorksSection`)
+   di file yang sama, supaya konsisten dengan bahasa desain yang sudah ada
+   di halaman ini. Icon kecil yang asli (dalam kotak bulat/rounded) tetap
+   dipertahankan di posisi normal sebagai elemen utama.
+
+2. **Layout dalam card dibuat lebih terstruktur** — pisahkan area
+   konten utama (icon, judul, deskripsi) dari area footer (jumlah kelas +
+   panah/chevron indikator "lihat kelas" muncul saat hover), dengan garis
+   pemisah tipis semi-transparan (`border-t border-white/10`) di antara
+   keduanya supaya card terasa punya struktur jelas, bukan cuma tumpukan
+   teks.
+
+3. **Height card disamakan** — pastikan kedua card punya tinggi yang sama
+   dan proporsional (misal set `min-h-[220px]` atau sejenis pada card),
+   supaya tidak terasa kosong walau isi teksnya beda panjang.
+
+4. Tambahkan micro-interaction saat hover: selain shadow+translate yang
+   sudah ada, tambahkan efek subtle pada watermark icon (misal opacity
+   sedikit naik atau scale kecil) untuk memberi kesan hidup.
+
+5. Pertahankan: link ke `/katalog?category=...`, sumber data
+   `categoryCounts` dan `CATEGORY_META` (jangan diubah), loading skeleton
+   state, kondisi `if (!isLoading && categoryCounts.length === 0) return
+   null`.
+
+---
+
+## Bagian B — Redesign Total `AboutSection`
+
+Kondisi sekarang: grid 2 kolom sederhana — teks "Tentang Kami" + badge nilai
+di kiri, 1 card testimoni putih di kanan. Terasa datar dan banyak
+whitespace kosong terutama di sisi kiri.
+
+Redesain total, dengan kebebasan eksplorasi, tapi tetap dalam batasan
+berikut:
+
+- Tetap gunakan section dengan background `bg-background` (putih/cream
+  polos), konsisten dengan section lain di sekitarnya.
+- Tetap pertahankan semua data yang ditampilkan: label "Tentang Kami",
+  quote misi (`"Membumikan Fiqih di Setiap Lini Kehidupan"`), deskripsi
+  paragraf Markaz Fiqih, `CORE_VALUES` badges, dan testimoni dari
+  `testimonials` prop (nama, role, isi quote) — jangan hapus atau ubah
+  teks kontennya, hanya presentasi visualnya.
+- Buat komposisi yang terasa lebih premium dan tidak flat, misalnya (pilih
+  pendekatan yang menurutmu paling pas, ini bukan daftar wajib—cukup
+  eksplor salah satu atau kombinasi):
+  - Tambahkan elemen visual dekoratif di sisi teks (misal aksen garis
+    vertikal berwarna gold di samping quote misi, atau background pattern
+    subtle)
+  - Card testimoni didesain ulang jadi lebih menonjol — bisa dengan
+    aksen border/gradient tipis, avatar inisial nama testimoni (mirip pola
+    avatar bulat yang sudah dipakai di `RecommendationCard` pada
+    CartPage.tsx untuk instructor — cek pola itu untuk konsistensi visual),
+    atau bintang rating dekoratif sederhana kalau terasa pas.
+  - Badge `CORE_VALUES` bisa didesain ulang jadi lebih menarik (bukan
+    sekadar pill polos) — misal dengan icon kecil per value, atau susunan
+    yang lebih dinamis.
+  - Pertimbangkan menambah sedikit background tint/pattern di section ini
+    (warna brand yang sudah ada di CSS variables) supaya section ini tidak
+    terlihat identik dengan section putih polos lainnya.
+- Struktur grid 2 kolom di layar besar boleh dipertahankan atau diubah
+  (misal jadi lebih asimetris, atau card testimoni overlap sedikit ke area
+  teks) — bebas, selama tetap responsive dan rapi di mobile (`grid-cols-1`
+  pada layar kecil).
+
+## Yang tidak boleh berubah
+- Warna brand utama (primary red, gold accent) tetap konsumsi dari CSS
+  variables yang sudah ada (`hsl(var(--...))`), jangan hardcode warna baru
+  di luar palet yang sudah ada di project.
+- Font: heading tetap pakai `font-serif`, body tetap default sans.
+- Data source (`categoryCounts`, `CATEGORY_META`, `testimonials`,
+  `CORE_VALUES`) tidak diubah.
+- Section lain di LandingPage.tsx tidak disentuh.
+
+## Setelah selesai
+Kasih ringkasan pendekatan desain yang dipakai untuk masing-masing section,
+dan konfirmasi tidak ada perubahan di luar dua fungsi ini.

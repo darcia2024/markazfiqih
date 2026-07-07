@@ -1,0 +1,39 @@
+# Prompt 18 (Revisi): Hero Section Menyatu dengan Navbar — Hilangkan Gap
+
+## Maksud
+Hero section sekarang punya jarak dari navbar (karena `mx-4 mt-4` dan
+`rounded-[14px]` membuatnya jadi card terpisah yang mengambang di bawah
+navbar). Maunya navbar dan hero jadi satu kesatuan visual yang menyatu
+langsung tanpa gap atau sudut membulat di antara keduanya — seperti satu
+blok merah besar dari paling atas (mulai dari navbar) turun ke bawah.
+
+Edit file `artifacts/markaz-fiqh/src/pages/LandingPage.tsx`, fungsi
+`HeroSection` (sekitar baris 82–141).
+
+## Perubahan
+
+1. Hapus `mx-4 mt-4` dan `rounded-[14px] overflow-hidden` dari wrapper hero
+   (elemen `<div className="relative rounded-[14px] overflow-hidden mx-4
+   mt-4">`). Hero jadi full-width menempel langsung ke bawah navbar, tanpa
+   margin dan tanpa sudut membulat di bagian atas.
+2. Karena `Navbar` (di `src/components/Navbar.tsx`) sudah memakai gradient
+   warna yang sama persis dengan hero (`from-primary to-[hsl(var(--brand-
+   red-hover))]`), pastikan background hero setelah perubahan ini
+   menyambung mulus secara visual dengan navbar di atasnya — tidak ada garis
+   pemisah atau perbedaan warna yang terlihat pada transisi navbar → hero.
+3. Sudut membulat di bagian **bawah** hero section boleh dipertahankan
+   kalau itu terlihat lebih baik secara visual sebagai transisi ke section
+   berikutnya (`HowItWorksSection`), atau dihilangkan juga supaya hero jadi
+   persegi penuh — pilih yang secara visual terlihat paling rapi saat
+   preview, tapi bagian atas hero (yang bersentuhan dengan navbar) harus
+   tegas tanpa rounded dan tanpa gap.
+
+## Yang tidak berubah
+- Semua perubahan dari redesign sebelumnya (background gradient tanpa
+  foto, logo besar di kanan, konten center vertikal) tetap dipertahankan
+  seperti sudah dikerjakan — prompt ini hanya menambahkan fix untuk
+  menyatukan hero dengan navbar, bukan mengulang redesign dari awal.
+- Navbar (`Navbar.tsx`) tidak perlu diubah, warnanya sudah cocok.
+
+## Setelah selesai
+Konfirmasi bahwa hero dan navbar sudah menyatu tanpa gap/border terlihat.

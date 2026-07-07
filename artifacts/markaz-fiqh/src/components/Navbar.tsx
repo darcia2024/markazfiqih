@@ -15,24 +15,54 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { BookOpen, ShoppingCart } from 'lucide-react';
 
-export function Navbar() {
+interface NavbarProps {
+  variant?: 'default' | 'dark';
+}
+
+export function Navbar({ variant = 'default' }: NavbarProps) {
   const { user, logout, isLoading } = useAuth();
   const { count } = useCart();
 
+  const isDark = variant === 'dark';
+
   return (
-    <header className="sticky top-0 z-50 w-full bg-gradient-to-r from-primary to-[hsl(var(--brand-red-hover))]">
+    <header
+      className={
+        isDark
+          ? 'sticky top-0 z-50 w-full bg-[#0a0908]'
+          : 'sticky top-0 z-50 w-full bg-gradient-to-r from-primary to-[hsl(var(--brand-red-hover))]'
+      }
+    >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-8">
             <Link href="/" className="flex items-center transition-opacity hover:opacity-90">
-              <img src="/logo.png" alt="Markaz Fiqih" className="h-10 w-auto" />
+              <img
+                src="/logo.png"
+                alt="Markaz Fiqih"
+                className={`h-10 w-auto${isDark ? ' brightness-0 invert' : ''}`}
+              />
             </Link>
 
             <nav className="hidden md:flex items-center gap-6">
-              <Link href="/katalog" className="text-sm font-medium text-white/80 hover:text-white transition-colors">
+              <Link
+                href="/katalog"
+                className={
+                  isDark
+                    ? 'text-sm font-medium text-white/70 hover:text-[hsl(var(--accent))] transition-colors'
+                    : 'text-sm font-medium text-white/80 hover:text-white transition-colors'
+                }
+              >
                 Katalog
               </Link>
-              <Link href="/my-classes" className="text-sm font-medium text-white/80 hover:text-white transition-colors">
+              <Link
+                href="/my-classes"
+                className={
+                  isDark
+                    ? 'text-sm font-medium text-white/70 hover:text-[hsl(var(--accent))] transition-colors'
+                    : 'text-sm font-medium text-white/80 hover:text-white transition-colors'
+                }
+              >
                 Kelas Saya
               </Link>
             </nav>
@@ -95,9 +125,18 @@ export function Navbar() {
                   </DropdownMenuContent>
                 </DropdownMenu>
               ) : (
-                <Button asChild className="font-medium bg-white text-primary hover:bg-white/90">
-                  <Link href="/login">Masuk</Link>
-                </Button>
+                isDark ? (
+                  <Button
+                    asChild
+                    className="font-medium bg-[hsl(var(--accent))] text-white hover:bg-[hsl(var(--brand-gold-hover))]"
+                  >
+                    <Link href="/login">Masuk</Link>
+                  </Button>
+                ) : (
+                  <Button asChild className="font-medium bg-white text-primary hover:bg-white/90">
+                    <Link href="/login">Masuk</Link>
+                  </Button>
+                )
               )
             )}
           </div>

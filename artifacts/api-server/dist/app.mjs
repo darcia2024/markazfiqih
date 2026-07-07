@@ -53443,11 +53443,13 @@ __export(schema_exports, {
   CLASS_STATUS_VALUES: () => CLASS_STATUS_VALUES,
   INVOICE_STATUS_VALUES: () => INVOICE_STATUS_VALUES,
   cartItemsTable: () => cartItemsTable,
+  classVouchersTable: () => classVouchersTable,
   classesTable: () => classesTable,
   darsTable: () => darsTable,
   enrollmentsTable: () => enrollmentsTable,
   insertCartItemSchema: () => insertCartItemSchema,
   insertClassSchema: () => insertClassSchema,
+  insertClassVoucherSchema: () => insertClassVoucherSchema,
   insertDarsSchema: () => insertDarsSchema,
   insertEnrollmentSchema: () => insertEnrollmentSchema,
   insertInstructorSchema: () => insertInstructorSchema,
@@ -64923,13 +64925,17 @@ var insertDarsSchema = createInsertSchema(darsTable).omit({
 });
 
 // ../../lib/db/src/schema/enrollments.ts
-var enrollmentsTable = pgTable("enrollments", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: text("user_id").notNull(),
-  classId: uuid("class_id").notNull().references(() => classesTable.id, { onDelete: "cascade" }),
-  enrolledAt: timestamp("enrolled_at", { withTimezone: true }).notNull().defaultNow(),
-  isCompleted: boolean("is_completed").notNull().default(false)
-});
+var enrollmentsTable = pgTable(
+  "enrollments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id").notNull(),
+    classId: uuid("class_id").notNull().references(() => classesTable.id, { onDelete: "cascade" }),
+    enrolledAt: timestamp("enrolled_at", { withTimezone: true }).notNull().defaultNow(),
+    isCompleted: boolean("is_completed").notNull().default(false)
+  },
+  (table) => [unique("enrollments_user_class_unique").on(table.userId, table.classId)]
+);
 var insertEnrollmentSchema = createInsertSchema(enrollmentsTable).omit({
   id: true,
   enrolledAt: true
@@ -65037,6 +65043,27 @@ var userProfilesTable = pgTable("user_profiles", {
   nickname: text("nickname"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => /* @__PURE__ */ new Date())
+});
+
+// ../../lib/db/src/schema/classVouchers.ts
+var classVouchersTable = pgTable(
+  "class_vouchers",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    classId: uuid("class_id").notNull().references(() => classesTable.id, { onDelete: "cascade" }),
+    code: text("code").notNull(),
+    discountPrice: integer("discount_price").notNull(),
+    isActive: boolean("is_active").notNull().default(true),
+    maxUses: integer("max_uses"),
+    usedCount: integer("used_count").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => [unique("class_vouchers_class_code_unique").on(table.classId, table.code)]
+);
+var insertClassVoucherSchema = createInsertSchema(classVouchersTable).omit({
+  id: true,
+  usedCount: true,
+  createdAt: true
 });
 
 // ../../lib/db/src/index.ts

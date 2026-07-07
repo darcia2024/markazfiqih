@@ -1,0 +1,118 @@
+# Prompt 19 (Tahap 1/N): Landing Page Dark Mode — Navbar + Hero Section
+
+## Konteks & Batasan Penting
+Landing page mau diubah jadi dark mode (background gelap/hitam, teks putih)
+terinspirasi dari referensi visual "Mentoria" (grid pattern subtle di
+background, tipografi besar, card dengan border tipis semi-transparan,
+layout stats + CTA card yang solid) — TAPI warna aksen tetap pakai brand
+Markaz Fiqih (crimson `--primary` dan gold `--accent`), BUKAN hijau neon
+seperti referensi.
+
+**Scope penting:** Dark mode ini HANYA untuk landing page (`LandingPage.tsx`
+dan komponen-komponen yang dipakai khusus di dalamnya), BUKAN theme
+app-wide. Jangan sentuh `index.css` untuk membuat dark mode toggle/class
+`.dark` global — itu akan mempengaruhi Dashboard, Katalog, Admin Panel, dll
+yang harus tetap terang seperti sekarang. Pendekatan yang benar: terapkan
+warna gelap secara langsung (hardcoded dark background classes seperti
+`bg-[#0a0a0a]` atau gradient gelap custom) hanya pada section-section di
+LandingPage.tsx, bukan lewat CSS variable global.
+
+Ini adalah **Tahap 1 dari beberapa tahap** — pada tahap ini HANYA kerjakan
+Navbar (khusus saat ditampilkan di halaman landing, lihat catatan di bawah)
+dan Hero Section. Section lain (Cara Belajar, Kelas Pilihan, dst) BELUM
+diubah — akan dikerjakan di prompt terpisah setelah tahap ini direview.
+
+## Bagian A — Navbar khusus di Landing Page
+
+Cek `artifacts/markaz-fiqh/src/components/Navbar.tsx` — saat ini navbar
+selalu pakai gradient merah (`from-primary to-[hsl(var(--brand-red-
+hover))]`) di semua halaman (landing, katalog, dashboard, dll).
+
+Untuk tahap ini: ubah Navbar supaya saat berada di halaman landing (`/`),
+tampil dengan background gelap (misal `bg-black/40` dengan `backdrop-blur`
+kalau transparan di atas hero, atau solid gelap seperti `bg-[#0a0908]`)
+alih-alih gradient merah — tapi di semua halaman LAIN (katalog, dashboard,
+cart, dll) Navbar tetap seperti sekarang (gradient merah).
+
+Cara mendeteksi halaman: gunakan `useLocation` dari `wouter` (sudah dipakai
+di banyak tempat di codebase ini) untuk cek apakah path saat ini adalah
+`/`, lalu terapkan className kondisional. Kalau ternyata pendekatan ini
+terasa rumit dari sisi component reuse, alternatifnya: terima prop opsional
+`variant?: 'default' | 'dark'` di komponen `Navbar`, default ke `'default'`,
+dan hanya di `LandingPage.tsx` render `<Navbar variant="dark" />`. Pilih
+pendekatan yang lebih bersih menurutmu.
+
+Style navbar dark:
+- Logo tetap ditampilkan (cek apakah perlu versi logo putih — kalau logo
+  `/logo.png` sekarang berwarna gelap/merah dan tidak akan terlihat jelas
+  di background gelap, gunakan CSS filter `brightness-0 invert` pada
+  elemen `<img>` logo sebagai workaround cepat, bukan bikin file logo baru)
+- Link nav ("Katalog", "Kelas Saya") jadi teks putih/abu-abu terang, dengan
+  hover ke warna gold (`text-[hsl(var(--accent))]`) sebagai aksen brand
+- Tombol "Masuk"/Register tetap pakai warna solid brand (gold atau crimson)
+  supaya tetap jadi focal point CTA
+
+## Bagian B — Hero Section
+
+Edit `artifacts/markaz-fiqh/src/pages/LandingPage.tsx`, fungsi
+`HeroSection`. Ini melanjutkan/menggantikan redesign hero sebelumnya (yang
+sudah menghapus foto background dan center konten) — sekarang ubah palet
+warnanya jadi dark:
+
+1. **Background**: ganti dari gradient merah jadi background gelap solid
+   (misal `bg-[#0a0908]` atau senada, sesuaikan dengan nuansa hangat brand
+   Markaz Fiqih — bukan hitam pekat netral, boleh sedikit kehangatan
+   coklat/merah gelap seperti `--brand-red-deep` yang sudah ada di CSS
+   variables tapi dibuat jauh lebih gelap/dominan hitam).
+2. Tambahkan **pattern grid subtle** di background (garis-garis tipis
+   membentuk grid, opacity sangat rendah seperti `opacity-[0.03]` sampai
+   `0.06`, warna putih atau crimson pucat) — bisa dengan CSS
+   `background-image` linear-gradient trick atau SVG pattern inline,
+   terinspirasi dari referensi Mentoria. Style pattern geometris Islami
+   yang sudah ada sebelumnya (kalau ada) boleh dipertahankan/dikombinasikan
+   kalau cocok secara visual dengan dark mode ini.
+3. **Badge kecil** di atas judul (seperti "Certified & self-paced" di
+   referensi) — buat versi Markaz Fiqih, misal "Kelas Terverifikasi &
+   Fleksibel" atau sejenisnya (boleh disesuaikan, minta konfirmasi kalau
+   ragu copy-nya), dengan style pill kecil border tipis semi-transparan.
+4. **Judul besar**: pertahankan teks yang sudah ada ("Belajar Fiqih
+   Terstruktur. Berkembang Lebih Cepat.") tapi buat ukurannya lebih besar
+   dan bold mengikuti proporsi referensi (misal `text-5xl sm:text-6xl
+   lg:text-7xl`), warna putih, dengan kata terakhir atau frasa kunci diberi
+   warna aksen gold (`text-[hsl(var(--accent))]`) sebagai highlight —
+   serupa dengan bagaimana referensi menyorot kata "top mentors" dengan
+   warna hijau.
+5. **Deskripsi paragraf**: tetap teks yang sudah ada, warna abu-abu terang
+   (`text-white/60` atau senada) supaya kontras tapi tidak terlalu terang
+   dibanding judul.
+6. **Tombol CTA**: pertahankan "Jelajahi Kelas", style tetap solid gold
+   (sudah sesuai brand), pertimbangkan menambah efek glow/shadow halus
+   berwarna gold di sekitar tombol untuk kesan premium (`shadow-[0_0_30px_
+   rgba(184,134,46,0.3)]` atau senada — sesuaikan angka opacity/blur sampai
+   terlihat pas).
+7. **Elemen kanan (logo besar / grid stat card)**: dari redesign
+   sebelumnya sudah ada logo besar sebagai elemen dekoratif di kanan —
+   pertahankan itu, cukup sesuaikan opacity/warnanya supaya kontras baik di
+   background gelap baru (misal jadi `opacity-[0.08]` putih sebagai
+   watermark raksasa, bukan solid).
+8. Blok sosial media "Ikuti Kami" tetap dipertahankan strukturnya, ubah
+   style tombol bulat dari solid putih jadi outline putih transparan
+   (`border border-white/20 bg-white/5`) dengan icon putih, supaya
+   menyatu dengan tema gelap.
+9. Hero tetap menyatu dengan navbar tanpa gap (dari perubahan sebelumnya) —
+   pastikan transisi warna dari navbar dark ke hero dark tetap mulus tanpa
+   garis batas terlihat.
+
+## Yang tidak boleh berubah
+- Semua teks konten (judul, deskripsi, label tombol) — tidak diubah
+  kata-katanya kecuali badge baru di poin B3 yang memang perlu teks baru
+- Warna aksen (gold, crimson) tetap dari CSS variables yang sudah ada,
+  jangan menambah warna baru di luar palet brand
+- Halaman lain (Katalog, Dashboard, Admin, dst) TIDAK terpengaruh sama
+  sekali oleh perubahan ini
+
+## Setelah selesai
+Kasih ringkasan: pendekatan yang dipakai untuk navbar kondisional (path
+detection vs prop), dan konfirmasi bahwa halaman lain di luar landing tidak
+berubah tampilannya. Tunggu review sebelum lanjut ke tahap berikutnya
+(section-section lain di landing page).

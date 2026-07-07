@@ -6,6 +6,7 @@ import {
   Library,
   GraduationCap,
   ArrowRight,
+  ChevronRight,
   Instagram,
   Facebook,
   Youtube,
@@ -85,19 +86,46 @@ function HeroSection({
   socialLinks: Array<{ label: string; icon: typeof Instagram | typeof TikTokIcon; href: string }>;
 }) {
   return (
-    <section className="bg-background">
-      <div className="relative rounded-[14px] overflow-hidden mx-4 mt-4">
-        {/* Background image */}
-        <img
-          src="/banner.png"
-          alt="Markaz Fiqih"
-          className="w-full h-[480px] sm:h-[520px] object-cover object-center"
-        />
+    <section className="bg-gradient-to-r from-primary to-[hsl(var(--brand-red-hover))]">
+      <div className="relative overflow-hidden">
 
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[hsl(var(--brand-red-deep))]/90 via-[hsl(var(--brand-red-deep))]/40 to-transparent" />
+        {/* Layout utama: 2 kolom flex, centered vertically */}
+        <div className="relative z-10 flex items-center h-[520px] sm:h-[580px] px-8 sm:px-12">
 
-        {/* Bottom-right: social icons */}
+          {/* Kolom kiri: badge + judul besar + deskripsi + CTA */}
+          <div className="flex-1 max-w-2xl">
+
+            {/* Badge */}
+            <div className="inline-flex items-center gap-2 border border-white/20 bg-white/10 rounded-full px-4 py-1.5 mb-6">
+              <span className="h-1.5 w-1.5 rounded-full bg-[hsl(var(--accent))]" />
+              <span className="text-xs font-medium text-white/80 tracking-wide">
+                Kelas Terverifikasi &amp; Fleksibel
+              </span>
+            </div>
+
+            <h1 className="font-serif text-5xl sm:text-6xl lg:text-7xl font-bold text-white leading-[1.05] tracking-tight text-center">
+              Belajar Fiqih Terstruktur.{' '}
+              <span className="block">Berkembang Lebih Cepat.</span>
+            </h1>
+            <p className="text-white/80 text-base mt-5 leading-relaxed max-w-lg">
+              Markaz Fiqih menghadirkan kelas-kelas fiqih madzhab Syafi'i yang tersusun rapi,
+              dibimbing langsung oleh para pengajar berkompeten — mulai dari thaharah hingga
+              kajian kitab klasik, semua bisa kamu pelajari sesuai ritme belajarmu sendiri.
+            </p>
+            <div className="mt-7">
+              <Button
+                asChild
+                size="lg"
+                className="h-[48px] px-8 text-sm font-semibold rounded-[10px] bg-[hsl(var(--accent))] text-white hover:bg-[hsl(var(--brand-gold-hover))]"
+              >
+                <Link href="/katalog">Jelajahi Kelas</Link>
+              </Button>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Social icons — pojok kanan bawah */}
         <div className="absolute bottom-5 right-5 z-10 flex items-center gap-2">
           <span className="text-xs font-medium text-white/90 mr-1">Ikuti Kami</span>
           {socialLinks.map(({ label, icon: Icon, href }) => (
@@ -112,28 +140,6 @@ function HeroSection({
               <Icon className="h-3.5 w-3.5" />
             </a>
           ))}
-        </div>
-
-        {/* Bottom-left: text + CTA */}
-        <div className="absolute bottom-8 left-8 sm:left-12 z-10 max-w-lg">
-          <h1 className="font-serif text-4xl sm:text-5xl font-bold text-white leading-tight">
-            Belajar Fiqih Terstruktur.{' '}
-            <span className="block">Berkembang Lebih Cepat.</span>
-          </h1>
-          <p className="text-white/80 text-base mt-3">
-            Markaz Fiqih menghadirkan kelas-kelas fiqih madzhab Syafi'i yang tersusun rapi,
-            dibimbing langsung oleh para pengajar berkompeten — mulai dari thaharah hingga
-            kajian kitab klasik, semua bisa kamu pelajari sesuai ritme belajarmu sendiri.
-          </p>
-          <div className="mt-5">
-            <Button
-              asChild
-              size="lg"
-              className="h-[44px] px-6 text-sm font-semibold rounded-[10px] bg-[hsl(var(--accent))] text-white hover:bg-[hsl(var(--brand-gold-hover))]"
-            >
-              <Link href="/katalog">Jelajahi Kelas</Link>
-            </Button>
-          </div>
         </div>
       </div>
     </section>
@@ -173,25 +179,23 @@ function HowItWorksSection() {
   return (
     <section className="bg-background">
       <div className="container mx-auto px-5 sm:px-8 lg:px-16 py-16 max-w-[1200px]">
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-10 items-start">
+        {/* Blok teks atas */}
+        <div className="max-w-2xl mb-8">
+          <p className="text-xs font-semibold tracking-wider text-primary uppercase">
+            Cara Belajar
+          </p>
+          <h2 className="font-serif text-2xl sm:text-3xl font-bold mt-2 text-foreground">
+            Belajar Jadi Lebih Terarah
+          </h2>
+          <p className="text-muted-foreground text-base mt-3 leading-relaxed">
+            Biar proses belajarmu makin jelas arahnya, ini lima langkah yang bakal
+            kamu lalui — dari eksplor kelas sampai pantau progress belajar, semua
+            dirancang biar simpel dan nggak ribet.
+          </p>
+        </div>
 
-          {/* Kolom kiri — label + judul + deskripsi */}
-          <div className="lg:col-span-2 lg:flex lg:flex-col lg:justify-center">
-            <p className="text-xs font-semibold tracking-wider text-primary uppercase">
-              Cara Belajar
-            </p>
-            <h2 className="font-serif text-2xl sm:text-3xl font-bold mt-2 text-foreground">
-              Belajar Jadi Lebih Terarah
-            </h2>
-            <p className="text-muted-foreground text-base mt-3 leading-relaxed">
-              Biar proses belajarmu makin jelas arahnya, ini lima langkah yang bakal
-              kamu lalui — dari eksplor kelas sampai pantau progress belajar, semua
-              dirancang biar simpel dan nggak ribet.
-            </p>
-          </div>
-
-          {/* Kolom kanan — grid 2 kolom */}
-          <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Grid 5 card horizontal */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4">
             {HOW_IT_WORKS.map((step, index) => {
               const stepNum = index + 1;
               const isLast = index === HOW_IT_WORKS.length - 1;
@@ -230,8 +234,6 @@ function HowItWorksSection() {
                 </div>
               );
             })}
-          </div>
-
         </div>
       </div>
     </section>
@@ -313,7 +315,7 @@ function CategorySection({
             Array.from({ length: 3 }).map((_, i) => (
               <div
                 key={i}
-                className="h-[140px] rounded-lg border border-border bg-card animate-pulse"
+                className="h-[220px] rounded-lg border border-border bg-card animate-pulse"
               />
             ))}
 
@@ -327,19 +329,31 @@ function CategorySection({
                   href={`/katalog?category=${encodeURIComponent(category)}`}
                   className="group block h-full"
                 >
-                  <div className="h-full flex flex-col gap-3 rounded-lg bg-gradient-to-br from-primary to-[hsl(var(--brand-red-hover))] p-6 shadow-md hover:shadow-lg hover:-translate-y-1 transition-friendly">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-[10px] bg-white/10 text-white">
-                      <Icon className="h-6 w-6" />
+                  <div className="relative h-full min-h-[220px] flex flex-col rounded-lg bg-gradient-to-br from-primary to-[hsl(var(--brand-red-hover))] p-6 shadow-md hover:shadow-xl hover:-translate-y-1 transition-friendly overflow-hidden">
+
+                    {/* Watermark icon dekoratif */}
+                    <Icon className="absolute bottom-3 right-4 h-32 w-32 text-white opacity-10 group-hover:opacity-[0.15] group-hover:scale-110 transition-all duration-300 select-none pointer-events-none" />
+
+                    {/* Konten utama */}
+                    <div className="flex-1">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-[10px] bg-white/15 text-white mb-4">
+                        <Icon className="h-6 w-6" />
+                      </div>
+                      <h3 className="font-serif text-lg font-semibold text-white mb-2">
+                        {category}
+                      </h3>
+                      <p className="text-sm text-white/70 leading-relaxed">
+                        {meta?.description ?? 'Kumpulan kelas fiqih dalam kategori ini.'}
+                      </p>
                     </div>
-                    <h3 className="font-serif text-lg font-semibold text-white">
-                      {category}
-                    </h3>
-                    <p className="text-sm text-white/70">
-                      {meta?.description ?? 'Kumpulan kelas fiqih dalam kategori ini.'}
-                    </p>
-                    <p className="text-sm font-semibold text-[hsl(var(--brand-gold-pale))] mt-auto pt-2">
-                      {count} Kelas
-                    </p>
+
+                    {/* Footer dengan pemisah */}
+                    <div className="border-t border-white/10 mt-4 pt-4 flex items-center justify-between">
+                      <p className="text-sm font-semibold text-[hsl(var(--brand-gold-pale))]">
+                        {count} Kelas
+                      </p>
+                      <ChevronRight className="h-4 w-4 text-white/50 group-hover:text-white/90 group-hover:translate-x-1 transition-all duration-200" />
+                    </div>
                   </div>
                 </Link>
               );
@@ -357,22 +371,32 @@ function AboutSection({
   testimonials: Array<{ id: string; name: string; role: string | null; content: string }>;
 }) {
   return (
-    <section className="bg-background">
+    <section className="bg-[hsl(var(--brand-red-tint))]">
       <div className="container mx-auto px-5 sm:px-8 lg:px-16 py-16 max-w-[1200px]">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-          <div>
-            <p className="text-xs font-semibold tracking-wider text-primary uppercase">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-10 lg:gap-14 items-start">
+
+          {/* Kolom kiri — teks (3/5 lebar) */}
+          <div className="lg:col-span-3">
+            <p className="text-xs font-semibold tracking-wider text-primary uppercase mb-4">
               Tentang Kami
             </p>
-            <p className="font-serif text-2xl font-bold italic text-primary mt-3 mb-4">
-              &ldquo;Membumikan Fiqih di Setiap Lini Kehidupan&rdquo;
-            </p>
-            <p className="text-base leading-[26px] text-muted-foreground">
+
+            {/* Quote misi dengan aksen garis gold */}
+            <div className="flex gap-4 mb-6">
+              <div className="w-1 flex-shrink-0 rounded-full bg-[hsl(var(--brand-gold))] opacity-80" />
+              <p className="font-serif text-2xl font-bold italic text-primary leading-snug">
+                &ldquo;Membumikan Fiqih di Setiap Lini Kehidupan&rdquo;
+              </p>
+            </div>
+
+            <p className="text-base leading-[26px] text-muted-foreground mb-6">
               Markaz Fiqih adalah lembaga keilmuan independen yang berfokus pada pendidikan,
               publikasi, kaderisasi, dan pengembangan kajian fiqih berbasis turats madzhab
               Syafi'i.
             </p>
-            <div className="flex flex-wrap gap-2 mt-5">
+
+            {/* CORE_VALUES badges */}
+            <div className="flex flex-wrap gap-2">
               {CORE_VALUES.map((value) => (
                 <Badge key={value} variant="gold">
                   {value}
@@ -381,20 +405,46 @@ function AboutSection({
             </div>
           </div>
 
+          {/* Kolom kanan — testimoni (2/5 lebar) */}
           {testimonials.length > 0 && (
-            <div className="flex flex-col gap-5">
-              {testimonials.map((testimonial) => (
-                <div key={testimonial.id} className="bg-card rounded-lg shadow-md p-8 relative">
-                  <Quote className="text-[hsl(var(--brand-gold-pale))] w-10 h-10 mb-4" />
-                  <p className="text-base italic text-foreground mb-4">
-                    &ldquo;{testimonial.content}&rdquo;
-                  </p>
-                  <p className="text-sm font-semibold text-foreground">
-                    {testimonial.name}
-                    {testimonial.role ? ` — ${testimonial.role}` : ''}
-                  </p>
-                </div>
-              ))}
+            <div className="lg:col-span-2 flex flex-col gap-4">
+              {testimonials.map((testimonial) => {
+                const initials = testimonial.name
+                  .split(' ')
+                  .slice(0, 2)
+                  .map((w) => w[0])
+                  .join('')
+                  .toUpperCase();
+                return (
+                  <div
+                    key={testimonial.id}
+                    className="bg-card rounded-xl shadow-md border border-[hsl(var(--brand-gold))]/20 p-6 relative overflow-hidden"
+                  >
+                    {/* Aksen gold tipis di pojok kiri atas */}
+                    <div className="absolute top-0 left-0 w-1 h-full rounded-l-xl bg-gradient-to-b from-[hsl(var(--brand-gold))] to-[hsl(var(--brand-gold))]/20" />
+
+                    <Quote className="text-[hsl(var(--brand-gold-pale))] w-7 h-7 mb-3" />
+                    <p className="text-sm italic text-foreground leading-relaxed mb-4">
+                      &ldquo;{testimonial.content}&rdquo;
+                    </p>
+
+                    {/* Footer: avatar + nama */}
+                    <div className="flex items-center gap-3 pt-3 border-t border-border">
+                      <div className="h-9 w-9 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                        {initials}
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-foreground leading-tight">
+                          {testimonial.name}
+                        </p>
+                        {testimonial.role && (
+                          <p className="text-xs text-muted-foreground">{testimonial.role}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -582,7 +632,7 @@ export default function LandingPage() {
   const featuredTestimonials = useMemo(() => testimonials.slice(0, 1), [testimonials]);
   const socialLinks = useMemo(() => buildSocialLinks(settings ?? undefined), [settings]);
 
-  const featuredClasses = useMemo(() => allClasses.slice(0, 6), [allClasses]);
+  const featuredClasses = useMemo(() => allClasses.slice(0, 4), [allClasses]);
 
   const categoryCounts = useMemo(() => {
     const counts = new Map<string, number>();

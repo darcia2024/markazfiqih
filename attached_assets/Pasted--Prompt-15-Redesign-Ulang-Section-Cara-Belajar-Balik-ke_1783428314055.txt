@@ -1,0 +1,48 @@
+# Prompt 15: Redesign Ulang Section "Cara Belajar" — Balik ke Layout Horizontal, Teks di Atas Dibatasi Lebar
+
+## Konteks
+Layout 2-kolom (teks kiri + grid card kanan) dari prompt sebelumnya tidak
+sesuai ekspektasi — card jadi kepotong kecil dan ada gap kosong aneh di
+kolom kiri. Sekarang balik ke pendekatan awal: teks di atas, 5 card sejajar
+horizontal di bawahnya (seperti desain original) — tapi paragraf deskripsi
+yang sudah ditambahkan tetap dipertahankan, dengan lebarnya dibatasi supaya
+tidak melebar penuh.
+
+Edit file: `artifacts/markaz-fiqh/src/pages/LandingPage.tsx`, fungsi
+`HowItWorksSection`. Jangan ubah data `HOW_IT_WORKS` array-nya sama sekali.
+
+## Perubahan Layout
+
+Kembalikan ke struktur 1 kolom (bukan grid 2 kolom side-by-side):
+
+1. Blok teks di bagian atas section, urutan dari atas ke bawah:
+   - Label "Cara Belajar" (pertahankan style yang sudah ada: `text-xs
+     font-semibold tracking-wider text-primary uppercase`)
+   - Judul "Belajar Jadi Lebih Terarah" (pertahankan style yang sudah ada)
+   - Paragraf deskripsi (pertahankan teksnya, jangan diubah):
+     ```
+     Biar proses belajarmu makin jelas arahnya, ini lima langkah yang bakal
+     kamu lalui — dari eksplor kelas sampai pantau progress belajar, semua
+     dirancang biar simpel dan nggak ribet.
+     ```
+   - Batasi lebar blok teks ini dengan `max-w-xl` atau `max-w-2xl` (pilih
+     yang membuat paragraf wrap jadi 2 baris, bukan melebar penuh container),
+     supaya tidak terlalu lebar dan proporsional dengan judulnya.
+   - Beri jarak bawah `mb-8` sebelum grid card di bawahnya.
+
+2. Grid 5 card kembali ke satu baris horizontal di layar besar, seperti versi
+   original sebelum prompt 12 (`grid-cols-1 sm:grid-cols-3 lg:grid-cols-5
+   gap-4`). Style, konten, dan urutan card **tidak berubah** dari yang
+   sekarang ada (gradient merah, badge "Langkah N", watermark angka besar,
+   hover shadow+translate — semua dipertahankan).
+
+## Yang tidak boleh berubah
+- Konten dan urutan `HOW_IT_WORKS` array
+- Semua styling visual card individual (warna, gradient, border, shadow,
+  ukuran icon, badge, watermark angka)
+- Padding section (`py-16`), max-width container (`max-w-[1200px]`), dan
+  padding horizontal (`px-5 sm:px-8 lg:px-16`)
+- Section lain di LandingPage.tsx tidak disentuh
+
+## Setelah selesai
+Kasih ringkasan singkat perubahan yang dilakukan.

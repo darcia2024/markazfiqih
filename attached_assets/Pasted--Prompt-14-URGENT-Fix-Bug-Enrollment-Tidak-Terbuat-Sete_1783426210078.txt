@@ -1,0 +1,83 @@
+# Prompt 14 (URGENT): Fix Bug — Enrollment Tidak Terbuat Setelah Pembayaran Sukses
+
+## Root Cause
+Tabel `enrollments` tidak punya unique constraint di kolom `(user_id,
+class_id)` — hanya ada primary key di `id` dan foreign key di `class_id`.
+Padahal Edge Function `simulate-success` (dan kemungkinan juga
+`mayar-webhook`) memanggil:
+
+```js
+.upsert(enrollments, { onConflict: 'user_id,class_id', ignoreDuplicates: true })
+```
+
+Karena tidak ada unique constraint yang cocok dengan `onConflict:
+'user_id,class_id'`, Postgres menolak upsert ini dengan error. Error
+tersebut tidak pernah dicek/di-throw di kode, jadi function tetap lanjut dan
+return `success: true` ke frontend — padahal row enrollment tidak pernah
+masuk ke database. Akibatnya: invoice berstatus `paid`, tapi user tidak
+pernah ter-enroll ke kelas yang dibeli.
+
+Ini bug kritis — user yang sudah bayar tidak dapat akses kelasnya.
+
+## Fix 1 — SQL Migration (jalankan manual di Supabase SQL Editor)
+
+Tambahkan unique constraint yang hilang:
+```sql
+ALTER TABLE enrollments
+ADD CONSTRAINT enrollments_user_class_unique UNIQUE (user_id, class_id);
+```
+
+Sebelum menjalankan ini, cek dulu tidak ada duplikat row lama yang bakal
+bentrok (kemungkinan besar tidak ada karena upsert-nya selalu gagal, tapi
+jaga-jaga):
+```sql
+SELECT user_id, class_id, COUNT(*)
+FROM enrollments
+GROUP BY user_id, class_id
+HAVING COUNT(*) > 1;
+```
+Kalau ada hasil, kasih tahu saya dulu sebelum lanjut ke `ALTER TABLE` di atas.
+
+## Fix 2 — Update Drizzle Schema
+
+Edit `lib/db/src/schema/enrollments.ts` — tambahkan `unique()` constraint di
+kolom `(userId, classId)`, ikuti pola yang sama persis seperti
+`lib/db/src/schema/cartItems.ts` yang sudah punya `unique(...)` di
+`(userId, classId)`. Tidak perlu generate migration baru karena SQL sudah
+dijalankan manual di atas — cukup sinkronkan definisi schema-nya saja.
+
+## Fix 3 — Perbaiki Error Handling di Edge Functions
+
+Edit `supabase/functions/simulate-success/index.ts`:
+- Tangkap `error` dari hasil `.upsert(...)` pada enrollments (destructure
+  `{ error: enrollError }` dari hasil upsert).
+- Kalau `enrollError` ada, `throw enrollError` (biar masuk ke catch block
+  yang sudah ada dan return error 500 ke frontend, alih-alih diam-diam
+  return sukses palsu).
+
+Lakukan hal yang sama untuk `supabase/functions/mayar-webhook/index.ts` —
+cek apakah ada pola upsert enrollments yang serupa di sana, dan tambahkan
+error handling yang sama kalau iya.
+
+## Fix 4 — Enrollment yang Hilang untuk User yang Sudah Terlanjur Bayar
+
+Setelah Fix 1–3 selesai, saya (Darcia) perlu menjalankan SQL manual untuk
+"menyembuhkan" data invoice yang statusnya sudah `paid` tapi enrollment-nya
+tidak pernah terbuat. Tolong buatkan saya query SQL berikut (jangan
+dijalankan otomatis, saya yang akan jalankan manual di SQL Editor):
+
+```sql
+-- Cari invoice paid yang class_id-nya belum ada di enrollments
+INSERT INTO enrollments (user_id, class_id)
+SELECT DISTINCT i.user_id, ii.class_id
+FROM invoices i
+JOIN invoice_items ii ON ii.invoice_id = i.id
+WHERE i.status = 'paid'
+ON CONFLICT (user_id, class_id) DO NOTHING;
+```
+(Query ini butuh Fix 1 sudah dijalankan dulu supaya `ON CONFLICT` di atas
+valid.)
+
+## Setelah selesai
+Kasih ringkasan: file apa saja yang berubah, dan urutan SQL yang masih perlu
+saya jalankan manual (constraint dulu, baru backfill data).

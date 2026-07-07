@@ -97,9 +97,11 @@ Deno.serve(async (req) => {
       class_id: item.class_id,
     }));
 
-    await supabaseAdmin
+    const { error: enrollError } = await supabaseAdmin
       .from('enrollments')
       .upsert(enrollments, { onConflict: 'user_id,class_id', ignoreDuplicates: true });
+
+    if (enrollError) throw enrollError;
 
     // Kosongkan cart
     await supabaseAdmin

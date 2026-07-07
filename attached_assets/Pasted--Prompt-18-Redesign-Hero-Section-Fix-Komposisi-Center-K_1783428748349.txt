@@ -1,0 +1,68 @@
+# Prompt 18: Redesign Hero Section — Fix Komposisi & Center Konten
+
+## Masalah
+Hero section saat ini terasa berat sebelah dan tidak presisi:
+- Background foto Unsplash nyaris tidak terlihat karena tertutup gradient
+  gelap + warna solid merah dari pattern CSS, sehingga area kanan-tengah
+  terasa kosong dan random.
+- Logo besar "Markaz.Fiqih" di kanan atas terlihat seperti elemen yang
+  nempel begitu saja, bukan bagian dari komposisi yang disengaja.
+- Konten teks (judul, deskripsi, tombol CTA) menempel di bagian bawah-kiri
+  saja (`absolute bottom-8 left-8`), membuat ruang vertikal di atasnya
+  terasa kosong dan tidak seimbang dengan card di sebelah kanan.
+
+Edit file `artifacts/markaz-fiqh/src/pages/LandingPage.tsx`, fungsi
+`HeroSection` (sekitar baris 82–141).
+
+## Perubahan
+
+### 1. Hapus background foto Unsplash
+Hapus elemen `<img>` background foto (`https://images.unsplash.com/...`)
+sepenuhnya. Ganti dengan background solid gradient merah brand yang sudah
+dipakai di section lain (`bg-gradient-to-br from-primary to-[hsl(var(--
+brand-red-hover))]` atau `from-[hsl(var(--brand-red-deep))]`), plus pattern
+geometris subtle yang sepertinya sudah ada di background saat ini
+(pertahankan pattern itu kalau memang berasal dari CSS/SVG pattern
+terpisah, bukan dari foto) — jadi hasil akhirnya full clean gradient +
+pattern, tanpa foto.
+
+### 2. Logo besar sebagai elemen visual yang disengaja
+Pertahankan logo besar "Markaz.Fiqih" (yang sekarang ada di kanan atas),
+tapi posisikan dengan lebih rapi sebagai elemen visual pendukung, bukan
+sekadar nempel:
+- Posisikan di sisi kanan, tersejajar secara vertikal dengan blok teks di
+  kiri (bukan menempel di pojok atas).
+- Beri opacity sedikit diturunkan (misal `opacity-90` atau tetap solid,
+  sesuaikan mana yang terlihat lebih pas) dan ukuran yang proporsional
+  dengan tinggi section — jangan terlalu kecil sehingga terlihat hilang,
+  tapi juga jangan sampai menabrak teks di sebelahnya pada layar medium.
+- Sembunyikan logo besar ini di layar kecil (`hidden lg:block` atau
+  sejenis) supaya tidak mengganggu di mobile — di mobile, section hero
+  cukup menampilkan teks dan tombol CTA saja.
+
+### 3. Center konten teks secara vertikal
+Ubah positioning blok teks (judul + deskripsi + tombol CTA) dari
+`absolute bottom-8 left-8` menjadi center vertikal terhadap tinggi section
+(gunakan flexbox `flex items-center` pada container, bukan `absolute
+bottom`). Konten tetap rata kiri secara horizontal (`text-left`), hanya
+posisi vertikalnya yang dipindah dari "nempel bawah" menjadi "di tengah".
+
+### 4. Layout keseluruhan
+Susun ulang jadi flex/grid 2 area dalam 1 section (bukan lagi single
+absolute-positioned overlay di atas image): kolom kiri untuk teks+CTA
+(center vertikal, seperti poin 3), kolom/area kanan untuk logo besar
+dekoratif (poin 2). Tinggi section (`h-[480px] sm:h-[520px]`) boleh
+dipertahankan atau disesuaikan supaya proporsinya pas dengan komposisi
+baru ini — sesuaikan sesuai kebutuhan visual.
+
+### Elemen yang dipertahankan tanpa perubahan
+- Rounded corner container (`rounded-[14px] overflow-hidden mx-4 mt-4`)
+- Blok sosial media "Ikuti Kami" di kanan atas (posisi & style tetap)
+- Semua teks (judul, deskripsi, label tombol "Jelajahi Kelas") — tidak
+  diubah kata-katanya
+- Style tombol CTA (warna gold, ukuran, dsb)
+- Warna brand tetap dari CSS variables yang sudah ada, tidak menambah
+  warna baru di luar palet project
+
+## Setelah selesai
+Kasih ringkasan perubahan struktural yang dilakukan pada `HeroSection`.
