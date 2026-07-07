@@ -11,16 +11,19 @@ import {
   UpdateClassBody,
   UpdateClassResponse,
 } from "@workspace/api-zod";
+import { requireAuth } from "../middlewares/requireAuth";
+import { requireAdmin } from "../middlewares/requireAdmin";
 
 const router: IRouter = Router();
 
-router.get("/classes/recommended", async (req, res): Promise<void> => {
+router.get("/classes/recommended", requireAuth, async (req, res): Promise<void> => {
   const params = ListRecommendedClassesQueryParams.safeParse(req.query);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
     return;
   }
-  const { userId, limit } = params.data;
+  const { limit } = params.data;
+  const userId = req.auth!.userId;
 
   const cartRows = await db
     .select({ classId: cartItemsTable.classId })
@@ -270,7 +273,7 @@ router.get("/classes/:id", async (req, res): Promise<void> => {
   res.json(GetClassByIdResponse.parse(result));
 });
 
-router.post("/classes", async (req, res): Promise<void> => {
+router.post("/classes", requireAuth, requireAdmin, async (req, res): Promise<void> => {
   const body = CreateClassBody.safeParse(req.body);
   if (!body.success) {
     res.status(400).json({ error: body.error.message });
@@ -311,7 +314,7 @@ router.post("/classes", async (req, res): Promise<void> => {
   res.status(201).json(CreateClassResponse.parse(result));
 });
 
-router.put("/classes/:id", async (req, res): Promise<void> => {
+router.put("/classes/:id", requireAuth, requireAdmin, async (req, res): Promise<void> => {
   const { id } = req.params;
   const body = UpdateClassBody.safeParse(req.body);
   if (!body.success) {
@@ -371,7 +374,7 @@ router.put("/classes/:id", async (req, res): Promise<void> => {
   res.json(UpdateClassResponse.parse(result));
 });
 
-router.delete("/classes/:id", async (req, res): Promise<void> => {
+router.delete("/classes/:id", requireAuth, requireAdmin, async (req, res): Promise<void> => {
   const { id } = req.params;
 
   const [deleted] = await db.delete(classesTable).where(eq(classesTable.id, id)).returning();

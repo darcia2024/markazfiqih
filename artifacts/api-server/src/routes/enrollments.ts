@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import {
   db,
   enrollmentsTable,
@@ -13,16 +13,18 @@ import {
   ListEnrollmentsQueryParams,
   ListEnrollmentsResponse,
 } from "@workspace/api-zod";
+import { requireAuth } from "../middlewares/requireAuth";
 
 const router: IRouter = Router();
 
-router.get("/enrollments", async (req, res): Promise<void> => {
+router.get("/enrollments", requireAuth, async (req, res): Promise<void> => {
   const params = ListEnrollmentsQueryParams.safeParse(req.query);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
     return;
   }
-  const { userId } = params.data;
+  // Override userId dari token — abaikan nilai yang dikirim client
+  const userId = req.auth!.userId;
 
   const enrollmentRows = await db
     .select({
@@ -140,14 +142,10 @@ router.get("/enrollments", async (req, res): Promise<void> => {
   res.json(ListEnrollmentsResponse.parse(result));
 });
 
-router.put("/enrollments/:id/complete", async (req, res): Promise<void> => {
+router.put("/enrollments/:id/complete", requireAuth, async (req, res): Promise<void> => {
   const { id } = req.params;
-  const userId = (req.query.userId as string) || (req.body as Record<string, string>)?.userId;
-
-  if (!userId) {
-    res.status(400).json({ error: "userId is required" });
-    return;
-  }
+  // Ambil userId dari token — tidak dari query/body
+  const userId = req.auth!.userId;
 
   const [updated] = await db
     .update(enrollmentsTable)

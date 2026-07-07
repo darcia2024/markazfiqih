@@ -2,6 +2,8 @@ import { Router, type IRouter } from "express";
 import { eq } from "drizzle-orm";
 import { db, siteSettingsTable } from "@workspace/db";
 import { GetSettingsResponse, UpdateSettingsBody, UpdateSettingsResponse } from "@workspace/api-zod";
+import { requireAuth } from "../middlewares/requireAuth";
+import { requireAdmin } from "../middlewares/requireAdmin";
 
 const router: IRouter = Router();
 
@@ -18,7 +20,7 @@ router.get("/settings", async (_req, res): Promise<void> => {
   res.json(GetSettingsResponse.parse({ ...row, updatedAt: row.updatedAt.toISOString() }));
 });
 
-router.put("/settings", async (req, res): Promise<void> => {
+router.put("/settings", requireAuth, requireAdmin, async (req, res): Promise<void> => {
   const body = UpdateSettingsBody.safeParse(req.body);
   if (!body.success) {
     res.status(400).json({ error: body.error.message });

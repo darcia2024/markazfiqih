@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useLocation } from 'wouter';
-import { type User as SupabaseUser } from '@supabase/supabase-js';
+import { type User as SupabaseUser, type Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 
 export type User = {
@@ -9,6 +9,7 @@ export type User = {
   email: string;
   avatar_url: string;
   nickname: string | null;
+  isAdmin: boolean;
 };
 
 export type AuthContextType = {
@@ -32,13 +33,31 @@ async function fetchNickname(userId: string): Promise<string | null> {
   }
 }
 
-function supabaseUserToAppUser(supabaseUser: SupabaseUser, nickname: string | null): User {
+async function fetchIsAdmin(accessToken: string): Promise<boolean> {
+  try {
+    const res = await fetch('/api/auth/me', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!res.ok) return false;
+    const data = await res.json() as { isAdmin: boolean };
+    return data.isAdmin ?? false;
+  } catch {
+    return false;
+  }
+}
+
+async function buildUser(supabaseUser: SupabaseUser, session: Session): Promise<User> {
+  const [nickname, isAdmin] = await Promise.all([
+    fetchNickname(supabaseUser.id),
+    fetchIsAdmin(session.access_token),
+  ]);
   return {
     id: supabaseUser.id,
     name: supabaseUser.user_metadata?.full_name ?? supabaseUser.email ?? 'Pengguna',
     email: supabaseUser.email ?? '',
     avatar_url: supabaseUser.user_metadata?.avatar_url ?? '',
     nickname,
+    isAdmin,
   };
 }
 
@@ -53,8 +72,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!mounted) return;
       if (session?.user) {
-        const nickname = await fetchNickname(session.user.id);
-        if (mounted) setUser(supabaseUserToAppUser(session.user, nickname));
+        const appUser = await buildUser(session.user, session);
+        if (mounted) setUser(appUser);
       }
       if (mounted) setIsLoading(false);
     });
@@ -63,8 +82,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       async (_event, session) => {
         if (!mounted) return;
         if (session?.user) {
-          const nickname = await fetchNickname(session.user.id);
-          if (mounted) setUser(supabaseUserToAppUser(session.user, nickname));
+          const appUser = await buildUser(session.user, session);
+          if (mounted) setUser(appUser);
         } else {
           if (mounted) setUser(null);
         }

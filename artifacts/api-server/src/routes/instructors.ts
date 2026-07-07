@@ -8,6 +8,8 @@ import {
   UpdateInstructorBody,
   UpdateInstructorResponse,
 } from "@workspace/api-zod";
+import { requireAuth } from "../middlewares/requireAuth";
+import { requireAdmin } from "../middlewares/requireAdmin";
 
 const router: IRouter = Router();
 
@@ -35,7 +37,7 @@ router.get("/instructors", async (_req, res): Promise<void> => {
   res.json(ListInstructorsResponse.parse(result));
 });
 
-router.post("/instructors", async (req, res): Promise<void> => {
+router.post("/instructors", requireAuth, requireAdmin, async (req, res): Promise<void> => {
   const body = CreateInstructorBody.safeParse(req.body);
   if (!body.success) {
     res.status(400).json({ error: body.error.message });
@@ -55,7 +57,7 @@ router.post("/instructors", async (req, res): Promise<void> => {
   res.status(201).json(CreateInstructorResponse.parse(result));
 });
 
-router.put("/instructors/:id", async (req, res): Promise<void> => {
+router.put("/instructors/:id", requireAuth, requireAdmin, async (req, res): Promise<void> => {
   const { id } = req.params;
   const body = UpdateInstructorBody.safeParse(req.body);
   if (!body.success) {
@@ -92,7 +94,7 @@ router.put("/instructors/:id", async (req, res): Promise<void> => {
   res.json(UpdateInstructorResponse.parse(result));
 });
 
-router.delete("/instructors/:id", async (req, res): Promise<void> => {
+router.delete("/instructors/:id", requireAuth, requireAdmin, async (req, res): Promise<void> => {
   const { id } = req.params;
 
   const [deleted] = await db.delete(instructorsTable).where(eq(instructorsTable.id, id)).returning();

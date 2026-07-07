@@ -1,7 +1,8 @@
 import { Router, type IRouter } from "express";
-import { and, eq, inArray, notInArray } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db, cartItemsTable, classesTable, instructorsTable, modulesTable } from "@workspace/db";
 import { AddCartItemBody, ListCartItemsQueryParams, RemoveCartItemParams } from "@workspace/api-zod";
+import { requireAuth } from "../middlewares/requireAuth";
 
 const router: IRouter = Router();
 
@@ -59,13 +60,14 @@ async function toClassSummary(classId: string) {
   };
 }
 
-router.get("/cart", async (req, res): Promise<void> => {
+router.get("/cart", requireAuth, async (req, res): Promise<void> => {
   const params = ListCartItemsQueryParams.safeParse(req.query);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
     return;
   }
-  const { userId } = params.data;
+  // Override userId dari token — abaikan nilai yang dikirim client
+  const userId = req.auth!.userId;
 
   const items = await db
     .select()
@@ -87,13 +89,15 @@ router.get("/cart", async (req, res): Promise<void> => {
   res.json(result);
 });
 
-router.post("/cart", async (req, res): Promise<void> => {
+router.post("/cart", requireAuth, async (req, res): Promise<void> => {
   const body = AddCartItemBody.safeParse(req.body);
   if (!body.success) {
     res.status(400).json({ error: body.error.message });
     return;
   }
-  const { userId, classId } = body.data;
+  const { classId } = body.data;
+  // Override userId dari token — abaikan nilai yang dikirim client
+  const userId = req.auth!.userId;
 
   const cls = await toClassSummary(classId);
   if (!cls || cls.status !== "published") {
@@ -124,13 +128,25 @@ router.post("/cart", async (req, res): Promise<void> => {
   });
 });
 
-router.delete("/cart/:id", async (req, res): Promise<void> => {
+router.delete("/cart/:id", requireAuth, async (req, res): Promise<void> => {
   const params = RemoveCartItemParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
     return;
   }
   const { id } = params.data;
+
+  // Cek kepemilikan sebelum delete — jangan bocorkan info item milik orang lain
+  const existing = await db
+    .select()
+    .from(cartItemsTable)
+    .where(eq(cartItemsTable.id, id))
+    .limit(1);
+
+  if (!existing[0] || existing[0].userId !== req.auth!.userId) {
+    res.status(404).send();
+    return;
+  }
 
   await db.delete(cartItemsTable).where(eq(cartItemsTable.id, id));
   res.status(204).send();

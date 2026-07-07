@@ -14,9 +14,11 @@ import {
   UpsertProgressBody,
   UpsertProgressResponse,
 } from "@workspace/api-zod";
+import { requireAuth } from "../middlewares/requireAuth";
 
 const router: IRouter = Router();
 
+// Publik — hanya struktur modul & dars, bukan data personal
 router.get("/classes/:classId/dars", async (req, res): Promise<void> => {
   const params = GetClassDarsParams.safeParse(req.params);
   if (!params.success) {
@@ -78,13 +80,15 @@ router.get("/classes/:classId/dars", async (req, res): Promise<void> => {
   res.json(GetClassDarsResponse.parse(result));
 });
 
-router.get("/progress", async (req, res): Promise<void> => {
+router.get("/progress", requireAuth, async (req, res): Promise<void> => {
   const params = GetProgressQueryParams.safeParse(req.query);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
     return;
   }
-  const { userId, classId } = params.data;
+  const { classId } = params.data;
+  // Override userId dari token — abaikan nilai yang dikirim client
+  const userId = req.auth!.userId;
 
   const modules = await db
     .select({ id: modulesTable.id })
@@ -134,13 +138,15 @@ router.get("/progress", async (req, res): Promise<void> => {
   res.json(GetProgressResponse.parse(result));
 });
 
-router.post("/progress", async (req, res): Promise<void> => {
+router.post("/progress", requireAuth, async (req, res): Promise<void> => {
   const body = UpsertProgressBody.safeParse(req.body);
   if (!body.success) {
     res.status(400).json({ error: body.error.message });
     return;
   }
-  const { userId, darsId, isCompleted } = body.data;
+  const { darsId, isCompleted } = body.data;
+  // Override userId dari token — abaikan nilai yang dikirim client
+  const userId = req.auth!.userId;
 
   const existing = await db
     .select({ id: progressTable.id })

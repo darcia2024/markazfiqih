@@ -9,10 +9,12 @@ import settingsRouter from "./settings";
 import enrollmentsRouter from "./enrollments";
 import darsRouter from "./dars";
 import userProfileRouter from "./user-profile";
+import authRouter from "./auth";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
+router.use(authRouter);
 router.use(classesRouter);
 router.use(instructorsRouter);
 router.use(cartRouter);

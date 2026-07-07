@@ -5,6 +5,7 @@ import NotFound from '@/pages/not-found';
 import { Route, Switch, Router as WouterRouter } from 'wouter';
 import { AuthProvider } from '@/context/AuthContext';
 import { CartProvider } from '@/context/CartContext';
+import { RequireAdminRoute } from '@/components/RequireAdminRoute';
 
 import LoginPage from '@/pages/LoginPage';
 import OnboardingNamaPage from '@/pages/OnboardingNamaPage';
@@ -36,12 +37,24 @@ function Router() {
       <Route path="/my-classes" component={MyClassesPage} />
       <Route path="/keranjang" component={CartPage} />
       <Route path="/learn/:classId" component={LearnPage} />
-      <Route path="/admin" component={AdminDashboardPage} />
-      <Route path="/admin/classes" component={AdminClassesPage} />
-      <Route path="/admin/instructors" component={AdminInstructorsPage} />
-      <Route path="/admin/orders" component={AdminOrdersPage} />
-      <Route path="/admin/testimonials" component={AdminTestimonialsPage} />
-      <Route path="/admin/settings" component={AdminSettingsPage} />
+      <Route path="/admin">
+        {() => <RequireAdminRoute><AdminDashboardPage /></RequireAdminRoute>}
+      </Route>
+      <Route path="/admin/classes">
+        {() => <RequireAdminRoute><AdminClassesPage /></RequireAdminRoute>}
+      </Route>
+      <Route path="/admin/instructors">
+        {() => <RequireAdminRoute><AdminInstructorsPage /></RequireAdminRoute>}
+      </Route>
+      <Route path="/admin/orders">
+        {() => <RequireAdminRoute><AdminOrdersPage /></RequireAdminRoute>}
+      </Route>
+      <Route path="/admin/testimonials">
+        {() => <RequireAdminRoute><AdminTestimonialsPage /></RequireAdminRoute>}
+      </Route>
+      <Route path="/admin/settings">
+        {() => <RequireAdminRoute><AdminSettingsPage /></RequireAdminRoute>}
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );

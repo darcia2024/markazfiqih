@@ -14,6 +14,7 @@ import {
   SimulateCheckoutSuccessParams,
   SimulateCheckoutFailParams,
 } from "@workspace/api-zod";
+import { requireAuth } from "../middlewares/requireAuth";
 
 const router: IRouter = Router();
 
@@ -89,13 +90,14 @@ async function buildInvoiceResponse(invoiceId: string) {
   };
 }
 
-router.post("/checkout", async (req, res): Promise<void> => {
+router.post("/checkout", requireAuth, async (req, res): Promise<void> => {
   const body = CreateCheckoutBody.safeParse(req.body);
   if (!body.success) {
     res.status(400).json({ error: body.error.message });
     return;
   }
-  const { userId } = body.data;
+  // Override userId dari token — abaikan nilai yang dikirim client
+  const userId = req.auth!.userId;
 
   const cartItems = await db.select().from(cartItemsTable).where(eq(cartItemsTable.userId, userId));
   if (cartItems.length === 0) {
@@ -130,7 +132,7 @@ router.post("/checkout", async (req, res): Promise<void> => {
   res.json(response);
 });
 
-router.post("/checkout/:id/simulate-success", async (req, res): Promise<void> => {
+router.post("/checkout/:id/simulate-success", requireAuth, async (req, res): Promise<void> => {
   const params = SimulateCheckoutSuccessParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -141,6 +143,12 @@ router.post("/checkout/:id/simulate-success", async (req, res): Promise<void> =>
   const invoiceRows = await db.select().from(invoicesTable).where(eq(invoicesTable.id, id)).limit(1);
   const invoice = invoiceRows[0];
   if (!invoice) {
+    res.status(404).json({ error: "Invoice not found" });
+    return;
+  }
+
+  // Pastikan invoice milik user yang sedang login
+  if (invoice.userId !== req.auth!.userId) {
     res.status(404).json({ error: "Invoice not found" });
     return;
   }
@@ -176,7 +184,7 @@ router.post("/checkout/:id/simulate-success", async (req, res): Promise<void> =>
   res.json(response);
 });
 
-router.post("/checkout/:id/simulate-fail", async (req, res): Promise<void> => {
+router.post("/checkout/:id/simulate-fail", requireAuth, async (req, res): Promise<void> => {
   const params = SimulateCheckoutFailParams.safeParse(req.params);
   if (!params.success) {
     res.status(400).json({ error: params.error.message });
@@ -185,7 +193,14 @@ router.post("/checkout/:id/simulate-fail", async (req, res): Promise<void> => {
   const { id } = params.data;
 
   const invoiceRows = await db.select().from(invoicesTable).where(eq(invoicesTable.id, id)).limit(1);
-  if (!invoiceRows[0]) {
+  const invoice = invoiceRows[0];
+  if (!invoice) {
+    res.status(404).json({ error: "Invoice not found" });
+    return;
+  }
+
+  // Pastikan invoice milik user yang sedang login
+  if (invoice.userId !== req.auth!.userId) {
     res.status(404).json({ error: "Invoice not found" });
     return;
   }

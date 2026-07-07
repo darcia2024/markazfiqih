@@ -2,6 +2,8 @@ import { Router, type IRouter } from "express";
 import { asc, eq } from "drizzle-orm";
 import { db, testimonialsTable } from "@workspace/db";
 import { ListTestimonialsResponse, CreateTestimonialBody, CreateTestimonialResponse, UpdateTestimonialBody, UpdateTestimonialResponse } from "@workspace/api-zod";
+import { requireAuth } from "../middlewares/requireAuth";
+import { requireAdmin } from "../middlewares/requireAdmin";
 
 const router: IRouter = Router();
 
@@ -23,7 +25,7 @@ router.get("/testimonials", async (_req, res): Promise<void> => {
   );
 });
 
-router.post("/testimonials", async (req, res): Promise<void> => {
+router.post("/testimonials", requireAuth, requireAdmin, async (req, res): Promise<void> => {
   const body = CreateTestimonialBody.safeParse(req.body);
   if (!body.success) {
     res.status(400).json({ error: body.error.message });
@@ -41,7 +43,7 @@ router.post("/testimonials", async (req, res): Promise<void> => {
   );
 });
 
-router.put("/testimonials/:id", async (req, res): Promise<void> => {
+router.put("/testimonials/:id", requireAuth, requireAdmin, async (req, res): Promise<void> => {
   const { id } = req.params;
   const body = UpdateTestimonialBody.safeParse(req.body);
   if (!body.success) {
@@ -69,7 +71,7 @@ router.put("/testimonials/:id", async (req, res): Promise<void> => {
   );
 });
 
-router.delete("/testimonials/:id", async (req, res): Promise<void> => {
+router.delete("/testimonials/:id", requireAuth, requireAdmin, async (req, res): Promise<void> => {
   const { id } = req.params;
 
   const [row] = await db.delete(testimonialsTable).where(eq(testimonialsTable.id, id)).returning();
