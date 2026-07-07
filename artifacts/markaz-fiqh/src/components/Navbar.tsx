@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'wouter';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import { Button } from '@/components/ui/button';
@@ -48,11 +49,20 @@ export function Navbar() {
                 aria-label="Keranjang"
               >
                 <ShoppingCart className="h-5 w-5" />
-                {count > 0 && (
-                  <span className="absolute -top-1 -right-1 flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-[hsl(var(--brand-gold))] px-1 text-[10px] font-bold leading-none text-white">
-                    {count > 9 ? '9+' : count}
-                  </span>
-                )}
+                <AnimatePresence>
+                  {count > 0 && (
+                    <motion.span
+                      key={count}
+                      initial={{ scale: 0.5, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0.5, opacity: 0 }}
+                      transition={{ type: 'spring', stiffness: 500, damping: 15 }}
+                      className="absolute -top-1 -right-1 flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-[hsl(var(--brand-gold))] px-1 text-[10px] font-bold leading-none text-white"
+                    >
+                      {count > 9 ? '9+' : count}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
               </Link>
             )}
             {!isLoading && (

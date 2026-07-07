@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Link, useSearch, useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
+
 import {
   Search,
   BookOpen,
@@ -76,11 +77,20 @@ function CatalogHeader() {
             aria-label="Keranjang"
           >
             <ShoppingCart className="h-5 w-5" />
-            {count > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-primary-foreground">
-                {count > 9 ? '9+' : count}
-              </span>
-            )}
+            <AnimatePresence>
+              {count > 0 && (
+                <motion.span
+                  key={count}
+                  initial={{ scale: 0.5, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ scale: 0.5, opacity: 0 }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 15 }}
+                  className="absolute -top-1 -right-1 flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-primary-foreground"
+                >
+                  {count > 9 ? '9+' : count}
+                </motion.span>
+              )}
+            </AnimatePresence>
           </Link>
         )}
         <Button
