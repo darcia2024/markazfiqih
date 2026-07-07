@@ -39,15 +39,8 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       <Sidebar collapsible="icon">
         <SidebarHeader>
           <div className="flex items-center gap-2 px-2 py-1.5">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-sm bg-primary text-primary-foreground">
-              <BookOpen className="h-5 w-5" />
-            </div>
-            <div className="flex flex-col overflow-hidden group-data-[collapsible=icon]:hidden">
-              <span className="font-serif text-base font-bold leading-tight tracking-tight text-primary truncate">
-                Markaz Fiqh
-              </span>
-              <span className="text-xs text-muted-foreground truncate">Panel Admin</span>
-            </div>
+            <img src="/logo.png" alt="Markaz Fiqih" className="h-8 w-auto brightness-0 group-data-[collapsible=icon]:hidden" />
+            <span className="text-xs text-muted-foreground truncate group-data-[collapsible=icon]:hidden">Panel Admin</span>
           </div>
         </SidebarHeader>
         <SidebarContent>

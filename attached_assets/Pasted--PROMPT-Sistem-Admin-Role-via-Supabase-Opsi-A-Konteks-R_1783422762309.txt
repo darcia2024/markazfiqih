@@ -1,0 +1,189 @@
+# PROMPT — Sistem Admin Role via Supabase (Opsi A)
+
+## Konteks
+
+`RequireAdminRoute` dan `user.isAdmin` sudah ada di kode, tapi `isAdmin` selalu
+di-hardcode `false`. Tujuan: sambungkan ke database Supabase supaya admin bisa
+dikelola lewat tabel, bukan hardcode di kode.
+
+---
+
+## Langkah 0 — Jalankan SQL ini di Supabase SQL Editor (MANUAL, bukan lewat Agent)
+
+```sql
+-- Tambah kolom is_admin ke tabel user_profiles yang sudah ada
+ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT false;
+
+-- Jadikan diri sendiri admin (ganti email dengan email Google lo)
+-- Cek dulu user_id lo di Supabase Dashboard → Authentication → Users
+UPDATE user_profiles
+SET is_admin = true
+WHERE user_id = (
+  SELECT id::text FROM auth.users WHERE email = 'EMAIL_LO_DISINI'
+);
+
+-- Policy: user bisa baca is_admin milik sendiri
+-- (policy SELECT sudah ada dari sebelumnya, sudah include semua kolom termasuk is_admin baru ini)
+-- Kalau perlu, drop & recreate policy SELECT:
+DROP POLICY IF EXISTS "Users can read own profile" ON user_profiles;
+CREATE POLICY "Users can read own profile"
+ON user_profiles FOR SELECT
+USING (auth.uid()::text = user_id);
+```
+
+Kalau row di `user_profiles` belum ada untuk email lo (belum pernah login dan
+set nickname), insert manual dulu:
+```sql
+INSERT INTO user_profiles (user_id, nickname, is_admin)
+SELECT id::text, 'Admin', true
+FROM auth.users
+WHERE email = 'EMAIL_LO_DISINI'
+ON CONFLICT (user_id) DO UPDATE SET is_admin = true;
+```
+
+---
+
+## Langkah 1 — Edit `artifacts/markaz-fiqh/src/context/AuthContext.tsx`
+
+### 1a. Ganti fungsi `fetchNickname` jadi `fetchUserProfile` yang sekaligus ambil `is_admin`
+
+CARI dan HAPUS fungsi `fetchNickname` yang sekarang:
+```typescript
+async function fetchNickname(userId: string): Promise<string | null> {
+  try {
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('nickname')
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (error) return null;
+    return data?.nickname ?? null;
+  } catch {
+    return null;
+  }
+}
+```
+
+GANTI dengan:
+```typescript
+async function fetchUserProfile(userId: string): Promise<{ nickname: string | null; isAdmin: boolean }> {
+  try {
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('nickname, is_admin')
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (error) return { nickname: null, isAdmin: false };
+    return {
+      nickname: data?.nickname ?? null,
+      isAdmin: data?.is_admin ?? false,
+    };
+  } catch {
+    return { nickname: null, isAdmin: false };
+  }
+}
+```
+
+### 1b. Update fungsi `buildUser` untuk pakai `fetchUserProfile`
+
+CARI fungsi `buildUser` yang sekarang isinya:
+```typescript
+const nickname = await fetchNickname(supabaseUser.id);
+return {
+  id: supabaseUser.id,
+  name: supabaseUser.user_metadata?.full_name ?? supabaseUser.email ?? 'Pengguna',
+  email: supabaseUser.email ?? '',
+  avatar_url: supabaseUser.user_metadata?.avatar_url ?? '',
+  nickname,
+  isAdmin: false,
+};
+```
+
+GANTI dengan:
+```typescript
+const { nickname, isAdmin } = await fetchUserProfile(supabaseUser.id);
+return {
+  id: supabaseUser.id,
+  name: supabaseUser.user_metadata?.full_name ?? supabaseUser.email ?? 'Pengguna',
+  email: supabaseUser.email ?? '',
+  avatar_url: supabaseUser.user_metadata?.avatar_url ?? '',
+  nickname,
+  isAdmin,
+};
+```
+
+### 1c. Update fungsi `setNickname` untuk juga preserve `is_admin`
+
+CARI fungsi `setNickname` yang sekarang melakukan upsert ke `user_profiles`.
+Pastikan upsert-nya TIDAK mengubah kolom `is_admin` — cukup update `nickname`
+dan `updated_at` saja. Kalau sekarang upsertnya kirim seluruh object termasuk
+field yang tidak perlu, ganti jadi:
+
+```typescript
+const setNickname = (nickname: string) => {
+  setUser((prev) => (prev ? { ...prev, nickname } : prev));
+  if (user?.id) {
+    supabase
+      .from('user_profiles')
+      .upsert(
+        { user_id: user.id, nickname, updated_at: new Date().toISOString() },
+        { onConflict: 'user_id', ignoreDuplicates: false }
+      )
+      .then(({ error }) => {
+        if (error) console.error('Gagal simpan nickname:', error);
+      });
+  }
+};
+```
+
+---
+
+## Langkah 2 — TIDAK perlu ubah file lain
+
+- `RequireAdminRoute.tsx` sudah benar — sudah cek `user.isAdmin`
+- `App.tsx` sudah benar — semua route `/admin/*` sudah dibungkus `RequireAdminRoute`
+- `AdminClassesPage.tsx`, `AdminInstructorsPage.tsx`, dll — tidak perlu diubah
+
+---
+
+## Langkah 3 — Cara tambah admin baru ke depannya
+
+Cara paling simpel tanpa perlu buka SQL editor tiap saat:
+di Supabase Dashboard → Table Editor → tabel `user_profiles` → cari row user
+yang mau dijadikan admin → ubah kolom `is_admin` dari `false` jadi `true`.
+
+Atau via SQL:
+```sql
+UPDATE user_profiles SET is_admin = true
+WHERE user_id = (SELECT id::text FROM auth.users WHERE email = 'email-admin-baru@gmail.com');
+```
+
+---
+
+## Langkah 4 — Setelah edit selesai
+
+```bash
+pnpm --filter @workspace/markaz-fiqh run typecheck
+```
+
+Kalau bersih:
+```bash
+git add -A
+git commit -m "feat: sistem admin role via Supabase user_profiles.is_admin"
+git push origin main
+```
+
+Kalau push kena auth error:
+```bash
+git push https://USERNAME@github.com/darcia2024/markazfiqih.git
+```
+
+---
+
+## Test setelah deploy
+
+1. Login dengan akun Google yang sudah di-set `is_admin = true` di database
+2. Coba buka `https://markazfiqih-markaz-fiqh.vercel.app/admin`
+3. Harusnya bisa masuk ke admin panel
+4. Login dengan akun Google biasa (bukan admin)
+5. Coba buka `/admin` → harusnya di-redirect ke `/` (beranda)

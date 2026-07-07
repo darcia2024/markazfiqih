@@ -445,6 +445,48 @@ function TeachersSection({
   );
 }
 
+// ── Galeri Foto ───────────────────────────────────────────────────────────
+const GALLERY_PHOTOS = [
+  { src: '/gallery/foto-1.jpeg', alt: 'Suasana kajian santri Markaz Fiqih' },
+  { src: '/gallery/foto-2.jpeg', alt: 'Haflah Takrim Akademi Markaz Fiqih' },
+  { src: '/gallery/foto-3.jpeg', alt: 'Sesi pembelajaran bersama pengajar' },
+  { src: '/gallery/foto-4.jpeg', alt: 'Pengajian rutin Markaz Fiqih' },
+  { src: '/gallery/foto-5.jpeg', alt: 'Santri belajar fiqih bersama' },
+];
+
+function GallerySection() {
+  return (
+    <section className="bg-[hsl(var(--brand-red-tint))]">
+      <div className="container mx-auto px-5 sm:px-8 lg:px-16 py-12 sm:py-16 max-w-[1200px]">
+        <p className="text-xs font-semibold tracking-wider text-primary uppercase mb-2">
+          Galeri
+        </p>
+        <h2 className="font-serif text-[26px] font-semibold text-foreground leading-8 mb-2">
+          Kegiatan Kami
+        </h2>
+        <p className="text-sm text-muted-foreground mb-8">
+          Bergabung bersama ratusan santri yang sudah merasakan manfaatnya
+        </p>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
+          {GALLERY_PHOTOS.map((photo, idx) => (
+            <div
+              key={idx}
+              className="overflow-hidden rounded-xl shadow-sm"
+            >
+              <img
+                src={photo.src}
+                alt={photo.alt}
+                className="w-full aspect-[4/3] object-cover transition-transform duration-300 ease-in-out hover:scale-105"
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ── Sosial Media ─────────────────────────────────────────────────────────
 function SocialSection({
   socialLinks,
@@ -490,30 +532,8 @@ function LandingFooter({
   return (
     <footer className="bg-background border-t border-border">
       <div className="container mx-auto px-5 sm:px-8 lg:px-16 py-8 max-w-[1200px]">
-        <div className="flex gap-3 justify-center mb-4">
-          {socialLinks.map(({ label, icon: Icon, href }) => (
-            <a
-              key={label}
-              href={href || '#'}
-              aria-label={label}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-9 h-9 rounded-full border border-border flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary transition-colors"
-            >
-              <Icon className="h-4 w-4" />
-            </a>
-          ))}
-        </div>
-
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-sm bg-primary text-primary-foreground">
-              <BookOpen className="h-4 w-4" />
-            </div>
-            <span className="font-serif text-base font-bold tracking-tight text-primary">
-              Markaz Fiqih
-            </span>
-          </div>
+          <img src="/logo.png" alt="Markaz Fiqih" className="h-7 w-auto brightness-0" />
           <p className="text-xs text-muted-foreground">
             © {new Date().getFullYear()} Markaz Fiqih. Seluruh hak cipta dilindungi.
           </p>
@@ -595,6 +615,8 @@ export default function LandingPage() {
             isLoading={instructorsQuery.isLoading}
           />
         )}
+
+        <GallerySection />
 
         <SocialSection socialLinks={socialLinks} />
       </main>

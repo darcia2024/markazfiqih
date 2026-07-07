@@ -24,11 +24,8 @@ export function Navbar() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-8">
-            <Link href="/" className="flex items-center gap-2 transition-opacity hover:opacity-90">
-              <div className="flex h-8 w-8 items-center justify-center rounded-sm bg-white text-primary">
-                <BookOpen className="h-5 w-5" />
-              </div>
-              <span className="font-serif text-xl font-bold tracking-tight text-white">Markaz Fiqh</span>
+            <Link href="/" className="flex items-center transition-opacity hover:opacity-90">
+              <img src="/logo.png" alt="Markaz Fiqih" className="h-10 w-auto" />
             </Link>
 
             <nav className="hidden md:flex items-center gap-6">

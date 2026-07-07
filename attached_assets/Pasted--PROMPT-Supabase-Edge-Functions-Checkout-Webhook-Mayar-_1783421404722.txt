@@ -1,0 +1,535 @@
+# PROMPT — Supabase Edge Functions: Checkout & Webhook Mayar
+
+## Konteks
+
+Frontend sudah konek langsung ke Supabase untuk baca data (kelas, instruktur, dll).
+Sekarang kita perlu 2 Edge Function di Supabase untuk logic bisnis yang tidak bisa
+dilakukan dari browser:
+
+1. `checkout` — buat invoice di database, panggil Mayar API, return payment URL
+2. `mayar-webhook` — terima notifikasi dari Mayar saat pembayaran lunas, buka akses kelas
+
+MAYAR_API_KEY dan MAYAR_WEBHOOK_SECRET bisa diisi placeholder dulu sekarang,
+diisi yang asli nanti setelah akun Mayar aktif.
+
+---
+
+## Langkah 0 — Setup Supabase CLI di terminal Replit
+
+```bash
+# Install Supabase CLI
+npm install -g supabase
+
+# Login ke Supabase (akan minta browser authorization)
+supabase login
+
+# Link project ke Supabase project kita
+# Ganti <PROJECT-REF> dengan project reference Supabase
+# (cek di Supabase Dashboard → Settings → General → Reference ID)
+supabase link --project-ref <PROJECT-REF>
+```
+
+---
+
+## Langkah 1 — Buat file Edge Function: checkout
+
+Buat file baru `supabase/functions/checkout/index.ts`:
+
+```typescript
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  try {
+    // Verifikasi user dari JWT token
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    // Ambil user dari token
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Pakai service role untuk operasi database (bypass RLS)
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    );
+
+    // Ambil cart items user
+    const { data: cartItems, error: cartError } = await supabaseAdmin
+      .from('cart_items')
+      .select('id, class_id, classes(id, title, base_price, discount_price)')
+      .eq('user_id', user.id);
+
+    if (cartError) throw cartError;
+    if (!cartItems || cartItems.length === 0) {
+      return new Response(JSON.stringify({ error: 'Keranjang kosong' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Hitung total
+    const totalAmount = cartItems.reduce((sum: number, item: any) => {
+      const price = item.classes?.discount_price ?? item.classes?.base_price ?? 0;
+      return sum + price;
+    }, 0);
+
+    // Buat invoice di database
+    const { data: invoice, error: invoiceError } = await supabaseAdmin
+      .from('invoices')
+      .insert({
+        user_id: user.id,
+        total_amount: totalAmount,
+        status: 'pending',
+      })
+      .select()
+      .single();
+
+    if (invoiceError) throw invoiceError;
+
+    // Buat invoice items
+    const invoiceItems = cartItems.map((item: any) => ({
+      invoice_id: invoice.id,
+      class_id: item.class_id,
+      price: item.classes?.discount_price ?? item.classes?.base_price ?? 0,
+    }));
+
+    await supabaseAdmin.from('invoice_items').insert(invoiceItems);
+
+    // --- MAYAR INTEGRATION ---
+    // Uncomment ini setelah MAYAR_API_KEY tersedia:
+    //
+    // const mayarApiKey = Deno.env.get('MAYAR_API_KEY');
+    // if (mayarApiKey) {
+    //   const mayarResponse = await fetch('https://api.mayar.id/hl/v1/payment/create', {
+    //     method: 'POST',
+    //     headers: {
+    //       'Authorization': `Bearer ${mayarApiKey}`,
+    //       'Content-Type': 'application/json',
+    //     },
+    //     body: JSON.stringify({
+    //       name: `Pembelian Kelas Markaz Fiqih`,
+    //       amount: totalAmount,
+    //       email: user.email,
+    //       redirectUrl: `${Deno.env.get('FRONTEND_URL')}/keranjang?invoice=${invoice.id}`,
+    //     }),
+    //   });
+    //   const mayarData = await mayarResponse.json();
+    //   if (mayarData.data?.id) {
+    //     await supabaseAdmin
+    //       .from('invoices')
+    //       .update({ mayar_invoice_id: mayarData.data.id })
+    //       .eq('id', invoice.id);
+    //   }
+    //   return new Response(JSON.stringify({
+    //     id: invoice.id,
+    //     paymentUrl: mayarData.data?.link,
+    //   }), {
+    //     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    //   });
+    // }
+
+    // Development fallback (sebelum Mayar aktif):
+    // Return invoice tanpa paymentUrl supaya CartPage tampilkan simulasi
+    return new Response(
+      JSON.stringify({
+        id: invoice.id,
+        userId: invoice.user_id,
+        totalAmount: invoice.total_amount,
+        status: invoice.status,
+        mayarInvoiceId: null,
+        paymentUrl: null,
+        items: cartItems.map((item: any) => ({
+          id: item.id,
+          classId: item.class_id,
+          title: item.classes?.title,
+          price: item.classes?.discount_price ?? item.classes?.base_price ?? 0,
+        })),
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    return new Response(JSON.stringify({ error: (error as Error).message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+});
+```
+
+---
+
+## Langkah 2 — Buat file Edge Function: simulate-success (untuk development)
+
+Buat file baru `supabase/functions/simulate-success/index.ts`:
+
+```typescript
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  try {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    );
+
+    const { invoiceId } = await req.json() as { invoiceId: string };
+
+    // Ambil invoice + items
+    const { data: invoice } = await supabaseAdmin
+      .from('invoices')
+      .select('*, invoice_items(class_id)')
+      .eq('id', invoiceId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (!invoice) {
+      return new Response(JSON.stringify({ error: 'Invoice tidak ditemukan' }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Update invoice jadi paid
+    await supabaseAdmin
+      .from('invoices')
+      .update({ status: 'paid', paid_at: new Date().toISOString() })
+      .eq('id', invoiceId);
+
+    // Buat enrollments untuk tiap kelas
+    const enrollments = invoice.invoice_items.map((item: any) => ({
+      user_id: user.id,
+      class_id: item.class_id,
+    }));
+
+    await supabaseAdmin
+      .from('enrollments')
+      .upsert(enrollments, { onConflict: 'user_id,class_id', ignoreDuplicates: true });
+
+    // Kosongkan cart
+    await supabaseAdmin
+      .from('cart_items')
+      .delete()
+      .eq('user_id', user.id);
+
+    return new Response(
+      JSON.stringify({ success: true, invoiceId }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    return new Response(JSON.stringify({ error: (error as Error).message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+});
+```
+
+---
+
+## Langkah 3 — Buat file Edge Function: mayar-webhook
+
+Buat file baru `supabase/functions/mayar-webhook/index.ts`:
+
+```typescript
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { crypto } from 'https://deno.land/std@0.177.0/crypto/mod.ts';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  try {
+    // Verifikasi signature Mayar
+    // (sesuaikan nama header dengan dokumentasi Mayar yang sebenarnya)
+    const webhookSecret = Deno.env.get('MAYAR_WEBHOOK_SECRET');
+    const signature = req.headers.get('x-mayar-signature');
+    const rawBody = await req.text();
+
+    if (webhookSecret && signature) {
+      const encoder = new TextEncoder();
+      const key = await crypto.subtle.importKey(
+        'raw',
+        encoder.encode(webhookSecret),
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign']
+      );
+      const expectedSignature = await crypto.subtle.sign(
+        'HMAC',
+        key,
+        encoder.encode(rawBody)
+      );
+      const expectedHex = Array.from(new Uint8Array(expectedSignature))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+
+      if (signature !== expectedHex) {
+        return new Response(JSON.stringify({ error: 'Invalid signature' }), {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+    }
+
+    const payload = JSON.parse(rawBody);
+
+    // Cek apakah statusnya paid
+    // (sesuaikan field dengan format webhook Mayar yang sebenarnya)
+    if (payload.status !== 'paid') {
+      return new Response(JSON.stringify({ received: true }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const mayarInvoiceId = payload.id;
+
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    );
+
+    // Cari invoice di database
+    const { data: invoice } = await supabaseAdmin
+      .from('invoices')
+      .select('*, invoice_items(class_id)')
+      .eq('mayar_invoice_id', mayarInvoiceId)
+      .single();
+
+    if (!invoice) {
+      return new Response(JSON.stringify({ error: 'Invoice tidak ditemukan' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Update invoice jadi paid
+    await supabaseAdmin
+      .from('invoices')
+      .update({ status: 'paid', paid_at: new Date().toISOString() })
+      .eq('id', invoice.id);
+
+    // Buat enrollments
+    const enrollments = invoice.invoice_items.map((item: any) => ({
+      user_id: invoice.user_id,
+      class_id: item.class_id,
+    }));
+
+    await supabaseAdmin
+      .from('enrollments')
+      .upsert(enrollments, { onConflict: 'user_id,class_id', ignoreDuplicates: true });
+
+    // Kosongkan cart
+    await supabaseAdmin
+      .from('cart_items')
+      .delete()
+      .eq('user_id', invoice.user_id);
+
+    return new Response(JSON.stringify({ success: true }), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({ error: (error as Error).message }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+});
+```
+
+---
+
+## Langkah 4 — Deploy Edge Functions ke Supabase
+
+```bash
+# Deploy semua functions sekaligus
+supabase functions deploy checkout
+supabase functions deploy simulate-success
+supabase functions deploy mayar-webhook
+
+# Set environment variables di Supabase
+supabase secrets set FRONTEND_URL=https://markazfiqih-markaz-fiqh.vercel.app
+supabase secrets set MAYAR_API_KEY=PLACEHOLDER_ISI_NANTI
+supabase secrets set MAYAR_WEBHOOK_SECRET=PLACEHOLDER_ISI_NANTI
+```
+
+---
+
+## Langkah 5 — Update frontend CartPage.tsx
+
+Ganti `createCheckoutMutation` dan `simulateSuccessMutation` yang sekarang
+masih manggil Express backend, jadi manggil Supabase Edge Functions:
+
+Di `artifacts/markaz-fiqh/src/lib/db.ts`, tambahkan 2 fungsi baru di bagian bawah:
+
+```typescript
+import { supabase } from './supabase';
+
+export async function createCheckout() {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  if (!token) throw new Error('Tidak ada sesi login');
+
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const res = await fetch(`${supabaseUrl}/functions/v1/checkout`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error ?? 'Checkout gagal');
+  }
+  return res.json();
+}
+
+export async function simulateSuccess(invoiceId: string) {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  if (!token) throw new Error('Tidak ada sesi login');
+
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const res = await fetch(`${supabaseUrl}/functions/v1/simulate-success`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ invoiceId }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error ?? 'Simulasi gagal');
+  }
+  return res.json();
+}
+```
+
+Lalu di `artifacts/markaz-fiqh/src/pages/CartPage.tsx`, ganti:
+
+```typescript
+// HAPUS:
+import { useCreateCheckout, useSimulateCheckoutSuccess, useGetCheckout } from '@workspace/api-client-react';
+const createCheckoutMutation = useCreateCheckout();
+const simulateSuccessMutation = useSimulateCheckoutSuccess();
+
+// GANTI dengan:
+import { useMutation } from '@tanstack/react-query';
+import { createCheckout, simulateSuccess } from '@/lib/db';
+const createCheckoutMutation = useMutation({ mutationFn: createCheckout });
+const simulateSuccessMutation = useMutation({
+  mutationFn: (invoiceId: string) => simulateSuccess(invoiceId),
+});
+```
+
+Sesuaikan pemanggilan mutasi di `handleCheckout` dan `handleSimulateSuccess`
+dengan API baru ini:
+- `createCheckoutMutation.mutateAsync({ data: { userId: user.id } })`
+  → ganti jadi `createCheckoutMutation.mutateAsync()`
+- `simulateSuccessMutation.mutateAsync({ id: invoice.id })`
+  → ganti jadi `simulateSuccessMutation.mutateAsync(invoice.id)`
+
+---
+
+## Langkah 6 — Tambah RLS untuk invoices di Supabase SQL Editor
+
+```sql
+ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY IF NOT EXISTS "Users read own invoices" ON invoices
+  FOR SELECT USING (auth.uid()::text = user_id);
+
+ALTER TABLE invoice_items ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY IF NOT EXISTS "Users read own invoice items" ON invoice_items
+  FOR SELECT USING (
+    EXISTS (
+      SELECT 1 FROM invoices
+      WHERE invoices.id = invoice_items.invoice_id
+      AND invoices.user_id = auth.uid()::text
+    )
+  );
+
+ALTER TABLE enrollments ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY IF NOT EXISTS "Users insert own enrollments" ON enrollments
+  FOR INSERT WITH CHECK (auth.uid()::text = user_id);
+```
+
+---
+
+## Catatan penting
+
+- MAYAR_API_KEY dan MAYAR_WEBHOOK_SECRET diisi placeholder dulu, ganti ke nilai
+  asli setelah akun Mayar aktif dan KYC disetujui
+- Webhook URL yang harus didaftarkan di Mayar nanti:
+  `https://<PROJECT-REF>.supabase.co/functions/v1/mayar-webhook`
+- Format payload webhook Mayar mungkin berbeda dari asumsi di kode di atas —
+  setelah dapat akses dokumentasi API Mayar, sesuaikan field `payload.status`,
+  `payload.id`, dan nama header signature

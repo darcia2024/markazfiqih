@@ -22,29 +22,32 @@ export type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-async function fetchNickname(userId: string): Promise<string | null> {
+async function fetchUserProfile(userId: string): Promise<{ nickname: string | null; isAdmin: boolean }> {
   try {
     const { data, error } = await supabase
       .from('user_profiles')
-      .select('nickname')
+      .select('nickname, is_admin')
       .eq('user_id', userId)
       .maybeSingle();
-    if (error) return null;
-    return data?.nickname ?? null;
+    if (error) return { nickname: null, isAdmin: false };
+    return {
+      nickname: data?.nickname ?? null,
+      isAdmin: data?.is_admin ?? false,
+    };
   } catch {
-    return null;
+    return { nickname: null, isAdmin: false };
   }
 }
 
 async function buildUser(supabaseUser: SupabaseUser, _session: Session): Promise<User> {
-  const nickname = await fetchNickname(supabaseUser.id);
+  const { nickname, isAdmin } = await fetchUserProfile(supabaseUser.id);
   return {
     id: supabaseUser.id,
     name: supabaseUser.user_metadata?.full_name ?? supabaseUser.email ?? 'Pengguna',
     email: supabaseUser.email ?? '',
     avatar_url: supabaseUser.user_metadata?.avatar_url ?? '',
     nickname,
-    isAdmin: false,
+    isAdmin,
   };
 }
 
@@ -100,24 +103,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const setNickname = (nickname: string) => {
-    // Tangkap userId sekarang agar tidak stale saat async selesai
-    const currentUserId = user?.id;
-    const previousNickname = user?.nickname ?? null;
     setUser((prev) => (prev ? { ...prev, nickname } : prev));
-    if (currentUserId) {
+    if (user?.id) {
       supabase
         .from('user_profiles')
-        .upsert({ user_id: currentUserId, nickname, updated_at: new Date().toISOString() })
+        .upsert(
+          { user_id: user.id, nickname, updated_at: new Date().toISOString() },
+          { onConflict: 'user_id', ignoreDuplicates: false },
+        )
         .then(({ error }) => {
-          if (error) {
-            console.error('Gagal simpan nickname:', error);
-            // Rollback ke nickname sebelumnya jika upsert gagal
-            setUser((prev) =>
-              prev && prev.id === currentUserId
-                ? { ...prev, nickname: previousNickname }
-                : prev,
-            );
-          }
+          if (error) console.error('Gagal simpan nickname:', error);
         });
     }
   };

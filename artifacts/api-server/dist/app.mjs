@@ -74016,6 +74016,12 @@ app.use(
     }
   })
 );
+var isProduction2 = process.env.NODE_ENV === "production";
+if (isProduction2 && !process.env.FRONTEND_URL) {
+  throw new Error(
+    "FRONTEND_URL wajib diisi di environment production untuk keamanan CORS."
+  );
+}
 app.use((0, import_cors.default)({ origin: process.env.FRONTEND_URL ?? "*" }));
 app.use(import_express14.default.json());
 app.use(import_express14.default.urlencoded({ extended: true }));

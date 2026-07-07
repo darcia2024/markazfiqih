@@ -325,3 +325,89 @@ export async function checkEnrollment(userId: string, classId: string): Promise<
     .maybeSingle();
   return !!data;
 }
+
+// ─── CHECKOUT (via Supabase Edge Functions) ───────────────────────────────────
+
+export type LocalInvoiceItem = {
+  id: string;
+  classId: string;
+  title: string;
+  price: number;
+  coverImage: string;
+};
+
+export type LocalInvoice = {
+  id: string;
+  totalAmount: number;
+  status: string;
+  paymentUrl: string | null;
+  items: LocalInvoiceItem[];
+};
+
+export async function createCheckout(): Promise<LocalInvoice> {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  if (!token) throw new Error('Tidak ada sesi login');
+
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+  const res = await fetch(`${supabaseUrl}/functions/v1/checkout`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error ?? 'Checkout gagal');
+  }
+  return res.json();
+}
+
+export async function simulateSuccess(invoiceId: string): Promise<{ success: boolean; invoiceId: string }> {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  if (!token) throw new Error('Tidak ada sesi login');
+
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+  const res = await fetch(`${supabaseUrl}/functions/v1/simulate-success`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ invoiceId }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error ?? 'Simulasi gagal');
+  }
+  return res.json();
+}
+
+export async function getInvoice(invoiceId: string): Promise<LocalInvoice> {
+  const { data, error } = await supabase
+    .from('invoices')
+    .select(`
+      id, total_amount, status, mayar_invoice_id, paid_at,
+      invoice_items ( id, class_id, price, classes ( id, title, cover_image ) )
+    `)
+    .eq('id', invoiceId)
+    .single();
+  if (error) throw error;
+  return {
+    id: data.id as string,
+    totalAmount: data.total_amount as number,
+    status: data.status as string,
+    paymentUrl: null,
+    items: ((data.invoice_items as any[]) ?? []).map((item: any) => ({
+      id: item.id as string,
+      classId: item.class_id as string,
+      title: item.classes?.title ?? '',
+      price: item.price as number,
+      coverImage: item.classes?.cover_image ?? '',
+    })),
+  };
+}

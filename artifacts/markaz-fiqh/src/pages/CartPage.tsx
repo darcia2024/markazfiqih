@@ -12,7 +12,7 @@ import {
   Loader2,
   XCircle,
 } from 'lucide-react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { toast } from 'sonner';
 import { AppShell } from '@/components/AppShell';
@@ -26,12 +26,10 @@ import { useCart } from '@/context/CartContext';
 import { formatPrice } from '@/pages/CatalogPage';
 import {
   useListRecommendedClasses,
-  useCreateCheckout,
-  useSimulateCheckoutSuccess,
-  useGetCheckout,
   getListRecommendedClassesQueryKey,
 } from '@workspace/api-client-react';
-import type { Invoice } from '@workspace/api-client-react';
+import { createCheckout, simulateSuccess, getInvoice } from '@/lib/db';
+import type { LocalInvoice } from '@/lib/db';
 
 function formatDuration(totalMinutes: number | null): string | null {
   if (!totalMinutes) return null;
@@ -122,7 +120,7 @@ function RecommendationCard({
   );
 }
 
-function CartSuccessView({ invoice, onBackToCatalog }: { invoice: Invoice; onBackToCatalog: () => void }) {
+function CartSuccessView({ invoice, onBackToCatalog }: { invoice: LocalInvoice; onBackToCatalog: () => void }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -140,9 +138,9 @@ function CartSuccessView({ invoice, onBackToCatalog }: { invoice: Invoice; onBac
         {invoice.items.map((item) => (
           <div key={item.id} className="flex items-center gap-3">
             <div className="w-12 h-9 rounded-md overflow-hidden bg-muted shrink-0">
-              <img src={item.class.coverImage} alt={item.class.title} className="w-full h-full object-cover" />
+              <img src={item.coverImage} alt={item.title} className="w-full h-full object-cover" />
             </div>
-            <p className="text-sm font-medium text-foreground line-clamp-1">{item.class.title}</p>
+            <p className="text-sm font-medium text-foreground line-clamp-1">{item.title}</p>
           </div>
         ))}
         <Separator />
@@ -170,16 +168,18 @@ function WaitingForPaymentView({
   onFailed,
 }: {
   invoiceId: string;
-  onSuccess: (invoice: Invoice) => void;
+  onSuccess: (invoice: LocalInvoice) => void;
   onFailed: () => void;
 }) {
-  const { data: invoice } = useGetCheckout(invoiceId, {
-    query: { refetchInterval: 3000 } as any,
+  const { data: invoice } = useQuery({
+    queryKey: ['invoice', invoiceId],
+    queryFn: () => getInvoice(invoiceId),
+    refetchInterval: 3000,
   });
 
   useEffect(() => {
     if (!invoice) return;
-    if (invoice.status === 'paid') onSuccess(invoice as unknown as Invoice);
+    if (invoice.status === 'paid') onSuccess(invoice);
     if (invoice.status === 'failed') onFailed();
   }, [invoice, onSuccess, onFailed]);
 
@@ -217,7 +217,7 @@ function CartContent() {
   const [checkoutStep, setCheckoutStep] = useState<Step>(
     returnInvoiceId ? 'waiting' : 'cart',
   );
-  const [invoice, setInvoice] = useState<Invoice | null>(null);
+  const [invoice, setInvoice] = useState<LocalInvoice | null>(null);
   const [waitingInvoiceId, setWaitingInvoiceId] = useState<string | null>(
     returnInvoiceId,
   );
@@ -236,8 +236,10 @@ function CartContent() {
     { query: { enabled: !!user, queryKey: getListRecommendedClassesQueryKey({ userId: user?.id ?? '', limit: 4 }) } },
   );
 
-  const createCheckoutMutation = useCreateCheckout();
-  const simulateSuccessMutation = useSimulateCheckoutSuccess();
+  const createCheckoutMutation = useMutation({ mutationFn: createCheckout });
+  const simulateSuccessMutation = useMutation({
+    mutationFn: (invoiceId: string) => simulateSuccess(invoiceId),
+  });
 
   const subtotal = items.reduce((sum, item) => {
     const price = item.class.discountPrice ?? item.class.basePrice;
@@ -252,17 +254,20 @@ function CartContent() {
     if (!user || items.length === 0) return;
     setIsProcessing(true);
     try {
-      const createdInvoice = await createCheckoutMutation.mutateAsync({ data: { userId: user.id } });
+      const createdInvoice = await createCheckoutMutation.mutateAsync();
 
       // Kalau Mayar sudah diintegrasikan dan paymentUrl tersedia → redirect ke sana
       if (createdInvoice.paymentUrl) {
+        setWaitingInvoiceId(createdInvoice.id);
         window.location.href = createdInvoice.paymentUrl;
         return;
       }
 
       // Development fallback: tampilkan panel simulasi
-      setInvoice(createdInvoice as unknown as Invoice);
+      setInvoice(createdInvoice);
       setCheckoutStep('paying');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Checkout gagal. Coba lagi.');
     } finally {
       setIsProcessing(false);
     }
@@ -272,16 +277,20 @@ function CartContent() {
     if (!invoice) return;
     setIsProcessing(true);
     try {
-      const paidInvoice = await simulateSuccessMutation.mutateAsync({ id: invoice.id });
-      setInvoice(paidInvoice as unknown as Invoice);
+      await simulateSuccessMutation.mutateAsync(invoice.id);
+      // Ambil ulang invoice lengkap untuk ditampilkan di success view
+      const paidInvoice = await getInvoice(invoice.id);
+      setInvoice(paidInvoice);
       setCheckoutStep('success');
       queryClient.invalidateQueries({ queryKey: ['cart', user!.id] });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Simulasi gagal. Coba lagi.');
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const handlePaymentSuccess = (paidInvoice: Invoice) => {
+  const handlePaymentSuccess = (paidInvoice: LocalInvoice) => {
     setInvoice(paidInvoice);
     setCheckoutStep('success');
     queryClient.invalidateQueries({ queryKey: ['cart', user!.id] });
@@ -360,7 +369,7 @@ function CartContent() {
             <div className="space-y-3">
               {invoice.items.map((item) => (
                 <div key={item.id} className="flex items-center justify-between text-sm">
-                  <span className="text-foreground line-clamp-1 flex-1">{item.class.title}</span>
+                  <span className="text-foreground line-clamp-1 flex-1">{item.title}</span>
                   <span className="text-muted-foreground shrink-0 ml-3">{formatPrice(item.price)}</span>
                 </div>
               ))}
