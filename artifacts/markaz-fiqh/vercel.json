@@ -1,5 +1,7 @@
 {
-  "buildCommand": "cd ../.. && pnpm --filter @workspace/markaz-fiqh run build",
+  "version": 2,
+  "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
+  "buildCommand": "cd ../.. && NODE_ENV=production pnpm --filter @workspace/markaz-fiqh run build",
   "outputDirectory": "dist/public",
   "rewrites": [
     {
