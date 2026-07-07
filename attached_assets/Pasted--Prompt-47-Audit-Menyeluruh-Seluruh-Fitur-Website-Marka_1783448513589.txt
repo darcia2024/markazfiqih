@@ -1,0 +1,148 @@
+# Prompt 47: Audit Menyeluruh — Seluruh Fitur Website Markaz Fiqih
+
+## Konteks & Alasan Audit Ini Penting
+Project ini sudah melalui banyak iterasi cepat (redesign, fitur baru,
+migrasi database). Sudah ditemukan dua bug kritis sebelumnya yang baru
+ketahuan setelah user benar-benar mencoba:
+1. `LearnPage.tsx` ternyata masih memanggil backend Express yang sudah lama
+   ditinggalkan (`@workspace/api-client-react`), membuat SEMUA user tidak
+   bisa membuka halaman belajar sama sekali — baru ketahuan setelah user
+   klik "Mulai Belajar" dan dapat "Kelas tidak ditemukan".
+2. Migrasi database untuk fitur bundle (kolom `bundle_id` di
+   `cart_items`/`invoice_items`, tabel `bundles`/`bundle_classes`) ternyata
+   tidak pernah benar-benar dijalankan di database walau sudah tercatat
+   sebagai "selesai" — baru ketahuan saat user mencoba tambah kelas ke
+   keranjang dan gagal total dengan error 400/409 tanpa pesan jelas ke UI.
+
+Pola yang berulang: **kode yang terlihat benar secara sintaks, tapi
+sebenarnya menembak sesuatu yang tidak ada (backend mati, kolom
+tidak ada), dan kegagalannya tidak terlihat ke user** (silent failure —
+tombol tidak bereaksi, halaman kosong, tanpa pesan error yang jelas).
+
+Audit ini bertujuan mencari pola serupa di SELURUH codebase sebelum
+ketahuan dari laporan user lagi. Kerjakan sistematis per kategori di bawah,
+JANGAN memperbaiki apapun secara langsung dulu — kumpulkan semua temuan
+dalam bentuk laporan terstruktur di akhir, supaya bisa direview dan
+diprioritaskan sebelum dieksekusi.
+
+---
+
+## Kategori 1: Sisa Pemanggilan Backend Express yang Sudah Mati
+
+Cari SELURUH penggunaan `@workspace/api-client-react` di
+`artifacts/markaz-fiqh/src` (grep menyeluruh, bukan hanya di halaman yang
+sudah diperiksa). Untuk setiap file yang ditemukan:
+- Catat nama file dan hooks apa saja yang dipakai dari situ
+- Tandai sebagai KRITIS jika halaman tersebut adalah halaman yang bisa
+  diakses user (bukan file mati/tidak dipakai)
+- Cek apakah ada fungsi setara di `src/lib/db.ts` yang sudah tersedia
+  sebagai pengganti, atau perlu dibuat baru
+
+## Kategori 2: Ketidaksesuaian Schema Kode vs Database Sebenarnya
+
+Untuk setiap fungsi di `src/lib/db.ts` yang melakukan query ke Supabase
+(`.from('nama_tabel')`), verifikasi terhadap struktur tabel yang
+SEBENARNYA ada di database (gunakan query terhadap
+`information_schema.columns` untuk setiap tabel yang dipakai, jangan
+asumsikan dari nama file schema Drizzle di `lib/db/src/schema/` — schema
+Drizzle bisa saja sudah diedit tapi migrasinya belum pernah dijalankan,
+seperti kasus `bundle_id` sebelumnya).
+
+Untuk setiap tabel yang dipakai di `db.ts`, laporkan:
+- Nama tabel dan fungsi mana saja yang menggunakannya
+- Kolom yang ditembak oleh kode vs kolom yang benar-benar ada di database
+- Highlight KRITIS untuk setiap ketidakcocokan yang ditemukan
+
+Tabel yang WAJIB dicek (berdasarkan fitur yang sudah dibangun):
+`classes`, `instructors`, `modules`, `dars`, `enrollments`, `cart_items`,
+`invoices`, `invoice_items`, `testimonials`, `site_settings`,
+`user_profiles`, `progress`, `bundles`, `bundle_classes`,
+`class_vouchers`.
+
+## Kategori 3: RLS Policy — Kemungkinan Silent Block
+
+Untuk setiap tabel di atas, ambil daftar RLS policy yang aktif (query
+`pg_policies`). Untuk setiap operasi (SELECT/INSERT/UPDATE/DELETE) yang
+dilakukan kode terhadap tabel tersebut, cek apakah ada policy yang
+mengizinkannya sesuai konteks pemanggilan (user biasa vs admin vs service
+role dari edge function). Laporkan kalau ada operasi di kode yang
+kemungkinan akan diblokir RLS tanpa ada pesan error yang jelas ke UI.
+
+## Kategori 4: Error Handling yang Silent (Tidak Terlihat ke User)
+
+Cari pola-pola berikut di seluruh `artifacts/markaz-fiqh/src`:
+- `catch` block yang hanya `console.error(...)` tanpa `toast.error(...)`
+  atau feedback visual lain ke user
+- `useMutation`/`useQuery` yang tidak punya `onError` handler sama sekali
+- Fungsi async yang di-`await` tanpa try-catch di pemanggilnya, di mana
+  kegagalannya tidak akan terlihat user
+
+Untuk setiap temuan, catat file, baris, dan konteks (tombol/aksi apa yang
+akan "diam saja" kalau gagal).
+
+## Kategori 5: Alur Transaksi Kritis — End-to-End
+
+Telusuri manual (baca kode, jangan asumsi) untuk 3 alur paling kritis
+berikut, dari ujung ke ujung, dan laporkan setiap celah/inkonsistensi yang
+ditemukan:
+
+**5a. Alur beli kelas individual**: Tambah ke cart → checkout (edge
+function) → simulate-success → enrollment terbuat → muncul di "Kelas
+Saya" → bisa dibuka di "Mulai Belajar".
+
+**5b. Alur beli bundle**: Tambah bundle ke cart → checkout (edge function,
+cek apakah logic bundle expand ke multiple invoice_items dan multiple
+enrollment SUDAH benar-benar diimplementasikan di
+`supabase/functions/checkout/index.ts`, atau baru direncanakan di prompt
+tapi belum dieksekusi) → semua kelas dalam bundle ter-enroll → muncul
+semua di "Kelas Saya".
+
+**5c. Alur voucher**: Input kode voucher di cart → validasi → checkout
+dengan harga terpotong → `used_count` pada voucher bertambah.
+
+Untuk masing-masing, laporkan status: SUDAH BENAR / ADA CELAH (jelaskan
+persis di mana) / BELUM DIIMPLEMENTASI (kodenya tidak ada meski pernah
+direncanakan).
+
+## Kategori 6: Konsistensi Data Harga & Enrollment
+
+Jalankan (atau minta dijalankan) beberapa query verifikasi data:
+- Apakah ada invoice berstatus `paid` yang class_id/bundle_id di
+  `invoice_items`-nya TIDAK punya row enrollment yang sesuai (indikasi
+  bug enrollment gagal seperti kasus sebelumnya, cek untuk SEMUA user
+  bukan cuma yang sudah dilaporkan)
+- Apakah ada kelas berstatus `published` dengan `base_price` NULL atau 0
+  yang seharusnya berbayar (indikasi data harga belum diisi)
+- Apakah ada kelas berstatus `published` tanpa `instructor_id`,
+  `youtube_playlist_id`, DAN tanpa modul/dars (kelas yang akan tampil
+  "Materi Belum Tersedia" ke user — laporkan daftarnya)
+
+## Kategori 7: Keamanan Dasar (Ringkas, Bukan Full Pentest)
+
+- Cek apakah ada API key/secret yang ter-hardcode di kode frontend (bukan
+  environment variable) — terutama untuk Mayar, Supabase service role key
+  (yang seharusnya HANYA ada di edge functions, bukan di frontend)
+- Cek RLS pada tabel `user_profiles` — pastikan user biasa tidak bisa
+  mengubah `is_admin` milik dirinya sendiri jadi `true` lewat client biasa
+- Cek endpoint edge function (`checkout`, `simulate-success`,
+  `mayar-webhook`) — pastikan tidak ada cara bagi user untuk memanipulasi
+  harga dari sisi client (misal mengirim `totalAmount` custom yang
+  langsung dipercaya tanpa dihitung ulang di server)
+
+---
+
+## Format Laporan Akhir
+
+Sajikan temuan dalam format ringkas per kategori, dengan setiap temuan
+diberi label tingkat keparahan:
+- KRITIS — fitur benar-benar tidak berfungsi atau berisiko
+  keamanan/kebocoran data
+- PERLU PERBAIKAN — berfungsi tapi ada celah/inkonsistensi yang
+  bisa menyebabkan masalah di kondisi tertentu
+- AMAN — sudah diverifikasi benar, tidak perlu tindakan
+
+Untuk setiap temuan KRITIS dan PERLU PERBAIKAN, sertakan rekomendasi
+perbaikan singkat (1-2 kalimat), TAPI JANGAN eksekusi perbaikannya di
+tahap ini — tunggu review dan prioritas dari saya (Darcia) dulu sebelum
+lanjut ke perbaikan, karena beberapa temuan mungkin perlu didiskusikan
+urutan pengerjaannya.

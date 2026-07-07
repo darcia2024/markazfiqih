@@ -1,0 +1,133 @@
+# Prompt 48: Floating Cart Bar — Ringkasan Keranjang Melayang di Halaman Internal
+
+## Tujuan
+Tambahkan card melayang (floating bar) di bagian bawah layar yang muncul
+di semua halaman internal (Dashboard, Katalog, Paket Bundle, Kelas Saya,
+Detail Kelas, Learn — semua halaman yang dibungkus `AppShell`), berisi
+ringkasan keranjang (jumlah item + total harga), bisa diklik kapan pun
+untuk langsung membuka halaman `/keranjang`. Hanya muncul kalau ada item
+di keranjang (`count > 0`) — kalau kosong, tidak ditampilkan sama sekali.
+
+## Langkah 1 — Tambah `subtotal` ke `CartContext`
+
+Edit `artifacts/markaz-fiqh/src/context/CartContext.tsx`.
+
+Tambahkan perhitungan subtotal (total harga dasar tanpa mempertimbangkan
+voucher — voucher tetap logic lokal khusus di `CartPage.tsx`, tidak perlu
+dipindah ke context ini):
+
+```ts
+const subtotal = items.reduce((sum, item) => {
+  if (item.type === 'bundle') {
+    return sum + item.bundle.bundlePrice;
+  }
+  return sum + (item.class.discountPrice ?? item.class.basePrice);
+}, 0);
+```
+
+Tambahkan `subtotal: number` ke type `CartContextType`, dan sertakan di
+`value` yang di-provide oleh `CartContext.Provider`.
+
+## Langkah 2 — Buat Komponen `FloatingCartBar`
+
+Buat file baru `artifacts/markaz-fiqh/src/components/FloatingCartBar.tsx`:
+
+```tsx
+import { Link, useLocation } from 'wouter';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ShoppingCart, ArrowRight } from 'lucide-react';
+import { useCart } from '@/context/CartContext';
+import { formatPrice } from '@/pages/CatalogPage'; // sesuaikan sumber formatPrice yang konsisten dipakai di project
+
+export function FloatingCartBar() {
+  const { count, subtotal } = useCart();
+  const [location] = useLocation();
+
+  // Jangan tampilkan di halaman keranjang itu sendiri (redundant)
+  if (location === '/keranjang' || count === 0) return null;
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ y: 100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 100, opacity: 0 }}
+        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+        className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-md lg:left-[calc(50%+120px)]"
+      >
+        <Link href="/keranjang">
+          <div className="flex items-center justify-between gap-3 bg-gradient-to-r from-primary to-[hsl(var(--brand-red-hover))] text-white rounded-2xl shadow-xl px-5 py-3.5 cursor-pointer hover:shadow-2xl transition-shadow">
+            <div className="flex items-center gap-3">
+              <div className="relative flex h-9 w-9 items-center justify-center rounded-full bg-white/15 shrink-0">
+                <ShoppingCart className="h-4.5 w-4.5" />
+                <span className="absolute -top-1 -right-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[hsl(var(--accent))] px-1 text-[11px] font-bold leading-none text-white">
+                  {count}
+                </span>
+              </div>
+              <div className="text-left">
+                <p className="text-xs text-white/70 leading-none mb-0.5">
+                  {count} item di keranjang
+                </p>
+                <p className="text-sm font-bold leading-none">{formatPrice(subtotal)}</p>
+              </div>
+            </div>
+            <ArrowRight className="h-4.5 w-4.5 shrink-0" />
+          </div>
+        </Link>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+```
+
+Catatan penyesuaian yang perlu dicek saat implementasi:
+- Cek sumber `formatPrice` yang konsisten dipakai di project ini (kemungkinan
+  perlu diexport dari `src/lib/db.ts` atau file utilitas lain kalau
+  sekarang hanya didefinisikan lokal di `CatalogPage.tsx` — pindahkan ke
+  lokasi yang bisa diimport bersama kalau perlu, jangan duplikasi fungsi).
+- Posisi `left-[calc(50%+120px)]` pada layar besar (`lg:`) adalah
+  penyesuaian supaya floating bar tidak center penuh terhadap layar,
+  melainkan center terhadap area konten (dengan asumsi sidebar `240px`
+  dari `AppShell` menggeser area konten) — sesuaikan angka ini agar
+  floating bar terlihat center secara visual terhadap konten utama, bukan
+  terhadap keseluruhan layar termasuk sidebar. Test dan sesuaikan sampai
+  terlihat pas.
+- Di layar mobile (setelah perbaikan drawer sidebar sebelumnya), pastikan
+  floating bar tidak bertabrakan dengan elemen lain (misal top bar mobile
+  yang baru ditambahkan) — floating bar tetap di bagian bawah jadi
+  seharusnya aman, tapi cek visual saat idle.
+
+## Langkah 3 — Pasang di `AppShell`
+
+Edit `artifacts/markaz-fiqh/src/components/AppShell.tsx`.
+
+Import `FloatingCartBar` dan render di dalam komponen `AppShell` (bukan di
+`AppSidebar`), diletakkan setelah `{children}` supaya selalu muncul di atas
+konten halaman apapun yang dibungkus `AppShell`:
+
+```tsx
+export function AppShell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="min-h-screen bg-background">
+      <AppSidebar />
+      <div className="lg:pl-[240px] min-h-screen flex flex-col">{children}</div>
+      <FloatingCartBar />
+    </div>
+  );
+}
+```
+(Sesuaikan dengan struktur `AppShell` yang sebenarnya ada sekarang — cek
+dulu strukturnya persis sebelum menambahkan, karena mungkin sudah berubah
+dari perbaikan mobile sebelumnya.)
+
+## Yang Tidak Boleh Berubah
+- `CartPage.tsx` dan logic voucher yang sudah ada tidak diubah
+- Landing page (`LandingPage.tsx`) TIDAK menampilkan floating bar ini
+  (sesuai permintaan — hanya halaman internal yang dibungkus `AppShell`)
+- Style dan fungsi cart lain (tombol tambah/hapus di berbagai halaman)
+  tidak berubah
+
+## Setelah Selesai
+Konfirmasi floating bar muncul di semua halaman internal saat cart ada
+isinya, tersembunyi saat cart kosong atau saat sedang berada di halaman
+`/keranjang` itu sendiri, dan mengarahkan ke `/keranjang` saat diklik.

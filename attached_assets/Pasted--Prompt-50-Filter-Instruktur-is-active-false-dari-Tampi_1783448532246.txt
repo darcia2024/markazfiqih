@@ -1,0 +1,76 @@
+# Prompt 50: Filter Instruktur `is_active = false` dari Tampilan Publik
+
+## Konteks
+Kolom `is_active` baru ditambahkan ke tabel `instructors` (lihat SQL
+terpisah: `49-pindahkan-kelas-hide-muthiah.sql`, sudah dijalankan). Semua
+kelas yang sebelumnya milik instruktur "Muthiah Fairuzi, Lc." sudah
+dipindahkan ke "Faqih Ubaidillah Rozan, Lc.", dan Muthiah sekarang
+`is_active = false` — row datanya tetap ada di database (untuk kemudahan
+mengaktifkan kembali nanti), tapi harus disembunyikan dari semua tampilan
+publik.
+
+## Fix
+
+### 1. Update `listInstructors` di `src/lib/db.ts`
+Tambahkan filter supaya hanya mengambil instruktur aktif:
+```ts
+export async function listInstructors() {
+  const { data, error } = await supabase
+    .from('instructors')
+    .select('id, name, bio, photo_url')
+    .eq('is_active', true)
+    .order('name');
+  if (error) throw error;
+  return (data ?? []).map((i: any) => ({
+    id: i.id as string,
+    name: i.name as string,
+    bio: i.bio as string | null,
+    photoUrl: i.photo_url as string,
+  }));
+}
+```
+
+### 2. Cek Pemakaian `listInstructors` di Frontend
+Cari semua tempat yang memanggil `listInstructors()` (kemungkinan
+`TeachersSection` di `LandingPage.tsx`, filter instruktur di
+`CatalogPage.tsx`, dan section "Instruktur" yang terlihat di Katalog pada
+screenshot). Karena filter sudah dilakukan di level query (`db.ts`), tidak
+perlu ada perubahan tambahan di komponen-komponen ini — cukup pastikan
+semuanya memang memanggil `listInstructors()` dari `db.ts` (bukan query
+Supabase manual terpisah yang mem-bypass filter ini).
+
+### 3. Admin Panel Tetap Bisa Melihat Semua Instruktur (Termasuk Nonaktif)
+Cek `AdminInstructorsPage.tsx` — halaman admin untuk kelola instruktur
+INI HARUS TETAP menampilkan semua instruktur (termasuk yang `is_active =
+false`), supaya admin bisa mengaktifkan kembali Muthiah nanti kalau
+diperlukan. Kalau halaman ini juga memanggil `listInstructors()` yang
+sudah difilter di atas, buat query terpisah khusus admin (misal
+`listAllInstructorsForAdmin()`) yang mengambil semua instruktur tanpa
+filter `is_active`, dan gunakan itu di `AdminInstructorsPage.tsx`.
+
+Tambahkan juga toggle/switch "Aktif" pada form edit instruktur di Admin
+Panel (kalau belum ada), supaya admin bisa mengaktifkan/menonaktifkan
+instruktur kapan saja tanpa perlu SQL manual ke depannya — ikuti pola
+Switch/toggle yang sudah dipakai di form lain di Admin Panel untuk
+konsistensi.
+
+### 4. Cek Dropdown Pilih Instruktur di Form Edit Kelas
+Di `AdminClassesPage.tsx`, form edit kelas punya dropdown untuk memilih
+instruktur — dropdown ini SEBAIKNYA tetap menampilkan semua instruktur
+(termasuk nonaktif) supaya admin tidak bingung kalau suatu saat perlu
+assign kelas ke instruktur yang sedang nonaktif. Gunakan query yang sama
+seperti poin 3 (tanpa filter) untuk dropdown ini.
+
+## Yang Tidak Boleh Berubah
+- Data instruktur (nama, bio, foto) tidak diubah
+- Kelas yang sudah dipindahkan ke Faqih tidak diubah lagi
+- Struktur halaman/komponen tidak berubah, hanya sumber data yang difilter
+
+## Setelah Selesai
+Konfirmasi bahwa:
+1. Muthiah Fairuzi tidak lagi muncul di section "Instruktur" pada Katalog
+   dan landing page
+2. Muthiah Fairuzi TETAP muncul dan bisa diedit di Admin Panel (termasuk
+   toggle untuk mengaktifkan kembali)
+3. Dropdown pilih instruktur di form kelas Admin Panel tetap menampilkan
+   semua instruktur termasuk yang nonaktif
