@@ -1,0 +1,17 @@
+Di artifacts/markaz-fiqh/src/components/ProtectedRoute.tsx, redesign tampilan gate/blocker yang muncul saat user belum login. Ganti diksi dan perbaiki visualnya:
+1. Ganti teks:
+
+Judul: dari "Akses Terbatas" jadi "Yuk, Masuk Dulu"
+Subteks: dari "Halaman ini memerlukan login untuk melanjutkan." jadi "Masuk sebentar untuk lanjut menjelajahi kelas-kelas fiqih pilihanmu."
+Tombol: dari "Masuk untuk Melanjutkan" jadi "Masuk dengan Google"
+
+2. Redesign visual — bungkus dalam card, bukan mengambang di background polos.
+Ganti struktur jadi: container luar min-h-screen flex items-center justify-center bg-[hsl(var(--brand-red-tint))] p-4 (background halaman penuh pakai tint merah pucat, bukan krem polos). Di dalamnya, card putih: bg-white rounded-[24px] shadow-xl p-10 max-w-md w-full text-center relative overflow-hidden.
+Tambahkan elemen dekoratif di card: lingkaran besar transparan di pojok kanan atas card sebagai aksen (absolute -top-12 -right-12 w-40 h-40 rounded-full bg-[hsl(var(--brand-red-tint))] opacity-50), dan satu lagi lebih kecil di pojok kiri bawah dengan warna emas pucat (absolute -bottom-8 -left-8 w-24 h-24 rounded-full bg-[hsl(var(--brand-gold-pale))] opacity-40), keduanya pointer-events-none supaya tidak mengganggu klik.
+Ganti ikon shield generik dengan ikon yang lebih hangat — gunakan BookLock atau LogIn dari lucide-react, taruh dalam lingkaran gradasi: <div className="relative z-10 mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-primary to-[hsl(var(--brand-red-hover))] flex items-center justify-center mb-6 shadow-lg">, ikon ukuran h-9 w-9 text-white.
+Judul pakai font-serif text-2xl font-bold text-foreground relative z-10, subteks text-muted-foreground mt-2 mb-8 relative z-10. Tombol full-width dengan style Primary Button standar, tambahkan ikon Google-like (pakai ikon LogIn juga atau cukup teks saja) di depan teks tombol, class tambahan relative z-10.
+Tambahkan juga teks kecil di bawah tombol (text-xs text-muted-foreground/70 mt-4 relative z-10): "Belum pernah ke sini? Akun baru otomatis dibuat saat pertama kali masuk."
+Verifikasi:
+
+pnpm run typecheck, 0 error.
+Screenshot halaman ini setelah perubahan — pastikan sekarang ada card dengan aksen dekoratif, ikon dalam lingkaran gradasi, dan diksi yang lebih hangat, bukan lagi terasa seperti pesan error sistem.
