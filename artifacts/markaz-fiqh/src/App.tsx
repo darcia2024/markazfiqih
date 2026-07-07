@@ -17,6 +17,7 @@ import CartPage from '@/pages/CartPage';
 import LearnPage from '@/pages/LearnPage';
 import AdminDashboardPage from '@/pages/admin/AdminDashboardPage';
 import AdminClassesPage from '@/pages/admin/AdminClassesPage';
+import AdminInstructorsPage from '@/pages/admin/AdminInstructorsPage';
 import AdminOrdersPage from '@/pages/admin/AdminOrdersPage';
 import AdminTestimonialsPage from '@/pages/admin/AdminTestimonialsPage';
 import AdminSettingsPage from '@/pages/admin/AdminSettingsPage';
@@ -37,6 +38,7 @@ function Router() {
       <Route path="/learn/:classId" component={LearnPage} />
       <Route path="/admin" component={AdminDashboardPage} />
       <Route path="/admin/classes" component={AdminClassesPage} />
+      <Route path="/admin/instructors" component={AdminInstructorsPage} />
       <Route path="/admin/orders" component={AdminOrdersPage} />
       <Route path="/admin/testimonials" component={AdminTestimonialsPage} />
       <Route path="/admin/settings" component={AdminSettingsPage} />
