@@ -1,0 +1,54 @@
+# Prompt 66: Redesign Layout Section "Metode Keilmuan" — Teks di Atas, Card Grid 4 Kolom di Bawah
+
+## Konteks
+Section "Metode Keilmuan" (dari Prompt 64) sekarang berlayout 2 kolom
+berdampingan: teks (label, judul, deskripsi) di kiri, 4 card urutan
+rujukan bertumpuk vertikal di kanan. Ubah jadi 1 kolom vertikal: teks
+full-width di bagian atas, diikuti 4 card urutan rujukan tersusun sejajar
+horizontal (grid 4 kolom) di bawahnya.
+
+Edit `artifacts/markaz-fiqh/src/pages/LandingPage.tsx`, cari section
+"Metode Keilmuan" (berisi label "METODE KEILMUAN", judul "Bermazhab,
+bukan asal bicara agama.", dan 4 card bernomor 1-4 urutan rujukan).
+
+## Perubahan
+
+### 1. Hapus Grid 2 Kolom
+Hapus struktur grid yang memisahkan teks (kiri) dan card (kanan) menjadi
+dua kolom berdampingan.
+
+### 2. Blok Teks di Atas (Full Width)
+Susun label "METODE KEILMUAN", judul "Bermazhab, bukan asal bicara
+agama." (dengan highlight warna crimson pada "bukan asal bicara agama"
+seperti yang sudah ada), dan paragraf deskripsi — semuanya dalam satu
+blok di bagian atas section, dengan lebar dibatasi (`max-w-2xl` atau
+serupa) supaya tetap enak dibaca meski sekarang full-width di atas card,
+bukan melebar penuh container.
+
+### 3. Grid 4 Card di Bawah
+Di bawah blok teks, beri jarak (`mt-10` atau serupa), lalu susun 4 card
+urutan rujukan dalam grid sejajar horizontal:
+```
+grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4
+```
+(4 kolom di desktop, 2 di tablet, 1 di mobile — bukan lagi stack
+vertikal 1 kolom seperti sekarang).
+
+Pertahankan style tiap card seperti sekarang (badge angka bulat crimson
+solid di kiri, teks urutan rujukan di kanannya, watermark angka besar
+semi-transparan di background kalau itu bagian dari desain sekarang) —
+hanya susunan grid-nya yang diubah dari vertikal-list menjadi
+grid-4-kolom. Sesuaikan tinggi card supaya proporsional saat sejajar
+4-kolom (teks yang lebih panjang seperti poin 2 dan 4 mungkin butuh card
+sedikit lebih tinggi — pastikan card tetap terbaca rapi, boleh gunakan
+`min-h-` yang sama pada semua card supaya rata secara visual).
+
+## Yang Tidak Boleh Berubah
+- Teks (label, judul, deskripsi, isi 4 poin urutan rujukan) tidak diubah
+  kata-katanya
+- Warna brand (crimson, gold) tetap dari CSS variables yang sudah ada
+- Section lain di landing page tidak disentuh
+
+## Setelah Selesai
+Konfirmasi section sekarang 1 kolom vertikal (teks di atas, grid 4 card
+sejajar horizontal di bawah), dan tetap responsive rapi di mobile.

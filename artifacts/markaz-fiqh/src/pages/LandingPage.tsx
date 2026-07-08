@@ -362,51 +362,49 @@ function MethodologySection() {
   return (
     <section className="bg-background border-b border-border">
       <div className="container mx-auto px-5 sm:px-8 lg:px-16 py-16 sm:py-20 max-w-[1200px]">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16">
-          {/* Kolom kiri — label, judul, paragraf pembuka */}
-          <div>
-            <p
-              className="text-xs font-semibold tracking-wider uppercase mb-4"
-              style={{ color: 'hsl(var(--accent))' }}
-            >
-              Metode Keilmuan
-            </p>
-            <h2 className="font-serif text-3xl sm:text-4xl font-bold text-foreground leading-tight">
-              Bermazhab,{' '}
-              <span className="text-primary">bukan asal bicara agama.</span>
-            </h2>
-            <p className="text-muted-foreground text-base mt-4 leading-relaxed max-w-lg">
-              Markaz Fiqih berpijak pada fikih madzhab Syafi&rsquo;i yang solutif, dengan
-              tetap terbuka terhadap pendapat mazhab lain selama termasuk pendapat yang
-              mu&rsquo;tabar — diakui validitasnya dalam tradisi keilmuan Islam.
-            </p>
-          </div>
+        {/* Blok teks — full width di atas, lebar dibatasi */}
+        <div className="max-w-2xl">
+          <p
+            className="text-xs font-semibold tracking-wider uppercase mb-4"
+            style={{ color: 'hsl(var(--accent))' }}
+          >
+            Metode Keilmuan
+          </p>
+          <h2 className="font-serif text-3xl sm:text-4xl font-bold text-foreground leading-tight">
+            Bermazhab,{' '}
+            <span className="text-primary">bukan asal bicara agama.</span>
+          </h2>
+          <p className="text-muted-foreground text-base mt-4 leading-relaxed">
+            Markaz Fiqih berpijak pada fikih madzhab Syafi&rsquo;i yang solutif, dengan
+            tetap terbuka terhadap pendapat mazhab lain selama termasuk pendapat yang
+            mu&rsquo;tabar — diakui validitasnya dalam tradisi keilmuan Islam.
+          </p>
+        </div>
 
-          {/* Kolom kanan — urutan rujukan 4 tingkat */}
-          <div className="flex flex-col gap-6">
-            {METHOD_REFERENCES.map((ref) => (
-              <div
-                key={ref.number}
-                className="relative flex items-start gap-4 rounded-2xl border border-border bg-muted/20 p-5 overflow-hidden"
+        {/* Grid 4 card urutan rujukan — sejajar horizontal di bawah teks */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-10">
+          {METHOD_REFERENCES.map((ref) => (
+            <div
+              key={ref.number}
+              className="relative flex flex-col items-start gap-3 rounded-2xl border border-border bg-muted/20 p-5 overflow-hidden min-h-[180px]"
+            >
+              <span
+                className="absolute -right-2 -bottom-4 font-serif text-6xl font-bold leading-none select-none"
+                style={{ color: 'hsl(var(--primary) / 0.08)' }}
               >
-                <span
-                  className="absolute -right-2 -bottom-4 font-serif text-6xl font-bold leading-none select-none"
-                  style={{ color: 'hsl(var(--primary) / 0.08)' }}
-                >
-                  {ref.number}
-                </span>
-                <span
-                  className="relative z-10 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
-                  style={{ backgroundColor: 'hsl(var(--primary))' }}
-                >
-                  {ref.number.replace(/^0/, '')}
-                </span>
-                <p className="relative z-10 text-sm text-foreground leading-relaxed pt-1">
-                  {ref.text}
-                </p>
-              </div>
-            ))}
-          </div>
+                {ref.number}
+              </span>
+              <span
+                className="relative z-10 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
+                style={{ backgroundColor: 'hsl(var(--primary))' }}
+              >
+                {ref.number.replace(/^0/, '')}
+              </span>
+              <p className="relative z-10 text-sm text-foreground leading-relaxed">
+                {ref.text}
+              </p>
+            </div>
+          ))}
         </div>
       </div>
     </section>
