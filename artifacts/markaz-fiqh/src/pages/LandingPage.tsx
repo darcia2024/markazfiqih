@@ -125,7 +125,7 @@ function HeroSection({
 
       <div className="relative z-10 container mx-auto px-5 sm:px-8 lg:px-16 max-w-[1200px]">
         {/* Satu kolom, semua center */}
-        <div className="flex flex-col items-center text-center py-20 sm:py-24 lg:py-28">
+        <div className="flex flex-col items-center text-center pt-14 pb-24 sm:pt-16 sm:pb-28 lg:pt-20 lg:pb-32">
 
           {/* 1. Logo Markaz Fiqih — menggantikan badge lokasi */}
           <img
