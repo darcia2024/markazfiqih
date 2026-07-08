@@ -120,7 +120,7 @@ function HeroSection({
     <section className="relative overflow-hidden bg-gradient-to-br from-primary to-[hsl(var(--brand-red-hover))]">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 opacity-20"
+        className="pointer-events-none absolute inset-0 opacity-[0.87]"
         style={{
           backgroundImage: "url('/hero-pattern.png')",
           backgroundSize: '480px',
