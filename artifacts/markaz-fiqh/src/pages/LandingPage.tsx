@@ -117,10 +117,7 @@ function HeroSection({
   const badgeText = badgeParts.join(' · ');
 
   return (
-    <section
-      className="relative overflow-hidden bg-primary bg-cover bg-center"
-      style={{ backgroundImage: "url('/hero-bg.png')" }}
-    >
+    <section className="relative overflow-hidden bg-gradient-to-br from-primary to-[hsl(var(--brand-red-hover))]">
 
       <div className="relative z-10 container mx-auto px-5 sm:px-8 lg:px-16 max-w-[1200px]">
         {/* Satu kolom, semua center */}
