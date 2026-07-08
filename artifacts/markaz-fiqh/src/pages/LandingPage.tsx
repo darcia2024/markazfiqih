@@ -100,7 +100,7 @@ type TestimonialItem = {
 };
 
 // ────────────────────────────────────────────────────────────────────────────
-// SECTION 1: Hero — copywriting diperketat, tambah credibility badge
+// SECTION 1: Hero — satu kolom, semua elemen center secara horizontal
 // ────────────────────────────────────────────────────────────────────────────
 function HeroSection({
   socialLinks,
@@ -111,7 +111,6 @@ function HeroSection({
   totalClasses: number;
   studentCountLabel: string | null | undefined;
 }) {
-  // Buat teks badge dari data nyata
   const badgeParts: string[] = [];
   if (totalClasses > 0) badgeParts.push(`${totalClasses} kelas tersedia`);
   if (studentCountLabel) badgeParts.push(`${studentCountLabel} santri bergabung`);
@@ -130,114 +129,104 @@ function HeroSection({
       />
 
       <div className="relative z-10 container mx-auto px-5 sm:px-8 lg:px-16 max-w-[1200px]">
-        <div className="grid lg:grid-cols-2 gap-0 min-h-[480px] sm:min-h-[580px] items-center py-16 sm:py-20">
+        {/* Satu kolom, semua center */}
+        <div className="flex flex-col items-center text-center py-20 sm:py-24 lg:py-28">
 
-          {/* Kolom kiri */}
-          <div className="flex flex-col items-start text-left">
-            {/* Badge lokasi — lebih spesifik */}
-            <div className="inline-flex items-center gap-2 border border-white/20 bg-white/10 rounded-full px-3.5 py-1.5 mb-7">
-              <MapPin className="h-3 w-3 text-[hsl(var(--accent))]" />
-              <span className="text-xs font-medium text-white/80 tracking-wide">
-                Komunitas Masisir Al-Azhar
-              </span>
-            </div>
-
-            <h1 className="font-serif font-bold text-white leading-[1.05] tracking-tight">
-              <span className="block text-5xl sm:text-6xl lg:text-7xl">
-                Fiqih yang
-              </span>
-              <span
-                className="block text-5xl sm:text-6xl lg:text-7xl"
-                style={{ color: 'hsl(var(--accent))' }}
-              >
-                Bersanad.
-              </span>
-              <span className="block text-2xl sm:text-3xl lg:text-4xl text-white/80 font-normal mt-3 font-sans">
-                Kurikulum dari Kairo.
-              </span>
-            </h1>
-
-            {/* Body — lebih personal, sebut komunitas masisir */}
-            <p className="text-white/70 text-base mt-6 leading-relaxed max-w-lg">
-              Markaz Fiqih lahir dari komunitas masisir Indonesia di Kairo — bukan
-              startup kursus online. Kami belajar fiqih madzhab Syafi'i langsung di
-              Al-Azhar, dan kami ingin mengajarkannya dengan cara yang sama: tersusun,
-              bersanad, dari thaharah hingga kajian kitab klasik.
-            </p>
-
-            {/* Dua CTA berdampingan */}
-            <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Button
-                asChild
-                size="lg"
-                className="h-[48px] px-8 text-sm font-semibold rounded-[10px] bg-[hsl(var(--accent))] text-white hover:bg-[hsl(var(--brand-gold-hover))] shadow-lg"
-              >
-                <Link href="/katalog">Mulai Belajar</Link>
-              </Button>
-              <Button
-                asChild
-                variant="ghost"
-                size="lg"
-                className="h-[48px] px-6 text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 rounded-[10px] border border-white/20"
-              >
-                <Link href="/katalog">
-                  Lihat Kelas Tersedia
-                  <ArrowRight className="ml-1.5 h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
-
-            {/* Credibility badge — data nyata dari db */}
-            {badgeText && (
-              <div className="mt-5 flex items-center gap-2">
-                <div className="flex gap-0.5">
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <StarIcon key={i} className="h-3.5 w-3.5 text-[hsl(var(--accent))]" />
-                  ))}
-                </div>
-                <span className="text-sm text-white/60">{badgeText}</span>
-              </div>
-            )}
-
-            {/* Social links */}
-            <div className="mt-7 flex items-center gap-3">
-              <span className="text-[11px] font-medium text-white/40 tracking-wide uppercase">
-                Ikuti
-              </span>
-              {socialLinks.map(({ label, icon: Icon, href }) => (
-                <a
-                  key={label}
-                  href={href || '#'}
-                  aria-label={label}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-7 h-7 rounded-full bg-white/15 flex items-center justify-center text-white hover:bg-[hsl(var(--accent))] hover:scale-110 transition-all duration-200"
-                >
-                  <Icon className="h-3 w-3" />
-                </a>
-              ))}
-            </div>
+          {/* 1. Badge pill */}
+          <div className="inline-flex items-center gap-2 border border-white/20 bg-white/10 rounded-full px-3.5 py-1.5 mb-8">
+            <MapPin className="h-3 w-3 text-[hsl(var(--accent))]" />
+            <span className="text-xs font-medium text-white/80 tracking-wide">
+              Komunitas Masisir Al-Azhar
+            </span>
           </div>
 
-          {/* Kolom kanan — kutipan misi */}
-          <div className="hidden lg:flex flex-col items-end justify-center pl-16">
-            <blockquote className="text-right">
-              <p className="font-serif text-4xl xl:text-5xl font-bold italic text-white/20 leading-tight select-none">
-                &ldquo;
-              </p>
-              <p className="font-serif text-xl xl:text-2xl font-bold italic text-white leading-relaxed max-w-xs">
-                Membumikan Fiqih di Setiap Lini Kehidupan
-              </p>
-              <p className="mt-3 text-sm text-white/50 font-medium tracking-widest uppercase">
-                — Markaz Fiqih
-              </p>
-            </blockquote>
-            <div className="mt-8 flex justify-end">
-              <div className="h-px w-32 bg-gradient-to-l from-[hsl(var(--accent))] to-transparent" />
+          {/* 2. Judul besar — teks dan aksen gold tetap */}
+          <h1 className="font-serif font-bold text-white leading-[1.05] tracking-tight">
+            <span className="block text-5xl sm:text-6xl lg:text-7xl">
+              Fiqih yang
+            </span>
+            <span
+              className="block text-5xl sm:text-6xl lg:text-7xl"
+              style={{ color: 'hsl(var(--accent))' }}
+            >
+              Bersanad.
+            </span>
+            <span className="block text-2xl sm:text-3xl lg:text-4xl text-white/80 font-normal mt-3 font-sans">
+              Kurikulum dari Kairo.
+            </span>
+          </h1>
+
+          {/* 3. Paragraf deskripsi — max-w-2xl supaya enak dibaca saat di-center */}
+          <p className="text-white/70 text-base mt-7 leading-relaxed max-w-2xl">
+            Markaz Fiqih lahir dari komunitas masisir Indonesia di Kairo — bukan
+            startup kursus online. Kami belajar fiqih madzhab Syafi'i langsung di
+            Al-Azhar, dan kami ingin mengajarkannya dengan cara yang sama: tersusun,
+            bersanad, dari thaharah hingga kajian kitab klasik.
+          </p>
+
+          {/* 4. Quote misi — dipindah ke alur utama, di bawah deskripsi */}
+          <div className="mt-7 flex flex-col items-center gap-2 max-w-sm">
+            <div className="h-px w-16 bg-gradient-to-r from-transparent via-[hsl(var(--accent))]/60 to-transparent" />
+            <p className="font-serif text-sm italic text-white/55 leading-relaxed text-center">
+              &ldquo;Membumikan Fiqih di Setiap Lini Kehidupan&rdquo;
+            </p>
+            <p className="text-[10px] font-medium text-white/35 tracking-widest uppercase">
+              — Markaz Fiqih
+            </p>
+            <div className="h-px w-16 bg-gradient-to-r from-transparent via-[hsl(var(--accent))]/60 to-transparent" />
+          </div>
+
+          {/* 5. Dua tombol CTA — center, berdampingan */}
+          <div className="mt-8 flex flex-wrap justify-center items-center gap-3">
+            <Button
+              asChild
+              size="lg"
+              className="h-[48px] px-8 text-sm font-semibold rounded-[10px] bg-[hsl(var(--accent))] text-white hover:bg-[hsl(var(--brand-gold-hover))] shadow-lg"
+            >
+              <Link href="/katalog">Mulai Belajar</Link>
+            </Button>
+            <Button
+              asChild
+              variant="ghost"
+              size="lg"
+              className="h-[48px] px-6 text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 rounded-[10px] border border-white/20"
+            >
+              <Link href="/katalog">
+                Lihat Kelas Tersedia
+                <ArrowRight className="ml-1.5 h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+
+          {/* 6. Rating + jumlah kelas/santri — center */}
+          {badgeText && (
+            <div className="mt-5 flex items-center justify-center gap-2">
+              <div className="flex gap-0.5">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <StarIcon key={i} className="h-3.5 w-3.5 text-[hsl(var(--accent))]" />
+                ))}
+              </div>
+              <span className="text-sm text-white/60">{badgeText}</span>
             </div>
-            <div className="mt-2 flex justify-end">
-              <div className="h-px w-20 bg-gradient-to-l from-[hsl(var(--accent))]/40 to-transparent" />
-            </div>
+          )}
+
+          {/* 7. Sosial media — center, paling bawah */}
+          <div className="mt-7 flex items-center justify-center gap-3">
+            <span className="text-[11px] font-medium text-white/40 tracking-wide uppercase">
+              Ikuti
+            </span>
+            {socialLinks.map(({ label, icon: Icon, href }) => (
+              <a
+                key={label}
+                href={href || '#'}
+                aria-label={label}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-7 h-7 rounded-full bg-white/15 flex items-center justify-center text-white hover:bg-[hsl(var(--accent))] hover:scale-110 transition-all duration-200"
+              >
+                <Icon className="h-3 w-3" />
+              </a>
+            ))}
           </div>
 
         </div>

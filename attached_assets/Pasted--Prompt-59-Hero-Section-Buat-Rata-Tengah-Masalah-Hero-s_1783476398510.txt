@@ -1,0 +1,51 @@
+# Prompt 59: Hero Section — Buat Rata Tengah
+
+## Masalah
+Hero section sekarang menggunakan layout 2 kolom: konten utama (badge,
+judul, deskripsi, CTA, rating, sosial media) rata kiri di sisi kiri, dan
+quote testimoni ("Membumikan Fiqih di Setiap Lini Kehidupan") rata kanan
+di sisi kanan. Komposisi ini terasa berat sebelah dan tidak seimbang
+secara visual.
+
+## Fix
+Edit `artifacts/markaz-fiqh/src/pages/LandingPage.tsx`, fungsi
+`HeroSection`.
+
+Ubah struktur jadi SATU kolom, semua konten di-center secara horizontal
+(rata tengah), bukan 2 kolom kiri-kanan seperti sekarang. Urutan elemen
+dari atas ke bawah, semua center:
+
+1. Badge pill ("Komunitas Masisir Al-Azhar")
+2. Judul besar ("Fiqih yang Bersanad. Kurikulum dari Kairo.") — tetap
+   pertahankan teks dan aksen warna gold pada kata "Bersanad" seperti
+   sekarang
+3. Paragraf deskripsi — batasi lebar (`max-w-2xl` atau serupa) supaya
+   tetap enak dibaca meski di-center, jangan biarkan melebar penuh
+4. Quote testimoni ("Membumikan Fiqih di Setiap Lini Kehidupan — Markaz
+   Fiqih") — PINDAHKAN dari sisi kanan terpisah, jadi elemen kecil yang
+   diletakkan di bawah deskripsi (sebelum CTA) ATAU di bawah CTA sebagai
+   elemen penutup, dengan style lebih ringkas (font lebih kecil dari
+   sekarang, italic, dengan garis pemisah tipis horizontal pendek di
+   atas/bawahnya sebagai aksen alih-alih diletakkan sebagai blok terpisah
+   di pojok kanan)
+5. Dua tombol CTA ("Mulai Belajar" solid gold, "Lihat Kelas Tersedia"
+   outline) — tetap berdampingan, di-center
+6. Baris rating + jumlah kelas/santri ("★★★★★ 25 kelas tersedia · 100+
+   santri bergabung") — center
+7. Blok sosial media ("Ikuti Kami" + ikon) — center, di bagian paling
+   bawah
+
+Pastikan tidak ada lagi grid 2 kolom (`grid-cols-2` atau flex
+`justify-between` semacamnya) yang memisahkan konten kiri dan quote
+kanan — semuanya jadi satu alur vertikal center.
+
+## Yang Tidak Boleh Berubah
+- Semua teks (copy) tidak diubah kata-katanya, termasuk quote testimoni
+- Warna, style tombol, badge, dan rating tidak diubah — hanya posisi dan
+  susunannya yang di-center-kan
+- Background gradient dan pattern grid dekoratif tetap sama
+
+## Setelah Selesai
+Konfirmasi hero sekarang satu kolom penuh, semua elemen center secara
+horizontal, dan quote testimoni sudah terintegrasi ke alur utama (bukan
+lagi blok terpisah di pojok kanan).
