@@ -699,8 +699,27 @@ function ContactSection({
   contactPhone: string | null;
 }) {
   return (
-    <section className="bg-gradient-to-br from-primary to-[hsl(var(--brand-red-hover))]">
-      <div className="container mx-auto px-5 sm:px-8 lg:px-16 max-w-[1200px]">
+    <section className="relative overflow-hidden bg-gradient-to-br from-primary to-[hsl(var(--brand-red-hover))]">
+      {/* Pattern grid — identik dengan Hero section */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0"
+        style={{
+          backgroundImage:
+            'linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px)',
+          backgroundSize: '48px 48px',
+        }}
+      />
+
+      {/* Logo watermark — pojok kanan-bawah */}
+      <img
+        src="/logo.png"
+        alt=""
+        aria-hidden="true"
+        className="pointer-events-none absolute -bottom-8 -right-8 w-64 h-64 sm:w-80 sm:h-80 object-contain opacity-[0.07] select-none"
+      />
+
+      <div className="relative z-10 container mx-auto px-5 sm:px-8 lg:px-16 max-w-[1200px]">
         {/* Bagian atas — CTA ringkas + tombol WA + ikon sosmed */}
         <div className="py-12 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
           <div className="max-w-md">
