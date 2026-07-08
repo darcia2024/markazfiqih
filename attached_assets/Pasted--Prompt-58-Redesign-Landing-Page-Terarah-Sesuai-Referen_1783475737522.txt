@@ -1,0 +1,198 @@
+# Prompt 58: Redesign Landing Page — Terarah Sesuai Referensi (Bukan Eksplorasi Bebas)
+
+## Konteks Penting
+Prompt eksplorasi bebas sebelumnya (redesign landing page) hasilnya
+DITOLAK — terasa makin generik/"AI slop", bukan makin baik. Prompt ini
+GANTI PENDEKATAN TOTAL: instruksi di bawah SANGAT SPESIFIK dan harus
+diikuti persis, BUKAN ajakan eksplorasi bebas lagi. Referensi visual
+(diberikan terpisah sebagai gambar) adalah landing page bergaya "modern
+tech/consulting" — ambil pola STRUKTURAL-nya (bukan tema warna/temanya,
+karena itu jelas beda konteks dari platform edukasi fiqih), lalu
+terjemahkan ke elemen Markaz Fiqih yang sudah ada.
+
+Kerjakan section per section sesuai urutan di bawah. Setiap section
+punya instruksi konkret — ikuti struktur yang diminta, JANGAN
+menginterpretasikan ulang secara bebas.
+
+File yang diedit: `artifacts/markaz-fiqh/src/pages/LandingPage.tsx`.
+
+---
+
+## Section 1 — Copywriting: Rewrite Semua Teks
+
+Sebelum mengubah layout apapun, tulis ulang SEMUA teks statis di landing
+page (judul, subjudul, deskripsi section, label badge) supaya terasa
+lebih personal dan spesifik untuk Markaz Fiqih, bukan copy generik. Ganti
+gaya bahasa yang kaku/formal berlebihan jadi lebih hangat tapi tetap
+kredibel (target audiens: masisir/pelajar Indonesia di Kairo dan
+masyarakat umum yang ingin belajar fiqih terstruktur).
+
+Prinsip menulis:
+- Hindari kalimat generik yang bisa dipakai bisnis apapun (misal "solusi
+  terbaik untuk kebutuhan Anda")
+- Sebut hal konkret: madzhab Syafi'i, kajian turats, pengajar dari
+  Al-Azhar, komunitas masisir
+- Judul boleh pendek dan berani, tidak harus kalimat lengkap yang formal
+
+Terapkan hasil rewrite ini pada teks section yang ada SEKARANG (sebelum
+restrukturisasi di section berikutnya), supaya jelas mana yang murni
+perubahan teks vs perubahan struktur.
+
+---
+
+## Section 2 — Hero: Pola Asimetris dari Referensi (Tanpa Floating 3D Card)
+
+JANGAN membuat floating card 3D/miring seperti di referensi — itu tidak
+cocok untuk konteks ini. Yang diadopsi dari referensi hanya:
+- Badge kecil rating/kredibilitas di bawah CTA (contoh dari referensi:
+  "Rated 4.9/5 by 4.900+ clients" dengan bintang) — buat versi Markaz
+  Fiqih, misal jumlah kelas atau jumlah santri terdaftar (ambil dari data
+  asli lewat `listClasses()`/query count, JANGAN mengarang angka).
+- Dua tombol CTA berdampingan: satu solid (gold, seperti sekarang), satu
+  outline/ghost (misal "Lihat Kelas Gratis" atau sejenis, mengarah ke
+  kelas yang harganya 0 kalau ada, atau ke `/katalog`).
+
+Struktur hero TETAP seperti sekarang (center, gradient merah, tanpa
+foto) — HANYA tambahkan badge kredibilitas dan CTA kedua ini di bawah
+CTA utama yang sudah ada.
+
+---
+
+## Section 3 — HAPUS Section "Cara Belajar" yang Sekarang
+
+Section `HowItWorksSection` (5 kartu bernomor "Jelajahi Katalog → Tambah
+ke Keranjang → Bayar → Kelas Terbuka → Belajar") dihapus sepenuhnya —
+ini murni menjelaskan mekanisme checkout yang generik dan tidak
+menambah nilai naratif. Ganti perannya dengan Section 4 di bawah.
+
+---
+
+## Section 4 — Section Baru: Statement Kurikulum (Menggantikan "Cara Belajar")
+
+Buat section baru yang menyampaikan struktur kurikulum sebagai
+diferensiator (bukan cara pakai website). Konsep: statement besar diikuti
+breakdown singkat.
+
+Contoh struktur (sesuaikan copy final dengan hasil Section 1):
+```tsx
+<section className="bg-background py-16 sm:py-24">
+  <div className="container mx-auto px-5 sm:px-8 lg:px-16 max-w-[1200px]">
+    <p className="text-xs font-semibold tracking-wider text-[hsl(var(--accent))] uppercase mb-4">
+      Kurikulum
+    </p>
+    <h2 className="font-serif text-4xl sm:text-5xl font-bold text-foreground max-w-2xl leading-tight">
+      Dari thaharah sampai kajian kitab klasik — tersusun, bukan acak.
+    </h2>
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mt-12">
+      {/* 3 poin singkat: Fiqih Tematik, Fiqih Kitab, Metodologi turats.
+          Ambil dari CATEGORY_META yang sudah ada di file ini kalau cocok,
+          atau buat 3 poin baru yang menjelaskan pendekatan kurikulum */}
+    </div>
+  </div>
+</section>
+```
+Sesuaikan detail 3 poin di grid berdasarkan kategori kelas yang benar-benar
+ada (`Fiqih Tematik`, `Fiqih Kitab` — cek `CATEGORY_META` yang sudah ada
+di file ini), jangan mengarang kategori yang tidak ada.
+
+---
+
+## Section 5 — Grid Stat Asimetris (Pola dari Referensi)
+
+Ini bagian yang PALING PENTING diadopsi dari referensi: grid dengan
+ukuran kartu TIDAK SERAGAM (bukan grid 3-4 kolom simetris seperti pola
+lama di file ini).
+
+Buat section baru dengan grid asimetris berisi campuran:
+1. **Card besar dengan foto pengajar utama** (lihat Section 6 di bawah
+   untuk detail) — mengambil 2 kolom lebar
+2. **Card angka besar** — jumlah kelas tersedia (dari data asli), dengan
+   angka besar (`text-5xl` atau lebih) sebagai focal point visual,
+   background solid gold/crimson kontras
+3. **Card testimoni singkat** — 1 dari 3 testimoni (lihat Section 7),
+   ditampilkan sebagai card kecil quote pendek dengan foto kecil
+4. **Card angka kedua** — misal jumlah pengajar, atau jumlah kategori
+   kelas
+
+Layout grid: gunakan kombinasi `col-span`/`row-span` di grid CSS supaya
+ukuran card bervariasi (tidak semua kotak sama besar), mengikuti kesan
+asimetris dari referensi. Contoh kerangka (sesuaikan proporsi sampai
+terlihat seimbang secara visual):
+```tsx
+<div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+  <div className="sm:col-span-2 sm:row-span-2">{/* card pengajar utama */}</div>
+  <div className="sm:col-span-2">{/* card angka jumlah kelas, background gold solid */}</div>
+  <div className="sm:col-span-1">{/* card testimoni singkat */}</div>
+  <div className="sm:col-span-1">{/* card angka kedua, background dark/crimson solid */}</div>
+</div>
+```
+
+Section ini MENGGANTIKAN `AboutSection` yang sekarang (bukan ditambahkan
+di samping) — bagian teks "Tentang Kami" dan quote misi dari
+`AboutSection` lama dipindahkan jadi headline pembuka section baru ini
+(bukan dihapus, hanya dipindah posisinya).
+
+---
+
+## Section 6 — Profil Pengajar Lebih Eksklusif (1 Pengajar Utama + Sisanya Kecil)
+
+Ganti `TeachersSection` (grid 4 kolom seragam yang sekarang) dengan pola
+1 pengajar utama ditonjolkan besar:
+
+- Ambil pengajar dengan `classCount` terbanyak (atau kalau datanya
+  memungkinkan diurutkan berdasarkan field lain yang menandakan
+  "senior"/utama, gunakan itu) sebagai pengajar utama.
+- Card pengajar utama: foto besar dominan (`aspect-[4/5]` atau serupa),
+  nama besar, bio lengkap, dan badge/label kredensial (misal "Kandidat
+  Master Ushul Fiqih, Al-Azhar" — ambil dari field `bio` yang sudah ada
+  di data instruktur, JANGAN mengarang kredensial yang tidak ada di data).
+  Ini card yang dipakai di Section 5 (grid asimetris) sebagai "card besar
+  dengan foto pengajar utama".
+- Pengajar lainnya: tampilkan dalam list horizontal kecil di bawah/samping
+  card utama (foto kecil bulat + nama, tanpa card besar terpisah per
+  orang) — bukan grid seragam seperti sebelumnya.
+
+---
+
+## Section 7 — Testimoni 3 Card
+
+Edit bagian pemanggilan `listTestimonials()` di komponen utama
+`LandingPage` — ubah dari `testimonials.slice(0, 1)` menjadi
+`testimonials.slice(0, 3)`.
+
+Salah satu dari 3 testimoni ini dipakai sebagai "card testimoni singkat"
+di grid asimetris Section 5. Untuk 2 testimoni sisanya, buat section
+testimoni terpisah (bisa diletakkan setelah Section 5) dengan 3 card
+sejajar (grid 3 kolom di desktop, stack di mobile) — style card
+testimoni mengikuti pola yang sudah ada sekarang (quote icon, border gold
+aksen, avatar+nama+role di footer card), TAPI dengan penyesuaian supaya
+konsisten dengan tone visual baru dari Section 5.
+
+Kalau data testimoni yang tersedia kurang dari 3, tampilkan sejumlah yang
+ada saja (jangan mengarang testimoni palsu).
+
+---
+
+## Yang Tidak Boleh Berubah
+- Section lain yang tidak disebutkan di atas (`FeaturedClassesSection`,
+  `CategorySection`, `GallerySection`, `SocialSection`, `LandingFooter`)
+  TIDAK diubah strukturnya di prompt ini — fokus hanya pada section yang
+  disebutkan.
+- Semua data tetap dari fungsi `db.ts` yang sudah ada, tidak hardcode
+  data baru
+- Warna brand (crimson `--primary`, gold `--accent`) tetap dipakai
+  sebagai warna dasar
+- Font serif untuk heading tetap dipertahankan
+
+## Setelah Selesai
+Checklist sebelum melapor selesai:
+- [ ] Section "Cara Belajar" lama sudah dihapus
+- [ ] Ada section kurikulum baru menggantikannya
+- [ ] Ada grid asimetris (card ukuran tidak seragam) menggantikan
+      AboutSection lama
+- [ ] 1 pengajar tampil besar/dominan, sisanya kecil
+- [ ] Testimoni tampil 3 card
+- [ ] Semua teks sudah di-rewrite, tidak ada copy generik yang tersisa
+      dari versi sebelumnya
+
+Laporkan hasil akhir sesuai checklist ini.
