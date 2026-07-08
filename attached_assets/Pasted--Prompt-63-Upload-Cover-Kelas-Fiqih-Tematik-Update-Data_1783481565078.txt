@@ -1,0 +1,98 @@
+# Prompt 63: Upload Cover Kelas Fiqih Tematik + Update Database
+
+## Konteks
+20 file cover kelas resmi (desain final dari brand Markaz Fiqih, background
+crimson dengan ornamen ribbon gold) sudah disediakan terpisah di folder
+upload, masing-masing sudah diberi nama file deskriptif sesuai kelasnya:
+
+```
+fiqih-alkohol.png
+fiqih-badal-haji-umrah.png
+fiqih-darah-wanita.png
+fiqih-haji-umrah.png
+fiqih-islam-itu-mudah.png
+fiqih-kurban.png
+fiqih-maulud.png
+fiqih-muamalah-kontemporer.png
+fiqih-najis.png
+fiqih-nikah.png
+fiqih-puasa-syawwal.png
+fiqih-puasa.png
+fiqih-shalat-ied.png
+fiqih-shalat-jamaah.png
+fiqih-shalat-khutbah-jumat.png
+fiqih-talak.png
+fiqih-tarawih.png
+fiqih-umrah.png
+fiqih-wudhu-mandi-tayamum.png
+fiqih-zakat-fitri.png
+```
+
+**Catatan**: "Fiqih Safar" TIDAK termasuk dalam batch cover ini — kelas itu
+tetap tanpa cover asli untuk saat ini, akan menyusul terpisah.
+
+## Langkah 1 — Pindahkan File ke `public/covers/`
+
+Buat folder baru `artifacts/markaz-fiqh/public/covers/` (kalau belum ada),
+dan pindahkan/copy ke-20 file di atas ke folder tersebut, sehingga bisa
+diakses dari path `/covers/nama-file.png` saat aplikasi berjalan.
+
+## Langkah 2 — Update `cover_image` di Database
+
+Jalankan SQL berikut secara manual (via Supabase SQL Editor, BUKAN lewat
+migrasi Drizzle) untuk mengisi kolom `cover_image` pada 20 kelas yang
+sesuai:
+
+```sql
+UPDATE classes SET cover_image = '/covers/fiqih-alkohol.png' WHERE id = '27303594-7c14-4c54-baec-fb00696fa05f';
+UPDATE classes SET cover_image = '/covers/fiqih-badal-haji-umrah.png' WHERE id = 'f1ff805d-868a-4ea6-b6e9-982438445a0e';
+UPDATE classes SET cover_image = '/covers/fiqih-darah-wanita.png' WHERE id = 'd9c0e99a-0eb9-4799-a907-454dae9b514e';
+UPDATE classes SET cover_image = '/covers/fiqih-haji-umrah.png' WHERE id = '13c578ae-4df4-4ec6-b2e1-34f585679310';
+UPDATE classes SET cover_image = '/covers/fiqih-islam-itu-mudah.png' WHERE id = 'b3706dcd-86b5-4203-936d-8a1cfe6c56e7';
+UPDATE classes SET cover_image = '/covers/fiqih-kurban.png' WHERE id = 'a4f78006-dd8d-4760-b1dd-ed9638f95d8d';
+UPDATE classes SET cover_image = '/covers/fiqih-maulud.png' WHERE id = '6e291e8d-9b7f-4097-9320-1c7b03eb99d3';
+UPDATE classes SET cover_image = '/covers/fiqih-muamalah-kontemporer.png' WHERE id = '08e8e0c4-2e5e-4ee2-a240-b8db0fb6af79';
+UPDATE classes SET cover_image = '/covers/fiqih-najis.png' WHERE id = '5076b6e9-e22f-4836-991f-7e592b67e77e';
+UPDATE classes SET cover_image = '/covers/fiqih-nikah.png' WHERE id = '18a5608a-f121-445c-aa5b-ebe6fce1e804';
+UPDATE classes SET cover_image = '/covers/fiqih-puasa.png' WHERE id = 'd5b6a59c-aa94-4015-85e2-42647dc02991';
+UPDATE classes SET cover_image = '/covers/fiqih-puasa-syawwal.png' WHERE id = 'c7a3c12e-3f14-4758-8686-41cab4b189f9';
+UPDATE classes SET cover_image = '/covers/fiqih-shalat-khutbah-jumat.png' WHERE id = '354eb362-2555-464b-b765-190cfb44b02f';
+UPDATE classes SET cover_image = '/covers/fiqih-shalat-ied.png' WHERE id = '39357d9a-04b0-43c0-a4d4-5ccac625778a';
+UPDATE classes SET cover_image = '/covers/fiqih-shalat-jamaah.png' WHERE id = '98c5d360-9425-4364-b8e8-7c71da46be1a';
+UPDATE classes SET cover_image = '/covers/fiqih-talak.png' WHERE id = '407c09cc-c3e5-4a6e-87d5-297ee7db635b';
+UPDATE classes SET cover_image = '/covers/fiqih-tarawih.png' WHERE id = '577ff2aa-3882-4403-87b1-3c4b1514a15e';
+UPDATE classes SET cover_image = '/covers/fiqih-umrah.png' WHERE id = '9c59cd32-2c19-4541-85b1-b2251ee2e6a2';
+UPDATE classes SET cover_image = '/covers/fiqih-wudhu-mandi-tayamum.png' WHERE id = '239ee98a-3a5d-44c1-826f-65b9dfdc9a80';
+UPDATE classes SET cover_image = '/covers/fiqih-zakat-fitri.png' WHERE id = '962afa4e-bf13-43cd-9625-6bd327c87e6f';
+```
+
+Ini SQL yang perlu SAYA (Darcia) jalankan manual di Supabase SQL Editor —
+tolong tampilkan lagi SQL final di ringkasan akhir supaya saya bisa
+langsung copy-paste, jangan hanya menyimpannya sebagai file tanpa
+menampilkan isinya.
+
+## Langkah 3 — Verifikasi
+
+Setelah SQL di atas saya jalankan, jalankan query berikut untuk
+memastikan semua ter-update dengan benar:
+```sql
+SELECT title, cover_image FROM classes WHERE category = 'Fiqih Tematik' ORDER BY title;
+```
+Pastikan hanya "Fiqih Safar" yang `cover_image`-nya masih kosong/lama
+(itu memang belum ada covernya) — 20 kelas lain harus sudah menunjuk ke
+path `/covers/...` yang sesuai.
+
+## Yang Tidak Boleh Berubah
+- Tidak ada perubahan kode di halaman manapun — `cover_image` sudah
+  dibaca dari database di semua tempat yang menampilkan kelas (Katalog,
+  landing page, detail kelas), jadi begitu data ini terisi, tampilan akan
+  otomatis update tanpa perlu ubah kode.
+- File cover tidak dikompres/diubah — gunakan file asli yang sudah
+  disediakan.
+
+## Setelah Selesai
+1. Konfirmasi ke-20 file sudah berada di `public/covers/`
+2. Tampilkan ulang SQL lengkap di atas untuk saya jalankan manual
+3. Setelah saya konfirmasi sudah menjalankan SQL, tidak perlu tindakan
+   lanjutan — cukup ingatkan saya untuk cek tampilan Katalog/landing page
+   guna memastikan cover sudah tampil dengan benar.
