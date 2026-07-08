@@ -118,20 +118,24 @@ function HeroSection({
         {/* Satu kolom, semua center */}
         <div className="flex flex-col items-center text-center py-20 sm:py-24 lg:py-28">
 
-          {/* 1. Badge pill */}
-          <div className="inline-flex items-center gap-2 border border-white/20 bg-white/10 rounded-full px-3.5 py-1.5 mb-8">
-            <MapPin className="h-3 w-3 text-[hsl(var(--accent))]" />
-            <span className="text-xs font-medium text-white/80 tracking-wide">
-              Komunitas Masisir Al-Azhar
-            </span>
-          </div>
+          {/* 1. Logo Markaz Fiqih — menggantikan badge lokasi */}
+          <img
+            src="/logo.png"
+            alt="Markaz Fiqih"
+            className="h-14 sm:h-16 w-auto mb-8 brightness-0 invert"
+          />
 
-          {/* 2. Judul — dua baris, baris pertama gold, baris kedua putih */}
-          <h1 className="font-serif font-bold leading-[1.1] tracking-tight text-5xl sm:text-6xl lg:text-7xl max-w-4xl">
-            <span className="block" style={{ color: '#FFCC00' }}>
+          {/* 2. Judul — dua baris, baris pertama gold (lebih kecil), baris kedua putih */}
+          <h1 className="font-serif font-bold leading-[1.15] tracking-tight max-w-4xl">
+            <span
+              className="block text-2xl sm:text-3xl lg:text-4xl font-semibold"
+              style={{ color: '#FFCC00' }}
+            >
               Selamat Datang di
             </span>
-            <span className="block text-white">Kelas Markaz Fiqih</span>
+            <span className="block text-5xl sm:text-6xl lg:text-7xl text-white mt-1">
+              Kelas Markaz Fiqih
+            </span>
           </h1>
 
           {/* 3. Paragraf deskripsi — max-w-2xl supaya enak dibaca saat di-center */}
