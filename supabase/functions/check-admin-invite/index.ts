@@ -37,10 +37,12 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     );
 
+    const normalizedEmail = user.email.toLowerCase().trim();
+
     const { data: invite } = await supabaseAdmin
       .from('admin_invites')
       .select('id')
-      .eq('email', user.email)
+      .eq('email', normalizedEmail)
       .is('redeemed_at', null)
       .maybeSingle();
 
@@ -50,12 +52,22 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { error: updateError } = await supabaseAdmin
+    // Hanya redeem invite kalau promote benar-benar berhasil mengubah baris
+    // profil user (mis. profil belum ter-provisioning saat ini dipanggil).
+    const { data: updated, error: updateError } = await supabaseAdmin
       .from('user_profiles')
       .update({ is_admin: true })
-      .eq('user_id', user.id);
+      .eq('user_id', user.id)
+      .select('user_id')
+      .maybeSingle();
 
     if (updateError) throw updateError;
+
+    if (!updated) {
+      return new Response(JSON.stringify({ promoted: false, reason: 'profile_not_found' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     await supabaseAdmin
       .from('admin_invites')
