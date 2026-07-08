@@ -71,7 +71,12 @@ export default function LoginPage() {
         >
           <div className="text-center lg:text-left space-y-2">
             <div className="lg:hidden flex items-center justify-center gap-2 mb-8">
-              <img src="/logo.png" alt="Markaz Fiqih" className="h-8 w-auto" />
+              <img
+                src="/logo.png"
+                alt="Markaz Fiqih"
+                className="h-8 w-auto"
+                style={{ filter: 'brightness(0) saturate(100%) invert(13%) sepia(89%) saturate(3207%) hue-rotate(340deg) brightness(90%) contrast(96%)' }}
+              />
             </div>
             
             <h2 className="font-serif text-3xl font-bold text-foreground">Selamat Datang</h2>

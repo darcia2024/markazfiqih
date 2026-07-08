@@ -1,0 +1,60 @@
+# Prompt 87: Fix Logo Putih Samar di Halaman Login Mobile
+
+## Konteks
+Logo Markaz Fiqih (`/logo.png`) file aslinya berwarna PUTIH (bukan
+merah), karena didesain untuk ditampilkan di atas background merah brand
+(seperti di Navbar, sidebar). Di `LoginPage.tsx`, logo versi mobile
+(muncul di atas judul "Selamat Datang", sekitar baris 74) ditampilkan
+TANPA filter warna apapun, sehingga di atas background PUTIH halaman
+login, logo tersebut menjadi putih-di-atas-putih dan nyaris tidak
+terlihat (sesuai laporan klien).
+
+## Fix
+
+Edit `artifacts/markaz-fiqh/src/pages/LoginPage.tsx`.
+
+Cari elemen (sekitar baris 74):
+```tsx
+<div className="lg:hidden flex items-center justify-center gap-2 mb-8">
+  <img src="/logo.png" alt="Markaz Fiqih" className="h-8 w-auto" />
+</div>
+```
+
+Karena logo aslinya putih dan berada di atas background putih di sini,
+tambahkan filter untuk membuatnya berwarna merah brand (sesuai permintaan
+klien: "bisa diubah menjadi warna merah"). Karena filter CSS `invert`
+saja mengubah putih menjadi hitam (bukan merah), gunakan kombinasi filter
+untuk mendapatkan warna merah brand, ATAU (lebih presisi dan
+direkomendasikan) gunakan pendekatan `background-color` dengan CSS mask,
+ATAU cara paling sederhana dan reliable: cek apakah ada versi logo lain
+di folder `public/` yang sudah berwarna merah/gelap (bukan putih) yang
+bisa dipakai langsung di sini — jika ada file seperti `logo-red.png` atau
+serupa, gunakan itu.
+
+Jika tidak ada versi logo berwarna merah yang tersedia, gunakan
+pendekatan CSS filter berikut sebagai solusi teknis (mengubah gambar
+putih menjadi warna custom via kombinasi invert + sepia + saturate +
+hue-rotate untuk mendekati warna crimson brand):
+```tsx
+<img
+  src="/logo.png"
+  alt="Markaz Fiqih"
+  className="h-8 w-auto"
+  style={{ filter: 'brightness(0) saturate(100%) invert(13%) sepia(89%) saturate(3207%) hue-rotate(340deg) brightness(90%) contrast(96%)' }}
+/>
+```
+(Nilai filter di atas adalah perkiraan untuk menghasilkan warna merah
+mendekati `--primary` brand — sesuaikan/uji nilai persisnya sampai
+warnanya benar-benar mendekati warna crimson brand yang dipakai di
+tempat lain pada website ini, bisa dicek dengan color picker terhadap
+elemen lain yang menggunakan `hsl(var(--primary))`.)
+
+## Yang Tidak Boleh Berubah
+- Logo di panel kiri (desktop, background merah, sudah pakai `invert`
+  untuk jadi putih) TIDAK diubah, sudah benar
+- Ukuran dan posisi logo tidak berubah, hanya warnanya
+- Logo di halaman/komponen lain (Navbar, sidebar, dll) tidak disentuh
+
+## Setelah Selesai
+Konfirmasi logo di halaman login versi mobile sekarang terlihat jelas
+(berwarna merah/gelap) di atas background putih, tidak lagi samar.
