@@ -279,14 +279,7 @@ function CurriculumSection() {
 // ────────────────────────────────────────────────────────────────────────────
 // SECTION 3: Tentang Markaz Fiqih — pengajar utama + galeri foto
 // ────────────────────────────────────────────────────────────────────────────
-function AsymmetricStatsSection({
-  featuredInstructor,
-}: {
-  featuredInstructor: InstructorItem | null;
-}) {
-  const instructorInitials = featuredInstructor
-    ? featuredInstructor.name.split(' ').map((n) => n[0]).join('').substring(0, 2)
-    : '';
+function AsymmetricStatsSection() {
 
   return (
     <section className="bg-muted/30 border-y border-border">
@@ -310,75 +303,41 @@ function AsymmetricStatsSection({
           </p>
         </div>
 
-        {/* Grid 2 kolom: pengajar utama (kiri) + galeri foto (kanan) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-start">
-
-          {/* Kolom kiri: card pengajar utama */}
-          <div className="relative rounded-2xl overflow-hidden bg-muted border border-border min-h-[380px]">
-            {featuredInstructor?.photoUrl ? (
-              <img
-                src={featuredInstructor.photoUrl}
-                alt={featuredInstructor.name}
-                className="absolute inset-0 w-full h-full object-cover object-top"
-                loading="lazy"
-              />
-            ) : (
-              <div
-                className="absolute inset-0"
-                style={{
-                  background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--brand-red-hover)))',
-                }}
-              />
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
-            <div className="absolute bottom-0 left-0 right-0 p-6">
-              <p className="text-[10px] font-bold uppercase tracking-[0.15em] mb-1"
-                style={{ color: 'hsl(var(--accent))' }}>
-                Pengajar Utama
-              </p>
-              <p className="font-serif text-xl font-bold text-white leading-snug">
-                {featuredInstructor?.name ?? '—'}
-              </p>
-              <p className="text-xs text-white/55 mt-0.5">Al-Azhar · Kairo, Mesir</p>
-              {featuredInstructor?.bio && (
-                <p className="text-xs text-white/65 mt-2 leading-relaxed line-clamp-2">
-                  {featuredInstructor.bio}
-                </p>
-              )}
-            </div>
-            {!featuredInstructor?.photoUrl && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="font-serif text-6xl font-bold text-white/20 select-none">
-                  {instructorInitials}
-                </span>
-              </div>
-            )}
+        {/* Galeri foto — grid asimetris full-width, 6 foto */}
+        <div className="grid grid-cols-3 grid-rows-2 gap-3" style={{ gridAutoRows: '200px' }}>
+          {/* Foto 1 — besar, 2 kolom × 2 baris */}
+          <div className="col-span-2 row-span-2 rounded-2xl overflow-hidden group">
+            <img
+              src={GALLERY_PHOTOS[0].src}
+              alt={GALLERY_PHOTOS[0].alt}
+              loading="lazy"
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
           </div>
-
-          {/* Kolom kanan: galeri foto 2×3, foto pertama lebih besar */}
-          <div className="grid grid-cols-2 gap-2">
-            {/* Foto besar — baris pertama penuh */}
-            <div className="col-span-2 rounded-xl overflow-hidden aspect-video group">
+          {/* Foto 2–4 — kolom kanan, 1 per baris */}
+          {GALLERY_PHOTOS.slice(1, 4).map((photo) => (
+            <div key={photo.src} className="rounded-2xl overflow-hidden group">
               <img
-                src={GALLERY_PHOTOS[0].src}
-                alt={GALLERY_PHOTOS[0].alt}
+                src={photo.src}
+                alt={photo.alt}
                 loading="lazy"
-                className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
               />
             </div>
-            {/* 4 foto kecil di bawahnya */}
-            {GALLERY_PHOTOS.slice(1, 5).map((photo) => (
-              <div key={photo.src} className="rounded-xl overflow-hidden aspect-square group">
-                <img
-                  src={photo.src}
-                  alt={photo.alt}
-                  loading="lazy"
-                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                />
-              </div>
-            ))}
-          </div>
-
+          ))}
+        </div>
+        {/* Baris bawah: 3 foto sejajar */}
+        <div className="grid grid-cols-3 gap-3 mt-3">
+          {GALLERY_PHOTOS.slice(3, 6).map((photo) => (
+            <div key={photo.src} className="rounded-2xl overflow-hidden group" style={{ height: '160px' }}>
+              <img
+                src={photo.src}
+                alt={photo.alt}
+                loading="lazy"
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              />
+            </div>
+          ))}
         </div>
       </div>
     </section>
@@ -848,10 +807,8 @@ export default function LandingPage() {
         {/* 2. Kurikulum — format baru: label + headline besar + 3-kolom grid */}
         <CurriculumSection />
 
-        {/* 3. Tentang Markaz Fiqih — pengajar utama + galeri */}
-        <AsymmetricStatsSection
-          featuredInstructor={featuredInstructor}
-        />
+        {/* 3. Tentang Markaz Fiqih — galeri foto */}
+        <AsymmetricStatsSection />
 
         {/* 4. Pengajar — 1 featured besar + sisanya list kecil */}
         {(instructorsQuery.isLoading || instructors.length > 0) && (
