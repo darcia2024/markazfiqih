@@ -32,6 +32,7 @@ FRONTEND_URL = "https://30e7361d-3ae5-44c3-929d-93a04cbd4d06-00-2hmvsl6wuhwyb.pi
 ADMIN_USER_IDS = "a"
 LOG_LEVEL = "info"
 SUPABASE_URL = "https://butibupkkgiujnaoietc.supabase.co"
+BASE_PATH = "/"
 
 [workflows]
 runButton = "Project"
