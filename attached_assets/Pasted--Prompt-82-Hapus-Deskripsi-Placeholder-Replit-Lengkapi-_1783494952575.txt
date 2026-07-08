@@ -1,0 +1,66 @@
+# Prompt 82: Hapus Deskripsi Placeholder Replit, Lengkapi Meta Tags
+
+## Konteks
+`index.html` masih memakai deskripsi default template Replit ("Markaz
+Fiqh — built on Replit. Update this description to reflect the app.") di
+tiga tempat: meta description, Open Graph description, dan Twitter card
+description. Ini muncul di preview link saat website di-share (WhatsApp,
+Twitter/X, dll) dan terlihat tidak profesional. Ganti dengan deskripsi
+asli Markaz Fiqih, dan lengkapi meta tag yang masih kurang.
+
+Edit `artifacts/markaz-fiqh/index.html`.
+
+## Perubahan
+
+### 1. Ganti Semua Deskripsi Placeholder
+Ganti ketiga baris berikut:
+```html
+<meta name="description" content="Markaz Fiqh — built on Replit. Update this description to reflect the app." />
+...
+<meta property="og:title" content="Markaz Fiqh" />
+<meta property="og:description" content="Markaz Fiqh — built on Replit. Update this description to reflect the app." />
+...
+<meta name="twitter:title" content="Markaz Fiqh" />
+<meta name="twitter:description" content="Markaz Fiqh — built on Replit. Update this description to reflect the app." />
+```
+
+Menjadi:
+```html
+<meta name="description" content="Belajar fikih madzhab Syafi'i secara terstruktur dan bersanad bersama Markaz Fiqih. Kelas fiqih tematik dan kajian kitab klasik oleh pengajar lulusan Al-Azhar, Kairo." />
+...
+<meta property="og:title" content="Markaz Fiqih — Belajar Fikih Terstruktur dan Bersanad" />
+<meta property="og:description" content="Belajar fikih madzhab Syafi'i secara terstruktur dan bersanad bersama Markaz Fiqih. Kelas fiqih tematik dan kajian kitab klasik oleh pengajar lulusan Al-Azhar, Kairo." />
+...
+<meta name="twitter:title" content="Markaz Fiqih — Belajar Fikih Terstruktur dan Bersanad" />
+<meta name="twitter:description" content="Belajar fikih madzhab Syafi'i secara terstruktur dan bersanad bersama Markaz Fiqih. Kelas fiqih tematik dan kajian kitab klasik oleh pengajar lulusan Al-Azhar, Kairo." />
+```
+
+(Boleh dihaluskan redaksinya sedikit asal tetap deskriptif dan tidak
+menyebut Replit sama sekali.)
+
+### 2. Ganti `<title>`
+Ganti dari `Markaz Fiqh` menjadi `Markaz Fiqih` (ejaan konsisten dengan
+brand yang benar, cek penggunaan "Fiqih" vs "Fiqh" di tempat lain pada
+file ini juga, samakan semuanya jadi "Fiqih").
+
+### 3. Tambahkan `og:image` dan `og:url`
+Cek apakah file `public/opengraph.jpg` sudah ada (kemungkinan sudah
+disiapkan sebelumnya). Kalau ada, tambahkan meta tag:
+```html
+<meta property="og:image" content="https://kelasmarkazfiqih.vercel.app/opengraph.jpg" />
+<meta property="og:url" content="https://kelasmarkazfiqih.vercel.app/" />
+<meta name="twitter:image" content="https://kelasmarkazfiqih.vercel.app/opengraph.jpg" />
+```
+Sesuaikan domain di URL dengan domain yang benar-benar aktif sekarang
+(`kelasmarkazfiqih.vercel.app` berdasarkan konteks terbaru, verifikasi
+dulu apakah ini domain yang tepat, karena project ini pernah pindah
+domain).
+
+## Yang Tidak Boleh Berubah
+- Struktur HTML lain, font import, dan link lain di `<head>` tidak diubah
+- Konten halaman/aplikasi tidak berubah, murni metadata
+
+## Setelah Selesai
+Konfirmasi tidak ada lagi teks "Replit" atau "built on Replit" di
+`index.html`, dan preview link (Open Graph) sekarang menampilkan judul,
+deskripsi, dan gambar yang mencerminkan Markaz Fiqih secara profesional.

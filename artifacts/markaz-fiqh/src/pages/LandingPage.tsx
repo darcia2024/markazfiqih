@@ -408,7 +408,13 @@ function MethodologySection() {
     <section className="bg-background border-b border-border">
       <div className="container mx-auto px-5 sm:px-8 lg:px-16 py-16 sm:py-20 max-w-[1200px]">
         {/* Blok teks — full width di atas, lebar dibatasi */}
-        <div className="max-w-2xl">
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-50px' }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          className="max-w-2xl"
+        >
           <p
             className="text-xs font-semibold tracking-wider uppercase mb-4"
             style={{ color: 'hsl(var(--accent))' }}
@@ -424,12 +430,19 @@ function MethodologySection() {
             tetap terbuka terhadap pendapat mazhab lain selama termasuk pendapat yang
             mu&rsquo;tabar, diakui validitasnya dalam tradisi keilmuan Islam.
           </p>
-        </div>
+        </motion.div>
 
         {/* Grid 4 card urutan rujukan — sejajar horizontal di bawah teks */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mt-10">
           {METHOD_REFERENCES.map((ref, idx) => (
-            <div key={ref.number} className="flex flex-col">
+            <motion.div
+              key={ref.number}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.4, delay: Math.min(idx * 0.05, 0.3), ease: 'easeOut' }}
+              className="flex flex-col"
+            >
               {/* Nomor dekoratif — sama seperti CurriculumSection */}
               <p
                 className="font-serif text-6xl font-bold leading-none mb-5 select-none"
@@ -446,7 +459,7 @@ function MethodologySection() {
               <p className="text-sm text-foreground leading-relaxed">
                 {ref.text}
               </p>
-            </div>
+            </motion.div>
           ))}
         </div>
       </div>
@@ -469,7 +482,13 @@ function InstructorsSection({
       <div className="container mx-auto px-5 sm:px-8 lg:px-16 py-16 sm:py-20 max-w-[1200px]">
 
         {/* Header */}
-        <div className="mb-14 text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-50px' }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          className="mb-14 text-center"
+        >
           <p className="text-xs font-semibold tracking-wider uppercase mb-4"
             style={{ color: 'hsl(var(--accent))' }}>
             Pengajar
@@ -477,7 +496,7 @@ function InstructorsSection({
           <h2 className="font-serif text-3xl sm:text-4xl font-bold text-foreground leading-tight">
             Belajar dari mereka yang berguru di Al-Azhar.
           </h2>
-        </div>
+        </motion.div>
 
         {/* Skeleton loading */}
         {isLoading && (
@@ -503,7 +522,7 @@ function InstructorsSection({
               ? 'grid-cols-1 sm:grid-cols-2 max-w-2xl mx-auto'
               : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3',
           ].join(' ')}>
-            {instructors.map((instructor) => {
+            {instructors.map((instructor, idx) => {
               const initials = instructor.name
                 .split(' ')
                 .map((n) => n[0])
@@ -511,7 +530,14 @@ function InstructorsSection({
                 .substring(0, 2)
                 .toUpperCase();
               return (
-                <div key={instructor.id} className="flex flex-col items-center text-center gap-4">
+                <motion.div
+                  key={instructor.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4, delay: Math.min(idx * 0.05, 0.3), ease: 'easeOut' }}
+                  className="flex flex-col items-center text-center gap-4"
+                >
                   {/* Foto bulat dengan ring gold */}
                   <div
                     className="relative rounded-full shrink-0"
@@ -562,7 +588,7 @@ function InstructorsSection({
                       {instructor.bio}
                     </p>
                   )}
-                </div>
+                </motion.div>
               );
             })}
           </div>
@@ -590,7 +616,13 @@ function FeaturedClassesSection({
     <section className="bg-muted/20">
       <div className="container mx-auto px-5 sm:px-8 lg:px-16 py-16 sm:py-20 max-w-[1200px]">
 
-        <div className="flex items-end justify-between mb-8 gap-4">
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-50px' }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          className="flex items-end justify-between mb-8 gap-4"
+        >
           <div>
             <p
               className="text-[11px] font-bold tracking-[0.2em] uppercase mb-3"
@@ -620,7 +652,7 @@ function FeaturedClassesSection({
               </Link>
             </Button>
           </motion.div>
-        </div>
+        </motion.div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {isLoading && Array.from({ length: 4 }).map((_, i) => <ClassCardSkeleton key={i} />)}
@@ -676,7 +708,13 @@ function TestimonialsSection({
       <div className="container mx-auto px-5 sm:px-8 lg:px-16 py-16 sm:py-20 max-w-[1200px]">
 
         {/* Header */}
-        <div className="mb-10">
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-50px' }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          className="mb-10"
+        >
           <p className="text-xs font-semibold tracking-wider uppercase mb-4"
             style={{ color: 'hsl(var(--primary))' }}>
             Kata Santri
@@ -685,14 +723,18 @@ function TestimonialsSection({
             Kata Mereka yang Sudah{' '}
             <span className="text-primary">Belajar.</span>
           </h2>
-        </div>
+        </motion.div>
 
         {/* Grid 4 card ringkas: 4 kolom desktop, 2 tablet, 1 mobile */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {testimonials.map((t) => {
+          {testimonials.map((t, idx) => {
             return (
-              <div
+              <motion.div
                 key={t.id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: Math.min(idx * 0.05, 0.3), ease: 'easeOut' }}
                 className="rounded-2xl bg-white border border-border p-5 flex flex-col shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
               >
                 {/* Quote mark kecil */}
@@ -716,7 +758,7 @@ function TestimonialsSection({
                     <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{t.role}</p>
                   )}
                 </div>
-              </div>
+              </motion.div>
             );
           })}
         </div>
