@@ -891,6 +891,41 @@ export async function listAllInvoicesForAdmin() {
   }));
 }
 
+// ── Video Watch Progress ──────────────────────────────────────────────────────
+export async function getVideoWatchProgress(userId: string, classId: string) {
+  const { data, error } = await supabase
+    .from('video_watch_progress')
+    .select('video_index, last_position_seconds')
+    .eq('user_id', userId)
+    .eq('class_id', classId)
+    .maybeSingle();
+  if (error) throw error;
+  return data
+    ? { videoIndex: data.video_index as number, positionSeconds: data.last_position_seconds as number }
+    : null;
+}
+
+export async function saveVideoWatchProgress(params: {
+  userId: string;
+  classId: string;
+  videoIndex: number;
+  positionSeconds: number;
+}) {
+  const { error } = await supabase
+    .from('video_watch_progress')
+    .upsert(
+      {
+        user_id: params.userId,
+        class_id: params.classId,
+        video_index: params.videoIndex,
+        last_position_seconds: params.positionSeconds,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id,class_id' },
+    );
+  if (error) throw error;
+}
+
 export async function getInvoice(invoiceId: string): Promise<LocalInvoice> {
   const { data, error } = await supabase
     .from('invoices')

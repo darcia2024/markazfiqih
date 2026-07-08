@@ -1,4 +1,29 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+
+// ── YouTube IFrame API global type ────────────────────────────────────────────
+declare global {
+  interface Window {
+    YT: {
+      Player: new (
+        elementId: string,
+        options: {
+          playerVars?: Record<string, number | string>;
+          events?: {
+            onReady?: (event: { target: any }) => void;
+            onStateChange?: (event: { target: any; data: number }) => void;
+          };
+        },
+      ) => {
+        getCurrentTime: () => number;
+        getPlaylistIndex: () => number;
+        playVideoAt: (index: number) => void;
+        seekTo: (seconds: number, allowSeekAhead: boolean) => void;
+        destroy: () => void;
+      };
+    };
+    onYouTubeIframeAPIReady?: () => void;
+  }
+}
 import { toast } from 'sonner';
 import { useParams, Link } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -34,6 +59,8 @@ import {
   listClasses,
   updateProgress as updateProgressFn,
   completeEnrollment as completeEnrollmentFn,
+  getVideoWatchProgress,
+  saveVideoWatchProgress,
 } from '@/lib/db';
 
 // ── Local types (sesuai return getClassById dari db.ts) ───────────────────────
@@ -101,6 +128,106 @@ function PlaylistMode({
   gdriveMateriUrl?: string | null;
   waGroupUrl?: string | null;
 }) {
+  // ── YouTube IFrame API state ──
+  const [ytApiReady, setYtApiReady] = useState(false);
+  const playerRef = useRef<any>(null);
+  const hasSeekedRef = useRef(false);
+  const saveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // ── Load saved progress ──
+  const { data: savedProgress, isLoading: isProgressLoading } = useQuery({
+    queryKey: ['videoWatchProgress', userId, classId],
+    queryFn: () => getVideoWatchProgress(userId, classId),
+    enabled: !!userId && !!classId,
+    staleTime: Infinity,
+  });
+
+  // ── Load YouTube IFrame API script (once, globally) ──
+  useEffect(() => {
+    if (window.YT?.Player) {
+      setYtApiReady(true);
+      return;
+    }
+    const prev = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => {
+      prev?.();
+      setYtApiReady(true);
+    };
+    if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
+      const s = document.createElement('script');
+      s.src = 'https://www.youtube.com/iframe_api';
+      document.head.appendChild(s);
+    }
+  }, []);
+
+  // ── Helper: flush current position to DB ──
+  const flushProgress = useCallback(() => {
+    const p = playerRef.current;
+    if (!p || !userId || !classId) return;
+    try {
+      const index = p.getPlaylistIndex();
+      const seconds = Math.floor(p.getCurrentTime());
+      if (index >= 0 && seconds > 0) {
+        saveVideoWatchProgress({ userId, classId, videoIndex: index, positionSeconds: seconds });
+      }
+    } catch (_) { /* player may already be destroyed */ }
+  }, [userId, classId]);
+
+  // ── Init player when API ready + progress loaded ──
+  useEffect(() => {
+    if (!playlistId || !ytApiReady || isProgressLoading) return;
+
+    hasSeekedRef.current = false;
+
+    const player = new window.YT.Player('yt-playlist-container', {
+      playerVars: {
+        listType: 'playlist',
+        list: playlistId,
+        rel: 0,
+        modestbranding: 1,
+        iv_load_policy: 3,
+        fs: 1,
+        playsinline: 1,
+      },
+      events: {
+        onReady: (event: any) => {
+          if (savedProgress) {
+            // Jump to saved video index first; seek happens in onStateChange
+            // after the video actually starts buffering/playing
+            event.target.playVideoAt(savedProgress.videoIndex);
+
+            const menit = Math.floor(savedProgress.positionSeconds / 60);
+            const label = menit > 0 ? `menit ke-${menit}` : `detik ke-${savedProgress.positionSeconds}`;
+            toast.info(`Melanjutkan dari ${label}`, { duration: 4000 });
+          }
+        },
+        onStateChange: (event: any) => {
+          // Seek to saved position on the very first PLAYING or BUFFERING event
+          // (playVideoAt alone doesn't restore time; seekTo needs the video loaded)
+          if (!hasSeekedRef.current && savedProgress && savedProgress.positionSeconds > 0) {
+            const state: number = event.data; // 1 = PLAYING, 3 = BUFFERING
+            if (state === 1 || state === 3) {
+              hasSeekedRef.current = true;
+              event.target.seekTo(savedProgress.positionSeconds, true);
+            }
+          }
+        },
+      },
+    });
+
+    playerRef.current = player;
+
+    // Save progress every 15 seconds
+    saveIntervalRef.current = setInterval(flushProgress, 15_000);
+
+    return () => {
+      flushProgress(); // save on unmount / re-init
+      if (saveIntervalRef.current) clearInterval(saveIntervalRef.current);
+      player.destroy();
+      playerRef.current = null;
+    };
+  }, [playlistId, ytApiReady, isProgressLoading, savedProgress, flushProgress]);
+
   const { mutate: completeEnrollmentMutate, isPending: isCompleting, isSuccess: isCompleted } =
     useMutation({
       mutationFn: (params: { enrollmentId: string }) =>
@@ -134,12 +261,11 @@ function PlaylistMode({
           <div className="flex-1 min-w-0 flex flex-col gap-6">
             {/* CATATAN: YouTube tidak mengizinkan menyembunyikan sepenuhnya opsi "Watch on
                 YouTube" atau logo YouTube karena kebijakan mereka — parameter di bawah hanya
-                meminimalisir distraksi/rekomendasi video lain, bukan blokir total. */}
-            <iframe
-              src={`https://www.youtube-nocookie.com/embed/videoseries?list=${playlistId}&rel=0&modestbranding=1&iv_load_policy=3&fs=1&playsinline=1`}
-              className="w-full aspect-video rounded-[14px]"
-              allowFullScreen
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                meminimalisir distraksi/rekomendasi video lain, bukan blokir total.
+                YT IFrame API dipakai supaya bisa baca/tulis posisi playback. */}
+            <div
+              id="yt-playlist-container"
+              className="w-full aspect-video rounded-[14px] overflow-hidden bg-black"
             />
 
             {/* Info panel */}

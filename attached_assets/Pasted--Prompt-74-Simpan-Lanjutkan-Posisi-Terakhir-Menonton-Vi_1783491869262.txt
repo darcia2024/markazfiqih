@@ -1,0 +1,150 @@
+# Prompt 74: Simpan & Lanjutkan Posisi Terakhir Menonton Video (Playlist Mode)
+
+## Konteks
+Video playlist di `LearnPage.tsx` (Playlist Mode) sekarang di-embed pakai
+iframe statis (`src` URL biasa ke `youtube-nocookie.com/embed/videoseries
+?list=...`) — cara ini TIDAK BISA membaca atau mengontrol posisi
+playback video dari JavaScript. Untuk bisa menyimpan & melanjutkan posisi
+terakhir ditonton, perlu upgrade ke **YouTube IFrame Player API**
+(library resmi dari Google yang memungkinkan kontrol JS penuh: baca waktu
+saat ini, index video dalam playlist, seek ke posisi tertentu, dst).
+
+Tabel database baru `video_watch_progress` sudah dibuat (SQL terpisah:
+`74-tabel-video-watch-progress.sql`, sudah dijalankan) untuk menyimpan
+posisi tonton per user per kelas.
+
+## Langkah 1 — Tambah Fungsi di `src/lib/db.ts`
+
+```ts
+export async function getVideoWatchProgress(userId: string, classId: string) {
+  const { data, error } = await supabase
+    .from('video_watch_progress')
+    .select('video_index, last_position_seconds')
+    .eq('user_id', userId)
+    .eq('class_id', classId)
+    .maybeSingle();
+  if (error) throw error;
+  return data
+    ? { videoIndex: data.video_index as number, positionSeconds: data.last_position_seconds as number }
+    : null;
+}
+
+export async function saveVideoWatchProgress(params: {
+  userId: string;
+  classId: string;
+  videoIndex: number;
+  positionSeconds: number;
+}) {
+  const { error } = await supabase
+    .from('video_watch_progress')
+    .upsert(
+      {
+        user_id: params.userId,
+        class_id: params.classId,
+        video_index: params.videoIndex,
+        last_position_seconds: params.positionSeconds,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id,class_id' },
+    );
+  if (error) throw error;
+}
+```
+
+Verifikasi dulu struktur tabel `video_watch_progress` yang sebenarnya
+(`information_schema.columns`) sebelum finalisasi query ini, sesuai
+kebiasaan project ini untuk menghindari mismatch skema.
+
+## Langkah 2 — Upgrade Embed Playlist ke YouTube IFrame API
+
+Edit `artifacts/markaz-fiqh/src/pages/LearnPage.tsx`, bagian Playlist
+Mode (sekitar baris 138, yang sekarang render `<iframe src={...}>`).
+
+### 2a. Load Script YouTube IFrame API
+Tambahkan logic untuk memuat script `https://www.youtube.com/iframe_api`
+secara dinamis (sekali saja, cek apakah `window.YT` sudah ada sebelum
+menambahkan script baru), dan tunggu callback global
+`window.onYouTubeIframeAPIReady` sebelum menginisialisasi player.
+
+### 2b. Ganti `<iframe>` Statis dengan `<div>` + `YT.Player`
+Ganti elemen iframe dengan `<div id="youtube-player-container" />` yang
+akan diisi oleh YouTube IFrame API, diinisialisasi lewat `useEffect`:
+
+```ts
+useEffect(() => {
+  if (!playlistId || !ytApiReady) return;
+
+  const player = new window.YT.Player('youtube-player-container', {
+    playerVars: {
+      listType: 'playlist',
+      list: playlistId,
+      rel: 0,
+      modestbranding: 1,
+      iv_load_policy: 3,
+      fs: 1,
+      playsinline: 1,
+    },
+    events: {
+      onReady: (event: any) => {
+        // Kalau ada progress tersimpan, lanjutkan dari situ
+        if (savedProgress) {
+          event.target.playVideoAt(savedProgress.videoIndex);
+          // Perlu delay kecil setelah playVideoAt sebelum seekTo, karena
+          // video baru dimuat — cek dokumentasi YT IFrame API untuk
+          // pattern yang benar (biasanya via onStateChange event pertama
+          // atau setTimeout singkat), sesuaikan implementasinya supaya
+          // seek berjalan mulus tanpa terlihat "lompat" secara kasar ke
+          // user.
+          event.target.seekTo(savedProgress.positionSeconds, true);
+        }
+      },
+    },
+  });
+
+  playerRef.current = player;
+  return () => player.destroy();
+}, [playlistId, ytApiReady]);
+```
+
+### 2c. Simpan Progress Secara Berkala (Bukan Tiap Detik)
+Tambahkan interval (misal setiap 10-15 detik) yang membaca posisi
+playback saat ini dari player (`player.getCurrentTime()` dan
+`player.getPlaylistIndex()`), lalu memanggil `saveVideoWatchProgress(...)`
+— JANGAN simpan setiap detik atau setiap event kecil, itu akan
+menghasilkan terlalu banyak write ke database untuk manfaat yang tidak
+signifikan (posisi resume tidak perlu presisi sampai per detik).
+
+Juga simpan progress saat komponen unmount (user pindah halaman) untuk
+menangkap posisi terakhir sebelum keluar dari halaman.
+
+### 2d. Load Progress Tersimpan Saat Halaman Dibuka
+Sebelum inisialisasi player, panggil `getVideoWatchProgress(user.id,
+classId)` untuk mendapatkan posisi terakhir. Simpan hasilnya di state
+lokal (`savedProgress`) untuk dipakai di `onReady` callback pada langkah
+2b.
+
+### 2e. Indikator Visual "Melanjutkan dari..." (Opsional tapi Direkomendasikan)
+Kalau ada `savedProgress` yang ditemukan, tampilkan notifikasi kecil
+sekali muncul (toast atau badge singkat) seperti "Melanjutkan dari menit
+X" supaya user sadar videonya otomatis lanjut, bukan mulai dari awal
+tanpa penjelasan.
+
+## Yang Tidak Boleh Berubah
+- Normal Mode (kelas dengan modul/dars manual) tidak terpengaruh sama
+  sekali — perubahan ini HANYA untuk Playlist Mode
+- Fitur "Tandai Selesai" dan progress tracking berbasis dars yang sudah
+  ada tidak diubah
+- Tampilan visual player (ukuran, posisi di halaman) tetap sama, hanya
+  cara render internalnya yang berubah dari iframe statis ke YT IFrame
+  API
+
+## Setelah Selesai
+1. Konfirmasi resume video berfungsi: tonton sebagian video, keluar
+   halaman, buka lagi, video otomatis lanjut dari posisi terakhir (bukan
+   dari awal).
+2. Laporkan interval penyimpanan progress yang dipakai (berapa detik).
+3. Catatan: fitur ini bergantung pada YouTube IFrame API yang kadang
+   punya perilaku berbeda di berbagai browser/kondisi jaringan — kalau
+   ada kendala teknis signifikan saat implementasi (misal `playVideoAt`
+   + `seekTo` tidak selalu presisi), laporkan detail masalahnya alih-alih
+   memaksakan solusi yang tidak stabil.

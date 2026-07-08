@@ -1,0 +1,57 @@
+# Prompt 75: Fix Posisi Logo Watermark Footer + Samakan Pattern Grid dengan Hero
+
+## Konteks
+Dari implementasi sebelumnya (Prompt 72), ada 2 masalah:
+
+1. **Logo watermark kepotong** — posisinya terlalu jauh ke kanan/bawah
+   sehingga logo terlihat terpotong di tepi section (tidak terlihat utuh).
+2. **Pattern grid berbeda dari Hero** — pattern yang terpasang sekarang
+   terlihat seperti grid diagonal/miring, padahal seharusnya IDENTIK
+   dengan pattern grid lurus (horizontal-vertikal) yang dipakai di Hero
+   section.
+
+Edit `artifacts/markaz-fiqh/src/pages/LandingPage.tsx`, cari section
+footer (CTA + copyright gabungan).
+
+## Perbaikan
+
+### 1. Pattern Grid — Pastikan Identik dengan Hero
+Cari pattern grid yang ADA di `HeroSection` sekarang (cari
+`backgroundImage` dengan `linear-gradient` di dalam fungsi
+`HeroSection`), dan bandingkan dengan pattern yang sekarang terpasang di
+footer. Kalau ada perbedaan value (rotate, angle pada linear-gradient,
+ukuran background-size, dsb) yang membuat hasilnya terlihat diagonal alih-
+alih grid lurus, PERBAIKI supaya value-nya PERSIS SAMA dengan yang ada di
+Hero — copy langsung style object dari Hero, jangan menulis ulang dari
+ingatan/asumsi (untuk menghindari perbedaan halus yang membuat hasil
+visual berbeda seperti sekarang).
+
+### 2. Posisi Logo Watermark — Geser ke Kiri, Jangan Kepotong
+Logo sekarang terpotong di pojok kanan (sebagian keluar dari batas
+section terlihat, sebagian tidak terlihat). Perbaiki dengan:
+- Geser posisi logo sedikit ke kiri (kurangi nilai negatif pada
+  positioning kanan, misal dari `-right-8` menjadi `right-4` atau nilai
+  positif kecil, sesuaikan sampai logo terlihat utuh tanpa terpotong tepi
+  section)
+- ATAU perkecil ukuran logo (`w-64 h-64` menjadi lebih kecil seperti
+  `w-48 h-48`) supaya lebih muat dalam batas section tanpa perlu
+  terpotong
+- Pilih salah satu (atau kombinasi keduanya) sampai logo terlihat utuh
+  secara visual di dalam section footer, tidak terpotong tepi kanan
+  maupun bawah
+
+Pastikan `overflow-hidden` pada wrapper section TETAP ada (supaya elemen
+dekoratif tidak bocor ke section lain di bawahnya), tapi posisi logo
+disesuaikan supaya tetap terlihat utuh DI DALAM batas section yang
+overflow-hidden tersebut.
+
+## Yang Tidak Boleh Berubah
+- Opacity dan blend mode logo (dari Prompt 72) tidak perlu diubah kecuali
+  memang diperlukan untuk penyesuaian ini
+- Semua teks, tombol, dan fungsi footer tidak berubah
+- Section lain di landing page tidak disentuh
+
+## Setelah Selesai
+Konfirmasi pattern grid sekarang identik dengan Hero (grid lurus, bukan
+diagonal), dan logo watermark terlihat utuh tanpa terpotong di dalam
+section footer.
