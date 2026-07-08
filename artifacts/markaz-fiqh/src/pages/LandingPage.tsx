@@ -137,7 +137,7 @@ function HeroSection({
           {/* 2. Judul — dua baris, baris pertama gold (lebih kecil), baris kedua putih */}
           <h1 className="font-serif font-bold leading-[1.15] tracking-tight max-w-4xl">
             <span
-              className="block text-3xl sm:text-4xl lg:text-5xl font-semibold"
+              className="block text-3xl sm:text-4xl lg:text-5xl font-semibold italic"
               style={{ color: '#FFCC00' }}
             >
               Selamat Datang di
