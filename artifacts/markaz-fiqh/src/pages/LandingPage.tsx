@@ -123,7 +123,7 @@ function HeroSection({
         className="pointer-events-none absolute inset-0 mix-blend-multiply"
         style={{
           backgroundImage: "url('/hero-pattern.png')",
-          backgroundSize: '480px',
+          backgroundSize: '900px',
           backgroundRepeat: 'repeat',
         }}
       />
