@@ -382,25 +382,23 @@ function MethodologySection() {
         </div>
 
         {/* Grid 4 card urutan rujukan — sejajar horizontal di bawah teks */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-10">
-          {METHOD_REFERENCES.map((ref) => (
-            <div
-              key={ref.number}
-              className="relative flex flex-col items-start gap-3 rounded-2xl border border-border bg-muted/20 p-5 overflow-hidden min-h-[180px]"
-            >
-              <span
-                className="absolute -right-2 -bottom-4 font-serif text-6xl font-bold leading-none select-none"
-                style={{ color: 'hsl(var(--primary) / 0.08)' }}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mt-10">
+          {METHOD_REFERENCES.map((ref, idx) => (
+            <div key={ref.number} className="flex flex-col">
+              {/* Nomor dekoratif — sama seperti CurriculumSection */}
+              <p
+                className="font-serif text-6xl font-bold leading-none mb-5 select-none"
+                style={{ color: 'hsl(var(--primary) / 0.12)' }}
               >
                 {ref.number}
-              </span>
-              <span
-                className="relative z-10 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
-                style={{ backgroundColor: 'hsl(var(--primary))' }}
+              </p>
+              <p
+                className="text-[10px] font-bold uppercase tracking-[0.18em] mb-2"
+                style={{ color: 'hsl(var(--accent))' }}
               >
-                {ref.number.replace(/^0/, '')}
-              </span>
-              <p className="relative z-10 text-sm text-foreground leading-relaxed">
+                Rujukan {idx + 1}
+              </p>
+              <p className="text-sm text-foreground leading-relaxed">
                 {ref.text}
               </p>
             </div>
