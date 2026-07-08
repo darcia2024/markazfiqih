@@ -68,6 +68,7 @@ type ClassFormState = {
   gdriveMateriUrl: string;
   waGroupUrl: string;
   meetingCount: string;
+  displayOrder: string;
 };
 
 const EMPTY_FORM: ClassFormState = {
@@ -84,6 +85,7 @@ const EMPTY_FORM: ClassFormState = {
   gdriveMateriUrl: '',
   waGroupUrl: '',
   meetingCount: '',
+  displayOrder: '0',
 };
 
 function classToForm(cls: ClassDetail): ClassFormState {
@@ -101,6 +103,7 @@ function classToForm(cls: ClassDetail): ClassFormState {
     gdriveMateriUrl: cls.gdriveMateriUrl ?? '',
     waGroupUrl: cls.waGroupUrl ?? '',
     meetingCount: cls.meetingCount != null ? String(cls.meetingCount) : '',
+    displayOrder: String(cls.displayOrder ?? 0),
   };
 }
 
@@ -186,9 +189,9 @@ export default function AdminClassesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingClassDetail]);
 
-  const filtered = classes.filter((c) =>
-    c.title.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = classes
+    .filter((c) => c.title.toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
 
   function openCreateDialog() {
     setEditingClass(null);
@@ -212,6 +215,7 @@ export default function AdminClassesPage() {
       gdriveMateriUrl: '',
       waGroupUrl: '',
       meetingCount: '',
+      displayOrder: String(cls.displayOrder ?? 0),
     });
     setDialogOpen(true);
   }
@@ -238,6 +242,7 @@ export default function AdminClassesPage() {
       gdriveMateriUrl: form.gdriveMateriUrl.trim() || null,
       waGroupUrl: form.waGroupUrl.trim() || null,
       meetingCount: form.meetingCount ? parseInt(form.meetingCount, 10) : null,
+      displayOrder: form.displayOrder ? parseInt(form.displayOrder, 10) : 0,
     };
 
     if (editingClass) {
@@ -300,6 +305,7 @@ export default function AdminClassesPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>Urutan</TableHead>
                     <TableHead>Kelas</TableHead>
                     <TableHead>Harga</TableHead>
                     <TableHead>Modul</TableHead>
@@ -310,13 +316,16 @@ export default function AdminClassesPage() {
                 <TableBody>
                   {filtered.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-8">
+                      <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">
                         Tidak ada kelas yang cocok dengan pencarian.
                       </TableCell>
                     </TableRow>
                   )}
                   {filtered.map((cls) => (
                     <TableRow key={cls.id} data-testid={`row-class-${cls.id}`}>
+                      <TableCell className="text-sm text-muted-foreground" data-testid={`text-display-order-${cls.id}`}>
+                        {cls.displayOrder ?? 0}
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <img
@@ -518,6 +527,20 @@ export default function AdminClassesPage() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="class-display-order">Urutan Tampil</Label>
+                <Input
+                  id="class-display-order"
+                  type="number"
+                  placeholder="0"
+                  value={form.displayOrder}
+                  onChange={(e) => setForm((p) => ({ ...p, displayOrder: e.target.value }))}
+                  data-testid="input-class-display-order"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Menentukan posisi kelas dalam daftar (angka lebih kecil tampil lebih dulu). Kelas dengan kategori sama diurutkan berdasarkan angka ini.
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="class-youtube-playlist">Link Playlist YouTube</Label>

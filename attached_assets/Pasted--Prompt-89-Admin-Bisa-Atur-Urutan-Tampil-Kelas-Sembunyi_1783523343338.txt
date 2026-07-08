@@ -1,0 +1,96 @@
+# Prompt 89: Admin Bisa Atur Urutan Tampil Kelas + Sembunyikan Kelas Kitab Selain Safinatunnaja
+
+## Bagian A — Kolom `display_order` untuk Kelas (Admin Bisa Atur Urutan)
+
+Sekarang tabel `classes` tidak punya kolom urutan manual (hanya
+`created_at`), sehingga urutan tampil kelas selalu berdasarkan waktu
+dibuat/update, bukan urutan yang diatur admin. Klien ingin bisa
+mengatur urutan tampil masing-masing kelas secara manual.
+
+### A1. SQL Migrasi (Jalankan Manual)
+```sql
+ALTER TABLE classes ADD COLUMN IF NOT EXISTS display_order INTEGER NOT NULL DEFAULT 0;
+
+-- Set nilai awal berdasarkan urutan created_at yang sudah ada, supaya
+-- urutan yang terlihat sekarang tidak berubah drastis sebelum admin
+-- mengatur ulang secara manual:
+WITH ordered AS (
+  SELECT id, ROW_NUMBER() OVER (PARTITION BY category ORDER BY created_at) AS rn
+  FROM classes
+)
+UPDATE classes
+SET display_order = ordered.rn
+FROM ordered
+WHERE classes.id = ordered.id;
+```
+
+### A2. Update Query yang Menampilkan Kelas
+Edit `src/lib/db.ts`, fungsi `listClasses()` — ubah urutan sort dari
+berdasarkan `created_at` (atau default Supabase) menjadi `ORDER BY
+display_order ASC` (lalu `created_at` sebagai tie-breaker jika ada nilai
+`display_order` yang sama). Terapkan juga pada query lain yang
+menampilkan daftar kelas terurut (misal untuk landing page "Kelas
+Pilihan", katalog, dll) — cek semua tempat yang mengurutkan kelas dan
+samakan menggunakan `display_order`.
+
+### A3. UI Admin untuk Mengatur Urutan
+Edit `AdminClassesPage.tsx` — tambahkan cara bagi admin mengatur
+`display_order`. Pendekatan paling sederhana: tambahkan input angka
+kecil (`type="number"`) pada form edit kelas, atau JIKA memungkinkan
+dengan effort wajar, tambahkan fitur drag-and-drop reorder pada daftar
+kelas (gunakan library drag-and-drop yang sudah tersedia di
+project ini jika ada, atau library ringan yang kompatibel dengan React
+— cek `package.json` dulu apakah ada library seperti `@dnd-kit` atau
+serupa sebelum menambah dependency baru). Jika drag-and-drop terlalu
+kompleks untuk effort saat ini, cukup gunakan input angka manual di form
+edit — itu sudah memenuhi kebutuhan dasar "admin bisa atur urutan".
+
+## Bagian B — Sembunyikan Kelas Fiqih Kitab Selain Safinatunnaja (Sementara)
+
+Klien ingin untuk sementara waktu, kelas kategori "Fiqih Kitab" yang
+ditampilkan ke publik HANYA "Safinatunnaja" — kelas Fiqih Kitab lainnya
+(jika ada) disembunyikan dulu.
+
+### B1. Cek Kelas Fiqih Kitab yang Ada
+Siapkan query berikut untuk saya jalankan terlebih dahulu, untuk melihat
+kelas apa saja yang perlu disembunyikan:
+```sql
+SELECT id, title, status FROM classes WHERE category = 'Fiqih Kitab' ORDER BY title;
+```
+
+### B2. Set Status Selain Safinatunnaja jadi Draft
+Siapkan SQL berikut (dengan placeholder yang perlu saya sesuaikan
+berdasarkan hasil query B1) untuk saya jalankan manual:
+```sql
+UPDATE classes
+SET status = 'draft'
+WHERE category = 'Fiqih Kitab' AND title != 'Safinatunnaja';
+```
+(Menggunakan `status = 'draft'` alih-alih menghapus data, supaya kelas
+tersebut tetap ada di database dan bisa dipublish kembali kapan saja
+lewat Admin Panel tanpa perlu input ulang data.)
+
+### B3. Update Harga Safinatunnaja
+Klien juga meminta harga kelas Safinatunnaja diubah dari 180.000 menjadi
+129.000. Siapkan SQL berikut untuk saya jalankan manual:
+```sql
+UPDATE classes SET base_price = 129000 WHERE title = 'Safinatunnaja';
+```
+(Cek juga apakah ada `discount_price`/harga presale yang perlu
+disesuaikan mengikuti perubahan harga normal ini — jika ada voucher
+terkait kelas ini dari fitur sebelumnya, laporkan supaya saya bisa
+tinjau apakah voucher tersebut masih relevan dengan harga baru.)
+
+## Yang Tidak Boleh Berubah
+- Data kelas yang di-set `draft` tidak dihapus, hanya disembunyikan dari
+  tampilan publik (sesuai perilaku status draft yang sudah ada di sistem)
+- Kelas kategori "Fiqih Tematik" dan "Akademi" tidak terpengaruh
+
+## Setelah Selesai
+1. Tegaskan SQL di Bagian A1 dan Bagian B (B2, B3) perlu saya jalankan
+   manual, dengan urutan yang jelas.
+2. Konfirmasi admin sekarang bisa mengatur `display_order` lewat
+   `AdminClassesPage.tsx`, dan urutan ini yang dipakai di semua tampilan
+   publik.
+3. Setelah SQL Bagian B dijalankan, konfirmasi hanya Safinatunnaja yang
+   tampil di kategori Fiqih Kitab pada Katalog dan landing page.

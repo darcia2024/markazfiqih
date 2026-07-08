@@ -75,10 +75,11 @@ export async function listClasses(params?: {
     .from('classes')
     .select(`
       id, title, description, cover_image, base_price, discount_price,
-      status, level, category, youtube_playlist_id, meeting_count,
+      status, level, category, youtube_playlist_id, meeting_count, display_order,
       instructors ( id, name, photo_url ),
       modules ( id, dars ( id, duration_minutes ) )
     `)
+    .order('display_order', { ascending: true })
     .order('created_at', { ascending: false });
 
   if (!params?.includeAll) query = query.eq('status', 'published');
@@ -106,6 +107,7 @@ export async function listClasses(params?: {
       youtubePlaylistId: c.youtube_playlist_id as string | null,
       moduleCount: modules.length as number,
       meetingCount: (c.meeting_count ?? null) as number | null,
+      displayOrder: (c.display_order ?? 0) as number,
       totalDurationMinutes: dars.reduce(
         (acc: number, d: any) => acc + (d.duration_minutes ?? 0),
         0,
@@ -122,7 +124,7 @@ export async function getClassById(id: string) {
     .from('classes')
     .select(`
       id, title, description, cover_image, base_price, discount_price,
-      status, level, category, youtube_playlist_id, gdrive_materi_url, wa_group_url, meeting_count,
+      status, level, category, youtube_playlist_id, gdrive_materi_url, wa_group_url, meeting_count, display_order,
       instructors ( id, name, photo_url, bio ),
       modules (
         id, title, order_index,
@@ -184,6 +186,7 @@ export async function getClassById(id: string) {
     youtubePlaylistId: data.youtube_playlist_id as string | null,
     gdriveMateriUrl: data.gdrive_materi_url as string | null,
     waGroupUrl: data.wa_group_url as string | null,
+    displayOrder: (data.display_order ?? 0) as number,
     instructor: inst
       ? { id: inst.id, name: inst.name, photoUrl: inst.photo_url, bio: inst.bio ?? '', classCount: instructorClassCount }
       : { id: '', name: 'Pengajar', photoUrl: '', bio: '', classCount: 0 },
@@ -845,6 +848,7 @@ export async function createClass(data: {
   category?: string | null; instructorId: string;
   youtubePlaylistId?: string | null; gdriveMateriUrl?: string | null;
   waGroupUrl?: string | null; meetingCount?: number | null;
+  displayOrder?: number | null;
 }) {
   const { data: created, error } = await supabase
     .from('classes')
@@ -858,6 +862,7 @@ export async function createClass(data: {
       gdrive_materi_url: data.gdriveMateriUrl ?? null,
       wa_group_url: data.waGroupUrl ?? null,
       meeting_count: data.meetingCount ?? null,
+      display_order: data.displayOrder ?? 0,
     })
     .select().single();
   if (error) throw error;
@@ -873,6 +878,7 @@ export async function updateClass(
     category: string | null; instructorId: string;
     youtubePlaylistId: string | null; gdriveMateriUrl: string | null;
     waGroupUrl: string | null; meetingCount: number | null;
+    displayOrder: number;
   }>,
 ) {
   const patch: Record<string, unknown> = {};
@@ -889,6 +895,7 @@ export async function updateClass(
   if ('gdriveMateriUrl' in data) patch.gdrive_materi_url = data.gdriveMateriUrl;
   if ('waGroupUrl' in data) patch.wa_group_url = data.waGroupUrl;
   if ('meetingCount' in data) patch.meeting_count = data.meetingCount;
+  if (data.displayOrder !== undefined) patch.display_order = data.displayOrder;
   const { error } = await supabase.from('classes').update(patch).eq('id', id);
   if (error) throw error;
 }

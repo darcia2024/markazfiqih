@@ -38,6 +38,14 @@ Set in Replit Secrets / shared env vars:
 | `MAYAR_WEBHOOK_SECRET` | Mayar Dashboard |
 | `MAYAR_BASE_URL` | `https://api.mayar.id/hl/v1` |
 
+## Class ordering (display_order)
+
+Admin can now set a manual display order for classes (`classes.display_order`,
+smaller = shown first). `listClasses()` in `src/lib/db.ts` sorts by
+`display_order ASC`, then `created_at DESC` as tiebreaker. Editable in
+`AdminClassesPage.tsx` ("Urutan Tampil" field). Requires running
+`supabase/migrations/classes_display_order.sql` manually once.
+
 ## Project structure
 
 ```
