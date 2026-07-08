@@ -36,7 +36,7 @@ export default function LoginPage() {
         </div>
 
         <div className="relative z-10 max-w-lg space-y-6">
-          <h1 className="font-serif text-5xl font-medium leading-tight">
+          <h1 className="font-serif text-5xl font-bold leading-[1.15] tracking-tight">
             Ilmu Fiqih,<br />Tersusun Rapi.
           </h1>
           <p className="text-lg text-primary-foreground/80 font-medium">
