@@ -52,12 +52,12 @@ function buildSocialLinks(settings?: {
   ];
 }
 
-// ── Jalur Ilmu (data kurikulum spesifik Markaz Fiqih) ───────────────────────
+// ── Data kurikulum ───────────────────────────────────────────────────────────
 const CURRICULUM_STAGES = [
   {
     stage: '01',
     title: 'Fiqih Tematik',
-    subtitle: 'Dasar yang Kokoh',
+    subtitle: 'Fondasi',
     topics: ['Thaharah', 'Sholat', 'Zakat & Puasa', 'Muamalah Sehari-hari'],
     description:
       'Mulai dari bab thaharah hingga muamalah — materi fiqih yang relevan langsung untuk kehidupan, disusun per tema agar mudah dicerna.',
@@ -66,15 +66,15 @@ const CURRICULUM_STAGES = [
     stage: '02',
     title: 'Fiqih Kitab',
     subtitle: 'Kajian Klasik',
-    topics: ['Matan Taqrib', 'Fath al-Qarib', 'Minhaj al-Thalibin', 'Al-Muhadzzab'],
+    topics: ['Matan Taqrib', 'Fath al-Qarib', 'Minhaj al-Thalibin', 'Al-Muhadzdzab'],
     description:
-      'Baca dan pahami kitab-kitab rujukan madzhab Syafi\'i langsung dari sumbernya — dibimbing pengajar yang telah mempelajari kitab-kitab ini di Kairo.',
+      "Baca dan pahami kitab-kitab rujukan madzhab Syafi'i langsung dari sumbernya — dibimbing pengajar yang telah mempelajari kitab-kitab ini di Kairo.",
   },
   {
     stage: '03',
     title: 'Akademi',
     subtitle: 'Program Panjang',
-    topics: ['Kurikulum Bertahap', 'Ujian Berkala', 'Ijazah Kelulusan', 'Komunitas Alumni'],
+    topics: ['Kurikulum Bertahap', 'Ujian Berkala', 'Ijazah Kelulusan', 'Alumni Aktif'],
     description:
       'Program terstruktur jangka panjang untuk penguasaan fiqih menyeluruh — dengan ujian berkala, mentoring, dan komunitas alumni aktif.',
   },
@@ -90,7 +90,6 @@ function HeroSection({
 }) {
   return (
     <section className="relative bg-gradient-to-br from-primary to-[hsl(var(--brand-red-hover))] overflow-hidden">
-      {/* Pola garis diagonal sangat subtle */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 opacity-[0.07]"
@@ -104,10 +103,8 @@ function HeroSection({
       <div className="relative z-10 container mx-auto px-5 sm:px-8 lg:px-16 max-w-[1200px]">
         <div className="grid lg:grid-cols-2 gap-0 min-h-[480px] sm:min-h-[560px] items-center py-16 sm:py-20">
 
-          {/* Kolom kiri — teks utama */}
+          {/* Kolom kiri */}
           <div className="flex flex-col items-start text-left">
-
-            {/* Label lokasi */}
             <div className="inline-flex items-center gap-2 border border-white/20 bg-white/10 rounded-full px-3.5 py-1.5 mb-7">
               <MapPin className="h-3 w-3 text-[hsl(var(--accent))]" />
               <span className="text-xs font-medium text-white/80 tracking-wide">
@@ -115,27 +112,25 @@ function HeroSection({
               </span>
             </div>
 
-            {/* Judul — dua baris dengan kontras ukuran ekstrem */}
             <h1 className="font-serif font-bold text-white leading-[1.05] tracking-tight">
               <span className="block text-5xl sm:text-6xl lg:text-7xl">
-                Fiqih dari
+                Fiqih yang
               </span>
               <span
                 className="block text-5xl sm:text-6xl lg:text-7xl"
                 style={{ color: 'hsl(var(--accent))' }}
               >
-                Sumbernya.
+                Bersanad.
               </span>
               <span className="block text-2xl sm:text-3xl lg:text-4xl text-white/80 font-normal mt-3 font-sans">
-                Terstruktur dari Dasar.
+                Kurikulum dari Kairo.
               </span>
             </h1>
 
             <p className="text-white/70 text-base mt-6 leading-relaxed max-w-lg">
-              Markaz Fiqih dibangun oleh pelajar Indonesia di Kairo — belajar fiqih
-              madzhab Syafi'i dari pengajar yang menimba ilmu langsung di Al-Azhar.
-              Bukan kumpulan ceramah acak. Kurikulum dari thaharah hingga kajian kitab
-              klasik, tersusun dengan sanad yang jelas.
+              Markaz Fiqih bukan platform kursus online generik. Ini adalah kurikulum
+              madzhab Syafi'i yang tersusun dari thaharah hingga kajian kitab klasik,
+              diajarkan oleh pelajar Indonesia yang berguru langsung di Al-Azhar Kairo.
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
@@ -159,7 +154,6 @@ function HeroSection({
               </Button>
             </div>
 
-            {/* Social links — kecil, di bawah CTA */}
             <div className="mt-8 flex items-center gap-3">
               <span className="text-[11px] font-medium text-white/50 tracking-wide uppercase">
                 Ikuti
@@ -179,29 +173,24 @@ function HeroSection({
             </div>
           </div>
 
-          {/* Kolom kanan — kutipan misi + ornamen visual */}
+          {/* Kolom kanan — kutipan misi */}
           <div className="hidden lg:flex flex-col items-end justify-center pl-16">
-            <div className="relative">
-              {/* Blok kutipan besar */}
-              <blockquote className="text-right">
-                <p className="font-serif text-4xl xl:text-5xl font-bold italic text-white/20 leading-tight select-none">
-                  &ldquo;
-                </p>
-                <p className="font-serif text-xl xl:text-2xl font-bold italic text-white leading-relaxed max-w-xs">
-                  Membumikan Fiqih di Setiap Lini Kehidupan
-                </p>
-                <p className="mt-3 text-sm text-white/50 font-medium tracking-widest uppercase">
-                  — Markaz Fiqih
-                </p>
-              </blockquote>
-
-              {/* Garis dekoratif gold */}
-              <div className="mt-8 flex justify-end">
-                <div className="h-px w-32 bg-gradient-to-l from-[hsl(var(--accent))] to-transparent" />
-              </div>
-              <div className="mt-2 flex justify-end">
-                <div className="h-px w-20 bg-gradient-to-l from-[hsl(var(--accent))]/40 to-transparent" />
-              </div>
+            <blockquote className="text-right">
+              <p className="font-serif text-4xl xl:text-5xl font-bold italic text-white/20 leading-tight select-none">
+                &ldquo;
+              </p>
+              <p className="font-serif text-xl xl:text-2xl font-bold italic text-white leading-relaxed max-w-xs">
+                Membumikan Fiqih di Setiap Lini Kehidupan
+              </p>
+              <p className="mt-3 text-sm text-white/50 font-medium tracking-widest uppercase">
+                — Markaz Fiqih
+              </p>
+            </blockquote>
+            <div className="mt-8 flex justify-end">
+              <div className="h-px w-32 bg-gradient-to-l from-[hsl(var(--accent))] to-transparent" />
+            </div>
+            <div className="mt-2 flex justify-end">
+              <div className="h-px w-20 bg-gradient-to-l from-[hsl(var(--accent))]/40 to-transparent" />
             </div>
           </div>
 
@@ -212,9 +201,10 @@ function HeroSection({
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// SECTION 2: Stats Bold
+// SECTION 2: Manifesto + Stats
+// Menggantikan StatsSection terpisah — statement editorial bold + angka embedded
 // ────────────────────────────────────────────────────────────────────────────
-function StatsSection({
+function ManifestoSection({
   totalClasses,
   totalInstructors,
   studentCountLabel,
@@ -224,152 +214,46 @@ function StatsSection({
   studentCountLabel: string | null | undefined;
 }) {
   const stats = [
-    {
-      value: totalClasses > 0 ? `${totalClasses}` : '—',
-      label: 'Kelas',
-      sub: 'fiqih terstruktur',
-    },
-    {
-      value: totalInstructors > 0 ? `${totalInstructors}` : '—',
-      label: 'Pengajar',
-      sub: 'dari Al-Azhar Kairo',
-    },
-    {
-      value: studentCountLabel ?? '—',
-      label: 'Santri',
-      sub: 'sudah bergabung',
-    },
+    { value: totalClasses > 0 ? `${totalClasses}` : '—', label: 'Kelas fiqih terstruktur' },
+    { value: totalInstructors > 0 ? `${totalInstructors}` : '—', label: 'Pengajar dari Al-Azhar' },
+    { value: studentCountLabel ?? '—', label: 'Santri sudah bergabung' },
   ];
 
   return (
     <section className="bg-[hsl(var(--brand-red-deep))]">
-      <div className="container mx-auto px-5 sm:px-8 lg:px-16 max-w-[1200px]">
-        <div className="grid grid-cols-3 divide-x divide-white/10">
-          {stats.map((stat) => (
-            <div
-              key={stat.label}
-              className="flex flex-col items-center text-center py-10 sm:py-12 px-4"
-            >
-              <span
-                className="font-serif font-bold text-4xl sm:text-5xl lg:text-6xl leading-none tracking-tight"
-                style={{ color: 'hsl(var(--accent))' }}
-              >
-                {stat.value}
-              </span>
-              <span className="mt-2 text-base sm:text-lg font-semibold text-white tracking-wide">
-                {stat.label}
-              </span>
-              <span className="mt-1 text-xs text-white/50 hidden sm:block">
-                {stat.sub}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// ────────────────────────────────────────────────────────────────────────────
-// SECTION 3: Jalur Ilmu (Kurikulum)
-// ────────────────────────────────────────────────────────────────────────────
-function CurriculumSection() {
-  return (
-    <section className="bg-background">
       <div className="container mx-auto px-5 sm:px-8 lg:px-16 py-16 sm:py-20 max-w-[1200px]">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-12 items-end">
 
-        {/* Header */}
-        <div className="max-w-2xl mb-12">
-          <p className="text-xs font-semibold tracking-widest text-[hsl(var(--accent))] uppercase mb-3">
-            Jalur Ilmu
-          </p>
-          <h2 className="font-serif text-3xl sm:text-4xl font-bold text-foreground leading-tight">
-            Bukan Ceramah Acak.{' '}
-            <span className="text-primary">Kurikulum Terstruktur.</span>
-          </h2>
-          <p className="text-muted-foreground text-base mt-4 leading-relaxed max-w-xl">
-            Setiap kelas dirancang mengikuti urutan keilmuan madzhab Syafi'i — dari
-            fondasi fiqih tematik hingga kajian kitab-kitab klasik yang menjadi
-            rujukan ulama selama berabad-abad.
-          </p>
-        </div>
-
-        {/* Tiga tahapan — layout asimetris: satu besar, dua lebih kecil di sisi */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          {CURRICULUM_STAGES.map((stage, idx) => (
-            <div
-              key={stage.stage}
-              className={[
-                'relative flex flex-col rounded-xl overflow-hidden border',
-                idx === 0
-                  ? 'lg:col-span-1 bg-gradient-to-br from-primary to-[hsl(var(--brand-red-hover))] border-transparent text-white'
-                  : 'bg-card border-border',
-              ].join(' ')}
-            >
-              {/* Nomor tahap watermark */}
-              <span
-                className={[
-                  'absolute top-4 right-5 font-serif text-[80px] font-bold leading-none select-none pointer-events-none',
-                  idx === 0 ? 'text-white/10' : 'text-foreground/5',
-                ].join(' ')}
-              >
-                {stage.stage}
+          {/* Kiri: statement editorial */}
+          <div>
+            <p className="text-[11px] font-bold tracking-[0.2em] uppercase mb-5"
+              style={{ color: 'hsl(var(--accent))' }}>
+              Kenapa berbeda
+            </p>
+            <p className="font-serif text-2xl sm:text-3xl lg:text-[2.1rem] text-white font-bold leading-[1.4] max-w-3xl">
+              Bukan kumpulan ceramah yang dikemas ulang.{' '}
+              <span className="text-white/45">
+                Ini fiqih madzhab Syafi'i yang tersusun mengikuti urutan keilmuan
+                klasik — persis seperti yang dipelajari pengajar kami di Al-Azhar Kairo.
               </span>
+            </p>
+          </div>
 
-              <div className="relative z-10 p-7 flex flex-col flex-1">
+          {/* Kanan: tiga angka bold */}
+          <div className="flex flex-row lg:flex-col gap-8 lg:gap-7 lg:text-right">
+            {stats.map((stat) => (
+              <div key={stat.label} className="flex-1 lg:flex-none">
                 <p
-                  className={[
-                    'text-[10px] font-bold uppercase tracking-[0.15em] mb-2',
-                    idx === 0 ? 'text-[hsl(var(--accent))]' : 'text-[hsl(var(--accent))]',
-                  ].join(' ')}
+                  className="font-serif text-4xl sm:text-5xl font-bold leading-none"
+                  style={{ color: 'hsl(var(--accent))' }}
                 >
-                  {stage.subtitle}
+                  {stat.value}
                 </p>
-                <h3
-                  className={[
-                    'font-serif text-xl font-bold mb-3',
-                    idx === 0 ? 'text-white' : 'text-foreground',
-                  ].join(' ')}
-                >
-                  {stage.title}
-                </h3>
-                <p
-                  className={[
-                    'text-sm leading-relaxed mb-5',
-                    idx === 0 ? 'text-white/70' : 'text-muted-foreground',
-                  ].join(' ')}
-                >
-                  {stage.description}
-                </p>
-
-                {/* Topik-topik sebagai tag */}
-                <div className="mt-auto flex flex-wrap gap-2">
-                  {stage.topics.map((topic) => (
-                    <span
-                      key={topic}
-                      className={[
-                        'text-[11px] font-medium px-2.5 py-1 rounded-full',
-                        idx === 0
-                          ? 'bg-white/15 text-white/85'
-                          : 'bg-muted text-muted-foreground',
-                      ].join(' ')}
-                    >
-                      {topic}
-                    </span>
-                  ))}
-                </div>
+                <p className="text-xs text-white/40 mt-1.5 leading-tight">{stat.label}</p>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
 
-        <div className="mt-10 flex justify-start">
-          <Button asChild variant="outline" className="h-[44px] px-6 text-sm font-semibold rounded-[10px] border-2 border-[hsl(var(--accent))] text-[hsl(var(--accent))] hover:bg-[hsl(var(--accent))]/5">
-            <Link href="/katalog">
-              Lihat Semua Kelas
-              <ArrowRight className="ml-1.5 h-4 w-4" />
-            </Link>
-          </Button>
         </div>
       </div>
     </section>
@@ -377,7 +261,8 @@ function CurriculumSection() {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// SECTION 4: Pengajar (dipindah naik, sebelum kelas)
+// SECTION 3: Pengajar & Sanad
+// Naik ke posisi 3 (sebelum kurikulum) — establish kredibilitas lebih awal
 // ────────────────────────────────────────────────────────────────────────────
 function InstructorsSection({
   instructors,
@@ -387,71 +272,199 @@ function InstructorsSection({
   isLoading: boolean;
 }) {
   return (
-    <section className="bg-muted/30 border-y border-border">
+    <section className="bg-background border-b border-border">
       <div className="container mx-auto px-5 sm:px-8 lg:px-16 py-16 sm:py-20 max-w-[1200px]">
 
-        {/* Header — dua kolom: label kiri, teks kanan */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10 items-end">
-          <div className="lg:col-span-2">
-            <p className="text-xs font-semibold tracking-widest text-[hsl(var(--accent))] uppercase mb-3">
+        {/* Header: label vertikal + headline */}
+        <div className="grid grid-cols-1 lg:grid-cols-[200px_1fr] gap-8 mb-14 items-start">
+          <div className="lg:pt-1">
+            <p
+              className="text-[11px] font-bold tracking-[0.2em] uppercase"
+              style={{ color: 'hsl(var(--accent))' }}
+            >
               Pengajar
             </p>
-            <h2 className="font-serif text-3xl sm:text-4xl font-bold text-foreground leading-tight">
-              Ilmu yang Bersanad.{' '}
-              <span className="text-primary">Pengajar dari Kairo.</span>
-            </h2>
+            <div
+              className="hidden lg:block mt-4 w-px h-16"
+              style={{ background: 'linear-gradient(to bottom, hsl(var(--accent)), transparent)' }}
+              aria-hidden="true"
+            />
           </div>
-          <div className="lg:text-right">
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Setiap pengajar Markaz Fiqih menimba ilmu langsung di Kairo — bukan sekadar
-              praktisi, tapi penuntut ilmu yang meneruskan tradisi keilmuan klasik.
+          <div>
+            <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground leading-tight">
+              Berguru dari{' '}
+              <span className="text-primary">yang Berguru di Kairo.</span>
+            </h2>
+            <p className="text-muted-foreground text-base mt-4 leading-relaxed max-w-xl">
+              Tradisi keilmuan Islam diwariskan melalui sanad — rantai guru ke murid yang
+              menjaga validitas ilmu. Pengajar Markaz Fiqih menimba ilmu langsung di
+              Kairo, membawa tradisi itu untuk santri di Indonesia.
             </p>
           </div>
         </div>
 
-        {/* Grid pengajar — horizontal card dengan bio visible */}
+        {/* Grid pengajar */}
         {isLoading && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-28 rounded-xl bg-muted animate-pulse" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="h-32 rounded-2xl bg-muted animate-pulse" />
             ))}
           </div>
         )}
 
         {!isLoading && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {instructors.map((instructor) => (
               <div
                 key={instructor.id}
-                className="flex items-start gap-4 rounded-xl border border-border bg-card p-5 hover:shadow-md transition-shadow"
+                className="group relative rounded-2xl border border-border bg-card p-6 hover:border-[hsl(var(--accent))]/50 hover:shadow-md transition-all duration-200"
               >
-                <Avatar className="h-14 w-14 shrink-0 border-2 border-[hsl(var(--accent))]/30">
-                  <AvatarImage
-                    src={instructor.photoUrl}
-                    alt={instructor.name}
-                    loading="lazy"
-                  />
-                  <AvatarFallback className="bg-primary/10 text-primary text-sm font-bold">
-                    {instructor.name.split(' ').map((n) => n[0]).join('').substring(0, 2)}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <p className="text-base font-semibold text-foreground leading-tight">
-                    {instructor.name}
-                  </p>
-                  <p className="text-xs font-medium text-primary mt-0.5 mb-2">
-                    Pengajar Fiqih — Kairo, Mesir
-                  </p>
-                  {instructor.bio && (
-                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
-                      {instructor.bio}
+                {/* Garis atas gold saat hover */}
+                <div
+                  className="absolute top-0 left-6 right-6 h-[2px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                  style={{ background: 'linear-gradient(to right, hsl(var(--accent)), transparent)' }}
+                  aria-hidden="true"
+                />
+                <div className="flex items-start gap-4">
+                  <Avatar className="h-14 w-14 shrink-0 rounded-xl border border-border">
+                    <AvatarImage src={instructor.photoUrl} alt={instructor.name} loading="lazy" />
+                    <AvatarFallback className="rounded-xl bg-primary/10 text-primary text-sm font-bold">
+                      {instructor.name.split(' ').map((n) => n[0]).join('').substring(0, 2)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-base font-semibold text-foreground leading-snug">
+                      {instructor.name}
                     </p>
-                  )}
+                    <p
+                      className="text-xs font-semibold mt-0.5 mb-2"
+                      style={{ color: 'hsl(var(--accent))' }}
+                    >
+                      Al-Azhar · Kairo, Mesir
+                    </p>
+                    {instructor.bio && (
+                      <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
+                        {instructor.bio}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}
           </div>
         )}
+      </div>
+    </section>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// SECTION 4: Jalur Kurikulum — layout timeline, bukan 3 kartu grid setara
+// ────────────────────────────────────────────────────────────────────────────
+function CurriculumSection() {
+  return (
+    <section className="bg-muted/30">
+      <div className="container mx-auto px-5 sm:px-8 lg:px-16 py-16 sm:py-20 max-w-[1200px]">
+
+        {/* Header */}
+        <div className="grid grid-cols-1 lg:grid-cols-[200px_1fr] gap-8 mb-14 items-start">
+          <div className="lg:pt-1">
+            <p
+              className="text-[11px] font-bold tracking-[0.2em] uppercase"
+              style={{ color: 'hsl(var(--accent))' }}
+            >
+              Jalur Ilmu
+            </p>
+            <div
+              className="hidden lg:block mt-4 w-px h-16"
+              style={{ background: 'linear-gradient(to bottom, hsl(var(--accent)), transparent)' }}
+              aria-hidden="true"
+            />
+          </div>
+          <div>
+            <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground leading-tight">
+              Bukan Ceramah Acak.{' '}
+              <span className="text-primary">Kurikulum Terstruktur.</span>
+            </h2>
+            <p className="text-muted-foreground text-base mt-4 leading-relaxed max-w-xl">
+              Setiap kelas dirancang mengikuti urutan keilmuan madzhab Syafi'i — dari
+              fondasi fiqih tematik hingga kajian kitab-kitab klasik yang menjadi
+              rujukan ulama selama berabad-abad.
+            </p>
+          </div>
+        </div>
+
+        {/* Timeline: tiap tahap = satu baris penuh, bukan 1/3 kolom */}
+        <div className="divide-y divide-border">
+          {CURRICULUM_STAGES.map((stage, idx) => (
+            <div
+              key={stage.stage}
+              className="grid grid-cols-1 lg:grid-cols-[100px_1fr_auto] gap-5 lg:gap-10 py-10 items-start"
+            >
+              {/* Nomor tahap — sangat besar, jadi statement visual sendiri */}
+              <div className="flex lg:block items-center gap-3 lg:gap-0">
+                <span
+                  className="font-serif text-7xl sm:text-8xl font-bold leading-none select-none"
+                  style={{
+                    color: idx === 0
+                      ? 'hsl(var(--primary))'
+                      : 'hsl(var(--border))',
+                  }}
+                >
+                  {stage.stage}
+                </span>
+                {/* Label subtitle tampil di samping nomor di mobile */}
+                <p
+                  className="text-[10px] font-bold uppercase tracking-[0.18em] lg:hidden"
+                  style={{ color: 'hsl(var(--accent))' }}
+                >
+                  {stage.subtitle}
+                </p>
+              </div>
+
+              {/* Konten tengah */}
+              <div>
+                <p
+                  className="text-[10px] font-bold uppercase tracking-[0.18em] mb-2 hidden lg:block"
+                  style={{ color: 'hsl(var(--accent))' }}
+                >
+                  {stage.subtitle}
+                </p>
+                <h3 className="font-serif text-xl sm:text-2xl font-bold text-foreground mb-3 leading-snug">
+                  {stage.title}
+                </h3>
+                <p className="text-sm text-muted-foreground leading-relaxed max-w-lg">
+                  {stage.description}
+                </p>
+              </div>
+
+              {/* Tag topik — kanan di desktop, bawah konten di mobile */}
+              <div className="flex flex-wrap gap-2 lg:justify-end lg:max-w-[200px] lg:pt-8">
+                {stage.topics.map((topic) => (
+                  <span
+                    key={topic}
+                    className="text-[11px] font-medium px-3 py-1 rounded-full bg-background border border-border text-muted-foreground"
+                  >
+                    {topic}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-10 flex justify-start">
+          <Button
+            asChild
+            variant="outline"
+            className="h-[44px] px-6 text-sm font-semibold rounded-[10px] border-2 border-[hsl(var(--accent))] text-[hsl(var(--accent))] hover:bg-[hsl(var(--accent))]/5"
+          >
+            <Link href="/katalog">
+              Lihat Semua Kelas
+              <ArrowRight className="ml-1.5 h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
       </div>
     </section>
   );
@@ -473,7 +486,10 @@ function FeaturedClassesSection({
 
         <div className="flex items-end justify-between mb-8 gap-4">
           <div>
-            <p className="text-xs font-semibold tracking-widest text-[hsl(var(--accent))] uppercase mb-3">
+            <p
+              className="text-[11px] font-bold tracking-[0.2em] uppercase mb-3"
+              style={{ color: 'hsl(var(--accent))' }}
+            >
               Kelas Tersedia
             </p>
             <h2 className="font-serif text-3xl sm:text-4xl font-bold text-foreground leading-tight">
@@ -525,18 +541,10 @@ function FeaturedClassesSection({
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// SECTION 6: Galeri + Testimoni (digabung)
+// SECTION 6: Testimoni — dipisah dari galeri, format lebih kuat
+// Galeri foto dihapus — tidak menambah nilai pembeda
 // ────────────────────────────────────────────────────────────────────────────
-const GALLERY_PHOTOS = [
-  { src: '/gallery/foto-1.jpeg', alt: 'Suasana kajian santri Markaz Fiqih' },
-  { src: '/gallery/foto-2.jpeg', alt: 'Haflah Takrim Akademi Markaz Fiqih' },
-  { src: '/gallery/foto-3.jpeg', alt: 'Sesi pembelajaran bersama pengajar' },
-  { src: '/gallery/foto-4.jpeg', alt: 'Pengajian rutin Markaz Fiqih' },
-  { src: '/gallery/foto-5.jpeg', alt: 'Santri belajar fiqih bersama' },
-  { src: '/gallery/foto-6.jpeg', alt: 'Kajian bersama pengajar Markaz Fiqih' },
-];
-
-function CommunitySection({
+function TestimonialsSection({
   testimonials,
 }: {
   testimonials: Array<{
@@ -547,102 +555,103 @@ function CommunitySection({
     photoUrl: string | null;
   }>;
 }) {
+  if (testimonials.length === 0) return null;
+
   return (
-    <section className="bg-background">
+    <section className="bg-[hsl(var(--brand-red-tint))] border-y border-[hsl(var(--brand-red-border))]">
       <div className="container mx-auto px-5 sm:px-8 lg:px-16 py-16 sm:py-20 max-w-[1200px]">
 
         {/* Header */}
-        <div className="mb-10">
-          <p className="text-xs font-semibold tracking-widest text-[hsl(var(--accent))] uppercase mb-3">
-            Komunitas
-          </p>
+        <div className="grid grid-cols-1 lg:grid-cols-[200px_1fr] gap-8 mb-12 items-start">
+          <div className="lg:pt-1">
+            <p
+              className="text-[11px] font-bold tracking-[0.2em] uppercase"
+              style={{ color: 'hsl(var(--primary))' }}
+            >
+              Kata Santri
+            </p>
+            <div
+              className="hidden lg:block mt-4 w-px h-16"
+              style={{ background: 'linear-gradient(to bottom, hsl(var(--primary)), transparent)' }}
+              aria-hidden="true"
+            />
+          </div>
           <h2 className="font-serif text-3xl sm:text-4xl font-bold text-foreground leading-tight">
-            Belajar Bersama,{' '}
-            <span className="text-primary">Tumbuh Bersama.</span>
+            Mereka yang Sudah{' '}
+            <span className="text-primary">Merasakannya.</span>
           </h2>
         </div>
 
-        {/* Layout: galeri kiri (2 col) + testimoni kanan (1 col) pada desktop */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
-
-          {/* Galeri — mengambil 2/3 lebar */}
-          <div className="lg:col-span-2 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 gap-3">
-            {GALLERY_PHOTOS.map((photo, idx) => (
+        {/* Grid testimoni */}
+        <div
+          className={[
+            'grid gap-5',
+            testimonials.length === 1
+              ? 'grid-cols-1 max-w-2xl'
+              : 'grid-cols-1 lg:grid-cols-2',
+          ].join(' ')}
+        >
+          {testimonials.map((t, idx) => {
+            const initials = t.name
+              .split(' ')
+              .slice(0, 2)
+              .map((w) => w[0])
+              .join('')
+              .toUpperCase();
+            return (
               <div
-                key={idx}
+                key={t.id}
                 className={[
-                  'overflow-hidden rounded-xl',
-                  // Foto pertama lebih besar (2 kolom) di grid xl
-                  idx === 0 ? 'xl:col-span-2 aspect-[16/9]' : 'aspect-[4/3]',
+                  'relative rounded-2xl bg-white border border-[hsl(var(--brand-red-border))]/40 p-8 flex flex-col',
+                  // Testimoni pertama span 2 kolom jika ada 3+
+                  testimonials.length >= 3 && idx === 0 ? 'lg:col-span-2' : '',
                 ].join(' ')}
               >
-                <img
-                  src={photo.src}
-                  alt={photo.alt}
-                  loading="lazy"
-                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-                />
-              </div>
-            ))}
-          </div>
-
-          {/* Testimoni — 1/3 lebar, scroll vertikal */}
-          <div className="flex flex-col gap-4">
-            {testimonials.length === 0 && (
-              <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
-                Testimoni segera hadir.
-              </div>
-            )}
-            {testimonials.map((t) => {
-              const initials = t.name
-                .split(' ')
-                .slice(0, 2)
-                .map((w) => w[0])
-                .join('')
-                .toUpperCase();
-              return (
-                <div
-                  key={t.id}
-                  className="relative rounded-xl border border-[hsl(var(--brand-gold))]/25 bg-card p-6 overflow-hidden"
+                {/* Quote mark besar */}
+                <span
+                  className="font-serif font-bold leading-none select-none block mb-3"
+                  style={{ fontSize: '3.5rem', lineHeight: 1, color: 'hsl(var(--accent) / 0.25)' }}
+                  aria-hidden="true"
                 >
-                  {/* Aksen gold kiri */}
-                  <div className="absolute top-0 left-0 h-full w-[3px] rounded-l-xl bg-gradient-to-b from-[hsl(var(--accent))] to-[hsl(var(--accent))]/20" />
+                  &ldquo;
+                </span>
 
-                  {/* Quote mark besar */}
-                  <span
-                    className="font-serif text-5xl font-bold leading-none select-none"
-                    style={{ color: 'hsl(var(--accent) / 0.25)' }}
-                    aria-hidden="true"
-                  >
-                    &ldquo;
-                  </span>
-                  <p className="text-sm italic text-foreground leading-relaxed -mt-2 mb-5">
-                    {t.content}
-                  </p>
-                  <div className="flex items-center gap-3 pt-3 border-t border-border">
-                    {t.photoUrl ? (
-                      <img
-                        src={t.photoUrl}
-                        alt={t.name}
-                        loading="lazy"
-                        className="h-8 w-8 rounded-full object-cover shrink-0"
-                      />
-                    ) : (
-                      <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-white text-[10px] font-bold shrink-0">
-                        {initials}
-                      </div>
-                    )}
-                    <div>
-                      <p className="text-sm font-semibold text-foreground leading-tight">{t.name}</p>
-                      {t.role && (
-                        <p className="text-[11px] text-muted-foreground">{t.role}</p>
-                      )}
+                {/* Teks testimoni — lebih besar dari versi lama */}
+                <p
+                  className={[
+                    'text-foreground leading-relaxed flex-1 italic',
+                    idx === 0 && testimonials.length >= 3
+                      ? 'text-base sm:text-lg'
+                      : 'text-base',
+                  ].join(' ')}
+                >
+                  {t.content}
+                </p>
+
+                {/* Atribusi */}
+                <div className="flex items-center gap-3 mt-6 pt-5 border-t border-border">
+                  {t.photoUrl ? (
+                    <img
+                      src={t.photoUrl}
+                      alt={t.name}
+                      loading="lazy"
+                      className="h-10 w-10 rounded-full object-cover shrink-0"
+                    />
+                  ) : (
+                    <div className="h-10 w-10 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold shrink-0">
+                      {initials}
                     </div>
+                  )}
+                  <div>
+                    <p className="text-sm font-semibold text-foreground leading-tight">{t.name}</p>
+                    {t.role && (
+                      <p className="text-xs text-muted-foreground mt-0.5">{t.role}</p>
+                    )}
                   </div>
                 </div>
-              );
-            })}
-          </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>
@@ -650,7 +659,7 @@ function CommunitySection({
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// SECTION 7: Social / CTA bawah
+// SECTION 7: CTA Akhir + Social
 // ────────────────────────────────────────────────────────────────────────────
 function ContactSection({
   socialLinks,
@@ -663,8 +672,6 @@ function ContactSection({
     <section className="bg-gradient-to-br from-primary to-[hsl(var(--brand-red-hover))]">
       <div className="container mx-auto px-5 sm:px-8 lg:px-16 py-14 max-w-[1200px]">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-
-          {/* Kiri — teks */}
           <div>
             <h2 className="font-serif text-2xl sm:text-3xl font-bold text-white leading-tight mb-3">
               Ada pertanyaan tentang kelas?
@@ -674,8 +681,6 @@ function ContactSection({
               mendapat info kelas terbaru, jadwal kajian, dan cuplikan materi.
             </p>
           </div>
-
-          {/* Kanan — aksi */}
           <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row items-start sm:items-center lg:items-end gap-5">
             {contactPhone && (
               <a
@@ -706,7 +711,6 @@ function ContactSection({
               ))}
             </div>
           </div>
-
         </div>
       </div>
     </section>
@@ -737,7 +741,7 @@ function LandingFooter() {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// Halaman Landing
+// Halaman Landing — root
 // ────────────────────────────────────────────────────────────────────────────
 export default function LandingPage() {
   const { user, isLoading: isAuthLoading } = useAuth();
@@ -775,20 +779,17 @@ export default function LandingPage() {
       <Navbar />
 
       <main className="flex-1">
-        {/* 1. Hero — sudut naratif Kairo / sanad */}
+        {/* 1. Hero — narasi bersanad + kurikulum dari Kairo */}
         <HeroSection socialLinks={socialLinks} />
 
-        {/* 2. Stats bold — angka besar sebagai statement visual */}
-        <StatsSection
+        {/* 2. Manifesto + Stats — statement editorial, menggantikan stats section terpisah */}
+        <ManifestoSection
           totalClasses={allClasses.length}
           totalInstructors={instructors.length}
           studentCountLabel={settings?.studentCountLabel}
         />
 
-        {/* 3. Jalur Ilmu — kurikulum spesifik Markaz, bukan "5 langkah cara pakai" */}
-        <CurriculumSection />
-
-        {/* 4. Pengajar — naik sebelum kelas, establish kredibilitas dulu */}
+        {/* 3. Pengajar & Sanad — naik sebelum kurikulum, establish kredibilitas dulu */}
         {(instructorsQuery.isLoading || instructors.length > 0) && (
           <InstructorsSection
             instructors={instructors}
@@ -796,16 +797,19 @@ export default function LandingPage() {
           />
         )}
 
+        {/* 4. Jalur Kurikulum — timeline horizontal, bukan 3 kartu grid setara */}
+        <CurriculumSection />
+
         {/* 5. Kelas Pilihan */}
         <FeaturedClassesSection
           classes={featuredClasses}
           isLoading={classesQuery.isLoading}
         />
 
-        {/* 6. Komunitas — galeri + testimoni digabung */}
-        <CommunitySection testimonials={testimonials} />
+        {/* 6. Testimoni — section tersendiri tanpa galeri foto */}
+        <TestimonialsSection testimonials={testimonials} />
 
-        {/* 7. Social / kontak */}
+        {/* 7. CTA + Social */}
         <ContactSection
           socialLinks={socialLinks}
           contactPhone={settings?.contactPhone ?? null}
