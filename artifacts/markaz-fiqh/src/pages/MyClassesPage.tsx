@@ -24,7 +24,7 @@ import { listEnrollments, type EnrollmentItem } from '@/lib/db';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function formatDuration(min: number | null) {
-  if (!min) return '—';
+  if (!min) return '-';
   const h = Math.floor(min / 60);
   const m = min % 60;
   return h > 0 ? `${h} jam ${m > 0 ? m + ' mnt' : ''}` : `${m} mnt`;

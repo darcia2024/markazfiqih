@@ -69,7 +69,7 @@ type ClassDarsModule = { id: string; title: string; orderIndex: number; duration
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function formatDuration(min: number | null) {
-  if (!min) return '—';
+  if (!min) return '-';
   const h = Math.floor(min / 60);
   const m = min % 60;
   return h > 0 ? `${h} jam ${m > 0 ? m + ' mnt' : ''}` : `${m} menit`;
@@ -347,7 +347,7 @@ function PlaylistMode({
               {classCategory && relatedClasses.length > 0 && (
                 <div className="bg-card rounded-2xl border p-5 space-y-4">
                   <p className="text-sm font-semibold text-foreground">
-                    Kelas Lainnya{classCategory ? ` — ${classCategory}` : ''}
+                    Kelas Lainnya{classCategory ? `: ${classCategory}` : ''}
                   </p>
                   <div className="space-y-3">
                     {relatedClasses.map((cls) => (
@@ -585,7 +585,7 @@ function Sidebar({
                               {dars.title}
                             </p>
                             <p className="text-xs text-muted-foreground mt-0.5">
-                              {dars.durationMinutes ?? '—'} menit
+                              {dars.durationMinutes ?? '-'} menit
                             </p>
                           </div>
                         </button>
@@ -806,7 +806,7 @@ function LearnContent() {
                 <span className="text-xs text-muted-foreground">·</span>
                 <span className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Clock className="w-3 h-3" />
-                  {activeEntry.dars.durationMinutes ?? '—'} menit
+                  {activeEntry.dars.durationMinutes ?? '-'} menit
                 </span>
               </div>
             )}
@@ -936,7 +936,7 @@ function LearnContent() {
                           )}
                           <span className="flex-1 line-clamp-1">{d.title}</span>
                           <span className="text-xs text-muted-foreground shrink-0">
-                            {d.durationMinutes ?? '—'} mnt
+                            {d.durationMinutes ?? '-'} mnt
                           </span>
                         </button>
                       </li>

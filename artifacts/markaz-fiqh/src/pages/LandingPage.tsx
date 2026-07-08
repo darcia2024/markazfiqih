@@ -70,7 +70,7 @@ const CURRICULUM_STAGES = [
     subtitle: 'Eksplorasi',
     topics: ['Jelajahi Katalog', 'Paket Bundle', 'Filter Level'],
     description:
-      'Telusuri katalog kelas fiqih sesuai minat dan levelmu — dari pemula hingga kajian kitab. Temukan yang cocok, lalu tambahkan satu atau beberapa kelas sekaligus ke keranjang.',
+      'Telusuri katalog kelas fiqih sesuai minat dan levelmu, dari pemula hingga kajian kitab. Temukan yang cocok, lalu tambahkan satu atau beberapa kelas sekaligus ke keranjang.',
   },
   {
     stage: '02',
@@ -78,7 +78,7 @@ const CURRICULUM_STAGES = [
     subtitle: 'Pembayaran',
     topics: ['QRIS', 'Virtual Account', 'Akses Instan'],
     description:
-      'Bayar lewat QRIS, e-wallet, virtual account, atau kartu — selesai dalam hitungan menit. Begitu pembayaran terverifikasi, kelas langsung terbuka otomatis di akunmu.',
+      'Bayar lewat QRIS, e-wallet, virtual account, atau kartu, selesai dalam hitungan menit. Begitu pembayaran terverifikasi, kelas langsung terbuka otomatis di akunmu.',
   },
   {
     stage: '03',
@@ -86,7 +86,7 @@ const CURRICULUM_STAGES = [
     subtitle: 'Pembelajaran',
     topics: ['Akses Selamanya', 'Progress Otomatis', 'Video On-Demand'],
     description:
-      'Tonton materi kapan saja dan di mana saja sesuai waktumu. Progress belajar tersimpan otomatis — lanjutkan dari mana kamu berhenti tanpa kehilangan catatan.',
+      'Tonton materi kapan saja dan di mana saja sesuai waktumu. Progress belajar tersimpan otomatis, lanjutkan dari mana kamu berhenti tanpa kehilangan catatan.',
   },
 ];
 
@@ -170,7 +170,7 @@ function HeroSection({
               &ldquo;Membumikan Fikih dalam Tiap Lini Masyarakat&rdquo;
             </p>
             <p className="text-xs font-medium text-white/35 tracking-widest uppercase">
-              — Markaz Fiqih
+              Markaz Fiqih
             </p>
             <div className="h-px w-16 bg-gradient-to-r from-transparent via-[hsl(var(--accent))]/60 to-transparent" />
           </div>
@@ -219,7 +219,7 @@ function CurriculumSection() {
         </p>
 
         <h2 className="font-serif text-4xl sm:text-5xl font-bold text-foreground max-w-2xl leading-tight">
-          Dari cari kelas sampai mulai belajar —{' '}
+          Dari cari kelas sampai mulai belajar,{' '}
           <span className="text-primary">cuma butuh 3 langkah.</span>
         </h2>
 
@@ -377,7 +377,7 @@ function MethodologySection() {
           <p className="text-muted-foreground text-base mt-4 leading-relaxed">
             Markaz Fiqih berpijak pada fikih madzhab Syafi&rsquo;i yang solutif, dengan
             tetap terbuka terhadap pendapat mazhab lain selama termasuk pendapat yang
-            mu&rsquo;tabar — diakui validitasnya dalam tradisi keilmuan Islam.
+            mu&rsquo;tabar, diakui validitasnya dalam tradisi keilmuan Islam.
           </p>
         </div>
 

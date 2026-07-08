@@ -360,7 +360,7 @@ export default function ClassDetailPage() {
                                       <Lock className="w-4 h-4 text-muted-foreground shrink-0" />
                                     )}
                                     <span>
-                                      Pelajaran {darsIdx + 1} — {mod.title}
+                                      Pelajaran {darsIdx + 1}: {mod.title}
                                     </span>
                                   </div>
                                 );

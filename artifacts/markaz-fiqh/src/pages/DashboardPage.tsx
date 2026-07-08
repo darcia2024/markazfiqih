@@ -55,7 +55,7 @@ function formatTanggal(): string {
 }
 
 function formatDuration(min: number | null) {
-  if (!min) return '—';
+  if (!min) return '-';
   const h = Math.floor(min / 60);
   const m = min % 60;
   return h > 0 ? `${h} jam ${m > 0 ? m + ' mnt' : ''}` : `${m} mnt`;
@@ -89,7 +89,7 @@ function AchievementBadges({ totalCompleted }: { totalCompleted: number }) {
           return (
             <div
               key={badge.id}
-              title={`${badge.label} — ${badge.description}${!unlocked ? ` (butuh ${badge.threshold} kelas selesai)` : ''}`}
+              title={`${badge.label}: ${badge.description}${!unlocked ? ` (butuh ${badge.threshold} kelas selesai)` : ''}`}
               className={`flex flex-col items-center gap-1.5 text-center p-3 rounded-xl border transition-opacity ${
                 unlocked
                   ? 'border-[hsl(var(--accent))]/30 bg-[hsl(var(--accent))]/5'
@@ -248,7 +248,7 @@ function StatsSummary({ enrollments }: { enrollments: EnrollmentItem[] }) {
     ? totalMinutes >= 60
       ? `${Math.floor(totalMinutes / 60)} jam`
       : `${totalMinutes} mnt`
-    : '—';
+    : '-';
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 rounded-xl border bg-card p-5 shadow-sm">
@@ -425,7 +425,7 @@ function DashboardContent() {
                   <div className="flex-1 text-center sm:text-left">
                     <p className="font-semibold text-foreground text-sm">Tambah kelas baru</p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      Masih banyak ilmu fiqih yang bisa dipelajari — temukan kelas lainnya di
+                      Masih banyak ilmu fiqih yang bisa dipelajari, temukan kelas lainnya di
                       katalog.
                     </p>
                   </div>

@@ -549,7 +549,7 @@ function CartContent() {
           </button>
           <h1 className="font-serif text-2xl font-bold text-foreground">Simulasi Pembayaran</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Mode pengembangan — pembayaran Mayar belum aktif.
+            Mode pengembangan: pembayaran Mayar belum aktif.
           </p>
         </motion.div>
 

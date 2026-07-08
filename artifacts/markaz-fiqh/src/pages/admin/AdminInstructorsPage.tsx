@@ -316,7 +316,7 @@ export default function AdminInstructorsPage() {
                 <Textarea
                   id="instructor-bio"
                   value={form.bio}
-                  placeholder="Pendek saja — latar belakang, spesialisasi, atau lembaga tempat mengajar."
+                  placeholder="Pendek saja: latar belakang, spesialisasi, atau lembaga tempat mengajar."
                   onChange={(e) => setForm((p) => ({ ...p, bio: e.target.value }))}
                   data-testid="input-instructor-bio"
                   rows={3}
@@ -354,8 +354,8 @@ export default function AdminInstructorsPage() {
                     <p className="text-sm font-medium text-foreground">Status Pengajar</p>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       {form.isActive
-                        ? 'Aktif — tampil di katalog dan landing page'
-                        : 'Nonaktif — tersembunyi dari tampilan publik'}
+                        ? 'Aktif: tampil di katalog dan landing page'
+                        : 'Nonaktif: tersembunyi dari tampilan publik'}
                     </p>
                   </div>
                   <Switch

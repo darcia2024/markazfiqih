@@ -125,7 +125,7 @@ export default function AdminOrdersPage() {
                       const displayStatus = toDisplayStatus(inv.status);
                       const itemLabel =
                         inv.items.length === 0
-                          ? '—'
+                          ? '-'
                           : inv.items.length === 1
                           ? inv.items[0].title
                           : `${inv.items[0].title} +${inv.items.length - 1} lainnya`;

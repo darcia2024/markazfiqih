@@ -18,7 +18,7 @@ export default function AdminDashboardPage() {
       icon: GraduationCap,
       hint: data
         ? `${data.publishedClasses} Published, ${data.draftClasses} Draft`
-        : '—',
+        : '-',
     },
     {
       title: 'Pesanan Tertunda',
@@ -88,11 +88,11 @@ export default function AdminDashboardPage() {
           <CardContent className="text-sm text-muted-foreground space-y-2">
             <p>Gunakan menu di samping untuk mengelola konten platform:</p>
             <ul className="list-disc list-inside space-y-1">
-              <li>Manajemen Kelas — kelola daftar kelas dan status publikasinya</li>
-              <li>Pesanan — pantau pesanan dari database</li>
-              <li>Pengajar — tambah dan kelola data instruktur</li>
-              <li>Testimoni — kelola testimoni santri di halaman utama</li>
-              <li>Pengaturan — konfigurasi informasi situs</li>
+              <li>Manajemen Kelas: kelola daftar kelas dan status publikasinya</li>
+              <li>Pesanan: pantau pesanan dari database</li>
+              <li>Pengajar: tambah dan kelola data instruktur</li>
+              <li>Testimoni: kelola testimoni santri di halaman utama</li>
+              <li>Pengaturan: konfigurasi informasi situs</li>
             </ul>
           </CardContent>
         </Card>
