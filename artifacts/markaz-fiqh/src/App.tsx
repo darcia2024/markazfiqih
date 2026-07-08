@@ -22,6 +22,7 @@ import AdminInstructorsPage from '@/pages/admin/AdminInstructorsPage';
 import AdminOrdersPage from '@/pages/admin/AdminOrdersPage';
 import AdminTestimonialsPage from '@/pages/admin/AdminTestimonialsPage';
 import AdminSettingsPage from '@/pages/admin/AdminSettingsPage';
+import AdminManageAdminsPage from '@/pages/admin/AdminManageAdminsPage';
 import BundlesPage from '@/pages/BundlesPage';
 
 const queryClient = new QueryClient();
@@ -56,6 +57,9 @@ function Router() {
       </Route>
       <Route path="/admin/settings">
         {() => <RequireAdminRoute><AdminSettingsPage /></RequireAdminRoute>}
+      </Route>
+      <Route path="/admin/manage-admins">
+        {() => <RequireAdminRoute><AdminManageAdminsPage /></RequireAdminRoute>}
       </Route>
       <Route component={NotFound} />
     </Switch>

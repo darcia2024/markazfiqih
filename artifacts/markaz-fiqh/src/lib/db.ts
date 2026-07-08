@@ -265,6 +265,51 @@ export async function deleteInstructor(id: string) {
   if (error) throw error;
 }
 
+// ─── ADMIN INVITES ────────────────────────────────────────────────────────────
+
+export async function listAdminInvites() {
+  const { data, error } = await supabase
+    .from('admin_invites')
+    .select('id, email, created_at, redeemed_at')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((i: any) => ({
+    id: i.id as string,
+    email: i.email as string,
+    createdAt: i.created_at as string,
+    redeemedAt: i.redeemed_at as string | null,
+  }));
+}
+
+export async function createAdminInvite(email: string, invitedBy: string) {
+  const { error } = await supabase
+    .from('admin_invites')
+    .insert({ email: email.toLowerCase().trim(), invited_by: invitedBy });
+  if (error) throw error;
+}
+
+export async function deleteAdminInvite(id: string) {
+  const { error } = await supabase.from('admin_invites').delete().eq('id', id);
+  if (error) throw error;
+}
+
+/**
+ * Panggil edge function check-admin-invite setelah login berhasil.
+ * Mem-promote user jadi admin secara otomatis kalau emailnya ada di daftar
+ * admin_invites yang belum di-redeem. Aman dipanggil berkali-kali (no-op
+ * kalau tidak ada invite yang cocok).
+ */
+export async function checkAdminInvite(): Promise<{ promoted: boolean }> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return { promoted: false };
+  const { data, error } = await supabase.functions.invoke('check-admin-invite');
+  if (error) {
+    console.error('Gagal memeriksa undangan admin:', error);
+    return { promoted: false };
+  }
+  return { promoted: Boolean(data?.promoted) };
+}
+
 // ─── TESTIMONIALS ─────────────────────────────────────────────────────────────
 
 export async function listTestimonials() {

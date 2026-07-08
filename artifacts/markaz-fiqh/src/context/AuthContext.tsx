@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { useLocation } from 'wouter';
 import { type User as SupabaseUser, type Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { checkAdminInvite } from '@/lib/db';
 
 export type User = {
   id: string;
@@ -69,11 +70,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {
         if (!mounted) return;
         if (session?.user) {
-          const appUser = await buildUser(session.user, session);
+          let appUser = await buildUser(session.user, session);
           if (mounted) setUser(appUser);
+
+          // Hanya saat SIGNED_IN (login pertama sesi ini), bukan setiap kali
+          // auth state berubah, supaya tidak dipanggil berulang-ulang untuk
+          // user yang sudah lama login.
+          if (event === 'SIGNED_IN') {
+            try {
+              const { promoted } = await checkAdminInvite();
+              if (promoted && mounted) {
+                appUser = await buildUser(session.user, session);
+                if (mounted) setUser(appUser);
+              }
+            } catch (error) {
+              console.error('Gagal memeriksa undangan admin:', error);
+            }
+          }
         } else {
           if (mounted) setUser(null);
         }
