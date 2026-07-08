@@ -1018,3 +1018,49 @@ export async function getInvoice(invoiceId: string): Promise<LocalInvoice> {
     })),
   };
 }
+
+// ── Dashboard Messages ────────────────────────────────────────────────────────
+
+export async function listActiveDashboardMessages() {
+  const { data, error } = await supabase
+    .from('dashboard_messages')
+    .select('id, message')
+    .eq('is_active', true);
+  if (error) throw error;
+  return (data ?? []).map((m: any) => ({ id: m.id as string, message: m.message as string }));
+}
+
+export async function listAllDashboardMessages() {
+  const { data, error } = await supabase
+    .from('dashboard_messages')
+    .select('id, message, is_active, created_at')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((m: any) => ({
+    id: m.id as string,
+    message: m.message as string,
+    isActive: m.is_active as boolean,
+    createdAt: m.created_at as string,
+  }));
+}
+
+export async function createDashboardMessage(message: string) {
+  const { error } = await supabase.from('dashboard_messages').insert({ message });
+  if (error) throw error;
+}
+
+export async function updateDashboardMessage(
+  id: string,
+  updates: { message?: string; isActive?: boolean },
+) {
+  const payload: any = {};
+  if (updates.message !== undefined) payload.message = updates.message;
+  if (updates.isActive !== undefined) payload.is_active = updates.isActive;
+  const { error } = await supabase.from('dashboard_messages').update(payload).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteDashboardMessage(id: string) {
+  const { error } = await supabase.from('dashboard_messages').delete().eq('id', id);
+  if (error) throw error;
+}

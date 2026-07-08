@@ -21,9 +21,10 @@ import { AppShell } from '@/components/AppShell';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useMemo } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useQuery } from '@tanstack/react-query';
-import { listEnrollments, type EnrollmentItem } from '@/lib/db';
+import { listEnrollments, listActiveDashboardMessages, type EnrollmentItem } from '@/lib/db';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function getGreeting(): string {
@@ -34,16 +35,7 @@ function getGreeting(): string {
   return 'Selamat Malam';
 }
 
-const MOTIVASI = [
-  'Lanjutkan perjalanan menuntut ilmumu.',
-  'Konsistensi kecil hari ini, hasil besar nanti.',
-  'Semoga ilmu yang dipelajari hari ini berkah.',
-  'Satu pelajaran hari ini lebih baik dari tidak sama sekali.',
-];
-
-function getMotivasi(): string {
-  return MOTIVASI[Math.floor(Math.random() * MOTIVASI.length)];
-}
+const MOTIVASI_FALLBACK = 'Semoga ilmu yang dipelajari hari ini berkah.';
 
 function formatTanggal(): string {
   return new Date().toLocaleDateString('id-ID', {
@@ -350,6 +342,18 @@ function DashboardContent() {
     enabled: !!user?.id,
   });
 
+  const { data: dashboardMessages = [] } = useQuery({
+    queryKey: ['dashboard-messages'],
+    queryFn: listActiveDashboardMessages,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Pilih satu pesan secara acak setiap kali data selesai dimuat.
+  const motivasi = useMemo(() => {
+    if (dashboardMessages.length === 0) return MOTIVASI_FALLBACK;
+    return dashboardMessages[Math.floor(Math.random() * dashboardMessages.length)].message;
+  }, [dashboardMessages]);
+
   const search = new URLSearchParams(window.location.search);
   const showEmpty = search.get('demo') === 'empty';
   const classesToShow = showEmpty ? [] : enrollments;
@@ -381,7 +385,7 @@ function DashboardContent() {
               Assalamu'alaikum,{' '}
               {user?.nickname ?? user?.name?.split(' ')[0] ?? 'Sahabat'}!
             </h1>
-            <p className="text-muted-foreground mt-2 text-sm">{getMotivasi()}</p>
+            <p className="text-muted-foreground mt-2 text-sm">{motivasi}</p>
           </div>
           <p className="hidden sm:block text-sm text-muted-foreground shrink-0 pt-1">
             {formatTanggal()}

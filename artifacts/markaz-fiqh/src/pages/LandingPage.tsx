@@ -55,11 +55,11 @@ function buildSocialLinks(settings?: {
 
 // ── Data galeri foto ──────────────────────────────────────────────────────────
 const GALLERY_PHOTOS = [
-  { src: '/gallery/foto-1.jpeg', alt: 'Kegiatan belajar Markaz Fiqih' },
   { src: '/gallery/foto-2.jpeg', alt: 'Kajian kitab turats' },
+  { src: '/gallery/foto-5.jpeg', alt: 'Diskusi pelajar Markaz Fiqih' },
   { src: '/gallery/foto-3.jpeg', alt: 'Sesi tanya jawab bersama pengajar' },
   { src: '/gallery/foto-4.jpeg', alt: 'Suasana pembelajaran online' },
-  { src: '/gallery/foto-5.jpeg', alt: 'Diskusi pelajar Markaz Fiqih' },
+  { src: '/gallery/foto-1.jpeg', alt: 'Kegiatan belajar Markaz Fiqih' },
   { src: '/gallery/foto-6.jpeg', alt: 'Pengajar Al-Azhar Kairo' },
 ];
 

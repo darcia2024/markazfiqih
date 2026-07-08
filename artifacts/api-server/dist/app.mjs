@@ -64905,6 +64905,7 @@ var classesTable = pgTable("classes", {
   youtubePlaylistId: text("youtube_playlist_id"),
   gdriveMateriUrl: text("gdrive_materi_url"),
   waGroupUrl: text("wa_group_url"),
+  displayOrder: integer("display_order").notNull().default(0),
   instructorId: uuid("instructor_id").notNull().references(() => instructorsTable.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => /* @__PURE__ */ new Date())
