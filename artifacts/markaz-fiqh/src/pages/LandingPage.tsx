@@ -140,28 +140,18 @@ function HeroSection({
             </span>
           </div>
 
-          {/* 2. Judul besar — teks dan aksen gold tetap */}
-          <h1 className="font-serif font-bold text-white leading-[1.05] tracking-tight">
-            <span className="block text-5xl sm:text-6xl lg:text-7xl">
-              Fiqih yang
-            </span>
-            <span
-              className="block text-5xl sm:text-6xl lg:text-7xl"
-              style={{ color: 'hsl(var(--accent))' }}
-            >
-              Bersanad.
-            </span>
-            <span className="block text-2xl sm:text-3xl lg:text-4xl text-white/80 font-normal mt-3 font-sans">
-              Kurikulum dari Kairo.
-            </span>
+          {/* 2. Judul — simpel, satu baris pesan sambutan */}
+          <h1 className="font-serif font-bold text-white leading-[1.1] tracking-tight text-4xl sm:text-5xl lg:text-6xl max-w-3xl">
+            Selamat Datang di Kelas{' '}
+            <span style={{ color: 'hsl(var(--accent))' }}>Markaz Fiqih</span>
           </h1>
 
           {/* 3. Paragraf deskripsi — max-w-2xl supaya enak dibaca saat di-center */}
-          <p className="text-white/70 text-base mt-7 leading-relaxed max-w-2xl">
-            Markaz Fiqih lahir dari komunitas masisir Indonesia di Kairo — bukan
-            startup kursus online. Kami belajar fiqih madzhab Syafi'i langsung di
-            Al-Azhar, dan kami ingin mengajarkannya dengan cara yang sama: tersusun,
-            bersanad, dari thaharah hingga kajian kitab klasik.
+          <p className="text-white/70 text-base mt-6 leading-relaxed max-w-2xl">
+            Tempat belajar fiqih madzhab Syafi'i yang tersusun dan bersanad —
+            dibangun langsung oleh komunitas masisir Indonesia di Al-Azhar, Kairo.
+            Dari thaharah sampai kajian kitab klasik, semua dirancang agar kamu
+            paham bertahap, bukan sekadar mengejar materi.
           </p>
 
           {/* 4. Quote misi — dipindah ke alur utama, di bawah deskripsi */}
@@ -181,9 +171,15 @@ function HeroSection({
             <Button
               asChild
               size="lg"
-              className="h-[48px] px-8 text-sm font-semibold rounded-[10px] bg-[hsl(var(--accent))] text-white hover:bg-[hsl(var(--brand-gold-hover))] shadow-lg"
+              className="relative h-[48px] px-8 text-sm font-semibold rounded-[10px] bg-white/5 text-white border-2 border-[hsl(var(--accent))] hover:bg-[hsl(var(--accent))]/10 shadow-lg overflow-hidden"
             >
-              <Link href="/katalog">Mulai Belajar</Link>
+              <Link href="/katalog" className="relative">
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-0 animate-gold-shimmer pointer-events-none"
+                />
+                <span className="relative z-10">Mulai Belajar</span>
+              </Link>
             </Button>
             <Button
               asChild
