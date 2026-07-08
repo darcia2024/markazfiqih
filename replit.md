@@ -1,58 +1,53 @@
 # Markaz Fiqh
 
-Platform belajar fiqih madzhab Syafi'i secara terstruktur — kelas, modul, dan pengajar.
-
-## Run & Operate
-
-- **Frontend** (port 5000): `PORT=5000 BASE_PATH=/ pnpm --filter @workspace/markaz-fiqh run dev`
-- **API Server** (port 8080): `PORT=8080 pnpm --filter @workspace/api-server run dev`
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required secrets & env vars (set via Replit Secrets / Env Vars):
-  - `VITE_SUPABASE_URL` *(env var)* — Supabase project URL (Settings → API → Project URL); juga dipakai backend sebagai fallback `SUPABASE_URL`
-  - `VITE_SUPABASE_ANON_KEY` *(secret)* — Supabase anon/public key (Settings → API → Project API Keys)
-  - `SUPABASE_SERVICE_ROLE_KEY` *(secret)* — service_role key untuk auth backend (Settings → API → Project API Keys)
-  - `FRONTEND_URL` *(env var)* — URL frontend di Replit, dipakai untuk CORS backend
-  - `ADMIN_USER_IDS` *(env var)* — UUID Supabase user admin, pisahkan koma
-  - `SESSION_SECRET` *(secret)* — sudah diset, tersedia jika dibutuhkan
+Platform belajar fiqih online madzhab Syafi'i — pnpm monorepo dengan React frontend dan Express backend, menggunakan Supabase untuk database dan autentikasi.
 
 ## Stack
 
-- pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+| Layer | Tech |
+|---|---|
+| Frontend | React + Vite (`artifacts/markaz-fiqh`) |
+| Backend | Express 5 (`artifacts/api-server`) |
+| Database / Auth | Supabase (PostgreSQL + Google OAuth) |
+| Payments | Mayar.id (skeleton, belum aktif) |
+| Runtime | Node.js 22 |
+| Package manager | pnpm (workspace monorepo) |
 
-## Where things live
+## Cara menjalankan
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+Dua workflow sudah dikonfigurasi dan berjalan otomatis:
 
-## Architecture decisions
+| Workflow | Command | Port |
+|---|---|---|
+| Start application | `PORT=5000 BASE_PATH=/ pnpm --filter @workspace/markaz-fiqh run dev` | 5000 |
+| Backend API | `PORT=8080 pnpm --filter @workspace/api-server run dev` | 8080 |
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+## Environment variables / secrets yang dibutuhkan
 
-## Product
+| Key | Keterangan | Dimana |
+|---|---|---|
+| `VITE_SUPABASE_URL` | URL project Supabase (public) | Supabase → Project Settings → API |
+| `VITE_SUPABASE_ANON_KEY` | Anon public key | Supabase → Project Settings → API |
+| `SUPABASE_URL` | URL project Supabase (backend) | sama dengan VITE_SUPABASE_URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role key (rahasia) | Supabase → Project Settings → API |
+| `SUPABASE_DATABASE_URL` | Connection string PostgreSQL | Supabase → Project Settings → Database |
+| `ADMIN_USER_IDS` | UUID user yang boleh akses `/admin`, dipisah koma | set manual |
+| `SESSION_SECRET` | Secret untuk session | set manual |
+| `MAYAR_API_KEY` | API key Mayar.id (opsional) | Mayar Dashboard |
+| `MAYAR_WEBHOOK_SECRET` | Webhook secret Mayar.id (opsional) | Mayar Dashboard |
 
-Platform belajar fiqih Syafi'i dengan fitur:
-- Katalog kelas individual + halaman Paket Bundle (`/paket-bundle`)
-- Keranjang belanja mendukung kelas individual **dan** bundle
-- Checkout via Supabase Edge Function → Mayar payment gateway (mode dev: simulasi)
-- Enrollment otomatis setelah pembayaran confirmed
-- Dashboard siswa, halaman "Kelas Saya", progress belajar
-- Admin panel (kelas, instruktur, pesanan, testimonial, pengaturan)
+## Struktur monorepo
+
+```
+artifacts/
+  markaz-fiqh/     # Frontend React + Vite
+  api-server/      # Backend Express API
+  mockup-sandbox/  # UI mockup dev server
+packages/          # Shared libs (db, api-zod, dll)
+attached_assets/   # Dokumen PRD dan aset desain
+```
 
 ## User preferences
 
-- Jangan migrasi ke Replit DB — tetap pakai Supabase (database + auth + edge functions)
-
-## Gotchas
-
-_Populate as you build — sharp edges, "always run X before Y" rules._
-
-## Pointers
-
-- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+- Jangan migrasi database ke Replit — tetap pakai Supabase
+- Pertahankan struktur monorepo yang ada
