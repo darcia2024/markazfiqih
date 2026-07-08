@@ -631,12 +631,6 @@ function TestimonialsSection({
         {/* Grid 4 card ringkas: 4 kolom desktop, 2 tablet, 1 mobile */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {testimonials.map((t) => {
-            const initials = t.name
-              .split(' ')
-              .slice(0, 2)
-              .map((w) => w[0])
-              .join('')
-              .toUpperCase();
             return (
               <div
                 key={t.id}
@@ -656,26 +650,12 @@ function TestimonialsSection({
                   {t.content}
                 </p>
 
-                {/* Footer: avatar + nama + role */}
-                <div className="flex items-center gap-2.5 mt-5 pt-4 border-t border-border">
-                  {t.photoUrl ? (
-                    <img
-                      src={t.photoUrl}
-                      alt={t.name}
-                      loading="lazy"
-                      className="h-8 w-8 rounded-full object-cover shrink-0"
-                    />
-                  ) : (
-                    <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-white text-[11px] font-bold shrink-0">
-                      {initials}
-                    </div>
+                {/* Footer: nama + role (tanpa foto/avatar) */}
+                <div className="mt-5 pt-4 border-t border-border">
+                  <p className="text-xs font-semibold text-foreground leading-tight truncate">{t.name}</p>
+                  {t.role && (
+                    <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{t.role}</p>
                   )}
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold text-foreground leading-tight truncate">{t.name}</p>
-                    {t.role && (
-                      <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{t.role}</p>
-                    )}
-                  </div>
                 </div>
               </div>
             );
