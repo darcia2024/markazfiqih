@@ -140,8 +140,8 @@ function HeroSection({
             </span>
           </div>
 
-          {/* 2. Judul — simpel, satu baris pesan sambutan */}
-          <h1 className="font-serif font-bold text-white leading-[1.1] tracking-tight text-4xl sm:text-5xl lg:text-6xl max-w-3xl">
+          {/* 2. Judul — simpel, satu baris pesan sambutan, ukuran besar */}
+          <h1 className="font-serif font-bold text-white leading-[1.1] tracking-tight text-5xl sm:text-6xl lg:text-7xl max-w-4xl">
             Selamat Datang di Kelas{' '}
             <span style={{ color: 'hsl(var(--accent))' }}>Markaz Fiqih</span>
           </h1>
@@ -171,15 +171,9 @@ function HeroSection({
             <Button
               asChild
               size="lg"
-              className="relative h-[48px] px-8 text-sm font-semibold rounded-[10px] bg-white/5 text-white border-2 border-[hsl(var(--accent))] hover:bg-[hsl(var(--accent))]/10 shadow-lg overflow-hidden"
+              className="h-[48px] px-8 text-sm font-semibold rounded-[10px] bg-white/5 text-white border-2 border-[hsl(var(--accent)/0.3)] hover:bg-[hsl(var(--accent))]/10 shadow-lg animate-gold-border"
             >
-              <Link href="/katalog" className="relative">
-                <span
-                  aria-hidden="true"
-                  className="absolute inset-0 animate-gold-shimmer pointer-events-none"
-                />
-                <span className="relative z-10">Mulai Belajar</span>
-              </Link>
+              <Link href="/katalog">Mulai Belajar</Link>
             </Button>
             <Button
               asChild

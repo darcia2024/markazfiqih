@@ -169,26 +169,45 @@
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-@keyframes gold-shimmer {
-  0% {
-    background-position: -150% 0;
-  }
-  100% {
-    background-position: 250% 0;
+@property --border-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes border-spin {
+  to {
+    --border-angle: 360deg;
   }
 }
 
-@utility animate-gold-shimmer {
-  background-image: linear-gradient(
-    100deg,
-    transparent 30%,
-    hsl(var(--accent) / 0.55) 48%,
-    hsl(var(--accent) / 0.9) 50%,
-    hsl(var(--accent) / 0.55) 52%,
-    transparent 70%
-  );
-  background-size: 250% 100%;
-  animation: gold-shimmer 3s ease-in-out infinite;
+@utility animate-gold-border {
+  position: relative;
+  z-index: 0;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    padding: 2px;
+    background: conic-gradient(
+      from var(--border-angle),
+      transparent 0%,
+      transparent 55%,
+      hsl(var(--accent) / 0.35) 68%,
+      hsl(var(--accent)) 75%,
+      white 78%,
+      hsl(var(--accent)) 81%,
+      hsl(var(--accent) / 0.35) 88%,
+      transparent 100%
+    );
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation: border-spin 2.8s linear infinite;
+    pointer-events: none;
+  }
 }
 
 @layer base {
