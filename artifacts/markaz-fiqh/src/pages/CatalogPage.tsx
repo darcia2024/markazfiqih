@@ -426,6 +426,30 @@ function EmptyState({ onReset }: { onReset: () => void }) {
   );
 }
 
+const CATEGORY_ORDER = ['Fiqih Tematik', 'Fiqih Kitab', 'Akademi'];
+
+// ── Section per Kategori (Grouping saat "Semua Kategori" aktif) ────────────
+function CategorySection({
+  category,
+  classes,
+  enrolledClassIds,
+}: {
+  category: string;
+  classes: ClassSummary[];
+  enrolledClassIds: Set<string>;
+}) {
+  return (
+    <div className="space-y-4">
+      <h2 className="text-xl font-semibold text-foreground">{category}</h2>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        {classes.map((cls, idx) => (
+          <ClassCard key={cls.id} cls={cls} index={idx} enrolledClassIds={enrolledClassIds} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Halaman Katalog ───────────────────────────────────────────────────────
 function CatalogContent() {
   const searchParamsString = useSearch();
@@ -494,6 +518,21 @@ function CatalogContent() {
 
   const isLoading = classesQuery.isLoading;
   const isEmpty = !isLoading && classes.length === 0;
+
+  // Saat "Semua Kategori" aktif, kelompokkan kelas berdasarkan kategori —
+  // hanya tampilkan heading kategori yang benar-benar punya kelas.
+  const groupedByCategory = useMemo(() => {
+    if (category !== 'all') return null;
+    const groups = new Map<string, ClassSummary[]>();
+    for (const cls of sortedClasses) {
+      const cat = cls.category || 'Lainnya';
+      if (!groups.has(cat)) groups.set(cat, []);
+      groups.get(cat)!.push(cls);
+    }
+    const knownKeys = CATEGORY_ORDER.filter((k) => groups.has(k));
+    const restKeys = [...groups.keys()].filter((k) => !CATEGORY_ORDER.includes(k)).sort();
+    return [...knownKeys, ...restKeys].map((cat) => ({ category: cat, classes: groups.get(cat)! }));
+  }, [sortedClasses, category]);
 
   const handleReset = () => {
     setSearch('');
@@ -578,26 +617,46 @@ function CatalogContent() {
           viewport={{ once: true, margin: '-50px' }}
           transition={{ duration: 0.5, ease: 'easeOut' }}
         >
-          <h2 className="text-xl font-semibold text-foreground mb-4">Semua Kelas</h2>
-
-          <AnimatePresence mode="popLayout">
-            <motion.div
-              layout
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5"
-            >
-              {isLoading &&
-                Array.from({ length: 8 }).map((_, i) => <ClassCardSkeleton key={i} />)}
-
-              {!isLoading &&
-                sortedClasses.map((cls, idx) => <ClassCard key={cls.id} cls={cls} index={idx} enrolledClassIds={enrolledClassIds} />)}
-
-              {isEmpty && (
-                <EmptyState
-                  onReset={hasActiveFilters ? handleReset : () => window.location.reload()}
+          {isLoading ? (
+            <>
+              <h2 className="text-xl font-semibold text-foreground mb-4">Semua Kelas</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                {Array.from({ length: 8 }).map((_, i) => <ClassCardSkeleton key={i} />)}
+              </div>
+            </>
+          ) : isEmpty ? (
+            <>
+              <h2 className="text-xl font-semibold text-foreground mb-4">Semua Kelas</h2>
+              <EmptyState
+                onReset={hasActiveFilters ? handleReset : () => window.location.reload()}
+              />
+            </>
+          ) : groupedByCategory ? (
+            <div className="space-y-10">
+              {groupedByCategory.map(({ category: cat, classes: catClasses }) => (
+                <CategorySection
+                  key={cat}
+                  category={cat}
+                  classes={catClasses}
+                  enrolledClassIds={enrolledClassIds}
                 />
-              )}
-            </motion.div>
-          </AnimatePresence>
+              ))}
+            </div>
+          ) : (
+            <>
+              <h2 className="text-xl font-semibold text-foreground mb-4">{category}</h2>
+              <AnimatePresence mode="popLayout">
+                <motion.div
+                  layout
+                  className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5"
+                >
+                  {sortedClasses.map((cls, idx) => (
+                    <ClassCard key={cls.id} cls={cls} index={idx} enrolledClassIds={enrolledClassIds} />
+                  ))}
+                </motion.div>
+              </AnimatePresence>
+            </>
+          )}
         </motion.section>
       </main>
     </AppShell>

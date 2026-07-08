@@ -46,6 +46,14 @@ smaller = shown first). `listClasses()` in `src/lib/db.ts` sorts by
 `AdminClassesPage.tsx` ("Urutan Tampil" field). Requires running
 `supabase/migrations/classes_display_order.sql` manually once.
 
+## Kelas Saya & Katalog grouping
+
+Both `MyClassesPage.tsx` and `CatalogPage.tsx` group classes into per-category
+sections (heading + grid) when no specific category filter is active
+("Semua" / "Semua Kategori"). Selecting a specific category filter reverts to
+a flat list scoped to that category. Empty categories are never shown as
+headings.
+
 ## Project structure
 
 ```

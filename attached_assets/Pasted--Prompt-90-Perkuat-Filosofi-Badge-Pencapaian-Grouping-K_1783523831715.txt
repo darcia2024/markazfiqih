@@ -1,0 +1,123 @@
+# Prompt 90: Perkuat Filosofi Badge Pencapaian + Grouping Kategori di Kelas Saya + Info Domain OAuth
+
+## Bagian A — Perkuat Filosofi Badge Pencapaian
+
+Badge pencapaian yang ada sekarang (`ACHIEVEMENT_BADGES` di
+`DashboardPage.tsx`, baris ~73-78) hanya punya deskripsi teknis singkat
+("Menyelesaikan 3 kelas", dst) tanpa makna/filosofi yang menghubungkan
+nama badge dengan perjalanan belajar fiqih. Klien meminta kata-katanya
+diperkuat dengan filosofi yang lebih jelas.
+
+Tulis ulang deskripsi (bukan hanya label) tiap badge supaya terasa lebih
+bermakna dan terhubung dengan semangat menuntut ilmu, bukan sekadar
+angka pencapaian. Pertahankan `threshold` (jumlah kelas) dan `id` yang
+sudah ada, hanya perkuat `label` dan `description`:
+
+```ts
+const ACHIEVEMENT_BADGES: BadgeDefinition[] = [
+  {
+    id: 'first-class',
+    label: 'Langkah Pertama',
+    description: 'Setiap perjalanan ilmu dimulai dari satu langkah. Kamu baru saja memulainya.',
+    icon: Sparkles,
+    threshold: 1,
+  },
+  {
+    id: 'three-classes',
+    label: 'Istiqomah',
+    description: 'Konsistensi adalah kunci dalam menuntut ilmu. Tiga kelas telah kamu tuntaskan dengan tekun.',
+    icon: Flame,
+    threshold: 3,
+  },
+  {
+    id: 'five-classes',
+    label: 'Penuntut Ilmu',
+    description: 'Rasulullah bersabda, menuntut ilmu adalah kewajiban setiap muslim. Kamu sedang menjalankannya dengan sungguh-sungguh.',
+    icon: Medal,
+    threshold: 5,
+  },
+  {
+    id: 'ten-classes',
+    label: 'Ahli Fiqih Pemula',
+    description: 'Sepuluh kelas bukan angka kecil. Pemahamanmu tentang fiqih madzhab Syafi\'i kian terstruktur.',
+    icon: Award,
+    threshold: 10,
+  },
+  {
+    id: 'twenty-classes',
+    label: 'Penjaga Sanad Ilmu',
+    description: 'Dua puluh kelas telah kamu tuntaskan. Ilmu yang tersambung sanadnya, kini juga tersambung padamu.',
+    icon: Crown,
+    threshold: 20,
+  },
+];
+```
+
+(Redaksi di atas adalah usulan — boleh dihaluskan bahasanya, tapi
+pertahankan semangat filosofis yang menghubungkan tiap tingkat dengan
+nilai menuntut ilmu dalam Islam, bukan sekadar penanda jumlah. Jika ada
+label yang terasa kurang pas atau berlebihan/kurang rendah hati secara
+nada, sesuaikan.)
+
+## Bagian B — Grouping Kelas Berdasarkan Kategori di "Kelas Saya" (Bukan Hanya Filter Tab)
+
+`MyClassesPage.tsx` sekarang punya filter tab (Semua/Fiqih Tematik/Fiqih
+Kitab/Akademi) yang menyaring tampilan saat diklik, tapi klien
+menginginkan TAMPILAN DEFAULT halaman ini langsung ter-grouping per
+kategori (seperti contoh referensi: heading "Fiqih Tematik" diikuti
+kelas-kelas dalam kategori tersebut di bawahnya, lalu heading "Fiqih
+Kitab" dengan kelas-kelasnya, dst) — bukan hanya list flat yang disaring
+lewat klik filter.
+
+Edit `artifacts/markaz-fiqh/src/pages/MyClassesPage.tsx`:
+
+- Saat filter "Semua" aktif (default), kelompokkan `classesToShow`
+  berdasarkan `category` masing-masing kelas, tampilkan sebagai section
+  terpisah dengan heading kategori (misal "Fiqih Tematik", "Fiqih
+  Kitab", "Akademi") diikuti grid card kelas dalam kategori tersebut di
+  bawahnya — HANYA tampilkan heading kategori yang benar-benar punya
+  kelas (jangan tampilkan heading kosong untuk kategori yang user belum
+  punya kelasnya).
+- Saat salah satu filter kategori spesifik dipilih (misal "Fiqih
+  Tematik"), tampilan kembali seperti sekarang (list flat kelas dalam
+  kategori itu saja, tanpa perlu heading grouping karena sudah jelas
+  konteksnya dari filter yang aktif).
+- Terapkan pola grouping yang sama pada `CatalogPage.tsx` jika belum ada
+  (klien juga meminta hal serupa di halaman Katalog) — cek dulu apakah
+  `CatalogPage.tsx` sudah punya grouping seperti ini saat filter "Semua
+  Kategori" aktif; jika belum, terapkan pola yang sama.
+
+## Bagian C — Info Domain Saat Login Google (Opsional, UX Kecil)
+
+Klien melaporkan popup pemilihan akun Google menampilkan teks "Lanjutkan
+ke butibupkkgiujnaoietc.supabase.co" yang terlihat asing/membingungkan
+bagi pelajar awam. Ini adalah domain default Supabase Auth dan TIDAK BISA
+diubah dari sisi kode aplikasi (itu ditentukan oleh konfigurasi project
+Supabase, memerlukan custom domain berbayar di level Supabase, di luar
+cakupan perubahan kode).
+
+Sebagai mitigasi ringan dari sisi UX (BUKAN mengubah domain itu sendiri),
+pertimbangkan menambahkan teks kecil di halaman login SEBELUM tombol
+"Masuk dengan Google" yang menjelaskan hal ini secara singkat, misal:
+"Kamu akan diarahkan ke halaman verifikasi Google untuk keamanan akun."
+— supaya user tidak kaget melihat domain yang tidak familiar setelah
+mengklik tombol. Edit `artifacts/markaz-fiqh/src/pages/LoginPage.tsx`
+untuk menambahkan teks kecil ini jika dirasa membantu, letakkan di
+bawah tombol "Masuk dengan Google" atau di dekat teks "syarat layanan"
+yang sudah ada.
+
+## Yang Tidak Boleh Berubah
+- Threshold dan logic unlock badge tidak berubah, hanya teks label/
+  deskripsinya
+- Data kelas dan kategori tidak berubah, hanya cara pengelompokan
+  tampilannya
+- Domain Supabase Auth itu sendiri TIDAK diubah (di luar kemampuan
+  perubahan kode)
+
+## Setelah Selesai
+1. Konfirmasi badge sekarang punya deskripsi yang lebih bermakna secara
+   filosofis.
+2. Konfirmasi halaman "Kelas Saya" (dan Katalog jika diterapkan) sekarang
+   menampilkan grouping per kategori saat filter "Semua" aktif.
+3. Laporkan keputusan terkait Bagian C (apakah menambahkan teks
+   penjelas atau tidak, dan alasannya).

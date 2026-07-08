@@ -71,11 +71,41 @@ type BadgeDefinition = {
 };
 
 const ACHIEVEMENT_BADGES: BadgeDefinition[] = [
-  { id: 'first-class',    label: 'Langkah Pertama',   description: 'Menyelesaikan kelas pertama',  icon: Sparkles, threshold: 1  },
-  { id: 'three-classes',  label: 'Konsisten Belajar',  description: 'Menyelesaikan 3 kelas',        icon: Flame,    threshold: 3  },
-  { id: 'five-classes',   label: 'Pelajar Aktif',      description: 'Menyelesaikan 5 kelas',        icon: Medal,    threshold: 5  },
-  { id: 'ten-classes',    label: 'Penuntut Ilmu',      description: 'Menyelesaikan 10 kelas',       icon: Award,    threshold: 10 },
-  { id: 'twenty-classes', label: 'Ahli Fiqih Pemula',  description: 'Menyelesaikan 20 kelas',       icon: Crown,    threshold: 20 },
+  {
+    id: 'first-class',
+    label: 'Langkah Pertama',
+    description: 'Setiap perjalanan ilmu dimulai dari satu langkah. Kamu baru saja memulainya.',
+    icon: Sparkles,
+    threshold: 1,
+  },
+  {
+    id: 'three-classes',
+    label: 'Istiqomah',
+    description: 'Konsistensi adalah kunci dalam menuntut ilmu. Tiga kelas telah kamu tuntaskan dengan tekun.',
+    icon: Flame,
+    threshold: 3,
+  },
+  {
+    id: 'five-classes',
+    label: 'Penuntut Ilmu',
+    description: 'Rasulullah bersabda, menuntut ilmu adalah kewajiban setiap muslim. Kamu sedang menjalankannya dengan sungguh-sungguh.',
+    icon: Medal,
+    threshold: 5,
+  },
+  {
+    id: 'ten-classes',
+    label: 'Ahli Fiqih Pemula',
+    description: 'Sepuluh kelas bukan angka kecil. Pemahamanmu tentang fiqih madzhab Syafi\'i kian terstruktur.',
+    icon: Award,
+    threshold: 10,
+  },
+  {
+    id: 'twenty-classes',
+    label: 'Penjaga Sanad Ilmu',
+    description: 'Dua puluh kelas telah kamu tuntaskan. Ilmu yang tersambung sanadnya, kini juga tersambung padamu.',
+    icon: Crown,
+    threshold: 20,
+  },
 ];
 
 function AchievementBadges({ totalCompleted }: { totalCompleted: number }) {

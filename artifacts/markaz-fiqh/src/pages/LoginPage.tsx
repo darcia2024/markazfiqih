@@ -96,6 +96,10 @@ export default function LoginPage() {
               Masuk dengan Google
             </Button>
 
+            <p className="text-center text-xs text-muted-foreground/80 px-4">
+              Kamu akan diarahkan ke halaman verifikasi Google untuk keamanan akun.
+            </p>
+
             <p className="text-center text-sm text-muted-foreground px-4">
               Dengan masuk, kamu setuju dengan{' '}
               <a href="#" className="underline underline-offset-4 hover:text-primary">

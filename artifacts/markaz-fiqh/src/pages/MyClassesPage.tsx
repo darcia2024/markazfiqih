@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -205,6 +205,32 @@ function EmptyState() {
 }
 
 const CLASS_FILTERS = ['Semua', 'Fiqih Tematik', 'Fiqih Kitab', 'Akademi'];
+const CATEGORY_ORDER = CLASS_FILTERS.filter((f) => f !== 'Semua');
+
+// ── Section per Kategori (Grouping) ────────────────────────────────────────────
+function CategorySection({
+  category,
+  items,
+}: {
+  category: string;
+  items: EnrollmentItem[];
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="font-serif text-xl font-bold text-foreground">{category}</h2>
+        <span className="text-sm text-muted-foreground">{items.length} kelas</span>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <AnimatePresence>
+          {items.map((enrollment, idx) => (
+            <KelasCard key={enrollment.id} enrollment={enrollment} index={idx} />
+          ))}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
 
 // ── Halaman Utama ─────────────────────────────────────────────────────────────
 function MyClassesContent() {
@@ -220,6 +246,33 @@ function MyClassesContent() {
   const search = new URLSearchParams(window.location.search);
   const showEmpty = search.get('demo') === 'empty';
   const classesToShow = showEmpty ? [] : enrollments;
+
+  // Saat filter kategori spesifik dipilih, tampilkan list flat kategori tsb saja.
+  const filteredClasses = useMemo(
+    () =>
+      activeFilter === 'Semua'
+        ? classesToShow
+        : classesToShow.filter((e) => e.class.category === activeFilter),
+    [classesToShow, activeFilter],
+  );
+
+  // Saat filter "Semua" aktif, kelompokkan kelas berdasarkan kategori —
+  // hanya tampilkan heading kategori yang benar-benar punya kelas.
+  const groupedByCategory = useMemo(() => {
+    if (activeFilter !== 'Semua') return null;
+    const groups = new Map<string, EnrollmentItem[]>();
+    for (const e of classesToShow) {
+      const cat = e.class.category || 'Lainnya';
+      if (!groups.has(cat)) groups.set(cat, []);
+      groups.get(cat)!.push(e);
+    }
+    const knownKeys = CATEGORY_ORDER.filter((k) => groups.has(k));
+    const restKeys = [...groups.keys()].filter((k) => !CATEGORY_ORDER.includes(k)).sort();
+    return [...knownKeys, ...restKeys].map((category) => ({
+      category,
+      items: groups.get(category)!,
+    }));
+  }, [classesToShow, activeFilter]);
 
   return (
     <AppShell>
@@ -253,19 +306,30 @@ function MyClassesContent() {
           </div>
         ) : classesToShow.length === 0 ? (
           <EmptyState />
+        ) : activeFilter === 'Semua' ? (
+          <div className="space-y-10">
+            {groupedByCategory!.map(({ category, items }) => (
+              <CategorySection key={category} category={category} items={items} />
+            ))}
+          </div>
+        ) : filteredClasses.length === 0 ? (
+          <div className="flex flex-col items-center justify-center text-center py-20">
+            <BookOpen className="w-12 h-12 text-muted-foreground/40 mb-4" />
+            <p className="text-muted-foreground">
+              Belum ada kelas yang kamu miliki di kategori "{activeFilter}".
+            </p>
+          </div>
         ) : (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="font-serif text-xl font-bold text-foreground">
-                Semua Kelas Dimiliki
-              </h2>
+              <h2 className="font-serif text-xl font-bold text-foreground">{activeFilter}</h2>
               <span className="text-sm text-muted-foreground">
-                {classesToShow.length} kelas
+                {filteredClasses.length} kelas
               </span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               <AnimatePresence>
-                {classesToShow.map((enrollment, idx) => (
+                {filteredClasses.map((enrollment, idx) => (
                   <KelasCard key={enrollment.id} enrollment={enrollment} index={idx} />
                 ))}
               </AnimatePresence>
