@@ -1,0 +1,98 @@
+# Prompt 84: Perbaikan Diksi & Copywriting Sesuai Revisi Klien
+
+## Konteks
+Klien memberikan revisi diksi dan copywriting untuk konsistensi bahasa di
+seluruh website. Terapkan semua perubahan berikut.
+
+## Bagian A — Konsistensi Diksi (Cari & Ganti di SELURUH Teks UI)
+
+Lakukan pencarian menyeluruh di seluruh `artifacts/markaz-fiqh/src`
+(hanya pada teks yang tampil ke user, BUKAN pada nama variabel/fungsi
+kode, comment, atau data teknis seperti URL/ID):
+
+1. **"Fikih" → "Fiqih"** (konsisten pakai huruf "q", bukan "k") — cek
+   semua kemunculan di teks UI
+2. **"Santri" → "Pelajar"** — termasuk:
+   - "Santri Markaz Fiqih" → "Pelajar Markaz Fiqih" (role testimoni)
+   - Label "KATA SANTRI" → "KATA MEREKA" (section testimoni)
+   - Semua kemunculan lain kata "santri" di teks UI
+3. **"mazhab" → "madzhab"** (konsisten pakai "d") — cek semua kemunculan,
+   TERMASUK di dalam kutipan istilah fiqih seperti "mazhab Syafi'i" →
+   "madzhab Syafi'i"
+4. **Hindari simbol "&" dalam judul kelas** — "Fiqih Shalat & Khutbah
+   Jumat" ganti jadi "Fiqih Shalat dan Khutbah Jumat" (ini kemungkinan
+   data di database `classes.title`, bukan hardcode di kode — siapkan
+   SQL UPDATE terpisah untuk saya jalankan manual jika memang datanya di
+   database, JANGAN diubah langsung di database dari sini)
+5. **Filter sort "Termurah" → "Terhemat"** (di Katalog, dropdown sort)
+
+## Bagian B — Copywriting Spesifik
+
+### Landing Page — Hero
+Ganti subtitle hero (paragraf di bawah judul utama) menjadi:
+"Tempat belajar fiqih madzhab Syafi'i yang rapih dan tertruktur,
+dibangun dan diajar langsung oleh guru-guru terpercaya."
+
+(Catatan: klien menulis "tertruktur" — kemungkinan typo dari "terstruktur",
+gunakan "terstruktur" yang benar secara ejaan kecuali klien memang
+menginginkan ejaan tersebut secara sengaja.)
+
+### Landing Page — Quote Misi
+Ganti quote misi (yang sekarang "Membumikan Fikih dalam Tiap Lini
+Masyarakat" dari perbaikan sebelumnya) menjadi:
+"Membumikan Fiqih di Tiap Lini Kehidupan"
+
+(Ini REVISI dari perbaikan sebelumnya — versi final yang dipakai adalah
+kalimat ini, bukan versi sebelumnya.)
+
+### Landing Page — Section Pengajar Utama
+Ganti "Belajar dari mereka yang berguru di Al-Azhar." menjadi:
+"Belajar dari mereka yang menimba ilmu kepada para ulama."
+
+### Landing Page — Section Metode Keilmuan
+- Judul: ganti "Belajar Fikih yang Tersusun dan Bersanad." menjadi
+  "Pusat Rujukan Fiqih Berlandaskan Madzhab Syafi'i."
+- Paragraf deskripsi: sesuaikan bagian "yang berfokus pada pendidikan,
+  publikasi, dan kaderisasi kajian fikih berbasis turats madzhab Syafi'i"
+  menjadi "yang berfokus pada edukasi, publikasi, kaderisasi dan
+  pengembangan kajian fiqih" (perhatikan "fikih" di teks asli menjadi
+  "fiqih" sesuai aturan diksi di atas)
+- Kalimat "kami hadir agar siapa pun bisa mempelajari fikih dengan benar
+  dan terstruktur" menjadi "mempelajari fiqih dengan metode yang tepat
+  dan terstruktur"
+
+### Landing Page — 4 Card Urutan Rujukan
+- **Tambahkan label kecil di atas ke-4 card** (sisi kiri, sebelum grid
+  card dimulai): "Urutan Rujukan"
+- **Rujukan 1**: hapus sub-teks "Madzhab Syafi'i Yang Solutif" jika ada
+  sebagai teks terpisah, ganti dengan redaksi yang lebih sesuai dengan
+  format "Pendapat mu'tamad dalam mazhab Syafi'i" yang sudah ada
+  (jika teks "Madzhab Syafi'i Yang Solutif" adalah judul terpisah di atas
+  4 card, hapus saja karena akan digantikan label "Urutan Rujukan" yang
+  baru)
+- **Rujukan 2**: hapus bagian "(apabila ada kebutuhan dan pertimbangan
+  kuat)" — jadi cukup "Pendapat dha'if dalam mazhab Syafi'i"
+- **Rujukan 3**: ganti "Ikhtiyar para imam dan ulama mazhab Syafi'i"
+  menjadi "Ikhtiyar para ulama madzhab Syafi'i" (hapus "imam dan", dan
+  "mazhab" jadi "madzhab" sesuai aturan diksi)
+- **Rujukan 4**: ganti "Pendapat mu'tabar dari mazhab-mazhab fikih
+  lainnya (khususnya empat mazhab)" menjadi "Pendapat mu'tabar dari
+  madzhab-madzhab fiqih lainnya (khususnya empat madzhab)"
+
+## Yang Tidak Boleh Berubah
+- Istilah bahasa Arab yang memang menggunakan ejaan tertentu secara
+  konsisten dalam tradisi keilmuan (seperti "mu'tamad", "mu'tabar",
+  "dha'if", "ikhtiyar") tidak diubah
+- Struktur/layout halaman tidak berubah, murni penggantian teks
+- Nama variabel, fungsi, dan comment di kode TIDAK perlu diubah
+  (misalnya jika ada variabel bernama `fikihClasses` di kode, itu boleh
+  tetap seperti itu — fokus HANYA pada teks yang dirender ke UI)
+
+## Setelah Selesai
+1. Laporkan file mana saja yang diubah untuk Bagian A (cari-ganti diksi)
+   dan berapa banyak kemunculan yang diperbaiki di masing-masing.
+2. Untuk poin "Fiqih Shalat & Khutbah Jumat" — jika ternyata datanya ada
+   di database (`classes.title`), JANGAN diubah langsung, siapkan SQL
+   UPDATE untuk saya jalankan manual dan sebutkan di ringkasan akhir.
+3. Konfirmasi semua copywriting di Bagian B sudah diterapkan sesuai teks
+   final yang diminta.
