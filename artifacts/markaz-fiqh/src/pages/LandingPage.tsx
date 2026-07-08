@@ -122,24 +122,24 @@ function HeroSection({
           <img
             src="/logo.png"
             alt="Markaz Fiqih"
-            className="h-14 sm:h-16 w-auto mb-8 brightness-0 invert"
+            className="h-20 sm:h-24 w-auto mb-10 brightness-0 invert"
           />
 
           {/* 2. Judul — dua baris, baris pertama gold (lebih kecil), baris kedua putih */}
           <h1 className="font-serif font-bold leading-[1.15] tracking-tight max-w-4xl">
             <span
-              className="block text-2xl sm:text-3xl lg:text-4xl font-semibold"
+              className="block text-3xl sm:text-4xl lg:text-5xl font-semibold"
               style={{ color: '#FFCC00' }}
             >
               Selamat Datang di
             </span>
-            <span className="block text-5xl sm:text-6xl lg:text-7xl text-white mt-1">
+            <span className="block text-6xl sm:text-7xl lg:text-8xl text-white mt-1">
               Kelas Markaz Fiqih
             </span>
           </h1>
 
           {/* 3. Paragraf deskripsi — max-w-2xl supaya enak dibaca saat di-center */}
-          <p className="text-white/70 text-base mt-6 leading-relaxed max-w-2xl">
+          <p className="text-white/70 text-lg sm:text-xl mt-8 leading-relaxed max-w-2xl">
             Tempat belajar fiqih madzhab Syafi'i yang tersusun dan bersanad,
             dibangun dan diajar langsung oleh Mahasiswa Indonesia di Al-Azhar, Kairo.
           </p>
@@ -147,10 +147,10 @@ function HeroSection({
           {/* 4. Quote misi — dipindah ke alur utama, di bawah deskripsi */}
           <div className="mt-7 flex flex-col items-center gap-2 max-w-sm">
             <div className="h-px w-16 bg-gradient-to-r from-transparent via-[hsl(var(--accent))]/60 to-transparent" />
-            <p className="font-serif text-sm italic text-white/55 leading-relaxed text-center">
+            <p className="font-serif text-base italic text-white/55 leading-relaxed text-center">
               &ldquo;Membumikan Fiqih di Setiap Lini Kehidupan&rdquo;
             </p>
-            <p className="text-[10px] font-medium text-white/35 tracking-widest uppercase">
+            <p className="text-xs font-medium text-white/35 tracking-widest uppercase">
               — Markaz Fiqih
             </p>
             <div className="h-px w-16 bg-gradient-to-r from-transparent via-[hsl(var(--accent))]/60 to-transparent" />
@@ -161,7 +161,7 @@ function HeroSection({
             <Button
               asChild
               size="lg"
-              className="h-[48px] px-8 text-sm font-semibold rounded-[10px] text-primary hover:opacity-90 shadow-lg"
+              className="h-[56px] px-10 text-base font-semibold rounded-[10px] text-primary hover:opacity-90 shadow-lg"
               style={{ backgroundColor: '#FFCC00' }}
             >
               <Link href="/katalog">Mulai Belajar</Link>
@@ -170,7 +170,7 @@ function HeroSection({
               asChild
               variant="ghost"
               size="lg"
-              className="h-[48px] px-6 text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 rounded-[10px] border border-white/20"
+              className="h-[56px] px-8 text-base font-medium text-white/80 hover:text-white hover:bg-white/10 rounded-[10px] border border-white/20"
             >
               <Link href="/katalog">
                 Lihat Kelas Tersedia
