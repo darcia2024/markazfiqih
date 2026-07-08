@@ -38,15 +38,6 @@ function TikTokIcon({ className }: { className?: string }) {
   );
 }
 
-// ── Ikon bintang inline (untuk badge hero) ───────────────────────────────────
-function StarIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 20 20" fill="currentColor" className={className} aria-hidden="true">
-      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-    </svg>
-  );
-}
-
 function buildSocialLinks(settings?: {
   socialInstagram: string;
   socialFacebook: string;
@@ -103,19 +94,14 @@ type TestimonialItem = {
 // SECTION 1: Hero — satu kolom, semua elemen center secara horizontal
 // ────────────────────────────────────────────────────────────────────────────
 function HeroSection({
-  socialLinks,
-  totalClasses,
-  studentCountLabel,
+  socialLinks: _socialLinks,
+  totalClasses: _totalClasses,
+  studentCountLabel: _studentCountLabel,
 }: {
   socialLinks: Array<{ label: string; icon: typeof Instagram | typeof TikTokIcon; href: string }>;
   totalClasses: number;
   studentCountLabel: string | null | undefined;
 }) {
-  const badgeParts: string[] = [];
-  if (totalClasses > 0) badgeParts.push(`${totalClasses} kelas tersedia`);
-  if (studentCountLabel) badgeParts.push(`${studentCountLabel} santri bergabung`);
-  const badgeText = badgeParts.join(' · ');
-
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-primary to-[hsl(var(--brand-red-hover))]">
       <div
@@ -140,17 +126,18 @@ function HeroSection({
             </span>
           </div>
 
-          {/* 2. Judul — simpel, satu baris pesan sambutan, ukuran besar */}
-          <h1 className="font-serif font-bold text-white leading-[1.1] tracking-tight text-5xl sm:text-6xl lg:text-7xl max-w-4xl">
-            Selamat Datang di Kelas Markaz Fiqih
+          {/* 2. Judul — dua baris, baris pertama gold, baris kedua putih */}
+          <h1 className="font-serif font-bold leading-[1.1] tracking-tight text-5xl sm:text-6xl lg:text-7xl max-w-4xl">
+            <span className="block" style={{ color: '#FFCC00' }}>
+              Selamat Datang di
+            </span>
+            <span className="block text-white">Kelas Markaz Fiqih</span>
           </h1>
 
           {/* 3. Paragraf deskripsi — max-w-2xl supaya enak dibaca saat di-center */}
           <p className="text-white/70 text-base mt-6 leading-relaxed max-w-2xl">
-            Tempat belajar fiqih madzhab Syafi'i yang tersusun dan bersanad —
-            dibangun langsung oleh komunitas masisir Indonesia di Al-Azhar, Kairo.
-            Dari thaharah sampai kajian kitab klasik, semua dirancang agar kamu
-            paham bertahap, bukan sekadar mengejar materi.
+            Tempat belajar fiqih madzhab Syafi'i yang tersusun dan bersanad,
+            dibangun dan diajar langsung oleh Mahasiswa Indonesia di Al-Azhar, Kairo.
           </p>
 
           {/* 4. Quote misi — dipindah ke alur utama, di bawah deskripsi */}
@@ -170,7 +157,8 @@ function HeroSection({
             <Button
               asChild
               size="lg"
-              className="h-[48px] px-8 text-sm font-semibold rounded-[10px] bg-white/5 text-white border-2 border-[hsl(var(--accent)/0.3)] hover:bg-[hsl(var(--accent))]/10 shadow-lg animate-gold-border"
+              className="h-[48px] px-8 text-sm font-semibold rounded-[10px] text-primary hover:opacity-90 shadow-lg"
+              style={{ backgroundColor: '#FFCC00' }}
             >
               <Link href="/katalog">Mulai Belajar</Link>
             </Button>
@@ -185,37 +173,6 @@ function HeroSection({
                 <ArrowRight className="ml-1.5 h-4 w-4" />
               </Link>
             </Button>
-          </div>
-
-          {/* 6. Rating + jumlah kelas/santri — center */}
-          {badgeText && (
-            <div className="mt-5 flex items-center justify-center gap-2">
-              <div className="flex gap-0.5">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <StarIcon key={i} className="h-3.5 w-3.5 text-[hsl(var(--accent))]" />
-                ))}
-              </div>
-              <span className="text-sm text-white/60">{badgeText}</span>
-            </div>
-          )}
-
-          {/* 7. Sosial media — center, paling bawah */}
-          <div className="mt-7 flex items-center justify-center gap-3">
-            <span className="text-[11px] font-medium text-white/40 tracking-wide uppercase">
-              Ikuti
-            </span>
-            {socialLinks.map(({ label, icon: Icon, href }) => (
-              <a
-                key={label}
-                href={href || '#'}
-                aria-label={label}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-7 h-7 rounded-full bg-white/15 flex items-center justify-center text-white hover:bg-[hsl(var(--accent))] hover:scale-110 transition-all duration-200"
-              >
-                <Icon className="h-3 w-3" />
-              </a>
-            ))}
           </div>
 
         </div>
