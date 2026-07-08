@@ -689,7 +689,7 @@ function TestimonialsSection({
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// SECTION 7: CTA Akhir + Social — tidak diubah strukturnya
+// SECTION 7: CTA + Footer — digabung jadi satu section footer yang koheren
 // ────────────────────────────────────────────────────────────────────────────
 function ContactSection({
   socialLinks,
@@ -700,19 +700,18 @@ function ContactSection({
 }) {
   return (
     <section className="bg-gradient-to-br from-primary to-[hsl(var(--brand-red-hover))]">
-      <div className="container mx-auto px-5 sm:px-8 lg:px-16 py-14 max-w-[1200px]">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-          <div>
-            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-white leading-tight mb-3">
+      <div className="container mx-auto px-5 sm:px-8 lg:px-16 max-w-[1200px]">
+        {/* Bagian atas — CTA ringkas + tombol WA + ikon sosmed */}
+        <div className="py-12 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+          <div className="max-w-md">
+            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-white leading-tight mb-2">
               Mau mulai atau masih bingung?
             </h2>
-            <p className="text-white/70 text-sm leading-relaxed max-w-md">
-              Chat langsung dengan kami — tanya soal kelas, jadwal kajian, atau
-              metode belajar. Ikuti juga media sosial kami untuk cuplikan materi
-              dan info kelas terbaru.
+            <p className="text-white/70 text-sm leading-relaxed">
+              Chat langsung dengan kami, atau ikuti media sosial untuk info kelas terbaru.
             </p>
           </div>
-          <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row items-start sm:items-center lg:items-end gap-5">
+          <div className="flex items-center gap-4 flex-wrap">
             {contactPhone && (
               <a
                 href={toWaUrl(contactPhone)}
@@ -724,7 +723,7 @@ function ContactSection({
                 Chat via WhatsApp
               </a>
             )}
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-3">
               {socialLinks.map(({ label, icon: Icon, href }) => (
                 <a
                   key={label}
@@ -732,42 +731,29 @@ function ContactSection({
                   aria-label={label}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-white/70 hover:text-white transition-colors group"
+                  className="h-9 w-9 rounded-full bg-white/10 border border-white/15 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/20 transition-colors"
                 >
-                  <span className="h-9 w-9 rounded-full bg-white/10 border border-white/15 flex items-center justify-center group-hover:bg-white/20 transition-colors">
-                    <Icon className="h-4 w-4" />
-                  </span>
-                  <span className="text-xs font-medium hidden sm:block">{label}</span>
+                  <Icon className="h-4 w-4" />
                 </a>
               ))}
             </div>
           </div>
         </div>
-      </div>
-    </section>
-  );
-}
 
-// ────────────────────────────────────────────────────────────────────────────
-// Footer — tidak diubah
-// ────────────────────────────────────────────────────────────────────────────
-function LandingFooter() {
-  return (
-    <footer className="bg-background border-t border-border">
-      <div className="container mx-auto px-5 sm:px-8 lg:px-16 py-8 max-w-[1200px]">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+        {/* Bagian bawah — identitas & copyright, dipisahkan garis tipis */}
+        <div className="border-t border-white/10 py-6 flex flex-col sm:flex-row items-center justify-between gap-3">
           <img
             src="/logo.png"
             alt="Markaz Fiqih"
             loading="lazy"
-            className="h-7 w-auto brightness-0 dark:brightness-100 dark:invert"
+            className="h-7 w-auto brightness-0 invert"
           />
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-white/60">
             © {new Date().getFullYear()} Markaz Fiqih. Seluruh hak cipta dilindungi.
           </p>
         </div>
       </div>
-    </footer>
+    </section>
   );
 }
 
@@ -850,14 +836,12 @@ export default function LandingPage() {
         {/* 6. Testimoni — grid 4 card */}
         <TestimonialsSection testimonials={testimonials} />
 
-        {/* 7. CTA + Social — tidak diubah strukturnya */}
+        {/* 7. CTA + Footer — digabung jadi satu section */}
         <ContactSection
           socialLinks={socialLinks}
           contactPhone={settings?.contactPhone ?? null}
         />
       </main>
-
-      <LandingFooter />
     </div>
   );
 }

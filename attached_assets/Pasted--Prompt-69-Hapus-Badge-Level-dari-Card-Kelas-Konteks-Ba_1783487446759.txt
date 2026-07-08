@@ -1,0 +1,48 @@
+# Prompt 69: Hapus Badge Level dari Card Kelas
+
+## Konteks
+Badge level ("Pemula", "Menengah", dll) di pojok kiri atas cover kelas
+pada `ClassCard` tidak konsisten diisi dan tidak ada kriteria yang jelas
+untuk menentukannya — dihapus saja daripada membingungkan user. Komponen
+ini dipakai di Katalog dan section "Kelas Pilihan" pada landing page
+(shared component), jadi perubahan ini otomatis berlaku di kedua tempat.
+
+## Fix
+
+Edit `artifacts/markaz-fiqh/src/pages/CatalogPage.tsx`, komponen
+`ClassCard`.
+
+Hapus blok berikut (sekitar baris 260-265):
+```tsx
+{cls.level && (
+  <div className="absolute top-3 left-3">
+    <Badge variant={LEVEL_BADGE_VARIANT[cls.level]} className="text-[11px]">
+      {LEVEL_LABEL[cls.level]}
+    </Badge>
+  </div>
+)}
+```
+
+Setelah dihapus, cek apakah `LEVEL_LABEL` dan `LEVEL_BADGE_VARIANT`
+(konstanta di bagian atas file, sekitar baris 51-57) masih dipakai di
+tempat lain dalam file ini — kalau tidak dipakai lagi sama sekali, boleh
+dihapus juga untuk kebersihan kode. Kalau masih dipakai di tempat lain
+(misal filter level di halaman katalog), biarkan konstantanya tetap ada.
+
+Karena badge "Dimiliki" (dari fitur sebelumnya) juga diposisikan di
+pojok kanan-atas cover, pastikan setelah badge level di kiri dihapus,
+layout cover tidak menyisakan ruang kosong yang janggal — cover image
+tetap tampil penuh seperti biasa tanpa badge di pojok kiri.
+
+## Yang Tidak Boleh Berubah
+- Badge "Dimiliki" di pojok kanan-atas (untuk kelas yang sudah dimiliki
+  user) TETAP ada, tidak ikut dihapus
+- Filter "Semua Level" di halaman Katalog (kalau ada dropdown filter
+  berdasarkan level) TIDAK perlu dihapus, itu di luar cakupan perubahan
+  ini — cukup badge visual di cover card yang dihapus
+- Data `level` pada kelas di database tidak diubah, hanya tampilannya di
+  card yang dihilangkan
+
+## Setelah Selesai
+Konfirmasi badge level sudah tidak muncul lagi di card kelas (Katalog dan
+landing page), dan tidak ada sisa kode yang error karena penghapusan ini.
