@@ -1,0 +1,95 @@
+# Prompt 76: Hapus Semua Em Dash (—) dari Teks yang Tampil ke User
+
+## Konteks
+Em dash (—) dipakai di banyak tempat di codebase ini, tapi terbagi dua
+kategori:
+1. **Comment kode** (`// ...` atau `{/* ... */}`) — em dash di sini TIDAK
+   masalah, boleh dibiarkan, karena tidak pernah tampil ke user.
+2. **Teks yang benar-benar dirender ke UI** (string dalam JSX, dalam
+   template literal yang jadi teks tampilan, dalam placeholder input,
+   dsb) — INI yang harus diperbaiki, ganti em dash dengan tanda baca lain
+   yang lebih natural sesuai konteks kalimat (titik, koma, titik dua,
+   kata penghubung seperti "yaitu"/"yakni", atau dipecah jadi kalimat
+   terpisah — pilih yang paling pas secara linguistik per kasus, JANGAN
+   sekadar mekanis mengganti karakter).
+
+**PENTING**: HANYA ubah em dash yang muncul di teks user-facing. JANGAN
+ubah em dash yang ada di dalam comment (`//` atau `{/* */}`) — itu di
+luar cakupan, biarkan seperti apa adanya.
+
+## Cakupan File
+
+Berdasarkan pemindaian, file-file berikut punya em dash di teks
+user-facing (bukan hanya di comment) — verifikasi ulang tiap kemunculan
+sebelum mengubah, karena beberapa file campuran (ada comment DAN teks
+UI):
+
+### `artifacts/markaz-fiqh/src/pages/LandingPage.tsx`
+- 3 paragraf deskripsi "Cara Belajar" (mengandung "— dari pemula hingga
+  kajian kitab", "— selesai dalam hitungan menit", "— lanjutkan dari
+  mana kamu berhenti")
+- Atribusi quote "— Markaz Fiqih" (setelah kutipan misi) — em dash di
+  sini berfungsi sebagai tanda atribusi kutipan, ganti dengan format lain
+  yang umum dipakai untuk atribusi (misal cukup baris baru tanpa tanda,
+  atau gunakan "oleh Markaz Fiqih", sesuaikan yang terlihat paling wajar
+  secara desain/tipografi)
+- Judul section Kurikulum "Dari cari kelas sampai mulai belajar —"
+  (diikuti highlight "cuma butuh 3 langkah" atau serupa)
+- Kalimat "diakui validitasnya dalam tradisi keilmuan Islam" pada section
+  Metode Keilmuan (definisi istilah mu'tabar)
+
+### `artifacts/markaz-fiqh/src/pages/LearnPage.tsx`
+- "Kelas Lainnya — {kategori}" (label section, muncul di beberapa tempat
+  di file yang sama)
+- Fallback durasi `'—'` yang dirender saat durasi tidak diketahui (ini
+  dipakai sebagai simbol "data kosong", bukan tanda baca kalimat — ganti
+  dengan simbol lain yang lebih umum untuk representasi "tidak ada data",
+  seperti `'-'` (hyphen biasa) atau `'N/A'`, sesuaikan dengan konvensi
+  yang masuk akal untuk UI ini)
+
+### `artifacts/markaz-fiqh/src/pages/MyClassesPage.tsx`
+### `artifacts/markaz-fiqh/src/pages/DashboardPage.tsx`
+Fallback durasi `'—'` yang sama seperti di atas — samakan pendekatannya
+(pakai simbol pengganti yang sama di semua tempat untuk konsistensi).
+
+### `artifacts/markaz-fiqh/src/pages/CartPage.tsx`
+- "Mode pengembangan — pembayaran Mayar belum aktif." (teks notice yang
+  tampil ke user)
+
+### `artifacts/markaz-fiqh/src/pages/ClassDetailPage.tsx`
+- "Pelajaran {darsIdx + 1} — {mod.title}" (label yang tampil di UI)
+
+### `artifacts/markaz-fiqh/src/pages/admin/AdminOrdersPage.tsx`
+### `artifacts/markaz-fiqh/src/pages/admin/AdminDashboardPage.tsx`
+- Fallback `'—'` untuk data kosong (sama seperti di atas, samakan
+  pendekatan penggantinya)
+- List fitur di `AdminDashboardPage.tsx` (misal "Manajemen Kelas — kelola
+  daftar kelas dan status publikasinya") — ganti em dash dengan titik
+  dua, koma, atau kata penghubung yang sesuai
+
+### `artifacts/markaz-fiqh/src/pages/admin/AdminInstructorsPage.tsx`
+- Placeholder input "Pendek saja — latar belakang, spesialisasi, atau
+  lembaga tempat mengajar."
+- Label toggle "Aktif — tampil di katalog dan landing page" / "Nonaktif —
+  tersembunyi dari tampilan publik"
+
+## Setelah Mengubah Teks, Verifikasi Menyeluruh
+
+Setelah menyelesaikan daftar di atas, jalankan pencarian ulang untuk
+memastikan tidak ada em dash yang tersisa di teks user-facing yang
+mungkin terlewat dari daftar ini (daftar di atas berdasarkan pemindaian
+awal, mungkin ada kemunculan lain yang tidak tercatat). Untuk setiap
+kemunculan baru yang ditemukan, terapkan prinsip yang sama: comment
+dibiarkan, teks UI diperbaiki.
+
+## Yang Tidak Boleh Berubah
+- Em dash di dalam comment kode (`//` atau `{/* */}`) TIDAK diubah
+- Makna dan informasi dalam kalimat tidak berubah, hanya tanda baca/
+  struktur kalimatnya yang disesuaikan
+- Struktur JSX, styling, dan fungsi tidak berubah, murni penggantian teks
+
+## Setelah Selesai
+Laporkan daftar lengkap: file mana saja yang diubah, dan untuk setiap
+perubahan tunjukkan teks sebelum vs sesudah supaya bisa direview cepat.
+Konfirmasi juga bahwa comment kode dengan em dash tetap dibiarkan seperti
+semula.

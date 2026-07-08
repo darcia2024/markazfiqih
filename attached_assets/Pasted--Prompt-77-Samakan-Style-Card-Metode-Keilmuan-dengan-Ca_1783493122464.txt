@@ -1,0 +1,79 @@
+# Prompt 77: Samakan Style Card "Metode Keilmuan" dengan "Cara Belajar"
+
+## Konteks
+Card di section "Cara Belajar" (`CurriculumSection`) dan section "Metode
+Keilmuan" (`MethodologySection`) sekarang punya gaya visual yang berbeda.
+Samakan style card di `MethodologySection` supaya konsisten dengan pola
+visual `CurriculumSection`.
+
+Edit `artifacts/markaz-fiqh/src/pages/LandingPage.tsx`, fungsi
+`MethodologySection`.
+
+## Perbedaan yang Perlu Disamakan
+
+Style card `CurriculumSection` yang menjadi acuan:
+- Nomor/angka ditampilkan besar sebagai elemen dekoratif TIPIS
+  (`text-6xl`, warna `hsl(var(--primary) / 0.12)`) di bagian ATAS card
+  (bukan watermark di pojok kanan-bawah seperti sekarang di
+  `MethodologySection`)
+- TIDAK ada badge bulat solid berisi angka — angka besar dekoratif itu
+  sendiri yang berfungsi sebagai penanda urutan
+- Ada label kecil uppercase gold (`text-[10px] font-bold uppercase
+  tracking-[0.18em]`, warna `hsl(var(--accent))`) sebelum judul
+- Card TIDAK punya border/background kotak — layout flat tanpa card
+  container (`flex flex-col` polos, tanpa `border`, `rounded-2xl`,
+  `bg-muted/20`, dsb)
+
+## Perubahan pada `MethodologySection`
+
+Ubah struktur card di grid 4 kolom (`METHOD_REFERENCES.map(...)`) dari
+pola sekarang (card kotak dengan border, badge bulat solid, watermark
+angka di pojok kanan-bawah) menjadi pola yang sama dengan
+`CurriculumSection`:
+
+```tsx
+<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mt-10">
+  {METHOD_REFERENCES.map((ref, idx) => (
+    <div key={ref.number} className="flex flex-col">
+      {/* Nomor dekoratif — sama seperti CurriculumSection */}
+      <p
+        className="font-serif text-6xl font-bold leading-none mb-5 select-none"
+        style={{ color: 'hsl(var(--primary) / 0.12)' }}
+      >
+        {ref.number}
+      </p>
+      {/* Label kecil uppercase — opsional, isi dengan kategori singkat
+          per poin kalau ada, misal "TINGKAT 1", "TINGKAT 2" dst, atau
+          hilangkan baris ini kalau tidak ada label yang relevan */}
+      <p
+        className="text-[10px] font-bold uppercase tracking-[0.18em] mb-2"
+        style={{ color: 'hsl(var(--accent))' }}
+      >
+        Rujukan {idx + 1}
+      </p>
+      <p className="text-sm text-foreground leading-relaxed">
+        {ref.text}
+      </p>
+    </div>
+  ))}
+</div>
+```
+
+Sesuaikan detail supaya benar-benar konsisten: gunakan `gap-8` (bukan
+`gap-4` yang sekarang) untuk jarak antar kolom yang sama dengan
+`CurriculumSection`, dan hapus properti card yang tidak ada di pola
+acuan (`border`, `rounded-2xl`, `bg-muted/20`, `p-5`, `min-h-[180px]`,
+`overflow-hidden`).
+
+## Yang Tidak Boleh Berubah
+- Teks isi (`METHOD_REFERENCES`, judul, deskripsi section) tidak diubah
+- Bagian atas section (label "METODE KEILMUAN", judul "Bermazhab, bukan
+  asal bicara agama.", paragraf deskripsi) tidak diubah
+- `CurriculumSection` (section "Cara Belajar") itu sendiri tidak diubah
+  sama sekali — itu jadi acuan/referensi, bukan yang diedit
+- Section lain di landing page tidak disentuh
+
+## Setelah Selesai
+Konfirmasi card di section "Metode Keilmuan" sekarang punya gaya visual
+yang identik dengan card di section "Cara Belajar" (nomor dekoratif besar
+di atas, label kecil uppercase, tanpa border/badge bulat).

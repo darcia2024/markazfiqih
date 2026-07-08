@@ -1,0 +1,57 @@
+# Prompt 78: Ganti Favicon dengan Icon Logo Markaz Fiqih
+
+## Konteks
+Favicon sekarang pakai `/favicon.svg` (icon generik/placeholder), padahal
+logo asli Markaz Fiqih sudah ada. File favicon baru (hasil crop persegi
+dari icon rumah+buku pada logo asli, tanpa teks "Markaz Fiqih" supaya
+tidak gepeng di ukuran kecil) sudah disediakan terpisah dalam beberapa
+ukuran:
+- `favicon-16.png` (16x16)
+- `favicon-32.png` (32x32)
+- `favicon-512.png` (512x512)
+- `apple-touch-icon.png` (180x180, untuk perangkat iOS)
+
+## Langkah 1 — Pindahkan File ke `public/`
+
+Copy keempat file di atas ke
+`artifacts/markaz-fiqh/public/` (folder yang sama dengan `logo.png` dan
+`favicon.svg` yang sudah ada).
+
+## Langkah 2 — Update `index.html`
+
+Edit `artifacts/markaz-fiqh/index.html`. Cari baris:
+```html
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+```
+
+Ganti dengan referensi ke file PNG baru (sertakan beberapa ukuran untuk
+kompatibilitas browser yang lebih luas):
+```html
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+```
+
+Jangan hapus `favicon.svg` dari folder `public/` (biarkan filenya tetap
+ada untuk jaga-jaga), tapi pastikan `index.html` sekarang mereferensikan
+file PNG baru sebagai favicon utama, bukan lagi svg lama.
+
+## Langkah 3 — Cek Referensi Lain (Opsional)
+
+Cek apakah ada meta tag Open Graph atau referensi favicon lain di
+`index.html` (misal `og:image`, `<meta name="theme-color">`, dsb) yang
+mungkin juga perlu disesuaikan — kalau ada referensi ke asset lama yang
+terkait branding, laporkan tapi tidak perlu diubah kecuali diminta secara
+eksplisit.
+
+## Yang Tidak Boleh Berubah
+- `logo.png` (logo utama yang dipakai di Navbar, sidebar, dll) tidak
+  disentuh
+- Konten lain di `index.html` (title, meta description, dll) tidak
+  diubah
+
+## Setelah Selesai
+Konfirmasi favicon baru sudah terpasang, dan cek tampilan tab browser
+untuk memastikan icon baru muncul dengan benar (mungkin perlu hard
+refresh atau clear cache browser karena favicon sering di-cache agresif
+oleh browser).
