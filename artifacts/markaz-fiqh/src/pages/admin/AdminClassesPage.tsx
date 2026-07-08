@@ -41,19 +41,18 @@ import {
 import { Plus, Search, Pencil, Trash2, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatPrice } from '@/pages/CatalogPage';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  useListClasses,
-  useListInstructors,
-  useCreateClass,
-  useUpdateClass,
-  useDeleteClass,
-  useGetClassById,
-  getGetClassByIdQueryKey,
-  getListClassesQueryKey,
-  type ClassSummary,
-  type ClassDetail,
-} from '@workspace/api-client-react';
-import { useQueryClient } from '@tanstack/react-query';
+  listClasses,
+  listAllInstructorsForAdmin,
+  getClassById,
+  createClass,
+  updateClass,
+  deleteClass,
+} from '@/lib/db';
+
+type ClassSummary = Awaited<ReturnType<typeof listClasses>>[0];
+type ClassDetail = Awaited<ReturnType<typeof getClassById>>;
 
 type ClassFormState = {
   title: string;
@@ -95,7 +94,7 @@ function classToForm(cls: ClassDetail): ClassFormState {
     basePrice: String(cls.basePrice),
     discountPrice: cls.discountPrice != null ? String(cls.discountPrice) : '',
     status: cls.status,
-    level: cls.level ?? '',
+    level: (cls.level ?? '') as ClassFormState['level'],
     category: cls.category ?? '',
     instructorId: cls.instructor.id,
     youtubePlaylistId: cls.youtubePlaylistId ?? '',
@@ -114,56 +113,62 @@ export default function AdminClassesPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const classesQuery = useListClasses({ includeAll: true });
-  const instructorsQuery = useListInstructors();
+  const classesQuery = useQuery({
+    queryKey: ['classes', 'admin'],
+    queryFn: () => listClasses({ includeAll: true }),
+  });
+  const instructorsQuery = useQuery({
+    queryKey: ['instructors', 'admin'],
+    queryFn: listAllInstructorsForAdmin,
+  });
   const classes = classesQuery.data ?? [];
   const instructors = instructorsQuery.data ?? [];
 
   const editingId = editingClass?.id ?? '';
-  const { data: editingClassDetail } = useGetClassById(editingId, {
-    query: {
-      queryKey: getGetClassByIdQueryKey(editingId),
-      enabled: !!editingClass && dialogOpen,
+  const { data: editingClassDetail } = useQuery({
+    queryKey: ['class', editingId],
+    queryFn: () => getClassById(editingId),
+    enabled: !!editingClass && dialogOpen,
+  });
+
+  const invalidateClasses = () =>
+    queryClient.invalidateQueries({ queryKey: ['classes', 'admin'] });
+
+  const createMutation = useMutation({
+    mutationFn: (payload: Parameters<typeof createClass>[0]) => createClass(payload),
+    onSuccess: () => {
+      invalidateClasses();
+      toast({ title: 'Kelas berhasil ditambahkan' });
+      setDialogOpen(false);
+    },
+    onError: (error) => {
+      toast({ title: 'Gagal menambahkan kelas', description: String((error as Error)?.message ?? error), variant: 'destructive' });
     },
   });
 
-  const createMutation = useCreateClass({
-    mutation: {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getListClassesQueryKey({ includeAll: true }) });
-        toast({ title: 'Kelas berhasil ditambahkan' });
-        setDialogOpen(false);
-      },
-      onError: (error) => {
-        toast({ title: 'Gagal menambahkan kelas', description: String((error as Error)?.message ?? error), variant: 'destructive' });
-      },
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Parameters<typeof updateClass>[1] }) =>
+      updateClass(id, data),
+    onSuccess: () => {
+      invalidateClasses();
+      toast({ title: 'Kelas berhasil diperbarui' });
+      setDialogOpen(false);
+    },
+    onError: (error) => {
+      toast({ title: 'Gagal memperbarui kelas', description: String((error as Error)?.message ?? error), variant: 'destructive' });
     },
   });
 
-  const updateMutation = useUpdateClass({
-    mutation: {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getListClassesQueryKey({ includeAll: true }) });
-        toast({ title: 'Kelas berhasil diperbarui' });
-        setDialogOpen(false);
-      },
-      onError: (error) => {
-        toast({ title: 'Gagal memperbarui kelas', description: String((error as Error)?.message ?? error), variant: 'destructive' });
-      },
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteClass(id),
+    onSuccess: () => {
+      invalidateClasses();
+      toast({ title: 'Kelas berhasil dihapus' });
+      setDeleteTarget(null);
     },
-  });
-
-  const deleteMutation = useDeleteClass({
-    mutation: {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getListClassesQueryKey({ includeAll: true }) });
-        toast({ title: 'Kelas berhasil dihapus' });
-        setDeleteTarget(null);
-      },
-      onError: (error) => {
-        toast({ title: 'Gagal menghapus kelas', description: String((error as Error)?.message ?? error), variant: 'destructive' });
-        setDeleteTarget(null);
-      },
+    onError: (error) => {
+      toast({ title: 'Gagal menghapus kelas', description: String((error as Error)?.message ?? error), variant: 'destructive' });
+      setDeleteTarget(null);
     },
   });
 
@@ -238,7 +243,7 @@ export default function AdminClassesPage() {
     if (editingClass) {
       updateMutation.mutate({ id: editingClass.id, data: payload });
     } else {
-      createMutation.mutate({ data: payload });
+      createMutation.mutate(payload);
     }
   }
 
@@ -586,7 +591,7 @@ export default function AdminClassesPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Batal</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deleteTarget && deleteMutation.mutate({ id: deleteTarget.id })}
+              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
               disabled={deleteMutation.isPending}
               data-testid="button-confirm-delete-class"
             >

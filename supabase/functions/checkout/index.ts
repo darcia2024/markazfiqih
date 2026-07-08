@@ -75,6 +75,7 @@ Deno.serve(async (req) => {
     let voucherApplied = false;
     let voucherClassId: string | null = null;
     let voucherDiscountPrice: number | null = null;
+    let voucherRowId: string | null = null; // disimpan untuk invoice.voucher_id
 
     if (voucherCode) {
       // Kumpulkan semua class_id dari item kelas biasa (bukan bundle)
@@ -105,17 +106,8 @@ Deno.serve(async (req) => {
         voucherApplied = true;
         voucherClassId = voucherRow.class_id;
         voucherDiscountPrice = voucherRow.discount_price;
-
-        // Catat pemakaian voucher secara atomic (cegah race condition)
-        const { data: voucherUpdateResult, error: voucherUpdateError } = await supabaseAdmin
-          .rpc('increment_voucher_usage', { voucher_id: voucherRow.id });
-
-        if (voucherUpdateError || !voucherUpdateResult?.length) {
-          return new Response(
-            JSON.stringify({ error: 'Kode voucher sudah tidak berlaku atau kuota habis.' }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-          );
-        }
+        voucherRowId = voucherRow.id;
+        // Increment used_count dipindahkan ke simulate-success (saat pembayaran benar-benar sukses)
       }
     }
 
@@ -177,12 +169,14 @@ Deno.serve(async (req) => {
     }
 
     // Buat invoice di database
+    // PERLU MIGRASI: ALTER TABLE invoices ADD COLUMN IF NOT EXISTS voucher_id UUID REFERENCES class_vouchers(id) ON DELETE SET NULL;
     const { data: invoice, error: invoiceError } = await supabaseAdmin
       .from('invoices')
       .insert({
         user_id: user.id,
         total_amount: totalAmount,
         status: 'pending',
+        ...(voucherRowId ? { voucher_id: voucherRowId } : {}),
       })
       .select()
       .single();

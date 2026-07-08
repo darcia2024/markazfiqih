@@ -27,15 +27,15 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Plus, Pencil, Trash2, Loader2, UserCog } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  useListInstructors,
-  useCreateInstructor,
-  useUpdateInstructor,
-  useDeleteInstructor,
-  getListInstructorsQueryKey,
-  type InstructorSummary,
-} from '@workspace/api-client-react';
-import { useQueryClient } from '@tanstack/react-query';
+  listAllInstructorsForAdmin,
+  createInstructor,
+  updateInstructor,
+  deleteInstructor,
+} from '@/lib/db';
+
+type InstructorSummary = Awaited<ReturnType<typeof listAllInstructorsForAdmin>>[0];
 
 type InstructorFormState = {
   name: string;
@@ -77,63 +77,63 @@ export default function AdminInstructorsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Admin melihat SEMUA instruktur (termasuk nonaktif) via Express backend.
-  // GET /api/instructors tidak memfilter is_active — semua row dikembalikan.
-  const instructorsQuery = useListInstructors();
+  const instructorsQuery = useQuery({
+    queryKey: ['instructors', 'admin'],
+    queryFn: listAllInstructorsForAdmin,
+  });
   const instructors = instructorsQuery.data ?? [];
 
   const invalidateList = () =>
-    queryClient.invalidateQueries({ queryKey: getListInstructorsQueryKey() });
+    queryClient.invalidateQueries({ queryKey: ['instructors', 'admin'] });
 
-  const createMutation = useCreateInstructor({
-    mutation: {
-      onSuccess: () => {
-        invalidateList();
-        toast({ title: 'Pengajar berhasil ditambahkan' });
-        setDialogOpen(false);
-      },
-      onError: (error) => {
-        toast({
-          title: 'Gagal menambahkan pengajar',
-          description: String((error as Error)?.message ?? error),
-          variant: 'destructive',
-        });
-      },
+  const createMutation = useMutation({
+    mutationFn: (payload: { name: string; bio?: string; photoUrl?: string }) =>
+      createInstructor(payload),
+    onSuccess: () => {
+      invalidateList();
+      toast({ title: 'Pengajar berhasil ditambahkan' });
+      setDialogOpen(false);
+    },
+    onError: (error) => {
+      toast({
+        title: 'Gagal menambahkan pengajar',
+        description: String((error as Error)?.message ?? error),
+        variant: 'destructive',
+      });
     },
   });
 
-  const updateMutation = useUpdateInstructor({
-    mutation: {
-      onSuccess: () => {
-        invalidateList();
-        toast({ title: 'Data pengajar berhasil diperbarui' });
-        setDialogOpen(false);
-      },
-      onError: (error) => {
-        toast({
-          title: 'Gagal memperbarui pengajar',
-          description: String((error as Error)?.message ?? error),
-          variant: 'destructive',
-        });
-      },
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Parameters<typeof updateInstructor>[1] }) =>
+      updateInstructor(id, data),
+    onSuccess: () => {
+      invalidateList();
+      toast({ title: 'Data pengajar berhasil diperbarui' });
+      setDialogOpen(false);
+    },
+    onError: (error) => {
+      toast({
+        title: 'Gagal memperbarui pengajar',
+        description: String((error as Error)?.message ?? error),
+        variant: 'destructive',
+      });
     },
   });
 
-  const deleteMutation = useDeleteInstructor({
-    mutation: {
-      onSuccess: () => {
-        invalidateList();
-        toast({ title: 'Pengajar berhasil dihapus' });
-        setDeleteTarget(null);
-      },
-      onError: (error) => {
-        toast({
-          title: 'Gagal menghapus pengajar',
-          description: String((error as Error)?.message ?? error),
-          variant: 'destructive',
-        });
-        setDeleteTarget(null);
-      },
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteInstructor(id),
+    onSuccess: () => {
+      invalidateList();
+      toast({ title: 'Pengajar berhasil dihapus' });
+      setDeleteTarget(null);
+    },
+    onError: (error) => {
+      toast({
+        title: 'Gagal menghapus pengajar',
+        description: String((error as Error)?.message ?? error),
+        variant: 'destructive',
+      });
+      setDeleteTarget(null);
     },
   });
 
@@ -167,7 +167,7 @@ export default function AdminInstructorsPage() {
     if (editingInstructor) {
       updateMutation.mutate({ id: editingInstructor.id, data: payload });
     } else {
-      createMutation.mutate({ data: { name: payload.name, bio: payload.bio, photoUrl: payload.photoUrl } });
+      createMutation.mutate({ name: payload.name, bio: payload.bio, photoUrl: payload.photoUrl });
     }
   }
 
@@ -399,7 +399,7 @@ export default function AdminInstructorsPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Batal</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deleteTarget && deleteMutation.mutate({ id: deleteTarget.id })}
+              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
               disabled={deleteMutation.isPending}
               data-testid="button-confirm-delete-instructor"
             >

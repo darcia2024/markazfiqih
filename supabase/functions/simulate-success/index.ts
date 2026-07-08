@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
     // Ambil invoice + items, pastikan milik user ini
     const { data: invoice } = await supabaseAdmin
       .from('invoices')
-      .select('*, invoice_items(class_id)')
+      .select('id, user_id, status, voucher_id, invoice_items(class_id)')
       .eq('id', invoiceId)
       .eq('user_id', user.id)
       .single();
@@ -64,11 +64,41 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Update invoice jadi paid
-    await supabaseAdmin
+    // Idempotent guard: jika sudah paid, kembalikan sukses tanpa efek samping
+    if ((invoice as any).status === 'paid') {
+      return new Response(
+        JSON.stringify({ success: true, invoiceId, alreadyPaid: true }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
+    // Atomic transition: hanya update bila status MASIH 'pending'
+    // Ini mencegah race condition jika endpoint dipanggil dua kali bersamaan.
+    const { count: updatedCount } = await supabaseAdmin
       .from('invoices')
       .update({ status: 'paid', paid_at: new Date().toISOString() })
-      .eq('id', invoiceId);
+      .eq('id', invoiceId)
+      .eq('status', 'pending')
+      .select('id', { count: 'exact', head: true });
+
+    if (!updatedCount) {
+      // Transisi tidak terjadi — kembalikan sukses jika sudah paid (concurrent request)
+      return new Response(
+        JSON.stringify({ success: true, invoiceId, alreadyPaid: true }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
+    // Increment voucher usage — hanya berjalan karena transisi baru saja terjadi (tepat sekali)
+    // PERLU: kolom invoices.voucher_id sudah ada (jalankan migrasi ALTER TABLE dulu)
+    if ((invoice as any).voucher_id) {
+      const { error: rpcError } = await supabaseAdmin
+        .rpc('increment_voucher_usage', { voucher_id: (invoice as any).voucher_id });
+      if (rpcError) {
+        // Log error tapi jangan rollback — enrollment tetap dibuat (voucher minor vs enrollment kritis)
+        console.error('increment_voucher_usage failed:', rpcError.message);
+      }
+    }
 
     // Buat enrollments untuk tiap kelas
     const enrollments = invoice.invoice_items.map((item: any) => ({

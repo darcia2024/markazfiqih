@@ -1,0 +1,224 @@
+# Prompt 55: Fix Mock Data Admin, Voucher Timing, Migrasi Express, Cleanup Policy
+
+## Konteks
+Audit lanjutan menemukan beberapa hal yang perlu diperbaiki. Kerjakan
+berurutan per section — JANGAN loncat section atau gabung jadi satu
+perubahan besar, supaya mudah ditelusuri kalau ada yang perlu di-debug.
+
+---
+
+## Section 1 (PRIORITAS TINGGI) — Admin Dashboard Pakai Data Asli
+
+`AdminDashboardPage.tsx` sekarang menampilkan angka hardcoded (`SUMMARY_CARDS`
+dengan value statis "6", "3", "128", "412") — tidak mencerminkan data
+sebenarnya di database sama sekali.
+
+### 1a. Tambah fungsi summary di `src/lib/db.ts`
+```ts
+export async function getAdminDashboardSummary() {
+  const [classesRes, publishedRes, pendingInvoicesRes, paidInvoicesRes, usersRes] = await Promise.all([
+    supabase.from('classes').select('id', { count: 'exact', head: true }),
+    supabase.from('classes').select('id', { count: 'exact', head: true }).eq('status', 'published'),
+    supabase.from('invoices').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+    supabase.from('invoices').select('id', { count: 'exact', head: true }).eq('status', 'paid'),
+    supabase.from('user_profiles').select('user_id', { count: 'exact', head: true }),
+  ]);
+
+  return {
+    totalClasses: classesRes.count ?? 0,
+    publishedClasses: publishedRes.count ?? 0,
+    draftClasses: (classesRes.count ?? 0) - (publishedRes.count ?? 0),
+    pendingOrders: pendingInvoicesRes.count ?? 0,
+    totalPaidOrders: paidInvoicesRes.count ?? 0,
+    totalUsers: usersRes.count ?? 0,
+  };
+}
+```
+Sesuaikan nama tabel/kolom kalau ternyata berbeda dari asumsi di atas —
+verifikasi dulu terhadap `information_schema.columns` sebelum menulis
+query final (jangan berasumsi, ini sudah beberapa kali jadi sumber bug
+sebelumnya di project ini).
+
+### 1b. Update `AdminDashboardPage.tsx`
+Ganti `SUMMARY_CARDS` array statis dengan pemanggilan `useQuery` ke fungsi
+di atas, render card dengan data asli. Tampilkan skeleton/loading state
+selagi data dimuat (ikuti pola loading state yang sudah dipakai di
+halaman lain seperti `CatalogPage.tsx`).
+
+---
+
+## Section 2 (PRIORITAS TINGGI) — Admin Orders Pakai Data Invoice Asli
+
+`AdminOrdersPage.tsx` sekarang memakai `MOCK_ORDERS` dari
+`src/data/mockOrders.ts` — data pesanan sepenuhnya palsu.
+
+### 2a. Tambah fungsi di `src/lib/db.ts`
+```ts
+export async function listAllInvoicesForAdmin() {
+  const { data, error } = await supabase
+    .from('invoices')
+    .select(`
+      id, user_id, total_amount, status, mayar_invoice_id, created_at, paid_at,
+      invoice_items ( id, class_id, bundle_id, price, classes ( title ), bundles ( title ) )
+    `)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+
+  return (data ?? []).map((inv: any) => ({
+    id: inv.id as string,
+    userId: inv.user_id as string,
+    totalAmount: inv.total_amount as number,
+    status: inv.status as 'pending' | 'paid' | 'failed',
+    mayarInvoiceId: inv.mayar_invoice_id as string | null,
+    createdAt: inv.created_at as string,
+    paidAt: inv.paid_at as string | null,
+    items: (inv.invoice_items ?? []).map((item: any) => ({
+      id: item.id as string,
+      title: item.classes?.title ?? item.bundles?.title ?? '(tidak diketahui)',
+      price: item.price as number,
+    })),
+  }));
+}
+```
+Verifikasi dulu struktur tabel `invoices`/`invoice_items` yang sebenarnya
+(kolom apa saja yang ada) sebelum finalisasi query ini, sama seperti
+Section 1. Cek juga apakah RLS pada `invoices` mengizinkan admin membaca
+SEMUA invoice (bukan cuma miliknya sendiri) — kalau policy sekarang hanya
+mengizinkan `auth.uid() = user_id`, fungsi ini perlu tambahan policy
+khusus admin (mirip pola policy admin pada `instructors` dari perbaikan
+sebelumnya), atau dijalankan sebagai edge function dengan service role.
+Laporkan temuan ini di ringkasan akhir kalau ternyata perlu policy
+tambahan.
+
+### 2b. Update `AdminOrdersPage.tsx`
+Ganti `useState<MockOrder[]>(MOCK_ORDERS)` dengan `useQuery` ke
+`listAllInvoicesForAdmin()`. Sesuaikan mapping status: data asli pakai
+`'pending' | 'paid' | 'failed'`, sedangkan UI sekarang mengharapkan
+`'pending' | 'success' | 'failed'` (`OrderStatus` dari `mockOrders.ts`) —
+petakan `'paid'` ke label tampilan `'success'` di level UI saja (jangan
+ubah nilai status di database).
+
+Untuk kolom nama/email user dan judul kelas pada tabel, gunakan data dari
+`items` — sesuaikan tampilan tabel supaya tetap informatif meski struktur
+datanya beda dari mock sebelumnya (misal 1 invoice bisa punya beberapa
+item, tampilkan sebagai daftar singkat atau "3 kelas" kalau lebih dari
+satu).
+
+Tombol "Resync" yang sekarang ada — cek fungsinya, kemungkinan ini
+simulasi UI saja untuk mock. Untuk data asli, sesuaikan atau nonaktifkan
+sementara tombol ini dengan catatan TODO kalau belum ada mekanisme resync
+yang sebenarnya terhubung ke Mayar (karena Mayar belum aktif berdasarkan
+konteks project ini).
+
+### 2c. Hapus Referensi Mock (Kalau Sudah Tidak Dipakai)
+Setelah kedua halaman ini migrasi, cek apakah `src/data/mockOrders.ts`
+dan `SUMMARY_CARDS` di `AdminDashboardPage.tsx` masih dipakai di tempat
+lain — kalau tidak, boleh dihapus filenya untuk kebersihan kode.
+
+---
+
+## Section 3 — Pindahkan Increment `used_count` Voucher ke `simulate-success`
+
+Voucher sekarang di-burn (increment `used_count`) saat **checkout** (invoice
+dibuat), bukan saat **pembayaran sukses**. Kalau user tidak menyelesaikan
+pembayaran, kuota voucher tetap terpakai sia-sia.
+
+### 3a. Migrasi kolom (jalankan manual, SQL disiapkan terpisah)
+Perlu kolom baru untuk menyimpan referensi voucher yang dipakai pada
+sebuah invoice, supaya `simulate-success` tahu voucher mana yang harus
+di-increment. Siapkan SQL berikut untuk saya jalankan manual:
+```sql
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS voucher_id UUID REFERENCES class_vouchers(id) ON DELETE SET NULL;
+```
+
+### 3b. Edit `supabase/functions/checkout/index.ts`
+- Tetap validasi voucher dan hitung harga seperti sekarang.
+- HAPUS pemanggilan `.rpc('increment_voucher_usage', ...)` dari sini —
+  jangan increment saat checkout lagi.
+- Saat insert row ke tabel `invoices`, sertakan `voucher_id: voucherRow.id`
+  kalau voucher dipakai (null kalau tidak).
+
+### 3c. Edit `supabase/functions/simulate-success/index.ts`
+- Setelah update invoice jadi `paid` dan sebelum/sesudah membuat
+  enrollment, cek apakah invoice ini punya `voucher_id`. Kalau ada,
+  panggil `.rpc('increment_voucher_usage', { voucher_id: invoice.voucher_id })`
+  di sini.
+
+**PENTING**: setelah edit dua edge function ini, SAYA (Darcia) perlu
+deploy ulang keduanya secara manual lewat Supabase Dashboard atau CLI —
+edge function tidak auto-deploy dari perubahan kode di repo. Tandai ini
+dengan jelas di ringkasan akhir.
+
+---
+
+## Section 4 — Migrasi 4 Halaman Admin dari Express ke `db.ts`
+
+`AdminClassesPage.tsx`, `AdminInstructorsPage.tsx`, `AdminSettingsPage.tsx`,
+`AdminTestimonialsPage.tsx` masih memakai hooks dari
+`@workspace/api-client-react`. Migrasi satu per satu ke `src/lib/db.ts`.
+
+Untuk setiap entity (classes, instructors, settings, testimonials), tambah
+fungsi CRUD di `db.ts` mengikuti pola yang sudah ada (lihat `listInstructors`/
+`listAllInstructorsForAdmin` sebagai referensi gaya kode). Sebelum menulis
+setiap fungsi, **verifikasi dulu struktur tabel sebenarnya** via
+`information_schema.columns` — jangan asumsi dari schema Drizzle atau
+dari route Express lama.
+
+### 4a. `AdminClassesPage.tsx`
+Perlu: `createClass`, `updateClass`, `deleteClass` di `db.ts` (selain
+`listClasses`, `getClassById` yang sudah ada). Ganti `useCreateClass`,
+`useUpdateClass`, `useDeleteClass`, `useListClasses` dengan
+`useMutation`/`useQuery` manual memanggil fungsi baru ini.
+
+### 4b. `AdminInstructorsPage.tsx`
+Perlu: `createInstructor`, `updateInstructor`, `deleteInstructor` di
+`db.ts`. Gunakan `listAllInstructorsForAdmin()` yang sudah ada untuk
+listing (ganti dari `useListInstructors`).
+
+### 4c. `AdminSettingsPage.tsx`
+Perlu: `updateSettings` di `db.ts` (selain `getSettings` yang sudah ada).
+Ganti `useGetSettings`, `useUpdateSettings`.
+
+### 4d. `AdminTestimonialsPage.tsx`
+Perlu: `createTestimonial`, `updateTestimonial`, `deleteTestimonial` di
+`db.ts` (selain `listTestimonials` yang sudah ada — tapi cek apakah versi
+admin perlu melihat testimoni yang belum published juga, mirip pola
+`listAllInstructorsForAdmin` vs `listInstructors`).
+
+Setelah migrasi keempat halaman ini, `@workspace/api-client-react` HANYA
+boleh tersisa di `main.tsx` (untuk `setAuthTokenGetter`, yang menurut
+catatan sebelumnya memang masih diperlukan) — pastikan tidak ada sisa
+import di halaman manapun.
+
+---
+
+## Section 5 — Bersihkan Policy Duplikat `user_profiles`
+
+Jalankan dulu untuk melihat semua policy:
+```sql
+SELECT policyname, cmd FROM pg_policies WHERE tablename = 'user_profiles' ORDER BY cmd, policyname;
+```
+Untuk operasi yang punya lebih dari satu policy dengan fungsi yang sama,
+hapus yang duplikat, sisakan satu. Untuk UPDATE, PASTIKAN yang disisakan
+adalah policy `"user_profiles: user update milik sendiri"` yang sudah
+dilindungi trigger `prevent_self_admin_escalation` dari perbaikan
+sebelumnya — jangan sampai menghapus yang ini secara tidak sengaja.
+
+---
+
+## Yang Tidak Boleh Berubah
+- Alur checkout kelas individual dan bundle yang sudah bekerja dengan
+  benar tidak diubah strukturnya (Section 3 hanya memindah TIMING
+  increment voucher, bukan logic lainnya)
+- Proteksi route admin (`RequireAdminRoute`) tidak disentuh
+- UI/tampilan halaman admin tidak didesain ulang, hanya sumber datanya
+  yang diganti dari mock/Express ke `db.ts`
+
+## Setelah Selesai
+1. Untuk Section 3, tegaskan dengan jelas bahwa saya perlu deploy manual
+   kedua edge function yang diubah, dan berikan SQL migrasi kolom
+   `voucher_id` yang perlu saya jalankan manual duluan SEBELUM deploy.
+2. Untuk Section 4, laporkan progress per halaman — kalau salah satu
+   halaman terlalu berisiko untuk diselesaikan dalam sesi ini, boleh
+   dipecah dan laporkan sisanya untuk sesi terpisah.
+3. Kasih ringkasan akhir semua file yang dibuat/diubah per section.

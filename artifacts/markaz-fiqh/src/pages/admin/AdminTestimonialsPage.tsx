@@ -35,15 +35,15 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
-  useListTestimonials,
-  useCreateTestimonial,
-  useUpdateTestimonial,
-  useDeleteTestimonial,
-  getListTestimonialsQueryKey,
-  type Testimonial,
-} from '@workspace/api-client-react';
-import { useQueryClient } from '@tanstack/react-query';
+  listAllTestimonialsForAdmin,
+  createTestimonial,
+  updateTestimonial,
+  deleteTestimonial,
+} from '@/lib/db';
+
+type Testimonial = Awaited<ReturnType<typeof listAllTestimonialsForAdmin>>[0];
 
 type TestimonialFormState = {
   name: string;
@@ -68,7 +68,7 @@ function testimonialToForm(t: Testimonial): TestimonialFormState {
     name: t.name,
     role: t.role ?? '',
     content: t.content,
-    photoUrl: t.photoUrl,
+    photoUrl: t.photoUrl ?? '',
     isPublished: t.isPublished,
     orderIndex: String(t.orderIndex),
   };
@@ -82,50 +82,51 @@ export default function AdminTestimonialsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const testimonialsQuery = useListTestimonials();
+  const testimonialsQuery = useQuery({
+    queryKey: ['testimonials', 'admin'],
+    queryFn: listAllTestimonialsForAdmin,
+  });
   const testimonials = testimonialsQuery.data ?? [];
 
   function invalidate() {
-    queryClient.invalidateQueries({ queryKey: getListTestimonialsQueryKey() });
+    queryClient.invalidateQueries({ queryKey: ['testimonials', 'admin'] });
   }
 
-  const createMutation = useCreateTestimonial({
-    mutation: {
-      onSuccess: () => {
-        invalidate();
-        toast({ title: 'Testimoni berhasil ditambahkan' });
-        setDialogOpen(false);
-      },
-      onError: (error) => {
-        toast({ title: 'Gagal menambahkan testimoni', description: String((error as Error)?.message ?? error), variant: 'destructive' });
-      },
+  const createMutation = useMutation({
+    mutationFn: (payload: Parameters<typeof createTestimonial>[0]) => createTestimonial(payload),
+    onSuccess: () => {
+      invalidate();
+      toast({ title: 'Testimoni berhasil ditambahkan' });
+      setDialogOpen(false);
+    },
+    onError: (error) => {
+      toast({ title: 'Gagal menambahkan testimoni', description: String((error as Error)?.message ?? error), variant: 'destructive' });
     },
   });
 
-  const updateMutation = useUpdateTestimonial({
-    mutation: {
-      onSuccess: () => {
-        invalidate();
-        toast({ title: 'Testimoni berhasil diperbarui' });
-        setDialogOpen(false);
-      },
-      onError: (error) => {
-        toast({ title: 'Gagal memperbarui testimoni', description: String((error as Error)?.message ?? error), variant: 'destructive' });
-      },
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Parameters<typeof updateTestimonial>[1] }) =>
+      updateTestimonial(id, data),
+    onSuccess: () => {
+      invalidate();
+      toast({ title: 'Testimoni berhasil diperbarui' });
+      setDialogOpen(false);
+    },
+    onError: (error) => {
+      toast({ title: 'Gagal memperbarui testimoni', description: String((error as Error)?.message ?? error), variant: 'destructive' });
     },
   });
 
-  const deleteMutation = useDeleteTestimonial({
-    mutation: {
-      onSuccess: () => {
-        invalidate();
-        toast({ title: 'Testimoni berhasil dihapus' });
-        setDeleteTarget(null);
-      },
-      onError: (error) => {
-        toast({ title: 'Gagal menghapus testimoni', description: String((error as Error)?.message ?? error), variant: 'destructive' });
-        setDeleteTarget(null);
-      },
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteTestimonial(id),
+    onSuccess: () => {
+      invalidate();
+      toast({ title: 'Testimoni berhasil dihapus' });
+      setDeleteTarget(null);
+    },
+    onError: (error) => {
+      toast({ title: 'Gagal menghapus testimoni', description: String((error as Error)?.message ?? error), variant: 'destructive' });
+      setDeleteTarget(null);
     },
   });
 
@@ -161,7 +162,7 @@ export default function AdminTestimonialsPage() {
     if (editingTestimonial) {
       updateMutation.mutate({ id: editingTestimonial.id, data: payload });
     } else {
-      createMutation.mutate({ data: payload });
+      createMutation.mutate(payload);
     }
   }
 
@@ -223,7 +224,7 @@ export default function AdminTestimonialsPage() {
                       <TableCell>
                         <div className="flex items-center gap-3">
                           <Avatar className="h-9 w-9">
-                            <AvatarImage src={t.photoUrl} alt={t.name} />
+                            <AvatarImage src={t.photoUrl ?? undefined} alt={t.name} />
                             <AvatarFallback className="bg-primary/10 text-primary text-xs">
                               {t.name.split(' ').map((n) => n[0]).join('').substring(0, 2)}
                             </AvatarFallback>
@@ -377,7 +378,7 @@ export default function AdminTestimonialsPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Batal</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deleteTarget && deleteMutation.mutate({ id: deleteTarget.id })}
+              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
               disabled={deleteMutation.isPending}
               data-testid="button-confirm-delete-testimonial"
             >

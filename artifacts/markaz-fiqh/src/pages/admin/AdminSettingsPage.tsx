@@ -7,12 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import {
-  useGetSettings,
-  useUpdateSettings,
-  getGetSettingsQueryKey,
-} from '@workspace/api-client-react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { getSettings, updateSettings } from '@/lib/db';
 
 type SettingsFormState = {
   siteName: string;
@@ -53,43 +49,42 @@ export default function AdminSettingsPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const settingsQuery = useGetSettings();
+  const settingsQuery = useQuery({ queryKey: ['settings'], queryFn: getSettings });
 
   useEffect(() => {
     if (settingsQuery.data) {
       const s = settingsQuery.data;
       setForm({
-        siteName: s.siteName,
-        tagline: s.tagline,
-        logoUrl: s.logoUrl,
-        contactEmail: s.contactEmail,
-        contactPhone: s.contactPhone,
-        address: s.address,
-        founderName: s.founderName,
-        founderBio: s.founderBio,
-        founderPhotoUrl: s.founderPhotoUrl,
-        socialInstagram: s.socialInstagram,
-        socialYoutube: s.socialYoutube,
-        socialFacebook: s.socialFacebook,
-        socialTiktok: s.socialTiktok,
-        studentCountLabel: s.studentCountLabel,
+        siteName: s.siteName ?? '',
+        tagline: s.tagline ?? '',
+        logoUrl: s.logoUrl ?? '',
+        contactEmail: s.contactEmail ?? '',
+        contactPhone: s.contactPhone ?? '',
+        address: s.address ?? '',
+        founderName: s.founderName ?? '',
+        founderBio: s.founderBio ?? '',
+        founderPhotoUrl: s.founderPhotoUrl ?? '',
+        socialInstagram: s.socialInstagram ?? '',
+        socialYoutube: s.socialYoutube ?? '',
+        socialFacebook: s.socialFacebook ?? '',
+        socialTiktok: s.socialTiktok ?? '',
+        studentCountLabel: s.studentCountLabel ?? '',
       });
     }
   }, [settingsQuery.data]);
 
-  const updateMutation = useUpdateSettings({
-    mutation: {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getGetSettingsQueryKey() });
-        toast({ title: 'Pengaturan berhasil disimpan' });
-      },
-      onError: (error) => {
-        toast({
-          title: 'Gagal menyimpan pengaturan',
-          description: String((error as Error)?.message ?? error),
-          variant: 'destructive',
-        });
-      },
+  const updateMutation = useMutation({
+    mutationFn: (data: SettingsFormState) => updateSettings(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings'] });
+      toast({ title: 'Pengaturan berhasil disimpan' });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Gagal menyimpan pengaturan',
+        description: String((error as Error)?.message ?? error),
+        variant: 'destructive',
+      });
     },
   });
 
@@ -99,7 +94,7 @@ export default function AdminSettingsPage() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    updateMutation.mutate({ data: form });
+    updateMutation.mutate(form);
   }
 
   if (settingsQuery.isLoading) {

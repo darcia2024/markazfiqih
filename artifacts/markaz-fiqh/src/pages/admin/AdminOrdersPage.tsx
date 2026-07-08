@@ -1,7 +1,7 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { AdminLayout } from '@/components/admin/AdminLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -12,51 +12,52 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { MOCK_ORDERS, formatOrderDate, type MockOrder, type OrderStatus } from '@/data/mockOrders';
+import { Skeleton } from '@/components/ui/skeleton';
 import { formatPrice } from '@/data/mockClasses';
-import { RefreshCw, Loader2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
+import { listAllInvoicesForAdmin } from '@/lib/db';
 
-const TABS: { value: OrderStatus | 'all'; label: string }[] = [
+type InvoiceStatus = 'pending' | 'paid' | 'failed';
+type DisplayStatus = 'pending' | 'success' | 'failed';
+
+const TABS: { value: DisplayStatus | 'all'; label: string }[] = [
   { value: 'pending', label: 'Tertunda' },
   { value: 'success', label: 'Berhasil' },
   { value: 'failed', label: 'Gagal' },
   { value: 'all', label: 'Semua' },
 ];
 
-const STATUS_BADGE: Record<OrderStatus, { label: string; variant: 'neutral' | 'success' | 'destructive' }> = {
+const STATUS_BADGE: Record<DisplayStatus, { label: string; variant: 'neutral' | 'success' | 'destructive' }> = {
   pending: { label: 'Tertunda', variant: 'neutral' },
   success: { label: 'Berhasil', variant: 'success' },
   failed: { label: 'Gagal', variant: 'destructive' },
 };
 
+function toDisplayStatus(status: InvoiceStatus): DisplayStatus {
+  return status === 'paid' ? 'success' : status;
+}
+
+function formatOrderDate(iso: string): string {
+  return new Intl.DateTimeFormat('id-ID', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(iso));
+}
+
 export default function AdminOrdersPage() {
-  const [orders, setOrders] = useState<MockOrder[]>(MOCK_ORDERS);
-  const [activeTab, setActiveTab] = useState<OrderStatus | 'all'>('pending');
-  const [syncingId, setSyncingId] = useState<string | null>(null);
-  const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState<DisplayStatus | 'all'>('pending');
 
-  const filtered = orders.filter((o) => (activeTab === 'all' ? true : o.status === activeTab));
-  const pendingCount = orders.filter((o) => o.status === 'pending').length;
+  const { data: invoices = [], isLoading, isError } = useQuery({
+    queryKey: ['admin', 'invoices'],
+    queryFn: listAllInvoicesForAdmin,
+  });
 
-  function handleResync(order: MockOrder) {
-    setSyncingId(order.id);
-    setTimeout(() => {
-      const success = Math.random() > 0.3;
-      setOrders((prev) =>
-        prev.map((o) => (o.id === order.id ? { ...o, status: success ? 'success' : 'failed' } : o))
-      );
-      setSyncingId(null);
-      toast({
-        title: success ? 'Sinkronisasi berhasil' : 'Sinkronisasi gagal',
-        description: success
-          ? `Pesanan ${order.id} kini berstatus Berhasil. Enrollment otomatis dibuat. (data tiruan)`
-          : `Pesanan ${order.id} masih gagal diproses oleh Mayar. (data tiruan)`,
-        variant: success ? 'default' : 'destructive',
-      });
-    }, 1200);
-  }
+  const filtered = invoices.filter((inv) =>
+    activeTab === 'all' ? true : toDisplayStatus(inv.status) === activeTab,
+  );
+  const pendingCount = invoices.filter((inv) => inv.status === 'pending').length;
 
   return (
     <AdminLayout>
@@ -64,14 +65,14 @@ export default function AdminOrdersPage() {
         <div>
           <h2 className="font-serif text-2xl font-bold text-foreground">Daftar Pesanan</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Pantau pesanan dan sinkronkan ulang pembayaran yang tertunda ke Mayar.
+            Pantau semua pesanan masuk dari database.
           </p>
         </div>
 
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between flex-wrap gap-3">
-              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as OrderStatus | 'all')}>
+              <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as DisplayStatus | 'all')}>
                 <TabsList>
                   {TABS.map((tab) => (
                     <TabsTrigger key={tab.value} value={tab.value} data-testid={`tab-orders-${tab.value}`}>
@@ -88,74 +89,76 @@ export default function AdminOrdersPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Pesanan</TableHead>
-                  <TableHead>Pengguna</TableHead>
-                  <TableHead>Kelas</TableHead>
-                  <TableHead>Jumlah</TableHead>
-                  <TableHead>Metode</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-8">
-                      Tidak ada pesanan pada kategori ini.
-                    </TableCell>
-                  </TableRow>
-                )}
-                {filtered.map((order) => (
-                  <TableRow key={order.id} data-testid={`row-order-${order.id}`}>
-                    <TableCell>
-                      <p className="text-sm font-medium text-foreground">{order.id}</p>
-                      <p className="text-xs text-muted-foreground">{formatOrderDate(order.created_at)}</p>
-                    </TableCell>
-                    <TableCell>
-                      <p className="text-sm text-foreground">{order.user_name}</p>
-                      <p className="text-xs text-muted-foreground">{order.user_email}</p>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground max-w-[200px] truncate">
-                      {order.class_title}
-                    </TableCell>
-                    <TableCell className="text-sm font-medium text-foreground">
-                      {formatPrice(order.amount)}
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{order.payment_method}</TableCell>
-                    <TableCell>
-                      <Badge variant={STATUS_BADGE[order.status].variant} data-testid={`badge-order-status-${order.id}`}>
-                        {STATUS_BADGE[order.status].label}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {order.status !== 'success' ? (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={syncingId === order.id}
-                          onClick={() => handleResync(order)}
-                          data-testid={`button-resync-${order.id}`}
-                        >
-                          {syncingId === order.id ? (
-                            <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
-                          ) : (
-                            <RefreshCw className={cn('h-4 w-4 mr-1.5')} />
-                          )}
-                          Sinkronkan Ulang
-                        </Button>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">Selesai</span>
-                      )}
-                    </TableCell>
-                  </TableRow>
+            {isError && (
+              <p className="text-center text-sm text-destructive py-8">
+                Gagal memuat pesanan. Pastikan RLS admin pada tabel <code>invoices</code> sudah diaktifkan
+                (lihat catatan di ringkasan Prompt 55).
+              </p>
+            )}
+            {isLoading ? (
+              <div className="space-y-3">
+                {[...Array(4)].map((_, i) => (
+                  <Skeleton key={i} className="h-12 w-full rounded" />
                 ))}
-              </TableBody>
-            </Table>
-            </div>
+              </div>
+            ) : !isError && (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Invoice</TableHead>
+                      <TableHead>User ID</TableHead>
+                      <TableHead>Item</TableHead>
+                      <TableHead>Total</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-8">
+                          Tidak ada pesanan pada kategori ini.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                    {filtered.map((inv) => {
+                      const displayStatus = toDisplayStatus(inv.status);
+                      const itemLabel =
+                        inv.items.length === 0
+                          ? '—'
+                          : inv.items.length === 1
+                          ? inv.items[0].title
+                          : `${inv.items[0].title} +${inv.items.length - 1} lainnya`;
+                      return (
+                        <TableRow key={inv.id} data-testid={`row-order-${inv.id}`}>
+                          <TableCell>
+                            <p className="text-sm font-mono text-foreground">{inv.id.slice(0, 8)}…</p>
+                            <p className="text-xs text-muted-foreground">{formatOrderDate(inv.createdAt)}</p>
+                          </TableCell>
+                          <TableCell className="text-xs text-muted-foreground font-mono">
+                            {inv.userId.slice(0, 8)}…
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground max-w-[220px] truncate">
+                            {itemLabel}
+                          </TableCell>
+                          <TableCell className="text-sm font-medium text-foreground">
+                            {formatPrice(inv.totalAmount)}
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={STATUS_BADGE[displayStatus].variant}
+                              data-testid={`badge-order-status-${inv.id}`}
+                            >
+                              {STATUS_BADGE[displayStatus].label}
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

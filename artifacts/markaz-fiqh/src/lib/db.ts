@@ -67,6 +67,8 @@ export async function listClasses(params?: {
   category?: string;
   level?: string;
   instructorId?: string;
+  /** Kalau true, tampilkan semua kelas termasuk draft — khusus Admin Panel */
+  includeAll?: boolean;
 }) {
   let query = supabase
     .from('classes')
@@ -76,8 +78,9 @@ export async function listClasses(params?: {
       instructors ( id, name, photo_url ),
       modules ( id, dars ( id, duration_minutes ) )
     `)
-    .eq('status', 'published')
     .order('created_at', { ascending: false });
+
+  if (!params?.includeAll) query = query.eq('status', 'published');
 
   if (params?.search) query = query.ilike('title', `%${params.search}%`);
   if (params?.category) query = query.eq('category', params.category);
@@ -214,7 +217,7 @@ export async function listInstructors() {
 export async function listAllInstructorsForAdmin() {
   const { data, error } = await supabase
     .from('instructors')
-    .select('id, name, bio, photo_url, is_active')
+    .select('id, name, bio, photo_url, is_active, classes(id, status)')
     .order('name');
   if (error) throw error;
   return (data ?? []).map((i: any) => ({
@@ -223,7 +226,42 @@ export async function listAllInstructorsForAdmin() {
     bio: i.bio as string | null,
     photoUrl: i.photo_url as string,
     isActive: i.is_active as boolean,
+    classCount: (i.classes ?? []).filter((c: any) => c.status === 'published').length as number,
   }));
+}
+
+// ─── ADMIN INSTRUCTORS CRUD ───────────────────────────────────────────────────
+
+export async function createInstructor(data: {
+  name: string;
+  bio?: string;
+  photoUrl?: string;
+}) {
+  const { data: created, error } = await supabase
+    .from('instructors')
+    .insert({ name: data.name, bio: data.bio ?? null, photo_url: data.photoUrl ?? '', is_active: true })
+    .select()
+    .single();
+  if (error) throw error;
+  return created;
+}
+
+export async function updateInstructor(
+  id: string,
+  data: Partial<{ name: string; bio: string | null; photoUrl: string; isActive: boolean }>,
+) {
+  const patch: Record<string, unknown> = {};
+  if (data.name !== undefined) patch.name = data.name;
+  if ('bio' in data) patch.bio = data.bio;
+  if (data.photoUrl !== undefined) patch.photo_url = data.photoUrl;
+  if (data.isActive !== undefined) patch.is_active = data.isActive;
+  const { error } = await supabase.from('instructors').update(patch).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteInstructor(id: string) {
+  const { error } = await supabase.from('instructors').delete().eq('id', id);
+  if (error) throw error;
 }
 
 // ─── TESTIMONIALS ─────────────────────────────────────────────────────────────
@@ -648,6 +686,205 @@ export async function completeEnrollment(enrollmentId: string) {
     .update({ is_completed: true })
     .eq('id', enrollmentId);
   if (error) throw error;
+}
+
+// ─── ADMIN TESTIMONIALS CRUD ─────────────────────────────────────────────────
+
+/** Semua testimoni termasuk belum tayang — khusus Admin Panel. */
+export async function listAllTestimonialsForAdmin() {
+  const { data, error } = await supabase
+    .from('testimonials')
+    .select('id, name, role, content, photo_url, is_published, order_index')
+    .order('order_index');
+  if (error) throw error;
+  return (data ?? []).map((t: any) => ({
+    id: t.id as string,
+    name: t.name as string,
+    role: t.role as string | null,
+    content: t.content as string,
+    photoUrl: t.photo_url as string | null,
+    isPublished: t.is_published as boolean,
+    orderIndex: t.order_index as number,
+  }));
+}
+
+export async function createTestimonial(data: {
+  name: string; role?: string | null; content: string;
+  photoUrl?: string; isPublished?: boolean; orderIndex?: number;
+}) {
+  const { data: created, error } = await supabase
+    .from('testimonials')
+    .insert({
+      name: data.name, role: data.role ?? null, content: data.content,
+      photo_url: data.photoUrl ?? '', is_published: data.isPublished ?? true,
+      order_index: data.orderIndex ?? 0,
+    })
+    .select().single();
+  if (error) throw error;
+  return created;
+}
+
+export async function updateTestimonial(
+  id: string,
+  data: Partial<{ name: string; role: string | null; content: string; photoUrl: string; isPublished: boolean; orderIndex: number }>,
+) {
+  const patch: Record<string, unknown> = {};
+  if (data.name !== undefined) patch.name = data.name;
+  if ('role' in data) patch.role = data.role;
+  if (data.content !== undefined) patch.content = data.content;
+  if (data.photoUrl !== undefined) patch.photo_url = data.photoUrl;
+  if (data.isPublished !== undefined) patch.is_published = data.isPublished;
+  if (data.orderIndex !== undefined) patch.order_index = data.orderIndex;
+  const { error } = await supabase.from('testimonials').update(patch).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteTestimonial(id: string) {
+  const { error } = await supabase.from('testimonials').delete().eq('id', id);
+  if (error) throw error;
+}
+
+// ─── ADMIN SETTINGS CRUD ─────────────────────────────────────────────────────
+
+export async function updateSettings(data: {
+  siteName?: string; tagline?: string; logoUrl?: string;
+  contactEmail?: string; contactPhone?: string; address?: string;
+  founderName?: string; founderBio?: string; founderPhotoUrl?: string;
+  socialInstagram?: string; socialYoutube?: string; socialFacebook?: string;
+  socialTiktok?: string; studentCountLabel?: string;
+}) {
+  const patch: Record<string, unknown> = {};
+  if (data.siteName !== undefined) patch.site_name = data.siteName;
+  if (data.tagline !== undefined) patch.tagline = data.tagline;
+  if (data.logoUrl !== undefined) patch.logo_url = data.logoUrl;
+  if (data.contactEmail !== undefined) patch.contact_email = data.contactEmail;
+  if (data.contactPhone !== undefined) patch.contact_phone = data.contactPhone;
+  if (data.address !== undefined) patch.address = data.address;
+  if (data.founderName !== undefined) patch.founder_name = data.founderName;
+  if (data.founderBio !== undefined) patch.founder_bio = data.founderBio;
+  if (data.founderPhotoUrl !== undefined) patch.founder_photo_url = data.founderPhotoUrl;
+  if (data.socialInstagram !== undefined) patch.social_instagram = data.socialInstagram;
+  if (data.socialYoutube !== undefined) patch.social_youtube = data.socialYoutube;
+  if (data.socialFacebook !== undefined) patch.social_facebook = data.socialFacebook;
+  if (data.socialTiktok !== undefined) patch.social_tiktok = data.socialTiktok;
+  if (data.studentCountLabel !== undefined) patch.student_count_label = data.studentCountLabel;
+  const { error } = await supabase.from('site_settings').update(patch).eq('id', 1);
+  if (error) throw error;
+}
+
+// ─── ADMIN CLASSES CRUD ───────────────────────────────────────────────────────
+
+export async function createClass(data: {
+  title: string; description?: string; coverImage?: string;
+  basePrice: number; discountPrice?: number | null;
+  status: 'draft' | 'published'; level?: string | null;
+  category?: string | null; instructorId: string;
+  youtubePlaylistId?: string | null; gdriveMateriUrl?: string | null;
+  waGroupUrl?: string | null; meetingCount?: number | null;
+}) {
+  const { data: created, error } = await supabase
+    .from('classes')
+    .insert({
+      title: data.title, description: data.description ?? '',
+      cover_image: data.coverImage ?? '', base_price: data.basePrice,
+      discount_price: data.discountPrice ?? null, status: data.status,
+      level: data.level ?? null, category: data.category ?? null,
+      instructor_id: data.instructorId,
+      youtube_playlist_id: data.youtubePlaylistId ?? null,
+      gdrive_materi_url: data.gdriveMateriUrl ?? null,
+      wa_group_url: data.waGroupUrl ?? null,
+      meeting_count: data.meetingCount ?? null,
+    })
+    .select().single();
+  if (error) throw error;
+  return created;
+}
+
+export async function updateClass(
+  id: string,
+  data: Partial<{
+    title: string; description: string; coverImage: string;
+    basePrice: number; discountPrice: number | null;
+    status: 'draft' | 'published'; level: string | null;
+    category: string | null; instructorId: string;
+    youtubePlaylistId: string | null; gdriveMateriUrl: string | null;
+    waGroupUrl: string | null; meetingCount: number | null;
+  }>,
+) {
+  const patch: Record<string, unknown> = {};
+  if (data.title !== undefined) patch.title = data.title;
+  if (data.description !== undefined) patch.description = data.description;
+  if (data.coverImage !== undefined) patch.cover_image = data.coverImage;
+  if (data.basePrice !== undefined) patch.base_price = data.basePrice;
+  if ('discountPrice' in data) patch.discount_price = data.discountPrice;
+  if (data.status !== undefined) patch.status = data.status;
+  if ('level' in data) patch.level = data.level;
+  if ('category' in data) patch.category = data.category;
+  if (data.instructorId !== undefined) patch.instructor_id = data.instructorId;
+  if ('youtubePlaylistId' in data) patch.youtube_playlist_id = data.youtubePlaylistId;
+  if ('gdriveMateriUrl' in data) patch.gdrive_materi_url = data.gdriveMateriUrl;
+  if ('waGroupUrl' in data) patch.wa_group_url = data.waGroupUrl;
+  if ('meetingCount' in data) patch.meeting_count = data.meetingCount;
+  const { error } = await supabase.from('classes').update(patch).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteClass(id: string) {
+  const { error } = await supabase.from('classes').delete().eq('id', id);
+  if (error) throw error;
+}
+
+// ─── ADMIN DASHBOARD ─────────────────────────────────────────────────────────
+
+/** Ringkasan statistik untuk Admin Dashboard. */
+export async function getAdminDashboardSummary() {
+  const [classesRes, publishedRes, pendingInvoicesRes, paidInvoicesRes, usersRes] = await Promise.all([
+    supabase.from('classes').select('id', { count: 'exact', head: true }),
+    supabase.from('classes').select('id', { count: 'exact', head: true }).eq('status', 'published'),
+    supabase.from('invoices').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+    supabase.from('invoices').select('id', { count: 'exact', head: true }).eq('status', 'paid'),
+    supabase.from('user_profiles').select('user_id', { count: 'exact', head: true }),
+  ]);
+  return {
+    totalClasses: classesRes.count ?? 0,
+    publishedClasses: publishedRes.count ?? 0,
+    draftClasses: (classesRes.count ?? 0) - (publishedRes.count ?? 0),
+    pendingOrders: pendingInvoicesRes.count ?? 0,
+    totalPaidOrders: paidInvoicesRes.count ?? 0,
+    totalUsers: usersRes.count ?? 0,
+  };
+}
+
+// ─── ADMIN INVOICES ───────────────────────────────────────────────────────────
+
+/**
+ * Semua invoice — khusus Admin Panel.
+ * PERLU: RLS policy admin pada tabel invoices agar bisa membaca semua invoice
+ * (bukan hanya milik sendiri). Lihat ringkasan akhir Prompt 55 untuk detailnya.
+ */
+export async function listAllInvoicesForAdmin() {
+  const { data, error } = await supabase
+    .from('invoices')
+    .select(`
+      id, user_id, total_amount, status, mayar_invoice_id, created_at, paid_at,
+      invoice_items ( id, class_id, bundle_id, price, classes ( title ), bundles ( title ) )
+    `)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((inv: any) => ({
+    id: inv.id as string,
+    userId: inv.user_id as string,
+    totalAmount: inv.total_amount as number,
+    status: inv.status as 'pending' | 'paid' | 'failed',
+    mayarInvoiceId: inv.mayar_invoice_id as string | null,
+    createdAt: inv.created_at as string,
+    paidAt: inv.paid_at as string | null,
+    items: (inv.invoice_items ?? []).map((item: any) => ({
+      id: item.id as string,
+      title: item.classes?.title ?? item.bundles?.title ?? '(tidak diketahui)',
+      price: item.price as number,
+    })),
+  }));
 }
 
 export async function getInvoice(invoiceId: string): Promise<LocalInvoice> {

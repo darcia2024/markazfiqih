@@ -1,15 +1,45 @@
+import { useQuery } from '@tanstack/react-query';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import { GraduationCap, Receipt, Users, AlertCircle } from 'lucide-react';
-
-const SUMMARY_CARDS = [
-  { title: 'Total Kelas', value: '6', icon: GraduationCap, hint: '5 Published, 1 Draft' },
-  { title: 'Pesanan Tertunda', value: '3', icon: AlertCircle, hint: 'Perlu sinkronisasi ulang' },
-  { title: 'Total Pesanan', value: '128', icon: Receipt, hint: 'Bulan ini' },
-  { title: 'Pengguna Terdaftar', value: '412', icon: Users, hint: 'Total akun aktif' },
-];
+import { getAdminDashboardSummary } from '@/lib/db';
 
 export default function AdminDashboardPage() {
+  const { data, isLoading } = useQuery({
+    queryKey: ['admin', 'dashboard', 'summary'],
+    queryFn: getAdminDashboardSummary,
+  });
+
+  const cards = [
+    {
+      title: 'Total Kelas',
+      value: data?.totalClasses ?? 0,
+      icon: GraduationCap,
+      hint: data
+        ? `${data.publishedClasses} Published, ${data.draftClasses} Draft`
+        : '—',
+    },
+    {
+      title: 'Pesanan Tertunda',
+      value: data?.pendingOrders ?? 0,
+      icon: AlertCircle,
+      hint: data?.pendingOrders ? 'Perlu ditindaklanjuti' : 'Tidak ada pesanan tertunda',
+    },
+    {
+      title: 'Total Pesanan Lunas',
+      value: data?.totalPaidOrders ?? 0,
+      icon: Receipt,
+      hint: 'Akumulasi sejak awal',
+    },
+    {
+      title: 'Pengguna Terdaftar',
+      value: data?.totalUsers ?? 0,
+      icon: Users,
+      hint: 'Total akun aktif',
+    },
+  ];
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -21,15 +51,31 @@ export default function AdminDashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {SUMMARY_CARDS.map((card) => (
-            <Card key={card.title} data-testid={`card-summary-${card.title.toLowerCase().replace(/\s+/g, '-')}`}>
+          {cards.map((card) => (
+            <Card
+              key={card.title}
+              data-testid={`card-summary-${card.title.toLowerCase().replace(/\s+/g, '-')}`}
+            >
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">{card.title}</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">
+                  {card.title}
+                </CardTitle>
                 <card.icon className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-foreground">{card.value}</div>
-                <p className="text-xs text-muted-foreground mt-1">{card.hint}</p>
+                {isLoading ? (
+                  <>
+                    <Skeleton className="h-8 w-16 mb-1" />
+                    <Skeleton className="h-3 w-28" />
+                  </>
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold text-foreground">
+                      {card.value.toLocaleString('id-ID')}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">{card.hint}</p>
+                  </>
+                )}
               </CardContent>
             </Card>
           ))}
@@ -40,12 +86,13 @@ export default function AdminDashboardPage() {
             <CardTitle className="text-base font-serif">Mulai Cepat</CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground space-y-2">
-            <p>
-              Panel admin ini masih dalam tahap tampilan dasar (data tiruan). Halaman berikut sudah tersedia melalui menu di samping:
-            </p>
+            <p>Gunakan menu di samping untuk mengelola konten platform:</p>
             <ul className="list-disc list-inside space-y-1">
               <li>Manajemen Kelas — kelola daftar kelas dan status publikasinya</li>
-              <li>Pesanan — pantau pesanan yang berstatus tertunda</li>
+              <li>Pesanan — pantau pesanan dari database</li>
+              <li>Pengajar — tambah dan kelola data instruktur</li>
+              <li>Testimoni — kelola testimoni santri di halaman utama</li>
+              <li>Pengaturan — konfigurasi informasi situs</li>
             </ul>
           </CardContent>
         </Card>
