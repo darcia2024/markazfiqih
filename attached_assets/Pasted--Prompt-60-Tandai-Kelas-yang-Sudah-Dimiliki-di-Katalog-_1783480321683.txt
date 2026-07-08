@@ -1,0 +1,111 @@
+# Prompt 60: Tandai Kelas yang Sudah Dimiliki di Katalog
+
+## Konteks
+User yang sudah membeli kelas tidak punya penanda visual di halaman
+Katalog — mereka bisa bingung kelas mana yang sudah dimiliki dan mana
+yang belum, berisiko mencoba beli ulang kelas yang sama.
+
+**Catatan keamanan (sudah diverifikasi, tidak perlu tindakan)**: tabel
+`enrollments` tidak punya RLS policy DELETE sama sekali, jadi kelas yang
+sudah dibeli user tidak mungkin terhapus lewat client manapun. Bagian ini
+sudah aman dari sononya.
+
+## Fix
+
+Edit `artifacts/markaz-fiqh/src/pages/CatalogPage.tsx`.
+
+### 1. Ambil Daftar Kelas yang Sudah Dimiliki (Satu Query, Level Parent)
+Query per-card akan menyebabkan N+1 problem (satu query per kelas yang
+ditampilkan). Sebagai gantinya, ambil SEMUA `class_id` yang sudah dimiliki
+user SEKALI di level komponen utama `CatalogPage` (bukan di dalam tiap
+`ClassCard`), simpan sebagai `Set<string>`, teruskan sebagai prop ke
+`ClassCard` — mirip pola `classIdsInCart` yang sudah ada di file ini
+untuk cart.
+
+```tsx
+// Di level komponen utama CatalogPage:
+const enrolledClassIdsQuery = useQuery({
+  queryKey: ['enrolled-class-ids', user?.id],
+  queryFn: async () => {
+    const enrollments = await listEnrollments(user!.id);
+    return new Set(enrollments.map((e) => e.class.id));
+  },
+  enabled: !!user?.id,
+});
+const enrolledClassIds = enrolledClassIdsQuery.data ?? new Set<string>();
+```
+Import `listEnrollments` dari `@/lib/db` kalau belum ada. Teruskan
+`enrolledClassIds` sebagai prop tambahan ke setiap `<ClassCard
+enrolledClassIds={enrolledClassIds} ... />` saat komponen ini dirender.
+
+### 2. Terima Prop di `ClassCard`
+Update signature `ClassCard` untuk menerima `enrolledClassIds:
+Set<string>`, lalu di dalam komponen:
+```tsx
+const isEnrolled = enrolledClassIds.has(cls.id);
+```
+
+### 3. Badge "Sudah Dimiliki" pada Cover Kelas
+Di area cover image (dekat badge level yang sudah ada di pojok
+kiri-atas), tambahkan badge baru di pojok KANAN-atas ketika
+`isEnrolled === true`:
+```tsx
+{isEnrolled && (
+  <div className="absolute top-3 right-3">
+    <Badge className="bg-emerald-600 text-white text-[11px] flex items-center gap-1">
+      <CheckCircle2 className="h-3 w-3" />
+      Dimiliki
+    </Badge>
+  </div>
+)}
+```
+(Import `CheckCircle2` dari `lucide-react` kalau belum ada.)
+
+### 4. Ubah Footer Tombol Kalau Sudah Dimiliki
+Footer tombol sekarang (`Tambah ke Keranjang` / `Lihat di Keranjang`)
+perlu kondisi tambahan: kalau `isEnrolled === true`, tombol berubah total
+jadi CTA untuk lanjut belajar, BUKAN cart action:
+
+```tsx
+{isEnrolled ? (
+  <Link
+    href={`/learn/${cls.id}`}
+    className="w-full py-3 px-4 bg-emerald-600 text-white text-sm font-semibold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+  >
+    Lanjutkan Belajar
+    <ArrowRight className="h-4 w-4 shrink-0" />
+  </Link>
+) : (
+  <button
+    onClick={handleCartAction}
+    disabled={isAdding}
+    className="w-full py-3 px-4 bg-gradient-to-r from-primary to-[hsl(var(--brand-red-hover))] text-white text-sm font-semibold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-60"
+  >
+    {inCart ? 'Lihat di Keranjang' : 'Tambah ke Keranjang'}
+    <ArrowRight className="h-4 w-4 shrink-0" />
+  </button>
+)}
+```
+(Ganti struktur footer button yang sekarang dengan kondisi di atas —
+sesuaikan className persis dengan yang sudah ada di file supaya
+konsisten, contoh di atas hanya kerangka.)
+
+### 5. Untuk User yang Belum Login
+Kalau `user` null (belum login), query `enrolledClassIdsQuery` tidak
+akan jalan (`enabled: !!user?.id`), `enrolledClassIds` akan jadi
+`Set` kosong — behavior tombol otomatis fallback ke state normal (Tambah
+ke Keranjang), yang sudah benar untuk visitor yang belum login.
+
+## Yang Tidak Boleh Berubah
+- Struktur card, badge level, checklist detail, harga tidak diubah
+- Logic `handleCartAction`, `inCart` untuk kelas yang belum dimiliki
+  tidak berubah
+- Style/warna lain di card tidak berubah, hanya menambahkan badge dan
+  kondisi tombol baru
+
+## Setelah Selesai
+Konfirmasi bahwa kelas yang sudah dimiliki user menampilkan badge
+"Dimiliki" dan tombol "Lanjutkan Belajar" yang mengarah ke
+`/learn/:classId`, sementara kelas yang belum dimiliki tetap berperilaku
+seperti sebelumnya. Pastikan hanya 1 query tambahan per halaman (bukan
+per-card) untuk cek status enrollment.

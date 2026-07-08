@@ -9,12 +9,13 @@ import {
   ShoppingCart,
   Check,
   ArrowRight,
+  CheckCircle2,
 } from 'lucide-react';
 
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import { useQuery } from '@tanstack/react-query';
-import { listClasses, listInstructors } from '@/lib/db';
+import { listClasses, listInstructors, listEnrollments } from '@/lib/db';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -202,7 +203,7 @@ function CheckItem({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function ClassCard({ cls, index }: { cls: ClassSummary; index: number }) {
+export function ClassCard({ cls, index, enrolledClassIds = new Set<string>() }: { cls: ClassSummary; index: number; enrolledClassIds?: Set<string> }) {
   const hasDiscount = cls.discountPrice != null;
   const durationLabel = formatDuration(cls.totalDurationMinutes);
   const { user } = useAuth();
@@ -262,6 +263,14 @@ export function ClassCard({ cls, index }: { cls: ClassSummary; index: number }) 
               <div className="absolute top-3 left-3">
                 <Badge variant={LEVEL_BADGE_VARIANT[cls.level]} className="text-[11px]">
                   {LEVEL_LABEL[cls.level]}
+                </Badge>
+              </div>
+            )}
+            {enrolledClassIds.has(cls.id) && (
+              <div className="absolute top-3 right-3">
+                <Badge className="bg-emerald-600 text-white text-[11px] flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Dimiliki
                 </Badge>
               </div>
             )}
@@ -326,15 +335,25 @@ export function ClassCard({ cls, index }: { cls: ClassSummary; index: number }) 
           </div>
         </Link>
 
-        {/* Full-width gradient footer button — sibling of Link, NOT nested inside it */}
-        <button
-          onClick={handleCartAction}
-          disabled={isAdding}
-          className="w-full py-3 px-4 bg-gradient-to-r from-primary to-[hsl(var(--brand-red-hover))] text-white text-sm font-semibold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-60"
-        >
-          {inCart ? 'Lihat di Keranjang' : 'Tambah ke Keranjang'}
-          <ArrowRight className="h-4 w-4 shrink-0" />
-        </button>
+        {/* Full-width footer — sibling of Link, NOT nested inside it */}
+        {enrolledClassIds.has(cls.id) ? (
+          <Link
+            href={`/learn/${cls.id}`}
+            className="w-full py-3 px-4 bg-emerald-600 text-white text-sm font-semibold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+          >
+            Lanjutkan Belajar
+            <ArrowRight className="h-4 w-4 shrink-0" />
+          </Link>
+        ) : (
+          <button
+            onClick={handleCartAction}
+            disabled={isAdding}
+            className="w-full py-3 px-4 bg-gradient-to-r from-primary to-[hsl(var(--brand-red-hover))] text-white text-sm font-semibold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-60"
+          >
+            {inCart ? 'Lihat di Keranjang' : 'Tambah ke Keranjang'}
+            <ArrowRight className="h-4 w-4 shrink-0" />
+          </button>
+        )}
       </div>
     </motion.div>
   );
@@ -420,6 +439,18 @@ function CatalogContent() {
   const [category, setCategory] = useState<'all' | string>(initialCategory);
   const [sort, setSort] = useState<'newest' | 'price_asc' | 'price_desc' | 'popular'>('newest');
   const [selectedInstructorId, setSelectedInstructorId] = useState<string | null>(null);
+
+  const { user } = useAuth();
+
+  const enrolledClassIdsQuery = useQuery({
+    queryKey: ['enrolled-class-ids', user?.id],
+    queryFn: async () => {
+      const enrollments = await listEnrollments(user!.id);
+      return new Set(enrollments.map((e) => e.class.id));
+    },
+    enabled: !!user?.id,
+  });
+  const enrolledClassIds = enrolledClassIdsQuery.data ?? new Set<string>();
 
   const classesQuery = useQuery({
     queryKey: ['classes', search, level, category, selectedInstructorId],
@@ -553,7 +584,7 @@ function CatalogContent() {
                 Array.from({ length: 8 }).map((_, i) => <ClassCardSkeleton key={i} />)}
 
               {!isLoading &&
-                sortedClasses.map((cls, idx) => <ClassCard key={cls.id} cls={cls} index={idx} />)}
+                sortedClasses.map((cls, idx) => <ClassCard key={cls.id} cls={cls} index={idx} enrolledClassIds={enrolledClassIds} />)}
 
               {isEmpty && (
                 <EmptyState

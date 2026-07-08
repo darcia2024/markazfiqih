@@ -643,7 +643,7 @@ function FeaturedClassesSection({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {isLoading && Array.from({ length: 4 }).map((_, i) => <ClassCardSkeleton key={i} />)}
           {!isLoading && classes.map((cls, idx) => (
-            <ClassCard key={cls.id} cls={cls} index={idx} />
+            <ClassCard key={cls.id} cls={cls} index={idx} enrolledClassIds={new Set()} />
           ))}
         </div>
 
