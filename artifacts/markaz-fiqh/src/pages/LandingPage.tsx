@@ -118,6 +118,15 @@ function HeroSection({
 
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-primary to-[hsl(var(--brand-red-hover))]">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 opacity-20"
+        style={{
+          backgroundImage: "url('/hero-pattern.png')",
+          backgroundSize: '480px',
+          backgroundRepeat: 'repeat',
+        }}
+      />
 
       <div className="relative z-10 container mx-auto px-5 sm:px-8 lg:px-16 max-w-[1200px]">
         {/* Satu kolom, semua center */}
