@@ -1,0 +1,100 @@
+# Prompt 68: Tambah Cover Image ke Card Bundle
+
+## Konteks
+Kolom `cover_image` baru ditambahkan ke tabel `bundles` (SQL terpisah:
+`68-tambah-kolom-cover-bundle.sql`, sudah dijalankan sebagian — kolom
+sudah ada, tapi isinya masih kosong string untuk semua bundle sampai
+saya (Darcia) mengupload file cover dan menjalankan UPDATE manual).
+
+Sekarang wire field ini ke kode supaya begitu data cover-nya terisi,
+gambar otomatis muncul di card bundle tanpa perlu ubah kode lagi.
+
+## Fix
+
+### 1. Update `listBundles()` di `src/lib/db.ts`
+Tambahkan `cover_image` ke query select dan ke object yang dikembalikan:
+```ts
+export async function listBundles(): Promise<BundleItem[]> {
+  const { data, error } = await supabase
+    .from('bundles')
+    .select(`
+      id, title, description, normal_price, bundle_price, cover_image,
+      bundle_classes (
+        class_id,
+        classes ( id, title, cover_image )
+      )
+    `)
+    .eq('status', 'published')
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+
+  return (data ?? []).map((b: any) => ({
+    id: b.id as string,
+    title: b.title as string,
+    description: b.description as string,
+    normalPrice: b.normal_price as number,
+    bundlePrice: b.bundle_price as number,
+    coverImage: b.cover_image as string,
+    classes: (b.bundle_classes ?? [])
+      .map((bc: any) => bc.classes)
+      .filter(Boolean)
+      .map((cls: any) => ({
+        id: cls.id as string,
+        title: cls.title as string,
+        coverImage: cls.cover_image as string,
+      })),
+  }));
+}
+```
+Sesuaikan juga type `BundleItem` (cari definisinya di file yang sama)
+supaya field `coverImage: string` dikenali TypeScript.
+
+### 2. Update `BundleCard` di `BundlesPage.tsx`
+Tambahkan area gambar cover di bagian atas card, SEBELUM header (icon
+Package2 + judul + badge hemat) yang sudah ada sekarang. Ikuti pola
+`aspect-video` yang kemungkinan sudah dipakai untuk cover kelas di
+`ClassCard` (`CatalogPage.tsx`) untuk konsistensi visual antara card
+kelas dan card bundle:
+
+```tsx
+<div className="aspect-video rounded-t-xl overflow-hidden bg-muted">
+  {bundle.coverImage ? (
+    <img
+      src={bundle.coverImage}
+      alt={bundle.title}
+      className="w-full h-full object-cover"
+      loading="lazy"
+    />
+  ) : (
+    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
+      <Package2 className="w-10 h-10 text-primary/30" />
+    </div>
+  )}
+</div>
+```
+
+Sesuaikan `rounded-t-xl` dengan radius yang dipakai card ini secara
+keseluruhan (cek className pembungkus card utama), supaya sudut gambar
+menyatu rapi dengan bentuk card. Pastikan gambar diletakkan di dalam
+struktur card yang benar (tidak merusak footer tombol gradient yang
+sudah ada di bagian paling bawah card dari redesign sebelumnya).
+
+### 3. Update `BundleCardSkeleton`
+Tambahkan skeleton block untuk area cover gambar (misal
+`aspect-video bg-muted animate-pulse rounded-t-xl`) di bagian paling atas
+skeleton, konsisten dengan posisi gambar asli di poin 2.
+
+## Yang Tidak Boleh Berubah
+- Header card (icon, judul, badge hemat), daftar chip kelas, footer
+  harga+tombol — semua tetap seperti sekarang, hanya ditambahkan area
+  gambar di paling atas card
+- Data lain tidak berubah
+
+## Setelah Selesai
+1. Konfirmasi card bundle sekarang punya area gambar di bagian atas
+   (fallback icon jika `coverImage` kosong, seperti kondisi sekarang
+   sebelum saya upload cover aslinya)
+2. Ingatkan saya bahwa file cover perlu diupload ke
+   `artifacts/markaz-fiqh/public/covers-bundle/` dan SQL `UPDATE` (yang
+   sudah disiapkan sebagai komentar di file SQL terpisah) perlu dijalankan
+   manual setelah itu untuk mengisi `cover_image` tiap bundle.

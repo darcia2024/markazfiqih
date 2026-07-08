@@ -1,0 +1,70 @@
+# Prompt 67: Redesign Footer — Gabung Section CTA + Footer Jadi Satu
+
+## Konteks
+Sekarang ada 2 blok terpisah di bagian paling bawah landing page:
+1. Section CTA merah solid ("Mau mulai atau masih bingung?" + deskripsi +
+   tombol "Chat via WhatsApp" + 4 ikon sosial media dengan label teks di
+   sampingnya)
+2. Footer putih terpisah di bawahnya (cuma logo + copyright, terasa
+   terputus dan kosong)
+
+Gabungkan jadi SATU section footer yang koheren, disederhanakan supaya
+tidak terlalu ramai, dan terasa seperti satu kesatuan desain.
+
+Edit `artifacts/markaz-fiqh/src/pages/LandingPage.tsx`, cari komponen
+`SocialSection` (CTA + sosmed) dan `LandingFooter` (logo + copyright) —
+gabungkan keduanya menjadi satu komponen/section.
+
+## Struktur Baru
+
+Satu section dengan background gradient merah solid (pertahankan warna
+brand yang sudah ada), dibagi 2 bagian dalam satu blok visual menyatu
+(bukan 2 section terpisah dengan warna beda seperti sekarang):
+
+### Bagian Atas — CTA
+- Judul "Mau mulai atau masih bingung?" — pertahankan
+- Deskripsi singkat — boleh diringkas dari yang sekarang (3 baris)
+  menjadi lebih padat (1-2 baris), fokus ke ajakan chat WA dan follow
+  sosmed
+- Tombol "Chat via WhatsApp" — pertahankan sebagai CTA utama, solid gold
+- Ikon sosial media: SEDERHANAKAN dari 4 ikon dengan label teks
+  berdampingan (memakan banyak ruang horizontal), menjadi ikon bulat
+  saja tanpa label teks (ikon Instagram/Facebook/TikTok/YouTube cukup
+  dikenali dari bentuknya), disusun rapi dalam satu baris kecil — beri
+  `aria-label` untuk aksesibilitas meski label teks visualnya
+  disembunyikan.
+
+Susun ulang layout bagian ini: pertimbangkan menyatukan CTA dan ikon
+sosial dalam satu baris yang lebih ringkas (misal: judul+deskripsi di
+kiri, tombol WA + ikon sosmed di kanan dalam satu grup), atau susun
+vertikal center jika itu terlihat lebih rapi — pilih yang secara visual
+lebih seimbang dan tidak memakan terlalu banyak tinggi section.
+
+### Bagian Bawah — Identitas & Copyright
+Beri garis pemisah tipis (`border-t border-white/10`) antara bagian CTA
+dan bagian ini, supaya ada struktur jelas tapi tetap dalam satu section
+background yang sama (bukan lagi background putih terpisah).
+
+- Logo Markaz Fiqih (versi putih, gunakan `brightness-0 invert` seperti
+  pola yang sudah dipakai di komponen lain untuk logo di atas background
+  gelap)
+- Copyright text "© 2026 Markaz Fiqih. Seluruh hak cipta dilindungi."
+- Pertimbangkan menambahkan 2-3 link cepat sederhana di baris yang sama
+  (misal "Katalog", "Paket Bundle", "Kebijakan Privasi" — kalau ada
+  halaman kebijakan privasi; kalau tidak ada, skip link itu) untuk
+  mengisi ruang secara fungsional, TAPI ini opsional — kalau terasa
+  membuat footer terlalu ramai, cukup logo + copyright saja seperti
+  sekarang, disusun lebih rapi dalam satu baris (logo kiri, copyright
+  kanan, rata tengah secara vertikal).
+
+## Yang Tidak Boleh Berubah
+- Warna brand (crimson) tetap dipakai sebagai background utama footer
+- Link sosial media tetap mengarah ke URL yang sama dari `socialLinks`
+  yang sudah ada (sumber data tidak berubah)
+- Nomor WhatsApp dan link "Chat via WhatsApp" tetap berfungsi sama
+- Section lain di landing page tidak disentuh
+
+## Setelah Selesai
+Konfirmasi CTA dan footer sekarang menyatu jadi satu section, ikon
+sosial media sudah disederhanakan (tanpa label teks di sampingnya), dan
+bagian bawah (logo+copyright) terasa terintegrasi bukan terpisah.

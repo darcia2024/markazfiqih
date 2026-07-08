@@ -175,10 +175,10 @@ export default function ClassDetailPage() {
           </div>
         </div>
 
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl py-10 lg:py-14">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl py-8 lg:py-10">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* ── Left Column: Main Content ── */}
-            <div className="lg:col-span-2 space-y-10">
+            <div className="lg:col-span-2 space-y-8">
               {/* Header */}
               <motion.div
                 initial={{ opacity: 0, y: 16 }}
@@ -539,7 +539,7 @@ export default function ClassDetailPage() {
       </main>
 
       {/* Footer — pb-20 lg:pb-0 memberi ruang dari sticky buy bar di mobile */}
-      <footer className="border-t py-8 pb-24 lg:pb-8 text-center text-sm text-muted-foreground">
+      <footer className="border-t py-6 pb-24 lg:pb-6 text-center text-sm text-muted-foreground">
         © 2026 Markaz Fiqh. Semua Hak Dilindungi.
       </footer>
 
