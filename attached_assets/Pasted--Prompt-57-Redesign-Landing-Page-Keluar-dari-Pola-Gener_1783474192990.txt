@@ -1,0 +1,96 @@
+# Prompt 57: Redesign Landing Page — Keluar dari Pola Generik "Template SaaS"
+
+## Masalah yang Sebenarnya
+Landing page sekarang secara struktur mengikuti formula generik landing
+page SaaS/course-platform yang sudah terlalu sering dipakai di mana-mana:
+Hero → "Cara Belajar" (3-5 langkah bernomor) → Grid Produk → Kategori →
+Tentang Kami + testimoni tunggal → Grid Pengajar → Galeri → Sosial →
+Footer. Formula ini bukan salah secara teknis, tapi terasa bisa
+ditempelkan ke bisnis apa saja — tidak terasa seperti Markaz Fiqih
+secara spesifik. Menambah warna, ornamen, atau ukuran font TIDAK
+menyelesaikan masalah ini, karena masalahnya ada di STRUKTUR dan NARASI,
+bukan di dekorasi permukaan.
+
+Tugas ini adalah eksplorasi ulang struktur landing page secara mendasar,
+bukan sekadar restyling section yang sudah ada.
+
+## Prinsip yang Harus Dipegang
+
+1. **Cari sudut naratif yang spesifik untuk Markaz Fiqih**, bukan
+   template course-platform netral. Beberapa arah yang bisa dieksplor
+   (pilih salah satu atau kombinasikan, jangan coba masukkan semua):
+   - Sudut pandang *kurikulum & metodologi* — bagaimana Markaz Fiqih
+     menyusun ilmu fiqih secara terstruktur dari dasar (thaharah) sampai
+     kajian kitab klasik, sesuatu yang membedakannya dari sekadar
+     kumpulan video ceramah acak
+   - Sudut pandang *pengajar & sanad keilmuan* — kredensial pengajar
+     (kandidat master Al-Azhar, dll) sebagai bukti kredibilitas, bukan
+     sekadar foto+nama generik
+   - Sudut pandang *komunitas/masisir* — konteks bahwa ini dibangun untuk
+     dan oleh komunitas pelajar Indonesia di Kairo, bukan platform kursus
+     online generik
+   - Sudut pandang *bukti nyata* — jumlah kelas, testimoni konkret dengan
+     detail (bukan quote generik "bagus banget"), progress belajar nyata
+
+2. **Section tidak harus mengikuti urutan atau bentuk template biasa.**
+   Pertimbangkan pendekatan non-standar:
+   - Alih-alih grid kartu simetris untuk semua hal, coba variasikan
+     ukuran/bentuk section (satu section besar dengan statement kuat,
+     diselingi section kecil padat)
+   - Alih-alih "3 langkah cara pakai" yang generik, pertimbangkan
+     menceritakan perjalanan belajar yang lebih personal/konkret
+   - Pertimbangkan menghilangkan section yang tidak menambah nilai
+     pembeda (kalau "Cara Belajar" hanya mengulang hal yang sudah jelas
+     dari konteks, section itu boleh dihapus atau digabung)
+   - Pertimbangkan section yang menonjolkan angka/fakta konkret secara
+     berani (bukan generic stat card kecil, tapi big bold number yang
+     jadi statement visual)
+
+3. **Tipografi dan layout boleh lebih berani.** Bereksperimen dengan
+   ukuran kontras yang ekstrem (judul sangat besar vs body sangat kecil),
+   asimetri yang disengaja, atau elemen yang overflow/melewati batas
+   section secara terkontrol — selama tetap readable dan tidak
+   mengorbankan fungsi.
+
+4. **Pertahankan brand identity**: warna crimson (`--primary`) dan gold
+   (`--accent`) tetap jadi warna dasar brand, font serif untuk heading
+   yang sudah dipakai tetap dipertahankan sebagai identitas tipografi.
+   Yang berubah adalah BAGAIMANA warna dan tipografi ini disusun secara
+   struktural, bukan menggantinya dengan palet baru.
+
+## Batasan Teknis
+- Semua DATA yang ditampilkan (judul kelas, harga, jumlah kelas per
+  kategori, nama pengajar, testimoni, dll) tetap bersumber dari fungsi
+  yang sudah ada di `src/lib/db.ts` (`listClasses`, `listInstructors`,
+  `listTestimonials`, dll) — jangan hardcode data baru, gunakan yang
+  sudah tersedia.
+- Fungsi cart (`addToCart`), navigasi (`Link` ke `/katalog`, dll) yang
+  sudah ada tetap dipertahankan fungsinya di manapun section itu berada
+  dalam struktur baru.
+- Responsive tetap wajib — pastikan struktur baru tetap bekerja baik di
+  mobile, bukan hanya didesain untuk desktop.
+- File yang diedit: `artifacts/markaz-fiqh/src/pages/LandingPage.tsx`
+  (boleh menulis ulang signifikan, termasuk menghapus/menggabung/mengganti
+  urutan section-section yang ada sekarang).
+
+## Proses Kerja
+1. Sebelum menulis kode, jelaskan singkat (2-4 kalimat) sudut naratif apa
+   yang dipilih dan mengapa itu lebih spesifik untuk Markaz Fiqih
+   dibanding struktur sekarang.
+2. Buat outline urutan section baru (boleh sangat berbeda dari sekarang)
+   sebelum implementasi penuh.
+3. Implementasikan.
+
+## Yang Tidak Boleh Terjadi
+- Jangan hanya mengganti warna/ornamen dari section yang sudah ada tanpa
+  mengubah struktur/urutan/naratifnya — itu tidak menyelesaikan masalah
+  yang diminta.
+- Jangan menambahkan section generik baru yang justru menambah kesan
+  template (misal "Kenapa Memilih Kami" dengan 3 ikon checklist generik).
+- Jangan mengorbankan keterbacaan atau aksesibilitas demi eksperimen
+  visual.
+
+## Setelah Selesai
+Jelaskan pendekatan naratif dan struktural yang diambil, section apa saja
+yang dihapus/digabung/ditambahkan dibanding versi sebelumnya, dan alasan
+di baliknya.
