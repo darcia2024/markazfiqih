@@ -49,17 +49,6 @@ function formatDuration(totalMinutes: number | null): string | null {
 
 export { formatPrice, formatDuration };
 
-export const LEVEL_LABEL: Record<string, string> = {
-  pemula: 'Pemula',
-  menengah: 'Menengah',
-  lanjutan: 'Lanjutan',
-};
-
-export const LEVEL_BADGE_VARIANT: Record<string, 'success' | 'gold' | 'destructive-pale'> = {
-  pemula: 'success',
-  menengah: 'gold',
-  lanjutan: 'destructive-pale',
-};
 
 // ── Header ───────────────────────────────────────────────────────────────
 function CatalogHeader() {
@@ -259,13 +248,7 @@ export function ClassCard({ cls, index, enrolledClassIds = new Set<string>() }: 
               loading="lazy"
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
-            {cls.level && (
-              <div className="absolute top-3 left-3">
-                <Badge variant={LEVEL_BADGE_VARIANT[cls.level]} className="text-[11px]">
-                  {LEVEL_LABEL[cls.level]}
-                </Badge>
-              </div>
-            )}
+
             {enrolledClassIds.has(cls.id) && (
               <div className="absolute top-3 right-3">
                 <Badge className="bg-emerald-600 text-white text-[11px] flex items-center gap-1">
