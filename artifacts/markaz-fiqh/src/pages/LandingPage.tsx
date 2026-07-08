@@ -120,11 +120,10 @@ function HeroSection({
     <section className="relative bg-gradient-to-br from-primary to-[hsl(var(--brand-red-hover))] overflow-hidden">
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0 opacity-[0.07]"
+        className="pointer-events-none absolute inset-0 opacity-65"
         style={{
-          backgroundImage:
-            'repeating-linear-gradient(-45deg, white 0, white 1px, transparent 0, transparent 50%)',
-          backgroundSize: '24px 24px',
+          background:
+            'radial-gradient(ellipse 60% 50% at 50% 50%, hsl(0 85% 55%) 0%, transparent 70%)',
         }}
       />
 
