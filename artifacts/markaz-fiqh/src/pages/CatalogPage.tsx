@@ -251,7 +251,7 @@ export function ClassCard({ cls, index, enrolledClassIds = new Set<string>() }: 
 
             {enrolledClassIds.has(cls.id) && (
               <div className="absolute top-3 right-3">
-                <Badge className="bg-emerald-600 text-white text-[11px] flex items-center gap-1">
+                <Badge className="bg-[hsl(var(--accent))] text-white text-[11px] flex items-center gap-1">
                   <CheckCircle2 className="h-3 w-3" />
                   Dimiliki
                 </Badge>
@@ -322,7 +322,7 @@ export function ClassCard({ cls, index, enrolledClassIds = new Set<string>() }: 
         {enrolledClassIds.has(cls.id) ? (
           <Link
             href={`/learn/${cls.id}`}
-            className="w-full py-3 px-4 bg-emerald-600 text-white text-sm font-semibold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
+            className="w-full py-3 px-4 bg-[hsl(var(--accent))] text-white text-sm font-semibold flex items-center justify-center gap-2 hover:bg-[hsl(var(--brand-gold-hover))] transition-colors"
           >
             Lanjutkan Belajar
             <ArrowRight className="h-4 w-4 shrink-0" />
