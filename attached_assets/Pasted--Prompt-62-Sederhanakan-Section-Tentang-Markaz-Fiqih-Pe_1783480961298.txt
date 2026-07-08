@@ -1,0 +1,67 @@
+# Prompt 62: Sederhanakan Section "Tentang Markaz Fiqih" — Pengajar Utama + Galeri, Hapus Stat & Testimoni
+
+## Konteks
+Section "Tentang Markaz Fiqih" sekarang punya grid asimetris berisi: card
+pengajar utama (besar), card angka "25 Kelas Fiqih Tersedia", card
+testimoni kecil, dan card angka "1 Pengajar Aktif". Susunan ini terasa
+dipaksakan — angka "25 kelas" dan "1 pengajar aktif" tidak menambah nilai
+dan terlihat kosong/janggal sebagai statement.
+
+Ganti total: HAPUS card stat "25 Kelas Tersedia" dan "Pengajar Aktif",
+HAPUS card testimoni kecil dari grid ini. Gantikan slot yang kosong itu
+dengan galeri foto (menggabungkan `GallerySection` yang sekarang berdiri
+sendiri di bawah, ke dalam section ini).
+
+Edit `artifacts/markaz-fiqh/src/pages/LandingPage.tsx`.
+
+## Perubahan
+
+### 1. Sederhanakan Grid Section "Tentang Markaz Fiqih"
+Pertahankan bagian atas section ini (label "TENTANG MARKAZ FIQIH", judul
+besar "Ilmu yang lahir dari komunitas, bukan dari platform.", paragraf
+deskripsi) — TIDAK diubah.
+
+Ganti grid di bawahnya (yang sekarang berisi 4 card asimetris) jadi grid
+2 kolom saja:
+- **Kolom kiri**: card pengajar utama (foto besar dominan, nama, label
+  "Pengajar Utama", kredensial, bio) — PERTAHANKAN persis seperti
+  sekarang, tidak diubah stylingnya.
+- **Kolom kanan**: galeri foto, menggantikan slot yang tadinya diisi 3
+  card (stat kelas, testimoni, stat pengajar). Gunakan data
+  `GALLERY_PHOTOS` yang sudah ada di file ini (6 foto). Tampilkan sebagai
+  grid foto kecil (misal 2x3 atau susunan grid dengan sedikit variasi
+  ukuran untuk kesan menarik — boleh salah satu foto dibuat sedikit lebih
+  besar dari yang lain untuk keseimbangan visual dengan card pengajar di
+  sampingnya), dengan `rounded-xl overflow-hidden` dan hover effect
+  ringan (scale sedikit saat hover), konsisten dengan aesthetic card
+  lainnya di section ini.
+
+Proporsi lebar kolom kiri:kanan sesuaikan secara visual (kemungkinan
+mirip proporsi yang sekarang, sekitar 40:60 atau 50:50 — sesuaikan sampai
+terlihat seimbang, karena galeri foto grid butuh ruang cukup untuk
+terlihat baik).
+
+### 2. Hapus `GallerySection` yang Berdiri Sendiri
+Karena galeri sudah dipindahkan ke dalam section "Tentang Markaz Fiqih"
+di atas, HAPUS pemanggilan `<GallerySection />` yang berdiri sendiri di
+bagian bawah landing page, dan hapus definisi fungsi `GallerySection`
+kalau sudah tidak dipakai di tempat lain (cek dulu sebelum menghapus).
+
+### 3. Cek Data yang Tidak Lagi Dipakai
+Setelah perubahan ini, cek apakah ada variabel/state terkait card stat
+"25 kelas" dan "pengajar aktif" (misal query count kelas atau instruktur
+yang khusus dibuat untuk card yang sekarang dihapus) — kalau ada dan
+sudah tidak dipakai di tempat lain, boleh dihapus untuk kebersihan kode.
+
+## Yang Tidak Boleh Berubah
+- Bagian atas section (label, judul, deskripsi) tidak diubah
+- Card pengajar utama tidak diubah stylingnya
+- Data foto galeri (`GALLERY_PHOTOS`) tidak diubah, hanya dipindah
+  posisinya dari section terpisah ke dalam section ini
+- Section lain di landing page tidak disentuh
+
+## Setelah Selesai
+Konfirmasi grid sekarang 2 kolom (pengajar utama + galeri), stat "25
+kelas" dan "pengajar aktif" serta testimoni kecil sudah dihapus dari
+section ini, dan `GallerySection` yang berdiri sendiri di bawah sudah
+tidak muncul lagi (karena sudah tergabung).
