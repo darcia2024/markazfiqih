@@ -30,6 +30,7 @@ export type BundleItem = {
   description: string;
   normalPrice: number;
   bundlePrice: number;
+  coverImage: string;
   classes: { id: string; title: string; coverImage: string }[];
 };
 
@@ -318,7 +319,7 @@ export async function listBundles(): Promise<BundleItem[]> {
   const { data, error } = await supabase
     .from('bundles')
     .select(`
-      id, title, description, normal_price, bundle_price,
+      id, title, description, normal_price, bundle_price, cover_image,
       bundle_classes (
         class_id,
         classes ( id, title, cover_image )
@@ -334,6 +335,7 @@ export async function listBundles(): Promise<BundleItem[]> {
     description: b.description as string,
     normalPrice: b.normal_price as number,
     bundlePrice: b.bundle_price as number,
+    coverImage: b.cover_image as string,
     classes: (b.bundle_classes ?? [])
       .map((bc: any) => bc.classes)
       .filter(Boolean)
@@ -349,7 +351,7 @@ export async function getBundleById(id: string): Promise<BundleItem> {
   const { data, error } = await supabase
     .from('bundles')
     .select(`
-      id, title, description, normal_price, bundle_price,
+      id, title, description, normal_price, bundle_price, cover_image,
       bundle_classes (
         class_id,
         classes ( id, title, cover_image )
@@ -365,6 +367,7 @@ export async function getBundleById(id: string): Promise<BundleItem> {
     description: data.description as string,
     normalPrice: data.normal_price as number,
     bundlePrice: data.bundle_price as number,
+    coverImage: data.cover_image as string,
     classes: ((data.bundle_classes as any[]) ?? [])
       .map((bc: any) => bc.classes)
       .filter(Boolean)
@@ -389,7 +392,7 @@ export async function listCartItems(userId: string): Promise<CartItem[]> {
         modules ( id, dars ( id, duration_minutes ) )
       ),
       bundles (
-        id, title, description, normal_price, bundle_price,
+        id, title, description, normal_price, bundle_price, cover_image,
         bundle_classes (
           class_id,
           classes ( id, title, cover_image )
@@ -415,6 +418,7 @@ export async function listCartItems(userId: string): Promise<CartItem[]> {
             description: b.description as string,
             normalPrice: b.normal_price as number,
             bundlePrice: b.bundle_price as number,
+            coverImage: b.cover_image as string,
             classes: (b.bundle_classes ?? [])
               .map((bc: any) => bc.classes)
               .filter(Boolean)

@@ -1,0 +1,52 @@
+# Prompt 70: Ganti Warna Hijau Jadi Gold pada Badge & Tombol "Dimiliki"
+
+## Konteks
+Badge "Dimiliki" (pojok kanan-atas cover kelas) dan tombol "Lanjutkan
+Belajar" (footer card, untuk kelas yang sudah dimiliki user) sekarang
+memakai warna hijau (`bg-emerald-600` atau serupa). Ganti jadi warna gold
+brand Markaz Fiqih (`hsl(var(--accent))`), bukan hijau generik.
+
+Edit `artifacts/markaz-fiqh/src/pages/CatalogPage.tsx`, komponen
+`ClassCard` (fitur "Dimiliki" dari perbaikan sebelumnya).
+
+## Perubahan
+
+### 1. Badge "Dimiliki"
+Cari elemen badge dengan teks "Dimiliki" yang sekarang menggunakan warna
+hijau (`bg-emerald-600 text-white` atau serupa). Ganti class warna
+menjadi:
+```
+bg-[hsl(var(--accent))] text-white
+```
+
+### 2. Tombol "Lanjutkan Belajar"
+Cari elemen tombol/link dengan teks "Lanjutkan Belajar" yang sekarang
+menggunakan warna hijau. Ganti class warna background menjadi:
+```
+bg-[hsl(var(--accent))]
+```
+dan hover state (kalau ada `hover:bg-emerald-700` atau serupa) diganti
+menjadi:
+```
+hover:bg-[hsl(var(--brand-gold-hover))]
+```
+(gunakan variable warna hover gold yang sudah dipakai di tombol-tombol
+gold lain di project ini, seperti tombol "Jelajahi Kelas" di Hero
+section — cek className tombol tersebut untuk pola warna hover yang
+konsisten).
+
+## Cek Tempat Lain yang Mungkin Terpengaruh Sama
+Cari juga apakah badge "Dimiliki" atau tombol "Lanjutkan Belajar" versi
+serupa muncul di komponen/halaman lain (misal `ClassDetailPage.tsx` kalau
+ada elemen serupa untuk kelas yang sudah dimiliki) — kalau ada, terapkan
+perubahan warna yang sama di situ untuk konsistensi.
+
+## Yang Tidak Boleh Berubah
+- Teks, ikon, dan struktur badge/tombol tidak berubah, hanya warnanya
+- Warna brand crimson (untuk tombol "Tambah ke Keranjang" pada kelas yang
+  belum dimiliki) tidak diubah, tetap seperti sekarang
+- Logic kondisional (`isEnrolled`) tidak diubah
+
+## Setelah Selesai
+Konfirmasi badge "Dimiliki" dan tombol "Lanjutkan Belajar" sekarang
+berwarna gold brand, bukan hijau lagi.

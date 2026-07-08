@@ -98,6 +98,22 @@ function BundleCard({ bundle, index }: { bundle: BundleItem; index: number }) {
       className="h-full"
     >
       <div className="h-full flex flex-col rounded-xl border border-border bg-card overflow-hidden shadow-sm hover:shadow-lg transition-shadow">
+        {/* Cover image */}
+        <div className="aspect-video rounded-t-xl overflow-hidden bg-muted">
+          {bundle.coverImage ? (
+            <img
+              src={bundle.coverImage}
+              alt={bundle.title}
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5">
+              <Package2 className="w-10 h-10 text-primary/30" />
+            </div>
+          )}
+        </div>
+
         {/* Header kartu */}
         <div className="px-5 pt-5 pb-4 border-b border-border">
           <div className="flex items-start justify-between gap-3">
@@ -169,6 +185,7 @@ function BundleCard({ bundle, index }: { bundle: BundleItem; index: number }) {
 function BundleCardSkeleton() {
   return (
     <div className="h-full flex flex-col rounded-xl border border-border bg-card overflow-hidden">
+      <div className="aspect-video bg-muted animate-pulse rounded-t-xl" />
       <div className="px-5 pt-5 pb-4 border-b border-border space-y-2">
         <div className="flex items-center gap-2.5">
           <Skeleton className="h-9 w-9 rounded-lg" />
