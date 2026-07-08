@@ -1,0 +1,72 @@
+# Prompt 86: Fix Batas 3 Kelas di Dashboard & Sembunyikan Harga Per-Item Bundle di Invoice
+
+## Bagian A — Dashboard "Lanjutkan Belajar" Dibatasi 3 Kelas
+
+`DashboardPage.tsx` sekarang membatasi daftar "Lanjutkan Belajar" hanya 3
+kelas (`.slice(0, 3)` pada baris ~329), padahal user bisa memiliki lebih
+dari 3 kelas yang belum selesai (misal setelah checkout bundle besar
+berisi 16-20 kelas). Klien ingin semua kelas yang belum selesai bisa
+diakses, bukan hanya 3.
+
+Edit `artifacts/markaz-fiqh/src/pages/DashboardPage.tsx`.
+
+Pilih salah satu pendekatan berikut (pilih yang secara visual paling pas
+untuk jumlah kelas yang bisa sangat banyak):
+
+**Opsi 1 (direkomendasikan)**: Tetap tampilkan maksimal beberapa kelas di
+Dashboard (misal 3-6, untuk menjaga tampilan ringkas), TAPI tambahkan
+tombol/link "Lihat Semua Kelas Saya" di bawah daftar tersebut yang
+mengarah ke `/my-classes`, supaya user tetap punya jalan untuk melihat
+seluruh kelasnya.
+
+**Opsi 2**: Naikkan batas `.slice(0, 3)` menjadi jauh lebih besar (misal
+`.slice(0, 12)`) atau hilangkan `.slice()` sepenuhnya jika desain grid
+Dashboard memang dirancang untuk scroll dan menampung banyak card.
+
+Pilih Opsi 1 kecuali ada alasan kuat untuk Opsi 2 berdasarkan struktur
+layout yang sudah ada — Dashboard biasanya dirancang ringkas dan
+"Lihat Semua" adalah pola yang lebih umum dipakai.
+
+## Bagian B — Sembunyikan Harga Per-Item untuk Item dari Bundle di Invoice
+
+Edit `artifacts/markaz-fiqh/src/pages/CartPage.tsx`, komponen yang
+menampilkan "Ringkasan Invoice" (sekitar baris 558-568) dan juga
+`CartSuccessView` (sekitar baris 126-145, cek apakah ada tampilan serupa
+di sana juga).
+
+Field `bundleId` sudah tersedia pada `LocalInvoiceItem` (lihat
+`src/lib/db.ts` baris ~557). Gunakan ini untuk membedakan tampilan:
+
+```tsx
+{invoice.items.map((item) => (
+  <div key={item.id} className="flex items-center justify-between text-sm">
+    <span className="text-foreground line-clamp-1 flex-1">{item.title}</span>
+    <span className="text-muted-foreground shrink-0 ml-3">
+      {item.bundleId ? '-' : formatPrice(item.price)}
+    </span>
+  </div>
+))}
+```
+
+Untuk item yang berasal dari bundle (`item.bundleId` terisi), tampilkan
+tanda "-" alih-alih harga per-item (karena harga per-item yang sebenarnya
+adalah hasil pembagian rata dari harga bundle, dan menampilkannya secara
+individual membingungkan user — total invoice tetap benar dan tidak
+berubah, hanya tampilan per-baris untuk item bundle yang disederhanakan).
+
+Terapkan perubahan yang sama di `CartSuccessView` jika di sana juga
+menampilkan harga per-item untuk item bundle.
+
+## Yang Tidak Boleh Berubah
+- Total invoice (`invoice.totalAmount`) tetap ditampilkan dan dihitung
+  seperti biasa, tidak berubah
+- Data harga di database (`invoice_items.price`) tidak diubah, hanya
+  tampilannya di UI yang disederhanakan untuk item bundle
+- Item kelas individual (non-bundle) tetap menampilkan harga seperti
+  biasa
+
+## Setelah Selesai
+1. Konfirmasi Dashboard sekarang bisa menampilkan/mengakses semua kelas
+   yang dimiliki user, tidak terbatas 3.
+2. Konfirmasi item invoice dari bundle sekarang menampilkan "-" alih-alih
+   harga per-item, sementara total tetap akurat.

@@ -54,7 +54,7 @@ function KelasCard({ enrollment, index }: { enrollment: EnrollmentItem; index: n
           alt={cls.title}
           className="w-full h-full object-cover"
         />
-        <div className="absolute top-3 right-3">
+        <div className="absolute top-3 left-3">
           {isComplete ? (
             <Badge className="bg-success-pale0 hover:bg-success-pale0 text-white gap-1 shadow">
               <Trophy className="w-3 h-3" />
@@ -71,6 +71,12 @@ function KelasCard({ enrollment, index }: { enrollment: EnrollmentItem; index: n
               Belum Dimulai
             </Badge>
           )}
+        </div>
+        <div className="absolute top-3 right-3">
+          <Badge className="bg-[hsl(var(--accent))] text-white text-[11px] flex items-center gap-1">
+            <CheckCircle2 className="h-3 w-3" />
+            Dimiliki
+          </Badge>
         </div>
       </div>
 
