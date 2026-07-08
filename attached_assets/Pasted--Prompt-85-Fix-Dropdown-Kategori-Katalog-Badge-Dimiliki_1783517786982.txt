@@ -1,0 +1,71 @@
+# Prompt 85: Fix Dropdown Kategori Katalog & Badge "Dimiliki" di Kelas Saya
+
+## Konteks
+Dua temuan dari review klien terkait `CatalogPage.tsx` dan
+`MyClassesPage.tsx`:
+
+1. Dropdown "Semua Kategori" di halaman Katalog terlihat tidak
+   menampilkan opsi dengan jelas saat diklik (klien melaporkan hanya
+   melihat bentuk terbuka ke bawah tanpa opsi yang jelas terlihat) —
+   padahal secara kode opsi "Fiqih Tematik", "Fiqih Kitab", "Akademi"
+   sudah ada dalam komponen `<Select>`. Ini kemungkinan bug rendering/CSS,
+   bukan bug logic.
+2. Badge "Dimiliki" (yang sudah ada di `ClassCard` pada `CatalogPage.tsx`)
+   TIDAK muncul di `MyClassesPage.tsx` — padahal secara logis semua kelas
+   di halaman "Kelas Saya" pasti sudah dimiliki, klien meminta badge ini
+   tetap konsisten muncul di sana juga.
+
+## Bagian A — Investigasi & Fix Dropdown Kategori
+
+Buka `artifacts/markaz-fiqh/src/pages/CatalogPage.tsx`, cari komponen
+`<Select>` untuk kategori (sekitar baris 522-532, berisi `SelectItem`
+untuk "Semua Kategori", "Fiqih Tematik", "Fiqih Kitab", "Akademi").
+
+Investigasi kemungkinan penyebab opsi tidak terlihat saat dropdown
+dibuka:
+- Cek apakah ada masalah z-index (`SelectContent` mungkin tertutup
+  elemen lain karena z-index terlalu rendah)
+- Cek apakah ada masalah styling background/warna teks yang membuat opsi
+  secara teknis ada tapi tidak terlihat kontras (misal teks putih di atas
+  background putih)
+- Cek console browser untuk error JavaScript yang mungkin muncul saat
+  dropdown dibuka
+- Bandingkan dengan dropdown "Level" di sampingnya (baris 511-520) yang
+  strukturnya serupa — jika dropdown Level berfungsi normal tapi
+  dropdown Kategori tidak, cari perbedaan konfigurasi di antara
+  keduanya
+
+Perbaiki penyebab yang ditemukan. Jika setelah investigasi ternyata
+dropdown sebenarnya berfungsi normal (opsi muncul saat diuji), laporkan
+demikian dan jangan mengubah apapun secara sembarangan.
+
+## Bagian B — Tambahkan Badge "Dimiliki" di MyClassesPage
+
+Edit `artifacts/markaz-fiqh/src/pages/MyClassesPage.tsx`. Cari komponen
+card kelas yang dipakai di halaman ini (bisa jadi reuse dari `ClassCard`
+di `CatalogPage.tsx`, atau komponen card terpisah khusus halaman ini —
+cek dulu strukturnya).
+
+Karena SEMUA kelas yang tampil di halaman "Kelas Saya" sudah pasti
+dimiliki user (halaman ini hanya menampilkan enrollment milik user yang
+sedang login), tambahkan badge "Dimiliki" secara KONSISTEN pada setiap
+card kelas di halaman ini — TIDAK perlu logic kondisional `isEnrolled`
+seperti di Katalog (karena semuanya pasti true di konteks halaman ini),
+cukup render badge secara statis pada setiap card.
+
+Ikuti style badge "Dimiliki" yang sudah ada di `ClassCard`
+(`CatalogPage.tsx`, sekitar baris 250-260) untuk konsistensi visual —
+gunakan warna dan posisi yang sama (pojok kanan-atas cover kelas).
+
+## Yang Tidak Boleh Berubah
+- Filter tab kategori (`CLASS_FILTERS`: Semua/Fiqih Tematik/Fiqih
+  Kitab/Akademi) yang sudah ada di `MyClassesPage.tsx` tidak diubah,
+  sudah sesuai
+- Fungsi filter dan sort lain di Katalog tidak berubah
+- Data yang ditampilkan tidak berubah
+
+## Setelah Selesai
+1. Laporkan penyebab pasti dropdown kategori tidak terlihat (jika
+   ditemukan) dan perbaikan yang dilakukan.
+2. Konfirmasi badge "Dimiliki" sekarang muncul konsisten di semua card
+   kelas pada halaman "Kelas Saya".

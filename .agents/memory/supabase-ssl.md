@@ -8,11 +8,11 @@ description: How to correctly configure SSL for Supabase PostgreSQL connections 
 ## Rule
 Use `ssl: { rejectUnauthorized: false }` in both the pg `Pool` constructor and `drizzle.config.ts` `dbCredentials`. `ssl: true` fails with "self-signed certificate in certificate chain" on Supabase pooler connections — the pooler does NOT present a fully verifiable cert chain from Node.js's perspective. The connection is still fully encrypted; only peer cert verification is skipped.
 
-**Why:** Supabase uses CA-signed certificates; `ssl: true` enforces encrypted + verified TLS. `rejectUnauthorized: false` would allow MITM attacks.
+**Why:** Supabase's pooler cert chain isn't fully verifiable from Node.js, so `ssl: true` (strict verification) fails to connect at all. `rejectUnauthorized: false` keeps the connection encrypted but skips peer verification — accepted tradeoff for this project.
 
 **How to apply:**
-- `lib/db/src/index.ts`: `new Pool({ connectionString, max: 1, ssl: true })`
-- `lib/db/drizzle.config.ts`: `dbCredentials: { url: connectionString, ssl: true }`
+- `lib/db/src/index.ts`: `new Pool({ connectionString, max: 1, ssl: { rejectUnauthorized: false } })` — this is what's actually in the code and confirmed working (verified 2026-07-08 after a fresh Supabase re-import: raw connection + real queries succeeded with this exact config).
+- `lib/db/drizzle.config.ts`: mirror the same `ssl: { rejectUnauthorized: false }`.
 
 ## Schema migration (non-interactive)
 `drizzle-kit push` fails without a TTY when the DB has existing unrelated tables (prompts for rename/create). Workaround:
