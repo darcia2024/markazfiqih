@@ -1,0 +1,76 @@
+# Prompt 61: Ganti Section "Kurikulum" Jadi "Tata Cara Pakai Website"
+
+## Konteks
+Section "Kurikulum" sekarang (KURIKULUM label → judul besar "Dari
+thaharah sampai kajian kitab klasik — tersusun, bukan acak." → 3 kolom
+bernomor 01/02/03: Fiqih Tematik, Fiqih Kitab, Akademi) diganti isinya
+jadi panduan cara memakai website (menggantikan section "Cara Belajar"
+lama yang sudah dihapus), TAPI tetap mempertahankan gaya visual section
+ini yang sekarang — angka besar pucat sebagai watermark, tipografi
+judul besar dengan highlight warna crimson, chip kecil di bawah tiap
+kolom, tombol outline gold di akhir.
+
+Edit `artifacts/markaz-fiqh/src/pages/LandingPage.tsx`, cari section yang
+menampilkan "KURIKULUM" / "Dari thaharah sampai kajian kitab klasik..."
+(section pengganti `HowItWorksSection` dari redesign sebelumnya).
+
+## Perubahan Konten (Pertahankan Struktur Visual Persis Sama)
+
+### Label kecil di atas
+Ganti dari "KURIKULUM" menjadi "CARA BELAJAR"
+
+### Judul besar
+Ganti dari "Dari thaharah sampai kajian kitab klasik — tersusun, bukan
+acak." menjadi sesuatu yang menjelaskan proses pemakaian website secara
+singkat dan tetap punya highlight kata di warna crimson (pertahankan pola
+highlight yang sudah ada, seperti kata "tersusun, bukan acak" yang
+di-highlight sekarang). Contoh arah (sesuaikan/perbaiki redaksinya):
+"Dari cari kelas sampai mulai belajar — cuma butuh 5 langkah." (dengan
+"cuma butuh 5 langkah" di-highlight crimson)
+
+### 3 Kolom Bernomor → Ubah Jadi Ringkasan 5 Langkah dalam 3 Kolom
+Karena proses aslinya ada 5 langkah (Jelajahi Katalog, Tambah ke
+Keranjang, Bayar, Kelas Terbuka, Belajar & Pantau Progress) tapi layout
+section ini dirancang untuk 3 kolom, gabungkan jadi 3 kolom dengan
+distribusi yang masuk akal, contoh:
+
+**Kolom 01 — "Cari & Pilih"**
+Label kecil: "EKSPLORASI"
+Deskripsi: gabungan "Jelajahi Katalog" + "Tambah ke Keranjang" — cari
+kelas fiqih sesuai minat dan level, lalu tambahkan satu atau beberapa
+kelas sekaligus ke keranjang.
+Chip di bawah: "Jelajahi Katalog", "Paket Bundle", "Filter Level"
+
+**Kolom 02 — "Bayar & Akses"**
+Label kecil: "PEMBAYARAN"
+Deskripsi: gabungan "Bayar dengan Mudah" + "Kelas Langsung Terbuka" —
+bayar lewat QRIS, e-wallet, virtual account, atau kartu, dan kelas
+langsung terbuka otomatis begitu pembayaran terverifikasi.
+Chip di bawah: "QRIS", "Virtual Account", "Akses Instan"
+
+**Kolom 03 — "Belajar Fleksibel"**
+Label kecil: "PEMBELAJARAN"
+Deskripsi: dari "Belajar & Pantau Progress" — tonton kapan saja sesuai
+waktumu, progress belajar tersimpan otomatis.
+Chip di bawah: "Akses Selamanya", "Progress Otomatis", "Video On-Demand"
+
+(Redaksi di atas adalah arahan isi, boleh dihaluskan bahasanya supaya
+tetap konsisten dengan gaya penulisan bagian lain di landing page —
+tidak perlu diikuti kata-per-kata asal makna dan strukturnya sama.)
+
+### Tombol di Bawah
+Pertahankan tombol "Lihat Semua Kelas" (outline gold) seperti sekarang,
+mengarah ke `/katalog` — tidak berubah.
+
+## Yang Tidak Boleh Berubah
+- Struktur visual section ini (angka besar 01/02/03 pucat sebagai
+  watermark, posisi label kecil uppercase, ukuran judul, style chip,
+  spacing, tombol outline) — SEMUA elemen visual dipertahankan PERSIS
+  seperti sekarang, hanya kontennya (teks) yang diganti
+- Section lain di landing page tidak disentuh
+- Warna brand (crimson, gold) tetap dari CSS variables yang sudah ada
+
+## Setelah Selesai
+Konfirmasi struktur visual section tidak berubah sama sekali, hanya
+konten teksnya yang sekarang menjelaskan cara pakai website alih-alih
+kurikulum.

@@ -52,31 +52,31 @@ function buildSocialLinks(settings?: {
   ];
 }
 
-// ── Data kurikulum (dari kategori kelas yang benar-benar ada) ─────────────────
+// ── Data cara belajar — 3 langkah gabungan dari 5 tahap ──────────────────────
 const CURRICULUM_STAGES = [
   {
     stage: '01',
-    title: 'Fiqih Tematik',
-    subtitle: 'Fondasi',
-    topics: ['Thaharah', 'Sholat', 'Zakat & Puasa', 'Muamalah Sehari-hari'],
+    title: 'Cari & Pilih',
+    subtitle: 'Eksplorasi',
+    topics: ['Jelajahi Katalog', 'Paket Bundle', 'Filter Level'],
     description:
-      'Mulai dari thaharah sampai muamalah — topik fiqih yang langsung terpakai dalam kehidupan sehari-hari, disusun berurutan bukan dikumpulkan acak.',
+      'Telusuri katalog kelas fiqih sesuai minat dan levelmu — dari pemula hingga kajian kitab. Temukan yang cocok, lalu tambahkan satu atau beberapa kelas sekaligus ke keranjang.',
   },
   {
     stage: '02',
-    title: 'Fiqih Kitab',
-    subtitle: 'Kajian Turats',
-    topics: ['Matan Taqrib', 'Fath al-Qarib', 'Minhaj al-Thalibin', 'Al-Muhadzdzab'],
+    title: 'Bayar & Akses',
+    subtitle: 'Pembayaran',
+    topics: ['QRIS', 'Virtual Account', 'Akses Instan'],
     description:
-      "Baca dan pahami kitab-kitab turats madzhab Syafi'i — dari Taqrib sampai Minhaj — langsung bersama pengajar yang mempelajarinya di Kairo.",
+      'Bayar lewat QRIS, e-wallet, virtual account, atau kartu — selesai dalam hitungan menit. Begitu pembayaran terverifikasi, kelas langsung terbuka otomatis di akunmu.',
   },
   {
     stage: '03',
-    title: 'Akademi',
-    subtitle: 'Program Panjang',
-    topics: ['Kurikulum Bertahap', 'Ujian Berkala', 'Ijazah Kelulusan', 'Alumni Aktif'],
+    title: 'Belajar Fleksibel',
+    subtitle: 'Pembelajaran',
+    topics: ['Akses Selamanya', 'Progress Otomatis', 'Video On-Demand'],
     description:
-      'Program jangka panjang dengan ujian berkala dan ijazah kelulusan — untuk kamu yang serius ingin menguasai fiqih Syafi\'i secara menyeluruh.',
+      'Tonton materi kapan saja dan di mana saja sesuai waktumu. Progress belajar tersimpan otomatis — lanjutkan dari mana kamu berhenti tanpa kehilangan catatan.',
   },
 ];
 
@@ -205,12 +205,12 @@ function CurriculumSection() {
 
         <p className="text-xs font-semibold tracking-wider uppercase mb-4"
           style={{ color: 'hsl(var(--accent))' }}>
-          Kurikulum
+          Cara Belajar
         </p>
 
         <h2 className="font-serif text-4xl sm:text-5xl font-bold text-foreground max-w-2xl leading-tight">
-          Dari thaharah sampai kajian kitab klasik —{' '}
-          <span className="text-primary">tersusun, bukan acak.</span>
+          Dari cari kelas sampai mulai belajar —{' '}
+          <span className="text-primary">cuma butuh 3 langkah.</span>
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mt-14">
