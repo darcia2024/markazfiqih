@@ -227,7 +227,12 @@ function CurriculumSection() {
   return (
     <section className="bg-background py-16 sm:py-24">
       <div className="container mx-auto px-5 sm:px-8 lg:px-16 max-w-[1200px]">
-
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-50px' }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+        >
         <p className="text-xs font-semibold tracking-wider uppercase mb-4"
           style={{ color: 'hsl(var(--accent))' }}>
           Cara Belajar
@@ -237,10 +242,18 @@ function CurriculumSection() {
           Dari cari kelas sampai mulai belajar,{' '}
           <span className="text-primary">cuma butuh 3 langkah.</span>
         </h2>
+        </motion.div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mt-14">
-          {CURRICULUM_STAGES.map((stage) => (
-            <div key={stage.stage} className="flex flex-col">
+          {CURRICULUM_STAGES.map((stage, idx) => (
+            <motion.div
+              key={stage.stage}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.4, delay: Math.min(idx * 0.05, 0.3), ease: 'easeOut' }}
+              className="flex flex-col"
+            >
               {/* Nomor dekoratif */}
               <p
                 className="font-serif text-6xl font-bold leading-none mb-5 select-none"
@@ -270,7 +283,7 @@ function CurriculumSection() {
                   </span>
                 ))}
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
 
@@ -308,7 +321,13 @@ function AsymmetricStatsSection() {
       <div className="container mx-auto px-5 sm:px-8 lg:px-16 py-16 sm:py-20 max-w-[1200px]">
 
         {/* Header — tidak diubah */}
-        <div className="mb-10 max-w-2xl">
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-50px' }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+          className="mb-10 max-w-2xl"
+        >
           <p className="text-xs font-semibold tracking-wider uppercase mb-4"
             style={{ color: 'hsl(var(--accent))' }}>
             Tentang Markaz Fiqih
@@ -323,10 +342,14 @@ function AsymmetricStatsSection() {
             oleh pelajar Indonesia yang menempuh studi langsung di Al-Azhar, Kairo, kami
             hadir agar siapa pun bisa mempelajari fikih dengan benar dan terstruktur.
           </p>
-        </div>
+        </motion.div>
 
         {/* Galeri foto — satu grid asimetris 3×3, foto-1 besar pojok kiri */}
-        <div
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-50px' }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
           className="grid grid-cols-3 gap-3"
           style={{ gridTemplateRows: '200px 200px 180px' }}
         >
@@ -352,7 +375,7 @@ function AsymmetricStatsSection() {
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
             </div>
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   );

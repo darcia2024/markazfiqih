@@ -92,10 +92,11 @@ function BundleCard({ bundle, index }: { bundle: BundleItem; index: number }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
       whileHover={{ y: -4 }}
       whileTap={{ scale: 0.98 }}
-      transition={{ duration: 0.2, delay: index * 0.05 }}
+      transition={{ duration: 0.2, delay: Math.min(index * 0.05, 0.3) }}
       layout
       className="h-full"
     >

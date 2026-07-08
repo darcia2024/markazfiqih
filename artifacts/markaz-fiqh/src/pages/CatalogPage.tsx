@@ -125,7 +125,13 @@ export function InstructorSection({
   if (!isLoading && instructors.length === 0) return null;
 
   return (
-    <section className="mb-8">
+    <motion.section
+      className="mb-8"
+      initial={{ opacity: 0, y: 24 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: '-50px' }}
+      transition={{ duration: 0.5, ease: 'easeOut' }}
+    >
       <h3 className="text-xl font-semibold text-foreground mb-4">Instruktur</h3>
       <div className="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1">
         {isLoading
@@ -164,7 +170,7 @@ export function InstructorSection({
               </motion.button>
             ))}
       </div>
-    </section>
+    </motion.section>
   );
 }
 
@@ -228,11 +234,12 @@ export function ClassCard({ cls, index, enrolledClassIds = new Set<string>() }: 
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
       exit={{ opacity: 0, scale: 0.97 }}
       whileHover={{ y: -4 }}
       whileTap={{ scale: 0.98 }}
-      transition={{ duration: 0.2 }}
+      transition={{ duration: 0.2, delay: Math.min(index * 0.05, 0.3) }}
       layout
       className="h-full"
     >
@@ -565,7 +572,12 @@ function CatalogContent() {
           onSelect={setSelectedInstructorId}
         />
 
-        <section>
+        <motion.section
+          initial={{ opacity: 0, y: 24 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-50px' }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
+        >
           <h2 className="text-xl font-semibold text-foreground mb-4">Semua Kelas</h2>
 
           <AnimatePresence mode="popLayout">
@@ -586,7 +598,7 @@ function CatalogContent() {
               )}
             </motion.div>
           </AnimatePresence>
-        </section>
+        </motion.section>
       </main>
     </AppShell>
   );
