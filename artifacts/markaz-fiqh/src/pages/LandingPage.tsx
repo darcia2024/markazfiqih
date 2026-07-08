@@ -303,39 +303,31 @@ function AsymmetricStatsSection() {
           </p>
         </div>
 
-        {/* Galeri foto — grid asimetris full-width, 6 foto */}
-        <div className="grid grid-cols-3 grid-rows-2 gap-3" style={{ gridAutoRows: '200px' }}>
-          {/* Foto 1 — besar, 2 kolom × 2 baris */}
+        {/* Galeri foto — satu grid asimetris 3×3, foto-1 besar pojok kiri */}
+        <div
+          className="grid grid-cols-3 gap-3"
+          style={{ gridTemplateRows: '200px 200px 180px' }}
+        >
+          {/* Foto 1 — 2 kolom × 2 baris */}
           <div className="col-span-2 row-span-2 rounded-2xl overflow-hidden group">
-            <img
-              src={GALLERY_PHOTOS[0].src}
-              alt={GALLERY_PHOTOS[0].alt}
-              loading="lazy"
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-            />
+            <img src={GALLERY_PHOTOS[0].src} alt={GALLERY_PHOTOS[0].alt} loading="lazy"
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
           </div>
-          {/* Foto 2–4 — kolom kanan, 1 per baris */}
-          {GALLERY_PHOTOS.slice(1, 4).map((photo) => (
-            <div key={photo.src} className="rounded-2xl overflow-hidden group">
-              <img
-                src={photo.src}
-                alt={photo.alt}
-                loading="lazy"
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-              />
-            </div>
-          ))}
-        </div>
-        {/* Baris bawah: 3 foto sejajar */}
-        <div className="grid grid-cols-3 gap-3 mt-3">
+          {/* Foto 2 — kolom kanan baris 1 */}
+          <div className="rounded-2xl overflow-hidden group">
+            <img src={GALLERY_PHOTOS[1].src} alt={GALLERY_PHOTOS[1].alt} loading="lazy"
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+          </div>
+          {/* Foto 3 — kolom kanan baris 2 */}
+          <div className="rounded-2xl overflow-hidden group">
+            <img src={GALLERY_PHOTOS[2].src} alt={GALLERY_PHOTOS[2].alt} loading="lazy"
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+          </div>
+          {/* Foto 4, 5, 6 — baris bawah penuh */}
           {GALLERY_PHOTOS.slice(3, 6).map((photo) => (
-            <div key={photo.src} className="rounded-2xl overflow-hidden group" style={{ height: '160px' }}>
-              <img
-                src={photo.src}
-                alt={photo.alt}
-                loading="lazy"
-                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-              />
+            <div key={photo.src} className="rounded-2xl overflow-hidden group">
+              <img src={photo.src} alt={photo.alt} loading="lazy"
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
             </div>
           ))}
         </div>
