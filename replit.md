@@ -1,53 +1,54 @@
-# Markaz Fiqh
+# Markaz Fiqh — Islamic Course Platform
 
-Platform belajar fiqih online madzhab Syafi'i — pnpm monorepo dengan React frontend dan Express backend, menggunakan Supabase untuk database dan autentikasi.
+An online learning platform for Shafi'i fiqh, built and taught by Indonesian students at Al-Azhar Cairo.
 
 ## Stack
 
-| Layer | Tech |
-|---|---|
-| Frontend | React + Vite (`artifacts/markaz-fiqh`) |
-| Backend | Express 5 (`artifacts/api-server`) |
-| Database / Auth | Supabase (PostgreSQL + Google OAuth) |
-| Payments | Mayar.id (skeleton, belum aktif) |
-| Runtime | Node.js 22 |
-| Package manager | pnpm (workspace monorepo) |
+- **Frontend**: React + Vite + Tailwind CSS + shadcn/ui (`artifacts/markaz-fiqh`)
+- **Backend**: Express 5 + Drizzle ORM + Supabase (`artifacts/api-server`)
+- **Database**: Supabase (PostgreSQL)
+- **Payment**: Mayar.id (webhook skeleton in place)
+- **Monorepo**: pnpm workspaces
 
-## Cara menjalankan
+## How to run
 
-Dua workflow sudah dikonfigurasi dan berjalan otomatis:
+Two workflows run in parallel:
 
 | Workflow | Command | Port |
 |---|---|---|
-| Start application | `PORT=5000 BASE_PATH=/ pnpm --filter @workspace/markaz-fiqh run dev` | 5000 |
-| Backend API | `PORT=8080 pnpm --filter @workspace/api-server run dev` | 8080 |
+| `Start application` | `cd artifacts/markaz-fiqh && PORT=5000 BASE_PATH=/ pnpm run dev` | 5000 (webview) |
+| `Backend API` | `cd artifacts/api-server && PORT=8080 pnpm run dev` | 8080 (console) |
 
-## Environment variables / secrets yang dibutuhkan
+The frontend proxies `/api/*` requests to the backend at `http://localhost:8080`.
 
-| Key | Keterangan | Dimana |
-|---|---|---|
-| `VITE_SUPABASE_URL` | URL project Supabase (public) | Supabase → Project Settings → API |
-| `VITE_SUPABASE_ANON_KEY` | Anon public key | Supabase → Project Settings → API |
-| `SUPABASE_URL` | URL project Supabase (backend) | sama dengan VITE_SUPABASE_URL |
-| `SUPABASE_SERVICE_ROLE_KEY` | Service role key (rahasia) | Supabase → Project Settings → API |
-| `SUPABASE_DATABASE_URL` | Connection string PostgreSQL | Supabase → Project Settings → Database |
-| `ADMIN_USER_IDS` | UUID user yang boleh akses `/admin`, dipisah koma | set manual |
-| `SESSION_SECRET` | Secret untuk session | set manual |
-| `MAYAR_API_KEY` | API key Mayar.id (opsional) | Mayar Dashboard |
-| `MAYAR_WEBHOOK_SECRET` | Webhook secret Mayar.id (opsional) | Mayar Dashboard |
+## Environment variables
 
-## Struktur monorepo
+Set in Replit Secrets / shared env vars:
+
+| Key | Where to find |
+|---|---|
+| `SUPABASE_DATABASE_URL` | Supabase Dashboard → Project Settings → Database → URI |
+| `VITE_SUPABASE_URL` | Supabase Dashboard → Project Settings → API |
+| `VITE_SUPABASE_ANON_KEY` | Supabase Dashboard → Project Settings → API |
+| `SUPABASE_URL` | Same as VITE_SUPABASE_URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase Dashboard → Project Settings → API → service_role |
+| `ADMIN_USER_IDS` | Comma-separated Supabase user UUIDs allowed to access /admin |
+| `FRONTEND_URL` | Deployed frontend origin (required in production) |
+| `MAYAR_API_KEY` | Mayar Dashboard (payment gateway, optional until Kasus 5) |
+| `MAYAR_WEBHOOK_SECRET` | Mayar Dashboard |
+| `MAYAR_BASE_URL` | `https://api.mayar.id/hl/v1` |
+
+## Project structure
 
 ```
 artifacts/
-  markaz-fiqh/     # Frontend React + Vite
-  api-server/      # Backend Express API
-  mockup-sandbox/  # UI mockup dev server
-packages/          # Shared libs (db, api-zod, dll)
-attached_assets/   # Dokumen PRD dan aset desain
+  api-server/      Express backend
+  markaz-fiqh/     React frontend
+  mockup-sandbox/  UI prototyping
+attached_assets/   Course images and design docs
 ```
 
 ## User preferences
 
-- Jangan migrasi database ke Replit — tetap pakai Supabase
-- Pertahankan struktur monorepo yang ada
+- Keep the existing pnpm monorepo structure intact
+- Do not restructure or migrate the stack without explicit request
