@@ -1,0 +1,107 @@
+# Prompt 73: Sistem Badge Pencapaian + Laporan Progress di Dashboard
+
+## Konteks
+`DashboardPage.tsx` sudah punya `StatsSummary` (3 stat card: Kelas
+Dimiliki, Kelas Tuntas, Progress Keseluruhan) dan `ProgressSidebar`
+(progress bar per kelas). Tambahkan sistem badge pencapaian otomatis dan
+perkaya laporan progress, TANPA perlu tabel database baru — semua badge
+dihitung langsung dari data `enrollments` yang sudah ada di
+`listEnrollments()` (client-side derived, bukan disimpan permanen di
+database).
+
+Edit `artifacts/markaz-fiqh/src/pages/DashboardPage.tsx`.
+
+## Bagian A — Definisi Badge
+
+Buat daftar badge dengan kriteria berdasarkan `totalCompleted` (jumlah
+kelas yang sudah 100% selesai, dihitung sama seperti logic yang sudah ada
+di `StatsSummary`):
+
+```ts
+type BadgeDefinition = {
+  id: string;
+  label: string;
+  description: string;
+  icon: LucideIcon;
+  threshold: number; // jumlah kelas selesai minimum untuk unlock badge ini
+};
+
+const ACHIEVEMENT_BADGES: BadgeDefinition[] = [
+  { id: 'first-class', label: 'Langkah Pertama', description: 'Menyelesaikan kelas pertama', icon: Sparkles, threshold: 1 },
+  { id: 'three-classes', label: 'Konsisten Belajar', description: 'Menyelesaikan 3 kelas', icon: Flame, threshold: 3 },
+  { id: 'five-classes', label: 'Santri Aktif', description: 'Menyelesaikan 5 kelas', icon: Medal, threshold: 5 },
+  { id: 'ten-classes', label: 'Penuntut Ilmu', description: 'Menyelesaikan 10 kelas', icon: Award, threshold: 10 },
+  { id: 'twenty-classes', label: 'Ahli Fiqih Pemula', description: 'Menyelesaikan 20 kelas', icon: Crown, threshold: 20 },
+];
+```
+(Sesuaikan nama/label badge kalau ada ide lebih baik yang tetap relevan
+dengan konteks belajar fiqih — boleh dihaluskan, tapi pertahankan pola 5
+tingkat dari mudah ke sulit. Import icon dari `lucide-react`, cek dulu
+mana yang tersedia — `Sparkles`, `Flame`, `Medal`, `Award`, `Crown` semua
+ada di lucide-react.)
+
+## Bagian B — Komponen Badge Grid
+
+Buat komponen baru `AchievementBadges`:
+```tsx
+function AchievementBadges({ totalCompleted }: { totalCompleted: number }) {
+  return (
+    <div className="bg-card rounded-[14px] border p-5 shadow-sm">
+      <p className="font-serif font-semibold mb-4">Pencapaian</p>
+      <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+        {ACHIEVEMENT_BADGES.map((badge) => {
+          const unlocked = totalCompleted >= badge.threshold;
+          const Icon = badge.icon;
+          return (
+            <div
+              key={badge.id}
+              title={`${badge.label} — ${badge.description}${!unlocked ? ` (butuh ${badge.threshold} kelas selesai)` : ''}`}
+              className={`flex flex-col items-center gap-1.5 text-center p-3 rounded-xl border transition-opacity ${
+                unlocked
+                  ? 'border-[hsl(var(--accent))]/30 bg-[hsl(var(--accent))]/5'
+                  : 'border-border opacity-40 grayscale'
+              }`}
+            >
+              <Icon className={`w-6 h-6 ${unlocked ? 'text-[hsl(var(--accent))]' : 'text-muted-foreground'}`} />
+              <p className="text-[11px] font-semibold leading-tight">{badge.label}</p>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+```
+
+Panggil komponen ini di `DashboardContent`, diletakkan setelah
+`StatsSummary` dan sebelum daftar kelas "Lanjutkan Belajar" (cek posisi
+komponen lain di `DashboardContent` untuk menentukan urutan yang paling
+masuk akal — badge sebaiknya cukup menonjol, tapi tidak mengganggu alur
+utama "kelas yang sedang dipelajari").
+
+Badge yang belum unlock ditampilkan tetap terlihat (grayscale + opacity
+rendah) supaya user tahu ada pencapaian yang bisa dikejar — bukan
+disembunyikan total.
+
+## Bagian C — Perkaya `StatsSummary` (Opsional, Tambahan Kecil)
+
+Pertimbangkan menambahkan 1 stat card baru ke grid `StatsSummary` yang
+sekarang 3 kolom, jadi 4 kolom: **"Total Menit Belajar"** atau **"Rata-
+rata Progress per Kelas"** — pilih salah satu yang datanya sudah tersedia
+dari `enrollments` tanpa perlu query baru (cek field yang ada di
+`EnrollmentItem`, misal `totalDurationMinutes` kalau ada). Kalau tidak
+ada data yang relevan untuk stat keempat, LEWATI bagian ini — jangan
+memaksakan menambah stat card kalau datanya tidak tersedia atau
+memerlukan query tambahan yang signifikan.
+
+## Yang Tidak Boleh Berubah
+- `StatsSummary` (3 card yang sudah ada) dan `ProgressSidebar` tidak
+  diubah strukturnya, hanya ditambahkan komponen baru di sekitarnya
+- Tidak ada tabel/kolom database baru — badge sepenuhnya dihitung dari
+  data `enrollments` yang sudah ada
+- Data lain di Dashboard tidak berubah
+
+## Setelah Selesai
+Konfirmasi sistem badge sudah tampil di Dashboard, badge yang sudah
+unlock terlihat jelas berbeda dari yang belum (warna vs grayscale), dan
+tidak ada perubahan skema database yang diperlukan.
