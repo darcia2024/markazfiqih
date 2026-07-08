@@ -28,9 +28,9 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col lg:flex-row bg-background">
+    <div className="h-screen overflow-hidden flex flex-col lg:flex-row bg-background">
       {/* Visual Side */}
-      <div className="hidden lg:flex lg:flex-1 bg-gradient-to-br from-primary to-[hsl(var(--brand-red-hover))] flex-col justify-between p-12 text-primary-foreground relative overflow-hidden">
+      <div className="hidden lg:flex lg:flex-1 bg-gradient-to-br from-primary to-[hsl(var(--brand-red-hover))] flex-col justify-between p-12 text-primary-foreground relative overflow-y-auto">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 mix-blend-multiply"
