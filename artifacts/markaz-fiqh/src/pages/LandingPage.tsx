@@ -114,6 +114,15 @@ function HeroSection({
         }}
       />
 
+      {/* Masjid Al-Azhar — pojok kiri bawah */}
+      <img
+        src="/masjid-azhar.png"
+        alt=""
+        aria-hidden="true"
+        className="pointer-events-none absolute bottom-0 left-0 w-[240px] sm:w-[300px] lg:w-[360px] select-none"
+        style={{ opacity: 0.22, mixBlendMode: 'luminosity', maskImage: 'linear-gradient(to top, black 30%, transparent 85%), linear-gradient(to right, black 40%, transparent 100%)', maskComposite: 'intersect' }}
+      />
+
       <div className="relative z-10 container mx-auto px-5 sm:px-8 lg:px-16 max-w-[1200px]">
         {/* Satu kolom, semua center */}
         <div className="flex flex-col items-center text-center py-20 sm:py-24 lg:py-28">
