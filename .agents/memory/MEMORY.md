@@ -7,3 +7,4 @@
 - [Auth middleware pattern](auth-middleware-pattern.md) — requireAuth + requireAdmin pattern; optionalAuth for public endpoints that need admin-conditional behavior (e.g. GET /classes?includeAll).
 - [Mayar integration status](mayar-integration.md) — webhook skeleton exists but always returns 501 until Mayar API docs are received; 3 Mayar env vars needed.
 - [Supabase JS Node version requirement](supabase-js-node-version.md) — supabase-js needs Node 22+ (native WebSocket) even if realtime is unused; Node 20 fails at client creation.
+- [LearnPage Playlist Mode patterns](learnpage-playlist-mode.md) — reading video IDs from a YT playlist w/o extra API key, server-truth completion badges, key={routeParam} for stateful route components.

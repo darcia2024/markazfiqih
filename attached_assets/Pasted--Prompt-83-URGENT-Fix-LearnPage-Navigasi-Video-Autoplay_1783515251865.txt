@@ -1,0 +1,155 @@
+# Prompt 83 (URGENT): Fix LearnPage — Navigasi Video, Autoplay, Progress, & Mitigasi Privasi
+
+## Konteks
+Review dari klien menemukan beberapa bug serius di halaman "Mulai Belajar"
+(`LearnPage.tsx`, Playlist Mode):
+
+1. **Hanya video pertama yang bisa diakses** — tidak ada cara untuk pindah
+   ke video/pertemuan ke-2 dst dalam kelas yang punya lebih dari 1 video.
+2. **Video autoplay** — seharusnya tidak otomatis mulai.
+3. **"Tandai Kelas Selesai" tidak berpengaruh ke progress**, dan status
+   berbalik ke "belum selesai" setelah keluar-masuk halaman.
+4. **Privasi**: karena video di-embed sebagai playlist YouTube standar
+   (`listType: 'playlist', list: playlistId`), video-video kelas (yang
+   statusnya Unlisted di YouTube) muncul di History YouTube pribadi user
+   sebagai satu playlist utuh — berisiko playlist (dan semua video di
+   dalamnya) di-share ke orang yang belum bayar.
+
+## PENTING — Batasan yang Perlu Dipahami
+Video YouTube Unlisted **akan selalu bisa diakses siapapun yang punya
+link/ID video-nya** — ini keterbatasan platform YouTube, bukan sesuatu
+yang bisa ditutup 100% lewat kode. Perbaikan di prompt ini adalah MITIGASI
+(mengurangi eksposur ID video dan mencegah kebocoran ke History YouTube
+sebagai playlist penuh), BUKAN solusi sempurna. Migrasi ke platform video
+privat (signed URL) adalah solusi jangka panjang yang terpisah dari
+prompt ini.
+
+## Perbaikan
+
+Edit `artifacts/markaz-fiqh/src/pages/LearnPage.tsx`, bagian Playlist
+Mode.
+
+### 1. Ganti dari Embed Playlist Menjadi Embed Video Satu-per-Satu
+
+Ganti `playerVars` dari:
+```ts
+playerVars: {
+  listType: 'playlist',
+  list: playlistId,
+  rel: 0,
+  modestbranding: 1,
+  iv_load_policy: 3,
+  fs: 1,
+  playsinline: 1,
+},
+```
+
+Menjadi memuat **satu video ID pada satu waktu** (bukan seluruh
+playlist), dengan `autoplay: 0` eksplisit:
+```ts
+playerVars: {
+  autoplay: 0,
+  rel: 0,
+  modestbranding: 1,
+  iv_load_policy: 3,
+  fs: 1,
+  playsinline: 1,
+},
+videoId: currentVideoId, // video ID tunggal yang sedang aktif, BUKAN playlist
+```
+
+Ini butuh daftar video ID individual dalam playlist (bukan hanya
+`playlistId`). Untuk mendapatkan daftar video ID dari sebuah playlist
+YouTube, ada dua pendekatan — pilih yang paling feasible:
+
+**Pendekatan A (direkomendasikan, tidak butuh API key tambahan):** Tetap
+gunakan YouTube IFrame API dengan `listType: 'playlist'` HANYA untuk
+membaca metadata (jumlah video, urutan) sekali di awal via
+`player.getPlaylist()` yang mengembalikan array video ID setelah player
+`onReady` — TAPI setelah mendapatkan daftar ID tersebut, re-inisialisasi
+atau kontrol player untuk memutar `videoId` tunggal alih-alih terus
+menjalankan mode playlist penuh. Cek dokumentasi YT IFrame API untuk
+fungsi `getPlaylist()` yang tersedia pada player dengan `listType:
+playlist`.
+
+**Pendekatan B (lebih eksplisit, butuh data manual):** Jika kelas di
+`classes`/`modules`/`dars` sebenarnya punya breakdown video per
+pertemuan yang bisa disimpan sebagai video ID individual (cek apakah ada
+field ini atau perlu ditambahkan ke skema), gunakan itu langsung tanpa
+bergantung pada playlist YouTube sama sekali.
+
+**Pilih Pendekatan A jika tidak ada waktu untuk migrasi data, tapi
+laporkan dengan jelas jika Pendekatan A ternyata tidak reliable secara
+teknis** (`getPlaylist()` kadang butuh player sempat load playlist
+terlebih dahulu, yang berarti sedikit eksposur ke playlist tetap terjadi
+sesaat — jika ini masalah, laporkan sebagai keterbatasan, jangan
+dipaksakan jadi sempurna).
+
+### 2. UI Navigasi Antar Video (Sesuai Referensi Klien)
+
+Setelah punya daftar video individual (dari langkah 1), bangun UI di
+bawah player video dengan struktur berikut (mengikuti referensi visual
+yang diberikan klien):
+
+- **Judul video saat ini** (misal dari judul dars/modul jika ada, atau
+  "Pertemuan ke-N" jika tidak ada judul spesifik per video)
+- **Info "Pertemuan ke X dari Y"** (X = index video aktif + 1, Y = total
+  video dalam kelas)
+- **Deskripsi pertemuan** (jika ada datanya, misal dari `dars.description`
+  kalau field itu ada — kalau tidak ada, boleh dilewati)
+- **Tombol "Sebelumnya" dan "Selanjutnya"** — mengganti `currentVideoId`
+  dengan video sebelum/sesudahnya dalam daftar, disable tombol saat
+  berada di video pertama/terakhir
+- **"Daftar Materi"** — list semua video dalam kelas (nomor urut, judul/
+  label, indikator video mana yang sedang aktif), bisa diklik untuk
+  langsung lompat ke video tersebut
+
+### 3. Pastikan Autoplay Benar-Benar Mati
+Selain `autoplay: 0` di `playerVars`, pastikan tidak ada logic lain
+(misal `player.playVideo()` dipanggil otomatis di `onReady`) yang memicu
+video mulai sendiri. Video harus menunggu user klik tombol play secara
+manual.
+
+### 4. Fix "Tandai Kelas Selesai" Tidak Tersimpan/Reset
+
+Investigasi dan perbaiki penyebab progress tidak ter-update setelah klik
+"Tandai Kelas Selesai":
+
+- Cek apakah `completeEnrollmentMutate` memanggil `queryClient
+  .invalidateQueries()` pada query key yang tepat setelah sukses (cari
+  query key yang dipakai untuk `listEnrollments` di Dashboard/sidebar,
+  pastikan di-invalidate juga dari halaman ini, bukan hanya query lokal
+  di `LearnPage.tsx`).
+- Cek apakah ada perbedaan antara state `isCompleted` yang dibaca dari
+  cache lokal (`useMutation` `isSuccess`) vs data asli dari database —
+  `isSuccess` dari `useMutation` akan `false` lagi begitu komponen
+  di-remount (keluar-masuk halaman), sehingga tampilan kembali ke state
+  awal meskipun `is_completed = true` sudah benar tersimpan di database.
+  Perbaiki dengan membaca status "completed" dari data enrollment yang
+  di-fetch (`enrollment.isCompleted` dari `listEnrollments`/`checkEnrollment`),
+  BUKAN dari `mutation.isSuccess` semata — supaya status tetap benar
+  setelah reload halaman.
+- Setelah perbaikan, uji: klik "Tandai Kelas Selesai" → cek badge
+  Dashboard "Kelas Tuntas" bertambah → keluar halaman → masuk lagi ke
+  kelas yang sama → status harus tetap "Kelas telah ditandai selesai"
+  (hijau), tidak kembali ke tombol awal.
+
+## Yang Tidak Boleh Berubah
+- Normal Mode (kelas dengan modul/dars manual, bukan playlist) tidak
+  terpengaruh perubahan ini
+- Data `video_watch_progress` (resume position) tetap dipertahankan
+  fungsinya, sesuaikan agar tetap bekerja dengan video individual
+  (video index yang disimpan sekarang merujuk ke index dalam daftar video
+  individual, bukan index playlist YouTube)
+
+## Setelah Selesai
+1. Konfirmasi: video kedua dst bisa diakses via navigasi custom, autoplay
+   mati, "Tandai Kelas Selesai" tersimpan permanen dan konsisten setelah
+   reload.
+2. Laporkan pendekatan mana (A atau B) yang dipakai untuk mendapatkan
+   daftar video individual, dan jika ada keterbatasan teknis yang tidak
+   bisa diatasi sepenuhnya (terutama terkait eksposur playlist ke History
+   YouTube), jelaskan dengan jujur sejauh mana mitigasi ini efektif.
+3. Ingatkan saya (Darcia) bahwa solusi jangka panjang untuk privasi video
+   sepenuhnya adalah migrasi ke platform video privat, di luar cakupan
+   prompt ini.

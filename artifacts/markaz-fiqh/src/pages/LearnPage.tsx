@@ -7,17 +7,20 @@ declare global {
       Player: new (
         elementId: string,
         options: {
+          videoId?: string;
           playerVars?: Record<string, number | string>;
           events?: {
             onReady?: (event: { target: any }) => void;
             onStateChange?: (event: { target: any; data: number }) => void;
+            onError?: (event: { target: any; data: number }) => void;
           };
         },
       ) => {
         getCurrentTime: () => number;
-        getPlaylistIndex: () => number;
-        playVideoAt: (index: number) => void;
+        getPlaylist: () => string[] | undefined;
+        cueVideoById: (videoId: string, startSeconds?: number) => void;
         seekTo: (seconds: number, allowSeekAhead: boolean) => void;
+        playVideo: () => void;
         destroy: () => void;
       };
     };
@@ -98,6 +101,12 @@ function VideoPlaceholder({ title }: { title: string }) {
   );
 }
 
+// ── Playlist Mode: helper label untuk toast resume ─────────────────────────────
+function getResumeLabel(positionSeconds: number) {
+  const menit = Math.floor(positionSeconds / 60);
+  return menit > 0 ? `Melanjutkan dari menit ke-${menit}` : `Melanjutkan dari detik ke-${positionSeconds}`;
+}
+
 // ── Playlist Mode ─────────────────────────────────────────────────────────────
 function PlaylistMode({
   classId,
@@ -110,6 +119,7 @@ function PlaylistMode({
   instructorClassCount,
   playlistId,
   enrollmentId,
+  initialIsCompleted,
   userId,
   gdriveMateriUrl,
   waGroupUrl,
@@ -124,15 +134,25 @@ function PlaylistMode({
   instructorClassCount: number;
   playlistId: string;
   enrollmentId: string | null;
+  initialIsCompleted: boolean;
   userId: string;
   gdriveMateriUrl?: string | null;
   waGroupUrl?: string | null;
 }) {
+  const queryClient = useQueryClient();
+
   // ── YouTube IFrame API state ──
   const [ytApiReady, setYtApiReady] = useState(false);
   const playerRef = useRef<any>(null);
-  const hasSeekedRef = useRef(false);
+  const metaPlayerRef = useRef<any>(null);
   const saveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const currentIndexRef = useRef(0);
+  const skipNextNavRef = useRef(false);
+
+  // ── Daftar video individual dalam playlist — didapat sekali lewat getPlaylist() ──
+  const [videoIds, setVideoIds] = useState<string[] | null>(null);
+  const [metaError, setMetaError] = useState(false);
+  const [currentIndex, setCurrentIndex] = useState<number | null>(null);
 
   // ── Load saved progress ──
   const { data: savedProgress, isLoading: isProgressLoading } = useQuery({
@@ -160,82 +180,215 @@ function PlaylistMode({
     }
   }, []);
 
+  // ── STEP 1: baca daftar video ID individual dalam playlist (sekali saja) ──
+  // CATATAN PRIVASI: untuk mendapat daftar video ID tanpa API key tambahan, kita
+  // sempat memuat player dalam mode `listType: playlist` (autoplay MATI, muted)
+  // hanya untuk membaca metadata lewat getPlaylist(), lalu langsung di-destroy.
+  // Ini artinya ada eksposur sesaat ke metadata playlist saat player itu dimuat —
+  // keterbatasan teknis yang dijelaskan lebih lanjut di laporan pengerjaan.
+  useEffect(() => {
+    if (!playlistId || !ytApiReady || videoIds !== null) return;
+
+    // Reset status error tiap kali memulai siklus pengambilan metadata baru,
+    // supaya tidak "nyangkut" di tampilan error kalau efek ini pernah dijalankan
+    // ulang untuk playlist yang sama.
+    setMetaError(false);
+
+    let cancelled = false;
+    let retried = false;
+    let retryTimeoutId: ReturnType<typeof setTimeout> | null = null;
+    let destroyed = false;
+
+    // Teardown idempoten: aman dipanggil berkali-kali dari onReady/onError/cleanup
+    // tanpa risiko double-destroy.
+    const teardown = (target: any) => {
+      if (destroyed) return;
+      destroyed = true;
+      try {
+        target?.destroy();
+      } catch (_) { /* noop */ }
+    };
+
+    const readPlaylist = (event: any) => {
+      if (cancelled) return;
+      try {
+        const ids: string[] = event.target.getPlaylist() ?? [];
+        if (ids.length > 0) {
+          setVideoIds(ids);
+          teardown(event.target);
+          return;
+        }
+      } catch (_) { /* fall through to retry/error below */ }
+
+      // getPlaylist() kadang belum terisi tepat saat onReady — beri satu kali
+      // kesempatan retry singkat sebelum benar-benar dianggap gagal.
+      if (!retried) {
+        retried = true;
+        retryTimeoutId = setTimeout(() => {
+          retryTimeoutId = null;
+          if (cancelled) return;
+          try {
+            const ids: string[] = event.target.getPlaylist() ?? [];
+            if (ids.length > 0) {
+              setVideoIds(ids);
+            } else {
+              setMetaError(true);
+            }
+          } catch (_) {
+            setMetaError(true);
+          } finally {
+            teardown(event.target);
+          }
+        }, 800);
+        return;
+      }
+
+      setMetaError(true);
+      teardown(event.target);
+    };
+
+    const metaPlayer = new window.YT.Player('yt-meta-container', {
+      playerVars: {
+        listType: 'playlist',
+        list: playlistId,
+        autoplay: 0,
+        mute: 1,
+      } as any,
+      events: {
+        onReady: readPlaylist,
+        onError: (event: any) => {
+          if (cancelled) return;
+          setMetaError(true);
+          teardown(event.target);
+        },
+      },
+    });
+    metaPlayerRef.current = metaPlayer;
+
+    return () => {
+      cancelled = true;
+      if (retryTimeoutId) clearTimeout(retryTimeoutId);
+      teardown(metaPlayerRef.current);
+      metaPlayerRef.current = null;
+    };
+  }, [playlistId, ytApiReady, videoIds]);
+
   // ── Helper: flush current position to DB ──
   const flushProgress = useCallback(() => {
     const p = playerRef.current;
     if (!p || !userId || !classId) return;
     try {
-      const index = p.getPlaylistIndex();
       const seconds = Math.floor(p.getCurrentTime());
-      if (index >= 0 && seconds > 0) {
-        saveVideoWatchProgress({ userId, classId, videoIndex: index, positionSeconds: seconds });
+      if (seconds > 0) {
+        saveVideoWatchProgress({
+          userId,
+          classId,
+          videoIndex: currentIndexRef.current,
+          positionSeconds: seconds,
+        });
       }
     } catch (_) { /* player may already be destroyed */ }
   }, [userId, classId]);
 
-  // ── Init player when API ready + progress loaded ──
+  // ── STEP 2: buat player video TUNGGAL sekali videoIds & saved progress siap ──
+  // Autoplay MATI secara eksplisit (autoplay: 0) dan tidak ada pemanggilan
+  // playVideo() otomatis di manapun — video hanya mulai saat user klik tombol
+  // play sendiri di player YouTube.
   useEffect(() => {
-    if (!playlistId || !ytApiReady || isProgressLoading) return;
+    if (!videoIds || videoIds.length === 0 || !ytApiReady || isProgressLoading || playerRef.current) {
+      return;
+    }
 
-    hasSeekedRef.current = false;
+    let initialIndex = 0;
+    let resumeSeconds = 0;
+    if (savedProgress && savedProgress.videoIndex >= 0 && savedProgress.videoIndex < videoIds.length) {
+      initialIndex = savedProgress.videoIndex;
+      resumeSeconds = savedProgress.positionSeconds;
+    }
 
-    const player = new window.YT.Player('yt-playlist-container', {
+    currentIndexRef.current = initialIndex;
+    skipNextNavRef.current = true; // hindari efek navigasi ganda saat state ini di-set
+    setCurrentIndex(initialIndex);
+
+    const videoId = videoIds[initialIndex];
+    const player = new window.YT.Player('yt-video-container', {
+      videoId,
       playerVars: {
-        listType: 'playlist',
-        list: playlistId,
+        autoplay: 0,
         rel: 0,
         modestbranding: 1,
         iv_load_policy: 3,
         fs: 1,
         playsinline: 1,
+        ...(resumeSeconds > 0 ? { start: resumeSeconds } : {}),
       },
       events: {
-        onReady: (event: any) => {
-          if (savedProgress) {
-            // Jump to saved video index first; seek happens in onStateChange
-            // after the video actually starts buffering/playing
-            event.target.playVideoAt(savedProgress.videoIndex);
-
-            const menit = Math.floor(savedProgress.positionSeconds / 60);
-            const label = menit > 0 ? `menit ke-${menit}` : `detik ke-${savedProgress.positionSeconds}`;
-            toast.info(`Melanjutkan dari ${label}`, { duration: 4000 });
-          }
-        },
-        onStateChange: (event: any) => {
-          // Seek to saved position on the very first PLAYING or BUFFERING event
-          // (playVideoAt alone doesn't restore time; seekTo needs the video loaded)
-          if (!hasSeekedRef.current && savedProgress && savedProgress.positionSeconds > 0) {
-            const state: number = event.data; // 1 = PLAYING, 3 = BUFFERING
-            if (state === 1 || state === 3) {
-              hasSeekedRef.current = true;
-              event.target.seekTo(savedProgress.positionSeconds, true);
-            }
+        onReady: () => {
+          if (resumeSeconds > 0) {
+            toast.info(getResumeLabel(resumeSeconds), { duration: 4000 });
           }
         },
       },
     });
 
     playerRef.current = player;
-
-    // Save progress every 15 seconds
     saveIntervalRef.current = setInterval(flushProgress, 15_000);
 
     return () => {
       flushProgress(); // save on unmount / re-init
       if (saveIntervalRef.current) clearInterval(saveIntervalRef.current);
-      player.destroy();
+      try {
+        player.destroy();
+      } catch (_) { /* noop */ }
       playerRef.current = null;
     };
-  }, [playlistId, ytApiReady, isProgressLoading, savedProgress, flushProgress]);
+  }, [videoIds, ytApiReady, isProgressLoading, savedProgress, flushProgress]);
 
-  const { mutate: completeEnrollmentMutate, isPending: isCompleting, isSuccess: isCompleted } =
-    useMutation({
-      mutationFn: (params: { enrollmentId: string }) =>
-        completeEnrollmentFn(params.enrollmentId),
-      onError: (error) => {
-        toast.error(error instanceof Error ? error.message : 'Gagal menyimpan, coba lagi.');
-      },
-    });
+  // ── STEP 3: pindah video saat user klik Sebelumnya/Selanjutnya/Daftar Materi ──
+  // cueVideoById() memuat video BARU tanpa langsung memutar (bukan playVideo()),
+  // jadi navigasi antar video juga tidak memicu autoplay.
+  useEffect(() => {
+    if (currentIndex === null) return;
+    if (skipNextNavRef.current) {
+      skipNextNavRef.current = false;
+      currentIndexRef.current = currentIndex;
+      return;
+    }
+    if (!playerRef.current || !videoIds) return;
+    const videoId = videoIds[currentIndex];
+    if (!videoId) return;
+
+    flushProgress(); // simpan posisi video sebelumnya sebelum berpindah
+    try {
+      playerRef.current.cueVideoById(videoId, 0);
+    } catch (_) { /* noop */ }
+    currentIndexRef.current = currentIndex;
+  }, [currentIndex, videoIds, flushProgress]);
+
+  const goToIndex = useCallback(
+    (i: number) => {
+      if (!videoIds || i < 0 || i >= videoIds.length) return;
+      setCurrentIndex(i);
+    },
+    [videoIds],
+  );
+
+  // ── Status "Kelas Selesai" — sumber kebenaran dari data enrollment server ──
+  // (bukan dari mutation.isSuccess semata, supaya tidak reset ke "belum selesai"
+  // saat halaman di-remount / keluar-masuk halaman)
+  const [optimisticDone, setOptimisticDone] = useState(false);
+  const isCompleted = initialIsCompleted || optimisticDone;
+
+  const { mutate: completeEnrollmentMutate, isPending: isCompleting } = useMutation({
+    mutationFn: (params: { enrollmentId: string }) => completeEnrollmentFn(params.enrollmentId),
+    onSuccess: () => {
+      setOptimisticDone(true);
+      queryClient.invalidateQueries({ queryKey: ['enrollments', userId] });
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : 'Gagal menyimpan, coba lagi.');
+    },
+  });
 
   const { data: categoryClasses = [] } = useQuery({
     queryKey: ['classes', { category: classCategory }],
@@ -262,11 +415,99 @@ function PlaylistMode({
             {/* CATATAN: YouTube tidak mengizinkan menyembunyikan sepenuhnya opsi "Watch on
                 YouTube" atau logo YouTube karena kebijakan mereka — parameter di bawah hanya
                 meminimalisir distraksi/rekomendasi video lain, bukan blokir total.
-                YT IFrame API dipakai supaya bisa baca/tulis posisi playback. */}
-            <div
-              id="yt-playlist-container"
-              className="w-full aspect-video rounded-[14px] overflow-hidden bg-black"
-            />
+                YT IFrame API dipakai supaya bisa baca/tulis posisi playback.
+                Video dimuat SATU per satu (bukan mode playlist penuh) — lihat komentar
+                di komponen PlaylistMode untuk detail privasi & alasan pendekatannya. */}
+            <div className="w-full aspect-video rounded-[14px] overflow-hidden bg-black relative">
+              {metaError ? (
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-zinc-400 px-6 text-center">
+                  <Video className="w-12 h-12 opacity-30" />
+                  <p className="text-sm font-medium opacity-60">
+                    Gagal memuat video. Silakan reload halaman.
+                  </p>
+                </div>
+              ) : (
+                <div id="yt-video-container" className="w-full h-full" />
+              )}
+            </div>
+            {/* Player tersembunyi, hanya dipakai sekali untuk membaca daftar video
+                dalam playlist lewat getPlaylist() — tidak pernah diputar/ditampilkan. */}
+            <div id="yt-meta-container" className="sr-only" aria-hidden="true" />
+
+            {/* Navigasi antar video */}
+            {videoIds && videoIds.length > 0 && currentIndex !== null && (
+              <div className="bg-card rounded-2xl border p-6 space-y-4">
+                <div className="flex items-center justify-between gap-4 flex-wrap">
+                  <div>
+                    <p className="text-xs font-medium text-primary uppercase tracking-wide">
+                      Pertemuan ke-{currentIndex + 1} dari {videoIds.length}
+                    </p>
+                    <h2 className="font-serif text-lg font-bold text-foreground mt-0.5">
+                      Pertemuan ke-{currentIndex + 1}
+                    </h2>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={currentIndex <= 0}
+                      onClick={() => goToIndex(currentIndex - 1)}
+                      className="gap-1"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                      Sebelumnya
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={currentIndex >= videoIds.length - 1}
+                      onClick={() => goToIndex(currentIndex + 1)}
+                      className="gap-1"
+                    >
+                      Selanjutnya
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Daftar Materi */}
+                <div className="pt-3 border-t">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
+                    Daftar Materi
+                  </p>
+                  <ul className="space-y-1 max-h-72 overflow-y-auto">
+                    {videoIds.map((_, i) => {
+                      const isActive = i === currentIndex;
+                      return (
+                        <li key={i}>
+                          <button
+                            onClick={() => goToIndex(i)}
+                            className={`w-full flex items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                              isActive
+                                ? 'bg-primary/10 text-primary font-semibold'
+                                : 'hover:bg-muted/50 text-foreground/70'
+                            }`}
+                          >
+                            {isActive ? (
+                              <PlayCircle className="w-3.5 h-3.5 shrink-0" fill="currentColor" />
+                            ) : (
+                              <Circle className="w-3.5 h-3.5 shrink-0 text-muted-foreground/40" />
+                            )}
+                            <span className="flex-1">Pertemuan ke-{i + 1}</span>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              </div>
+            )}
+            {!videoIds && !metaError && (
+              <div className="bg-card rounded-2xl border p-6 flex items-center gap-3 text-muted-foreground text-sm">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Memuat daftar video...
+              </div>
+            )}
 
             {/* Info panel */}
             <div className="bg-card rounded-2xl border p-6 space-y-4">
@@ -738,9 +979,10 @@ function LearnContent() {
   const isPlaylistMode = !!(classDetail.youtubePlaylistId && classDetail.modules.length === 0);
 
   if (isPlaylistMode) {
-    const enrollmentId = enrollments.find((e) => e.class.id === classId)?.id ?? null;
+    const enrollment = enrollments.find((e) => e.class.id === classId) ?? null;
     return (
       <PlaylistMode
+        key={classId}
         classId={classId!}
         classTitle={classDetail.title}
         classDescription={classDetail.description}
@@ -750,7 +992,8 @@ function LearnContent() {
         instructorPhotoUrl={classDetail.instructor.photoUrl}
         instructorClassCount={classDetail.instructor.classCount}
         playlistId={classDetail.youtubePlaylistId!}
-        enrollmentId={enrollmentId}
+        enrollmentId={enrollment?.id ?? null}
+        initialIsCompleted={enrollment?.isCompleted ?? false}
         userId={user?.id ?? ''}
         gdriveMateriUrl={classDetail.gdriveMateriUrl}
         waGroupUrl={classDetail.waGroupUrl}
