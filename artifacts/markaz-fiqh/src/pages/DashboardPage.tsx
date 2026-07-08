@@ -324,15 +324,15 @@ function DashboardContent() {
   const showEmpty = search.get('demo') === 'empty';
   const classesToShow = showEmpty ? [] : enrollments;
 
-  const inProgressEnrollments = classesToShow
-    .filter((e) => {
-      const pct =
-        e.class.totalDarsCount > 0
-          ? Math.round((e.class.completedDarsCount / e.class.totalDarsCount) * 100)
-          : 0;
-      return pct < 100;
-    })
-    .slice(0, 3);
+  const allInProgressEnrollments = classesToShow.filter((e) => {
+    const pct =
+      e.class.totalDarsCount > 0
+        ? Math.round((e.class.completedDarsCount / e.class.totalDarsCount) * 100)
+        : 0;
+    return pct < 100;
+  });
+  const inProgressEnrollments = allInProgressEnrollments.slice(0, 3);
+  const hasMoreInProgress = allInProgressEnrollments.length > inProgressEnrollments.length;
 
   return (
     <AppShell>
@@ -422,6 +422,15 @@ function DashboardContent() {
                         ))}
                       </AnimatePresence>
                     </div>
+                    {hasMoreInProgress && (
+                      <div className="flex justify-center sm:justify-start pt-1">
+                        <motion.div className="inline-block" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.15 }}>
+                          <Button asChild variant="outline" size="sm">
+                            <Link href="/my-classes">Lihat Semua Kelas Saya</Link>
+                          </Button>
+                        </motion.div>
+                      </div>
+                    )}
                   </div>
                 )}
 

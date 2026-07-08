@@ -583,7 +583,9 @@ function CartContent() {
               {invoice.items.map((item) => (
                 <div key={item.id} className="flex items-center justify-between text-sm">
                   <span className="text-foreground line-clamp-1 flex-1">{item.title}</span>
-                  <span className="text-muted-foreground shrink-0 ml-3">{formatPrice(item.price)}</span>
+                  <span className="text-muted-foreground shrink-0 ml-3">
+                    {item.bundleId ? '-' : formatPrice(item.price)}
+                  </span>
                 </div>
               ))}
             </div>
