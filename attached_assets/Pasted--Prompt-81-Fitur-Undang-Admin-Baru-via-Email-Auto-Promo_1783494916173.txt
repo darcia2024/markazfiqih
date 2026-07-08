@@ -1,0 +1,226 @@
+# Prompt 81: Fitur Undang Admin Baru via Email (Auto-Promote Saat Login Pertama)
+
+## Konteks
+Admin master ingin bisa menambahkan admin baru lewat UI, cukup dengan
+memasukkan email calon admin. Karena tabel `user_profiles` tidak
+menyimpan email (hanya `user_id`), dan email calon admin belum tentu
+sudah pernah login sebelumnya, gunakan pola "invite by email": admin
+master memasukkan email ke daftar undangan, lalu begitu orang dengan
+email tersebut login pertama kali via Google, sistem otomatis mem-
+promote akun tersebut menjadi admin.
+
+**Catatan keamanan penting**: proses promote `is_admin` ini TIDAK BOLEH
+dilakukan langsung dari client (browser), karena akan tertahan oleh
+trigger `prevent_self_admin_escalation` yang sudah dipasang sebelumnya
+(mencegah user mengubah `is_admin` miliknya sendiri lewat client biasa).
+Proses ini harus lewat edge function dengan service role key.
+
+## Langkah 1 — Tabel `admin_invites` (SQL, Jalankan Manual)
+
+Siapkan SQL berikut untuk saya jalankan manual di Supabase SQL Editor:
+```sql
+CREATE TABLE admin_invites (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email TEXT NOT NULL UNIQUE,
+  invited_by TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  redeemed_at TIMESTAMPTZ,
+  redeemed_by TEXT
+);
+
+ALTER TABLE admin_invites ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "admin_invites: admin bisa baca semua"
+  ON admin_invites FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM user_profiles
+      WHERE user_profiles.user_id = auth.uid()::text
+      AND user_profiles.is_admin = true
+    )
+  );
+
+CREATE POLICY "admin_invites: admin bisa insert"
+  ON admin_invites FOR INSERT
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM user_profiles
+      WHERE user_profiles.user_id = auth.uid()::text
+      AND user_profiles.is_admin = true
+    )
+  );
+
+CREATE POLICY "admin_invites: admin bisa delete"
+  ON admin_invites FOR DELETE
+  USING (
+    EXISTS (
+      SELECT 1 FROM user_profiles
+      WHERE user_profiles.user_id = auth.uid()::text
+      AND user_profiles.is_admin = true
+    )
+  );
+```
+
+## Langkah 2 — Edge Function `check-admin-invite`
+
+Buat `supabase/functions/check-admin-invite/index.ts`, dipanggil setiap
+kali user login (dari `AuthContext`), untuk cek apakah email user yang
+baru login ada di daftar `admin_invites` yang belum di-redeem. Kalau ada,
+promote user tersebut jadi admin dan tandai invite sebagai sudah dipakai.
+
+```ts
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  try {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } },
+    );
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !user || !user.email) {
+      return new Response(JSON.stringify({ promoted: false }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    );
+
+    const { data: invite } = await supabaseAdmin
+      .from('admin_invites')
+      .select('id')
+      .eq('email', user.email)
+      .is('redeemed_at', null)
+      .maybeSingle();
+
+    if (!invite) {
+      return new Response(JSON.stringify({ promoted: false }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const { error: updateError } = await supabaseAdmin
+      .from('user_profiles')
+      .update({ is_admin: true })
+      .eq('user_id', user.id);
+
+    if (updateError) throw updateError;
+
+    await supabaseAdmin
+      .from('admin_invites')
+      .update({ redeemed_at: new Date().toISOString(), redeemed_by: user.id })
+      .eq('id', invite.id);
+
+    return new Response(JSON.stringify({ promoted: true }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({ error: (error as Error).message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+});
+```
+
+**Catatan penting**: fungsi ini melakukan UPDATE ke `user_profiles.is_admin`
+via service role, yang akan BYPASS trigger `prevent_self_admin_escalation`
+(karena trigger itu hanya mencegah perubahan dari `auth.role() !=
+'service_role'`, service role tetap bisa mengubahnya, sesuai desain
+trigger tersebut sejak awal). Ini adalah SATU-SATUNYA jalur yang sengaja
+dibuat untuk mem-promote admin baru secara terprogram, di luar itu semua
+jalur lain tetap terblokir seperti sebelumnya.
+
+## Langkah 3 — Panggil Edge Function Ini Setelah Login
+
+Edit `artifacts/markaz-fiqh/src/context/AuthContext.tsx`. Setelah user
+berhasil login (di `buildUser` atau di listener `onAuthStateChange`),
+panggil edge function `check-admin-invite` sekali (misal hanya saat event
+`SIGNED_IN`, bukan setiap kali auth state berubah untuk session yang
+sudah ada, supaya tidak memanggil berulang-ulang untuk user yang sudah
+lama login). Kalau response `promoted: true`, refresh data user profile
+(panggil ulang `fetchUserProfile`) supaya `isAdmin` di state ter-update
+tanpa perlu logout-login manual.
+
+## Langkah 4 — Buat Fungsi CRUD Invite di `src/lib/db.ts`
+
+```ts
+export async function listAdminInvites() {
+  const { data, error } = await supabase
+    .from('admin_invites')
+    .select('id, email, created_at, redeemed_at')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((i: any) => ({
+    id: i.id as string,
+    email: i.email as string,
+    createdAt: i.created_at as string,
+    redeemedAt: i.redeemed_at as string | null,
+  }));
+}
+
+export async function createAdminInvite(email: string, invitedBy: string) {
+  const { error } = await supabase
+    .from('admin_invites')
+    .insert({ email: email.toLowerCase().trim(), invited_by: invitedBy });
+  if (error) throw error;
+}
+
+export async function deleteAdminInvite(id: string) {
+  const { error } = await supabase.from('admin_invites').delete().eq('id', id);
+  if (error) throw error;
+}
+```
+
+## Langkah 5 — Halaman Admin Baru: Kelola Admin
+
+Buat halaman baru `artifacts/markaz-fiqh/src/pages/admin/AdminManageAdminsPage.tsx`:
+- Form input email + tombol "Undang jadi Admin", memanggil `createAdminInvite`
+- Tabel daftar invite yang sudah dibuat, menampilkan email, tanggal
+  diundang, dan status (Menunggu login pertama / Sudah aktif sebagai
+  admin, berdasarkan `redeemedAt`)
+- Tombol hapus/batalkan untuk invite yang belum di-redeem
+- Styling ikuti pola halaman admin lain (`AdminInstructorsPage.tsx`,
+  dll) untuk konsistensi
+
+Tambahkan route baru `/admin/manage-admins` di `App.tsx` (dibungkus
+`RequireAdminRoute` seperti halaman admin lain), dan tambahkan link menu
+ke halaman ini di sidebar/navigasi Admin Panel.
+
+## Yang Tidak Boleh Berubah
+- Trigger `prevent_self_admin_escalation` tidak diubah/dihapus, tetap
+  jadi lapisan proteksi utama untuk mencegah user biasa mem-promote diri
+  sendiri lewat client
+- Sistem login Google yang sudah ada tidak diubah alurnya untuk user
+  biasa, hanya ditambahkan pemanggilan edge function setelah login
+  berhasil
+- Admin yang sudah ada sekarang tidak terpengaruh
+
+## Setelah Selesai
+1. Tegaskan SQL tabel `admin_invites` perlu saya jalankan manual, dan
+   edge function `check-admin-invite` perlu saya deploy manual.
+2. Konfirmasi alur lengkap: admin master input email di halaman baru,
+   email masuk daftar invite, begitu orang dengan email itu login
+   pertama kali, otomatis jadi admin tanpa perlu SQL manual lagi.
