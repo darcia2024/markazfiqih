@@ -700,23 +700,23 @@ function ContactSection({
 }) {
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-primary to-[hsl(var(--brand-red-hover))]">
-      {/* Pattern grid — identik dengan Hero section */}
+      {/* Pattern — identik dengan Hero section (hero-pattern.png) */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
+        className="pointer-events-none absolute inset-0 mix-blend-multiply"
         style={{
-          backgroundImage:
-            'linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px)',
-          backgroundSize: '48px 48px',
+          backgroundImage: "url('/hero-pattern.png')",
+          backgroundSize: '900px',
+          backgroundRepeat: 'repeat',
         }}
       />
 
-      {/* Logo watermark — pojok kanan-bawah */}
+      {/* Logo watermark — pojok kanan-bawah, utuh dalam batas section */}
       <img
         src="/logo.png"
         alt=""
         aria-hidden="true"
-        className="pointer-events-none absolute -bottom-8 -right-8 w-64 h-64 sm:w-80 sm:h-80 object-contain opacity-[0.07] select-none"
+        className="pointer-events-none absolute bottom-4 right-4 w-48 h-48 sm:w-56 sm:h-56 object-contain opacity-[0.07] select-none"
       />
 
       <div className="relative z-10 container mx-auto px-5 sm:px-8 lg:px-16 max-w-[1200px]">
