@@ -337,7 +337,7 @@ function AsymmetricStatsSection() {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// SECTION 4: Pengajar — 1 pengajar utama dominan + sisanya list kecil
+// SECTION 4: Pengajar — grid merata, foto bulat + ring gold
 // ────────────────────────────────────────────────────────────────────────────
 function InstructorsSection({
   instructors,
@@ -346,143 +346,111 @@ function InstructorsSection({
   instructors: InstructorItem[];
   isLoading: boolean;
 }) {
-  const featured = instructors[0] ?? null;
-  const others = instructors.slice(1);
-
   return (
     <section className="bg-background border-b border-border">
       <div className="container mx-auto px-5 sm:px-8 lg:px-16 py-16 sm:py-20 max-w-[1200px]">
 
         {/* Header */}
-        <div className="mb-12">
+        <div className="mb-14 text-center">
           <p className="text-xs font-semibold tracking-wider uppercase mb-4"
             style={{ color: 'hsl(var(--accent))' }}>
             Pengajar
           </p>
-          <h2 className="font-serif text-3xl sm:text-4xl font-bold text-foreground leading-tight max-w-xl">
+          <h2 className="font-serif text-3xl sm:text-4xl font-bold text-foreground leading-tight">
             Belajar dari mereka yang berguru di Al-Azhar.
           </h2>
         </div>
 
+        {/* Skeleton loading */}
         {isLoading && (
-          <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-8">
-            <div className="rounded-2xl bg-muted animate-pulse aspect-[4/5]" />
-            <div className="flex flex-col gap-4">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-20 rounded-xl bg-muted animate-pulse" />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {!isLoading && featured && (
-          <div className="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-8 items-start">
-
-            {/* Pengajar utama — kartu foto besar */}
-            <div className="rounded-2xl overflow-hidden border border-border bg-card">
-              {featured.photoUrl ? (
-                <div className="aspect-[4/5] overflow-hidden">
-                  <img
-                    src={featured.photoUrl}
-                    alt={featured.name}
-                    className="w-full h-full object-cover object-top hover:scale-105 transition-transform duration-500"
-                    loading="lazy"
-                  />
-                </div>
-              ) : (
-                <div
-                  className="aspect-[4/5] flex items-center justify-center"
-                  style={{
-                    background:
-                      'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--brand-red-hover)))',
-                  }}
-                >
-                  <span className="font-serif text-6xl font-bold text-white/25 select-none">
-                    {featured.name
-                      .split(' ')
-                      .map((n) => n[0])
-                      .join('')
-                      .substring(0, 2)}
-                  </span>
-                </div>
-              )}
-              <div className="p-6">
-                <p className="font-serif text-xl font-bold text-foreground leading-snug">
-                  {featured.name}
-                </p>
-                <p className="text-xs font-semibold mt-1 mb-3"
-                  style={{ color: 'hsl(var(--accent))' }}>
-                  Al-Azhar · Kairo, Mesir
-                </p>
-                {featured.bio && (
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {featured.bio}
-                  </p>
-                )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex flex-col items-center gap-4">
+                <div className="w-40 h-40 rounded-full bg-muted animate-pulse" />
+                <div className="w-36 h-4 rounded bg-muted animate-pulse" />
+                <div className="w-24 h-3 rounded bg-muted animate-pulse" />
+                <div className="w-48 h-10 rounded bg-muted animate-pulse" />
               </div>
-            </div>
-
-            {/* Pengajar lainnya — list horizontal kecil */}
-            <div>
-              {others.length > 0 && (
-                <>
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-5">
-                    Pengajar lainnya
-                  </p>
-                  <div className="flex flex-col gap-3">
-                    {others.map((instructor) => (
-                      <div
-                        key={instructor.id}
-                        className="flex items-center gap-4 p-4 rounded-xl border border-border bg-card hover:border-[hsl(var(--accent))]/40 hover:shadow-sm transition-all duration-200"
-                      >
-                        <Avatar className="h-12 w-12 shrink-0 rounded-xl border border-border">
-                          <AvatarImage
-                            src={instructor.photoUrl}
-                            alt={instructor.name}
-                            loading="lazy"
-                          />
-                          <AvatarFallback className="rounded-xl bg-primary/10 text-primary text-sm font-bold">
-                            {instructor.name
-                              .split(' ')
-                              .map((n) => n[0])
-                              .join('')
-                              .substring(0, 2)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-foreground leading-snug">
-                            {instructor.name}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            Al-Azhar · Kairo, Mesir
-                          </p>
-                          {instructor.bio && (
-                            <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
-                              {instructor.bio}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-
-              {/* Jika hanya 1 pengajar — tampilkan deskripsi tambahan */}
-              {others.length === 0 && (
-                <div className="flex items-center justify-center h-full min-h-[200px]">
-                  <p className="text-sm text-muted-foreground italic">
-                    Pengajar lainnya segera bergabung.
-                  </p>
-                </div>
-              )}
-            </div>
-
+            ))}
           </div>
         )}
 
-        {!isLoading && !featured && (
-          <p className="text-sm text-muted-foreground">Pengajar segera hadir.</p>
+        {/* Grid pengajar */}
+        {!isLoading && instructors.length > 0 && (
+          <div className={[
+            'grid gap-10',
+            instructors.length === 1
+              ? 'grid-cols-1 max-w-xs mx-auto'
+              : instructors.length === 2
+              ? 'grid-cols-1 sm:grid-cols-2 max-w-2xl mx-auto'
+              : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3',
+          ].join(' ')}>
+            {instructors.map((instructor) => {
+              const initials = instructor.name
+                .split(' ')
+                .map((n) => n[0])
+                .join('')
+                .substring(0, 2)
+                .toUpperCase();
+              return (
+                <div key={instructor.id} className="flex flex-col items-center text-center gap-4">
+                  {/* Foto bulat dengan ring gold */}
+                  <div
+                    className="relative rounded-full shrink-0"
+                    style={{
+                      padding: '4px',
+                      background: 'linear-gradient(135deg, hsl(var(--accent)), hsl(var(--accent) / 0.4))',
+                    }}
+                  >
+                    <div className="rounded-full overflow-hidden w-36 h-36 bg-muted">
+                      {instructor.photoUrl ? (
+                        <img
+                          src={instructor.photoUrl}
+                          alt={instructor.name}
+                          loading="lazy"
+                          className="w-full h-full object-cover object-top"
+                        />
+                      ) : (
+                        <div
+                          className="w-full h-full flex items-center justify-center"
+                          style={{
+                            background: 'linear-gradient(135deg, hsl(var(--primary)), hsl(var(--brand-red-hover)))',
+                          }}
+                        >
+                          <span className="font-serif text-3xl font-bold text-white/60 select-none">
+                            {initials}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Nama */}
+                  <div>
+                    <p className="font-semibold text-base text-foreground leading-snug">
+                      {instructor.name}
+                    </p>
+                    {/* Kredensial / label Al-Azhar */}
+                    <p className="text-sm mt-1 font-medium"
+                      style={{ color: 'hsl(var(--accent))' }}>
+                      Al-Azhar · Kairo, Mesir
+                    </p>
+                  </div>
+
+                  {/* Bio */}
+                  {instructor.bio && (
+                    <p className="text-sm text-muted-foreground leading-relaxed max-w-[260px]">
+                      {instructor.bio}
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {!isLoading && instructors.length === 0 && (
+          <p className="text-center text-sm text-muted-foreground">Pengajar segera hadir.</p>
         )}
       </div>
     </section>
