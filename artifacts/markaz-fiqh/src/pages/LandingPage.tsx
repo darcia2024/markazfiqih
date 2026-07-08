@@ -149,7 +149,7 @@ function HeroSection({
           <h1 className="font-serif font-bold leading-[1.15] tracking-tight max-w-4xl">
             <span
               className="block text-3xl sm:text-4xl lg:text-5xl font-semibold italic"
-              style={{ color: '#FFCC00' }}
+              style={{ color: 'hsl(var(--accent))' }}
             >
               Ahlan wa Sahlan di
             </span>
@@ -187,8 +187,8 @@ function HeroSection({
               <Button
                 asChild
                 size="lg"
-                className="h-[56px] px-10 text-base font-semibold rounded-[10px] text-primary hover:opacity-90 shadow-lg"
-                style={{ backgroundColor: '#FFCC00' }}
+                className="h-[56px] px-10 text-base font-semibold rounded-[10px] text-primary-foreground hover:opacity-90 shadow-lg"
+                style={{ backgroundColor: 'hsl(var(--accent))' }}
               >
                 <Link href="/katalog">Mulai Belajar</Link>
               </Button>

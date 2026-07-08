@@ -25,6 +25,7 @@ type SettingsFormState = {
   socialFacebook: string;
   socialTiktok: string;
   studentCountLabel: string;
+  aboutUsContent: string;
 };
 
 const EMPTY_FORM: SettingsFormState = {
@@ -42,6 +43,7 @@ const EMPTY_FORM: SettingsFormState = {
   socialFacebook: '',
   socialTiktok: '',
   studentCountLabel: '',
+  aboutUsContent: '',
 };
 
 export default function AdminSettingsPage() {
@@ -69,6 +71,7 @@ export default function AdminSettingsPage() {
         socialFacebook: s.socialFacebook ?? '',
         socialTiktok: s.socialTiktok ?? '',
         studentCountLabel: s.studentCountLabel ?? '',
+        aboutUsContent: s.aboutUsContent ?? '',
       });
     }
   }, [settingsQuery.data]);
@@ -291,6 +294,27 @@ export default function AdminSettingsPage() {
                   data-testid="input-social-tiktok"
                 />
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Halaman Tentang Kami</CardTitle>
+            <CardDescription>
+              Konten ini ditampilkan pada halaman "Tentang Kami" yang bisa diakses pelajar dari sidebar.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="about-us-content">Konten Tentang Kami</Label>
+              <Textarea
+                id="about-us-content"
+                value={form.aboutUsContent}
+                onChange={(e) => updateField('aboutUsContent', e.target.value)}
+                rows={10}
+                data-testid="input-about-us-content"
+              />
             </div>
           </CardContent>
         </Card>

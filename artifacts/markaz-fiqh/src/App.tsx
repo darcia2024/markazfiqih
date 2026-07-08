@@ -24,6 +24,7 @@ import AdminTestimonialsPage from '@/pages/admin/AdminTestimonialsPage';
 import AdminSettingsPage from '@/pages/admin/AdminSettingsPage';
 import AdminManageAdminsPage from '@/pages/admin/AdminManageAdminsPage';
 import BundlesPage from '@/pages/BundlesPage';
+import AboutUsPage from '@/pages/AboutUsPage';
 
 const queryClient = new QueryClient();
 
@@ -37,6 +38,7 @@ function Router() {
       <Route path="/onboarding-nama" component={OnboardingNamaPage} />
       <Route path="/class/:id" component={ClassDetailPage} />
       <Route path="/my-classes" component={MyClassesPage} />
+      <Route path="/tentang-kami" component={AboutUsPage} />
       <Route path="/keranjang" component={CartPage} />
       <Route path="/paket-bundle" component={BundlesPage} />
       <Route path="/learn/:classId" component={LearnPage} />

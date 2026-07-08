@@ -355,6 +355,7 @@ export async function getSettings() {
     socialFacebook: data.social_facebook as string,
     socialTiktok: data.social_tiktok as string,
     studentCountLabel: data.student_count_label as string | null,
+    aboutUsContent: data.about_us_content as string | null,
   };
 }
 
@@ -800,7 +801,7 @@ export async function updateSettings(data: {
   contactEmail?: string; contactPhone?: string; address?: string;
   founderName?: string; founderBio?: string; founderPhotoUrl?: string;
   socialInstagram?: string; socialYoutube?: string; socialFacebook?: string;
-  socialTiktok?: string; studentCountLabel?: string;
+  socialTiktok?: string; studentCountLabel?: string; aboutUsContent?: string;
 }) {
   const patch: Record<string, unknown> = {};
   if (data.siteName !== undefined) patch.site_name = data.siteName;
@@ -817,8 +818,22 @@ export async function updateSettings(data: {
   if (data.socialFacebook !== undefined) patch.social_facebook = data.socialFacebook;
   if (data.socialTiktok !== undefined) patch.social_tiktok = data.socialTiktok;
   if (data.studentCountLabel !== undefined) patch.student_count_label = data.studentCountLabel;
+  if (data.aboutUsContent !== undefined) patch.about_us_content = data.aboutUsContent;
   const { error } = await supabase.from('site_settings').update(patch).eq('id', 1);
-  if (error) throw error;
+  if (error) {
+    // Kolom about_us_content mungkin belum ada jika migrasi SQL belum dijalankan.
+    // Coba lagi tanpa field ini supaya field lain tetap bisa disimpan.
+    const isMissingColumn = 'about_us_content' in patch && /about_us_content/i.test(error.message ?? '');
+    if (isMissingColumn) {
+      const { about_us_content, ...fallbackPatch } = patch;
+      const { error: retryError } = await supabase.from('site_settings').update(fallbackPatch).eq('id', 1);
+      if (retryError) throw retryError;
+      throw new Error(
+        'Pengaturan lain berhasil disimpan, tapi kolom "Konten Tentang Kami" belum tersedia di database. Jalankan migrasi SQL terlebih dahulu.'
+      );
+    }
+    throw error;
+  }
 }
 
 // ─── ADMIN CLASSES CRUD ───────────────────────────────────────────────────────

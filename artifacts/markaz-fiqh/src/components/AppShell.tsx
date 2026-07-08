@@ -10,6 +10,7 @@ import {
   Package,
   Menu,
   X,
+  Info,
   type LucideIcon,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -22,6 +23,7 @@ const NAV_ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: '/katalog', label: 'Katalog Kelas', icon: LayoutGrid },
   { href: '/paket-bundle', label: 'Paket Bundle', icon: Package },
   { href: '/my-classes', label: 'Kelas Saya', icon: BookMarked },
+  { href: '/tentang-kami', label: 'Tentang Kami', icon: Info },
 ];
 
 // ── Progress Widget ───────────────────────────────────────────────────────

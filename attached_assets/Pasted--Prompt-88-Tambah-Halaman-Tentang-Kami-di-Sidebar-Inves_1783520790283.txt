@@ -1,0 +1,78 @@
+# Prompt 88: Tambah Halaman "Tentang Kami" di Sidebar + Investigasi Minor Issues
+
+## Bagian A — Tambah Menu "Tentang Kami" di Sidebar (Setelah "Kelas Saya")
+
+Klien mengusulkan menambahkan halaman "Tentang Kami" yang bisa diakses
+dari sidebar navigasi (`AppShell.tsx`, di bawah menu "Kelas Saya"). Isi
+halaman ini secara umum mengulang konten dari section "Tentang Markaz
+Fiqih" dan "Metode Keilmuan" pada landing page, dengan kemungkinan
+tambahan konten di kemudian hari — dan admin harus bisa mengedit isinya.
+
+### A1. Buat Halaman Baru `AboutUsPage.tsx`
+Buat `artifacts/markaz-fiqh/src/pages/AboutUsPage.tsx`, dibungkus
+`AppShell` dan `ProtectedRoute` (pola yang sama dengan halaman internal
+lain seperti `DashboardPage.tsx`). Isi halaman ini menampilkan:
+- Judul "Tentang Markaz Fiqih"
+- Konten deskripsi (ambil dari `site_settings` — lihat A2 di bawah,
+  BUKAN hardcode di kode, supaya admin bisa edit)
+
+### A2. Sumber Konten dari `site_settings` (Agar Admin Bisa Edit)
+Cek struktur tabel `site_settings` yang sudah ada (dipakai di
+`AdminSettingsPage.tsx`). Tambahkan field baru untuk konten "Tentang
+Kami" jika belum ada — siapkan SQL berikut untuk saya jalankan manual:
+```sql
+ALTER TABLE site_settings ADD COLUMN IF NOT EXISTS about_us_content TEXT DEFAULT '';
+```
+Field ini menyimpan teks/HTML sederhana untuk konten halaman "Tentang
+Kami" yang bisa diedit dari `AdminSettingsPage.tsx` (tambahkan textarea
+baru di form pengaturan untuk field ini, dengan isi awal berupa ringkasan
+dari konten landing page "Tentang Markaz Fiqih" dan "Metode Keilmuan"
+sebagai starting point).
+
+### A3. Tambahkan Menu di Sidebar
+Edit `artifacts/markaz-fiqh/src/components/AppShell.tsx`, tambahkan item
+menu baru "Tentang Kami" pada `NAV_ITEMS`, diposisikan SETELAH "Kelas
+Saya". Gunakan icon yang sesuai dari `lucide-react` (misal `Info` atau
+`BookMarked`). Tambahkan juga routing baru `/tentang-kami` di `App.tsx`.
+
+## Bagian B — Investigasi Isu Minor (Laporkan, Jangan Dipaksakan Jika Tidak Ditemukan)
+
+### B1. Tampilan Jam di Login Page
+Klien melaporkan ada "tampilan waktu di sebelah hari dan tanggal" pada
+sebuah screenshot yang menyerupai area Dashboard/halaman lain. Setelah
+pengecekan awal, fungsi `formatTanggal()` di `DashboardPage.tsx` (baris
+~48) HANYA menampilkan tanggal tanpa jam — tidak ditemukan kode yang
+menampilkan jam berdampingan dengan tanggal di halaman manapun dalam
+codebase ini. Investigasi ulang seluruh halaman untuk kemungkinan ada
+elemen jam yang terlewat dari pencarian awal. Jika benar-benar tidak
+ditemukan sumbernya di kode, laporkan sebagai "tidak ditemukan di
+kode, kemungkinan dari sumber lain (browser extension, screenshot tool,
+atau elemen yang sudah diperbaiki di sesi sebelumnya)" — JANGAN mengarang
+perubahan jika penyebabnya tidak jelas.
+
+### B2. Warna Kuning Terlalu Terang (Perlu Lebih Nuansa Gold)
+Klien melaporkan warna kuning pada sebuah banner ("Ahlan wa Sahlan")
+terlihat terlalu terang/norak, seharusnya lebih ke nuansa gold brand.
+Cari elemen di codebase yang menggunakan warna kuning terang (misal
+`bg-yellow-400`, `bg-amber-400`, atau warna literal kuning lain yang
+BUKAN dari CSS variable brand `hsl(var(--accent))`) — kemungkinan ada di
+komponen dekoratif atau banner yang belum menggunakan warna brand
+resmi. Ganti dengan `hsl(var(--accent))` atau turunannya
+(`hsl(var(--brand-gold-hover))`, dll) yang sudah dipakai secara
+konsisten di tempat lain. Jika elemen "Ahlan wa Sahlan" yang dimaksud
+tidak ditemukan di kode saat ini (kemungkinan sudah dihapus/diganti di
+redesign sebelumnya), laporkan demikian.
+
+## Yang Tidak Boleh Berubah
+- Landing page tidak diubah strukturnya, konten "Tentang Kami" di
+  halaman baru boleh mengambil inspirasi dari landing page tapi tidak
+  perlu identik persis
+- Halaman/komponen lain tidak disentuh kecuali yang disebutkan
+
+## Setelah Selesai
+1. Konfirmasi halaman "Tentang Kami" baru sudah bisa diakses dari
+   sidebar dan kontennya bisa diedit admin lewat `AdminSettingsPage.tsx`.
+2. Tegaskan SQL untuk kolom `about_us_content` perlu saya jalankan
+   manual.
+3. Laporkan hasil investigasi B1 dan B2 secara jujur — termasuk jika
+   tidak ditemukan penyebabnya di kode.
