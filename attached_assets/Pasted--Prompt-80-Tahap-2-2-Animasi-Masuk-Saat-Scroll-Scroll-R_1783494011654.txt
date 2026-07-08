@@ -1,0 +1,90 @@
+# Prompt 80 (Tahap 2/2): Animasi Masuk Saat Scroll (Scroll Reveal)
+
+## Konteks
+Tambahkan animasi fade-in/slide-up pada elemen saat pertama kali masuk ke
+viewport (scroll reveal), menggunakan `framer-motion` yang sudah dipakai
+di project ini. Terapkan terutama di landing page dan halaman dengan
+daftar/grid card (Katalog, Paket Bundle).
+
+## Pola Animasi Scroll Reveal
+
+Gunakan `whileInView` (bukan `animate` biasa) supaya animasi hanya
+berjalan saat elemen benar-benar terlihat di layar, dengan `viewport={{
+once: true }}` supaya animasi tidak berulang setiap kali di-scroll
+bolak-balik (animasi sekali saja saat pertama muncul):
+
+```tsx
+<motion.div
+  initial={{ opacity: 0, y: 24 }}
+  whileInView={{ opacity: 1, y: 0 }}
+  viewport={{ once: true, margin: '-50px' }}
+  transition={{ duration: 0.5, ease: 'easeOut' }}
+>
+  {/* konten section */}
+</motion.div>
+```
+
+Untuk grid/list card (misal grid kelas di Katalog, grid card bundle),
+tambahkan **stagger** (animasi muncul berurutan, bukan bersamaan) supaya
+terasa lebih dinamis:
+
+```tsx
+{items.map((item, idx) => (
+  <motion.div
+    key={item.id}
+    initial={{ opacity: 0, y: 20 }}
+    whileInView={{ opacity: 1, y: 0 }}
+    viewport={{ once: true }}
+    transition={{ duration: 0.4, delay: idx * 0.05, ease: 'easeOut' }}
+  >
+    {/* card */}
+  </motion.div>
+))}
+```
+(Batasi delay maksimum, misal `Math.min(idx * 0.05, 0.3)`, supaya card
+ke-20 dst tidak menunggu terlalu lama sebelum muncul, cap delay di
+sekitar 300ms maksimum.)
+
+## Cakupan
+
+### `LandingPage.tsx`
+Terapkan scroll reveal pada SETIAP section (Hero boleh dikecualikan
+karena biasanya sudah terlihat saat halaman dibuka, jadi tidak perlu
+`whileInView`, section setelah Hero yang perlu diberi animasi masuk):
+- Section "Cara Belajar" (card 3 kolom, gunakan stagger)
+- Section "Kelas Pilihan" (grid card kelas, gunakan stagger)
+- Section "Kategori Kelas"
+- Section "Tentang Markaz Fiqih" (pengajar utama + galeri)
+- Section "Metode Keilmuan" (grid 4 card, gunakan stagger)
+- Section "Pengajar Kami"
+- Section "Testimoni" (grid 4 card, gunakan stagger)
+- Section Footer/CTA (boleh dikecualikan atau diberi animasi ringan
+  karena biasanya paling bawah)
+
+### `CatalogPage.tsx`, `BundlesPage.tsx`
+Grid card kelas/bundle, gunakan pola stagger yang sama.
+
+## Cek Duplikasi Animasi yang Sudah Ada
+
+Beberapa komponen (`ClassCard`, card bundle, dll) kemungkinan SUDAH punya
+animasi masuk dari `motion.div` dengan `initial`/`animate` biasa (bukan
+`whileInView`) berdasarkan index, cek dulu sebelum menambah animasi baru,
+supaya tidak terjadi animasi ganda/konflik. Kalau sudah ada animasi
+serupa memakai `animate` biasa (bukan scroll-triggered), boleh diubah ke
+`whileInView` supaya konsisten sebagai scroll-reveal (elemen di luar
+layar saat halaman pertama dibuka akan animasi saat di-scroll ke, bukan
+animasi sekaligus semua saat halaman dimuat).
+
+## Yang Tidak Boleh Berubah
+- Layout dan struktur konten tidak berubah, hanya ditambahkan wrapper
+  animasi
+- Data yang ditampilkan tidak berubah
+- Animasi tidak boleh membuat konten "tersembunyi" secara permanen kalau
+  JavaScript gagal load, pastikan elemen tetap terlihat sebagai fallback
+  (framer-motion menangani ini secara default selama tidak ada
+  konfigurasi yang salah)
+
+## Setelah Selesai
+Konfirmasi section mana saja di landing page dan halaman lain yang sudah
+mendapat scroll reveal animation, dan pastikan tidak ada animasi ganda/
+konflik dengan animasi yang sudah ada sebelumnya.

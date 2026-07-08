@@ -205,27 +205,33 @@ function KelasCard({ enrollment, index }: { enrollment: EnrollmentItem; index: n
                   Semua pelajaran selesai! 🎉
                 </span>
               </div>
-              <Button asChild variant="outline" className="w-full gap-2 text-sm">
-                <Link href={learnUrl}>
-                  <RotateCcw className="w-4 h-4" />
-                  Tonton Ulang
-                </Link>
-              </Button>
+              <motion.div className="w-full" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.15 }}>
+                <Button asChild variant="outline" className="w-full gap-2 text-sm">
+                  <Link href={learnUrl}>
+                    <RotateCcw className="w-4 h-4" />
+                    Tonton Ulang
+                  </Link>
+                </Button>
+              </motion.div>
             </div>
           ) : pct > 0 ? (
-            <Button asChild className="w-full gap-2 text-sm">
-              <Link href={learnUrl}>
-                <PlayCircle className="w-4 h-4" />
-                Lanjutkan Belajar
-              </Link>
-            </Button>
+            <motion.div className="w-full" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.15 }}>
+              <Button asChild className="w-full gap-2 text-sm">
+                <Link href={learnUrl}>
+                  <PlayCircle className="w-4 h-4" />
+                  Lanjutkan Belajar
+                </Link>
+              </Button>
+            </motion.div>
           ) : (
-            <Button asChild className="w-full gap-2 text-sm" variant="default">
-              <Link href={learnUrl}>
-                <Sparkles className="w-4 h-4" />
-                Mulai Belajar
-              </Link>
-            </Button>
+            <motion.div className="w-full" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.15 }}>
+              <Button asChild className="w-full gap-2 text-sm" variant="default">
+                <Link href={learnUrl}>
+                  <Sparkles className="w-4 h-4" />
+                  Mulai Belajar
+                </Link>
+              </Button>
+            </motion.div>
           )}
         </div>
       </div>
@@ -372,12 +378,14 @@ function DashboardContent() {
             <p className="text-muted-foreground max-w-sm mb-6">
               Yuk mulai perjalanan belajarmu dari katalog kelas kami.
             </p>
-            <Button asChild size="lg" className="gap-2">
-              <Link href="/katalog">
-                <Sparkles className="w-4 h-4" />
-                Jelajahi Katalog
-              </Link>
-            </Button>
+            <motion.div className="inline-block" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.15 }}>
+              <Button asChild size="lg" className="gap-2">
+                <Link href="/katalog">
+                  <Sparkles className="w-4 h-4" />
+                  Jelajahi Katalog
+                </Link>
+              </Button>
+            </motion.div>
           </motion.div>
         ) : (
           <div className="space-y-8">
@@ -429,9 +437,11 @@ function DashboardContent() {
                       katalog.
                     </p>
                   </div>
-                  <Button asChild variant="outline" size="sm" className="shrink-0">
-                    <Link href="/katalog">Lihat Katalog</Link>
-                  </Button>
+                  <motion.div className="inline-block shrink-0" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.15 }}>
+                    <Button asChild variant="outline" size="sm">
+                      <Link href="/katalog">Lihat Katalog</Link>
+                    </Button>
+                  </motion.div>
                 </div>
               </div>
 

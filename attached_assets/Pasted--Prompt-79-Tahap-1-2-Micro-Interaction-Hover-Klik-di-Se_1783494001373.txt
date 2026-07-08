@@ -1,0 +1,84 @@
+# Prompt 79 (Tahap 1/2): Micro-Interaction — Hover & Klik di Seluruh Elemen Interaktif
+
+## Konteks
+Beberapa halaman sudah punya hover effect dasar (`transition-friendly`,
+`group-hover:scale-105` pada beberapa card/tombol). Perkaya dan
+seragamkan micro-interaction ini di SELURUH elemen interaktif website
+(tombol, card, ikon yang bisa diklik, link) supaya terasa lebih hidup
+dan responsif tanpa berlebihan.
+
+Prinsip: animasi harus **halus dan cepat** (150-250ms), tidak mengganggu
+fungsi atau membuat lag, dan konsisten polanya di semua tempat (semua
+tombol punya feel yang sama, semua card punya feel yang sama).
+
+## Pola Animasi per Jenis Elemen
+
+### 1. Tombol (Button, CTA)
+Tambahkan efek scale halus saat hover dan tap/klik:
+```tsx
+whileHover={{ scale: 1.02 }}
+whileTap={{ scale: 0.98 }}
+transition={{ duration: 0.15 }}
+```
+Terapkan pada elemen `<motion.button>` atau bungkus tombol dengan
+`motion.div` kalau tombolnya dari komponen `Button` (shadcn/ui) yang
+tidak langsung menerima props framer-motion — cek pola yang sudah
+dipakai di file lain untuk tombol dengan animasi (`FloatingCartBar.tsx`
+kemungkinan sudah punya contoh).
+
+### 2. Card (Kelas, Bundle, Testimoni, dll)
+Card yang sudah punya `hover:shadow-lg` — tambahkan sedikit lift
+(translate-y) dan pastikan transisinya smooth:
+```
+hover:shadow-lg hover:-translate-y-1 transition-all duration-200
+```
+Untuk card yang dibungkus `motion.div` (dari `AnimatePresence`/`initial`
+animasi masuk yang sudah ada), tambahkan `whileHover={{ y: -4 }}` sebagai
+alternatif tailwind hover kalau lebih sesuai dengan pola component
+tersebut.
+
+### 3. Ikon yang Bisa Diklik (Sosial Media, Ikon Aksi)
+Tambahkan scale halus saat hover:
+```
+hover:scale-110 transition-transform duration-150
+```
+(Pola ini kemungkinan sudah dipakai di beberapa tempat seperti ikon
+sosial media di footer — pastikan konsisten di SEMUA ikon serupa di
+seluruh halaman, termasuk Navbar, sidebar, admin panel.)
+
+### 4. Link Teks & Menu Navigasi
+Tambahkan transisi warna yang smooth pada hover (kalau belum ada):
+```
+transition-colors duration-150
+```
+
+## Cakupan Halaman
+
+Terapkan pola di atas secara konsisten pada elemen interaktif di:
+- `LandingPage.tsx` (semua section: tombol CTA, card kelas, card bundle
+  jika ditampilkan di sana, ikon sosial media, link navigasi)
+- `CatalogPage.tsx`, `BundlesPage.tsx` (card kelas/bundle, tombol filter,
+  tombol "Tambah ke Keranjang")
+- `CartPage.tsx` (tombol checkout, tombol hapus item)
+- `DashboardPage.tsx`, `MyClassesPage.tsx` (card kelas, badge pencapaian)
+- `ClassDetailPage.tsx` (tombol beli, tab navigasi kalau ada)
+- `Navbar.tsx`, `AppShell.tsx` (menu navigasi, ikon sidebar)
+- `LearnPage.tsx` (tombol kontrol, item navigasi modul)
+
+Untuk setiap halaman, cari elemen interaktif yang BELUM punya hover/tap
+animation sama sekali, dan tambahkan sesuai pola yang sesuai jenis
+elemennya (tombol/card/ikon/link). Elemen yang SUDAH punya animasi serupa
+tidak perlu diubah kecuali tidak konsisten dengan pola di atas.
+
+## Yang Tidak Boleh Berubah
+- Fungsi/behavior tombol dan link tidak berubah, hanya ditambahkan efek
+  visual saat hover/klik
+- Warna, ukuran, dan layout elemen tidak berubah
+- Animasi tidak boleh membuat elemen terasa lambat/lag — durasi tetap
+  singkat (150-250ms)
+- Jangan menambahkan animasi pada elemen non-interaktif (teks statis,
+  gambar dekoratif yang tidak bisa diklik)
+
+## Setelah Selesai
+Laporkan halaman mana saja yang mendapat penambahan micro-interaction,
+dan pola apa yang diterapkan di masing-masing (tombol/card/ikon/link).

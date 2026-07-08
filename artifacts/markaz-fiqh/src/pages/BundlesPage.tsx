@@ -93,6 +93,8 @@ function BundleCard({ bundle, index }: { bundle: BundleItem; index: number }) {
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -4 }}
+      whileTap={{ scale: 0.98 }}
       transition={{ duration: 0.2, delay: index * 0.05 }}
       layout
       className="h-full"
@@ -169,14 +171,17 @@ function BundleCard({ bundle, index }: { bundle: BundleItem; index: number }) {
         </div>
 
         {/* Full-width gradient footer button — konsisten dengan ClassCard */}
-        <button
+        <motion.button
           onClick={handleCartAction}
           disabled={isAdding}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          transition={{ duration: 0.15 }}
           className="w-full py-3 px-4 bg-gradient-to-r from-primary to-[hsl(var(--brand-red-hover))] text-white text-sm font-semibold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-60"
         >
           {inCart ? 'Lihat di Keranjang' : 'Tambah ke Keranjang'}
           <ArrowRight className="h-4 w-4 shrink-0" />
-        </button>
+        </motion.button>
       </div>
     </motion.div>
   );
@@ -223,9 +228,11 @@ function EmptyBundles() {
       <p className="text-base text-muted-foreground max-w-sm">
         Belum ada paket bundle yang tersedia saat ini.
       </p>
-      <Button asChild variant="ghost" size="sm" className="mt-4">
-        <Link href="/katalog">Lihat Kelas Individual</Link>
-      </Button>
+      <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.15 }} className="inline-block mt-4">
+        <Button asChild variant="ghost" size="sm">
+          <Link href="/katalog">Lihat Kelas Individual</Link>
+        </Button>
+      </motion.div>
     </motion.div>
   );
 }

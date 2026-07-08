@@ -165,7 +165,7 @@ export default function ClassDetailPage() {
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl py-3">
             <Link
               href="/katalog"
-              className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors"
+              className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors duration-150"
             >
               <ArrowLeft className="mr-1.5 h-4 w-4" />
               Kembali ke Katalog
@@ -320,7 +320,7 @@ export default function ClassDetailPage() {
                         value={mod.id}
                         className="border rounded-lg px-4 bg-card"
                       >
-                        <AccordionTrigger className="hover:no-underline py-4">
+                        <AccordionTrigger className="hover:no-underline py-4 transition-colors duration-150">
                           <div className="flex items-center gap-3 text-left">
                             <div className="shrink-0 w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
                               {mod.orderIndex}
@@ -395,9 +395,11 @@ export default function ClassDetailPage() {
                     <Separator />
 
                     <div className="p-6">
-                      <Button asChild size="lg" className="w-full text-base font-semibold">
-                        <Link href={`/learn/${cls.id}`}>Lanjutkan Belajar</Link>
-                      </Button>
+                      <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.15 }}>
+                        <Button asChild size="lg" className="w-full text-base font-semibold">
+                          <Link href={`/learn/${cls.id}`}>Lanjutkan Belajar</Link>
+                        </Button>
+                      </motion.div>
                     </div>
 
                     {(cls.gdriveMateriUrl || cls.waGroupUrl) && (
@@ -443,7 +445,7 @@ export default function ClassDetailPage() {
 
                     {/* CTA Button */}
                     <div className="p-6 space-y-4">
-                      <motion.div whileTap={{ scale: 0.92 }}>
+                      <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.15 }}>
                         <Button
                           size="lg"
                           variant={inCart ? 'outline' : 'default'}
@@ -560,9 +562,12 @@ export default function ClassDetailPage() {
               </p>
             )}
           </div>
-          <button
+          <motion.button
             onClick={handleBuyClick}
             disabled={isAdding}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ duration: 0.15 }}
             className={`shrink-0 inline-flex items-center justify-center gap-2 h-10 px-5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-60 ${
               inCart
                 ? 'border border-border bg-background text-foreground hover:bg-muted'
@@ -580,7 +585,7 @@ export default function ClassDetailPage() {
                 Tambah ke Keranjang
               </>
             )}
-          </button>
+          </motion.button>
         </div>
       )}
     </AppShell>

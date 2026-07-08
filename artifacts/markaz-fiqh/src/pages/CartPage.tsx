@@ -54,12 +54,16 @@ function EmptyCart() {
         Yuk jelajahi katalog kelas atau paket bundle kami dan mulai perjalanan belajar kamu hari ini.
       </p>
       <div className="flex flex-col sm:flex-row gap-3">
-        <Button asChild size="lg">
-          <Link href="/katalog">Jelajahi Katalog Kelas</Link>
-        </Button>
-        <Button asChild size="lg" variant="outline">
-          <Link href="/paket-bundle">Lihat Paket Bundle</Link>
-        </Button>
+        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.15 }}>
+          <Button asChild size="lg">
+            <Link href="/katalog">Jelajahi Katalog Kelas</Link>
+          </Button>
+        </motion.div>
+        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.15 }}>
+          <Button asChild size="lg" variant="outline">
+            <Link href="/paket-bundle">Lihat Paket Bundle</Link>
+          </Button>
+        </motion.div>
       </div>
     </motion.div>
   );
@@ -108,15 +112,17 @@ function RecommendationCard({
               {formatPrice(hasDiscount ? cls.discountPrice : cls.basePrice)}
             </span>
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            className="shrink-0 text-xs h-8"
-            disabled={isAdding}
-            onClick={() => onAdd(cls.id)}
-          >
-            + Keranjang
-          </Button>
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.15 }} className="shrink-0">
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-xs h-8"
+              disabled={isAdding}
+              onClick={() => onAdd(cls.id)}
+            >
+              + Keranjang
+            </Button>
+          </motion.div>
         </div>
       </div>
     </div>
@@ -151,12 +157,16 @@ function CartSuccessView({ invoice, onBackToCatalog }: { invoice: LocalInvoice; 
         </div>
       </div>
       <div className="flex flex-col sm:flex-row gap-3 justify-center">
-        <Button asChild size="lg">
-          <Link href="/dashboard">Lihat Dashboard</Link>
-        </Button>
-        <Button variant="outline" size="lg" onClick={onBackToCatalog}>
-          Jelajahi Kelas Lain
-        </Button>
+        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.15 }}>
+          <Button asChild size="lg">
+            <Link href="/dashboard">Lihat Dashboard</Link>
+          </Button>
+        </motion.div>
+        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.15 }}>
+          <Button variant="outline" size="lg" onClick={onBackToCatalog}>
+            Jelajahi Kelas Lain
+          </Button>
+        </motion.div>
       </div>
     </motion.div>
   );
@@ -275,14 +285,17 @@ function ClassCartItem({
               {formatPrice(displayPrice)}
             </span>
           </div>
-          <button
+          <motion.button
             onClick={() => onRemove(item.id)}
             disabled={isRemoving}
             className="text-muted-foreground hover:text-destructive transition-colors p-1.5 rounded-md hover:bg-destructive/10"
             aria-label="Hapus dari keranjang"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            transition={{ duration: 0.15 }}
           >
             <Trash2 className="w-4 h-4" />
-          </button>
+          </motion.button>
         </div>
       </div>
     </motion.div>
@@ -341,14 +354,17 @@ function BundleCartItem({
               {formatPrice(item.bundle.bundlePrice)}
             </span>
           </div>
-          <button
+          <motion.button
             onClick={() => onRemove(item.id)}
             disabled={isRemoving}
             className="text-muted-foreground hover:text-destructive transition-colors p-1.5 rounded-md hover:bg-destructive/10"
             aria-label="Hapus dari keranjang"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            transition={{ duration: 0.15 }}
           >
             <Trash2 className="w-4 h-4" />
-          </button>
+          </motion.button>
         </div>
       </div>
     </motion.div>
@@ -521,9 +537,11 @@ function CartContent() {
         <p className="text-muted-foreground mb-8">
           Pembayaran tidak berhasil diproses. Kamu bisa coba lagi atau pilih metode lain.
         </p>
-        <Button size="lg" onClick={() => setCheckoutStep('cart')}>
-          Kembali ke Keranjang
-        </Button>
+        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.15 }} className="inline-block">
+          <Button size="lg" onClick={() => setCheckoutStep('cart')}>
+            Kembali ke Keranjang
+          </Button>
+        </motion.div>
       </motion.div>
     );
   }
@@ -540,13 +558,16 @@ function CartContent() {
     return (
       <div className="max-w-2xl mx-auto py-10 lg:py-14 px-4">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-          <button
+          <motion.button
             onClick={() => setCheckoutStep('cart')}
             className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors mb-4"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ duration: 0.15 }}
           >
             <ArrowLeft className="mr-1.5 h-4 w-4" />
             Kembali ke Keranjang
-          </button>
+          </motion.button>
           <h1 className="font-serif text-2xl font-bold text-foreground">Simulasi Pembayaran</h1>
           <p className="text-muted-foreground text-sm mt-1">
             Mode pengembangan: pembayaran Mayar belum aktif.
@@ -573,14 +594,16 @@ function CartContent() {
             </div>
           </div>
           <div className="border-t p-5 space-y-3">
-            <Button
-              size="lg"
-              className="w-full text-base font-semibold"
-              disabled={isProcessing}
-              onClick={handleSimulateSuccess}
-            >
-              {isProcessing ? 'Memproses…' : `Simulasi Lunas ${formatPrice(invoice.totalAmount)}`}
-            </Button>
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.15 }}>
+              <Button
+                size="lg"
+                className="w-full text-base font-semibold"
+                disabled={isProcessing}
+                onClick={handleSimulateSuccess}
+              >
+                {isProcessing ? 'Memproses…' : `Simulasi Lunas ${formatPrice(invoice.totalAmount)}`}
+              </Button>
+            </motion.div>
             <p className="text-xs text-center text-muted-foreground">
               Tombol ini hanya muncul di mode pengembangan. Di production, user akan diarahkan ke halaman Mayar.
             </p>
@@ -686,15 +709,17 @@ function CartContent() {
                           disabled={isValidatingVoucher || !!appliedVoucher}
                           onKeyDown={(e) => { if (e.key === 'Enter') void handleApplyVoucher(); }}
                         />
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-9 shrink-0"
-                          onClick={handleApplyVoucher}
-                          disabled={!voucherInputCode.trim() || isValidatingVoucher || !!appliedVoucher}
-                        >
-                          {isValidatingVoucher ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Pakai'}
-                        </Button>
+                        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.15 }} className="shrink-0">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-9"
+                            onClick={handleApplyVoucher}
+                            disabled={!voucherInputCode.trim() || isValidatingVoucher || !!appliedVoucher}
+                          >
+                            {isValidatingVoucher ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Pakai'}
+                          </Button>
+                        </motion.div>
                       </div>
                       {appliedVoucher && (
                         <div className="flex items-center justify-between text-xs text-green-600">
@@ -702,12 +727,15 @@ function CartContent() {
                             <CheckCircle2 className="h-3.5 w-3.5" />
                             Voucher diterapkan
                           </span>
-                          <button
+                          <motion.button
                             className="underline text-muted-foreground hover:text-foreground transition-colors"
                             onClick={() => { setAppliedVoucher(null); setVoucherInputCode(''); }}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            transition={{ duration: 0.15 }}
                           >
                             Hapus
-                          </button>
+                          </motion.button>
                         </div>
                       )}
                       {voucherError && (
@@ -738,14 +766,16 @@ function CartContent() {
                     <span>Subtotal</span>
                     <span className="text-primary">{formatPrice(subtotal)}</span>
                   </div>
-                  <Button
-                    size="lg"
-                    className="w-full text-base font-semibold"
-                    disabled={isProcessing}
-                    onClick={handleCheckout}
-                  >
-                    {isProcessing ? 'Memproses…' : 'Lanjutkan ke Pembayaran'}
-                  </Button>
+                  <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.15 }}>
+                    <Button
+                      size="lg"
+                      className="w-full text-base font-semibold"
+                      disabled={isProcessing}
+                      onClick={handleCheckout}
+                    >
+                      {isProcessing ? 'Memproses…' : 'Lanjutkan ke Pembayaran'}
+                    </Button>
+                  </motion.div>
                 </div>
               </div>
             </div>

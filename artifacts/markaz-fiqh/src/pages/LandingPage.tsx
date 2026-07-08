@@ -1,4 +1,5 @@
 import { useEffect, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import { Link, useLocation } from 'wouter';
 import {
   ArrowRight,
@@ -177,25 +178,39 @@ function HeroSection({
 
           {/* 5. Dua tombol CTA — center, berdampingan */}
           <div className="mt-8 flex flex-wrap justify-center items-center gap-3">
-            <Button
-              asChild
-              size="lg"
-              className="h-[56px] px-10 text-base font-semibold rounded-[10px] text-primary hover:opacity-90 shadow-lg"
-              style={{ backgroundColor: '#FFCC00' }}
+            <motion.div
+              className="inline-block"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ duration: 0.15 }}
             >
-              <Link href="/katalog">Mulai Belajar</Link>
-            </Button>
-            <Button
-              asChild
-              variant="ghost"
-              size="lg"
-              className="h-[56px] px-8 text-base font-medium text-white/80 hover:text-white hover:bg-white/10 rounded-[10px] border border-white/20"
+              <Button
+                asChild
+                size="lg"
+                className="h-[56px] px-10 text-base font-semibold rounded-[10px] text-primary hover:opacity-90 shadow-lg"
+                style={{ backgroundColor: '#FFCC00' }}
+              >
+                <Link href="/katalog">Mulai Belajar</Link>
+              </Button>
+            </motion.div>
+            <motion.div
+              className="inline-block"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ duration: 0.15 }}
             >
-              <Link href="/katalog">
-                Lihat Kelas Tersedia
-                <ArrowRight className="ml-1.5 h-4 w-4" />
-              </Link>
-            </Button>
+              <Button
+                asChild
+                variant="ghost"
+                size="lg"
+                className="h-[56px] px-8 text-base font-medium text-white/80 hover:text-white hover:bg-white/10 rounded-[10px] border border-white/20"
+              >
+                <Link href="/katalog">
+                  Lihat Kelas Tersedia
+                  <ArrowRight className="ml-1.5 h-4 w-4" />
+                </Link>
+              </Button>
+            </motion.div>
           </div>
 
         </div>
@@ -260,16 +275,23 @@ function CurriculumSection() {
         </div>
 
         <div className="mt-12">
-          <Button
-            asChild
-            variant="outline"
-            className="h-[44px] px-6 text-sm font-semibold rounded-[10px] border-2 border-[hsl(var(--accent))] text-[hsl(var(--accent))] hover:bg-[hsl(var(--accent))]/5"
+          <motion.div
+            className="inline-block"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ duration: 0.15 }}
           >
-            <Link href="/katalog">
-              Lihat Semua Kelas
-              <ArrowRight className="ml-1.5 h-4 w-4" />
-            </Link>
-          </Button>
+            <Button
+              asChild
+              variant="outline"
+              className="h-[44px] px-6 text-sm font-semibold rounded-[10px] border-2 border-[hsl(var(--accent))] text-[hsl(var(--accent))] hover:bg-[hsl(var(--accent))]/5"
+            >
+              <Link href="/katalog">
+                Lihat Semua Kelas
+                <ArrowRight className="ml-1.5 h-4 w-4" />
+              </Link>
+            </Button>
+          </motion.div>
         </div>
       </div>
     </section>
@@ -557,17 +579,24 @@ function FeaturedClassesSection({
               Mulai Hari Ini
             </h2>
           </div>
-          <Button
-            asChild
-            variant="ghost"
-            size="sm"
-            className="shrink-0 text-sm text-[hsl(var(--accent))] hover:text-[hsl(var(--brand-gold-hover))] hover:bg-[hsl(var(--accent))]/5 font-medium hidden sm:flex"
+          <motion.div
+            className="inline-block hidden sm:block"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ duration: 0.15 }}
           >
-            <Link href="/katalog">
-              Lihat semua
-              <ArrowRight className="ml-1 h-3.5 w-3.5" />
-            </Link>
-          </Button>
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              className="shrink-0 text-sm text-[hsl(var(--accent))] hover:text-[hsl(var(--brand-gold-hover))] hover:bg-[hsl(var(--accent))]/5 font-medium flex"
+            >
+              <Link href="/katalog">
+                Lihat semua
+                <ArrowRight className="ml-1 h-3.5 w-3.5" />
+              </Link>
+            </Button>
+          </motion.div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -584,17 +613,24 @@ function FeaturedClassesSection({
         )}
 
         <div className="flex justify-center mt-10 sm:hidden">
-          <Button
-            asChild
-            variant="outline"
-            size="lg"
-            className="h-[44px] px-6 text-sm font-semibold rounded-[10px] border-2 border-[hsl(var(--accent))] text-[hsl(var(--accent))] hover:bg-[hsl(var(--accent))]/5"
+          <motion.div
+            className="inline-block"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ duration: 0.15 }}
           >
-            <Link href="/katalog">
-              Lihat Semua Kelas
-              <ArrowRight className="ml-1.5 h-4 w-4" />
-            </Link>
-          </Button>
+            <Button
+              asChild
+              variant="outline"
+              size="lg"
+              className="h-[44px] px-6 text-sm font-semibold rounded-[10px] border-2 border-[hsl(var(--accent))] text-[hsl(var(--accent))] hover:bg-[hsl(var(--accent))]/5"
+            >
+              <Link href="/katalog">
+                Lihat Semua Kelas
+                <ArrowRight className="ml-1.5 h-4 w-4" />
+              </Link>
+            </Button>
+          </motion.div>
         </div>
       </div>
     </section>
@@ -710,28 +746,34 @@ function ContactSection({
           </div>
           <div className="flex items-center gap-4 flex-wrap">
             {contactPhone && (
-              <a
+              <motion.a
                 href={toWaUrl(contactPhone)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2.5 h-[48px] px-7 rounded-[10px] bg-[hsl(var(--accent))] text-white text-sm font-semibold hover:bg-[hsl(var(--brand-gold-hover))] shadow-lg transition-all duration-200 shrink-0"
+                className="inline-flex items-center gap-2.5 h-[48px] px-7 rounded-[10px] bg-[hsl(var(--accent))] text-white text-sm font-semibold hover:bg-[hsl(var(--brand-gold-hover))] shadow-lg transition-colors duration-150 shrink-0"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                transition={{ duration: 0.15 }}
               >
                 <MessageCircle className="h-4 w-4 shrink-0" />
                 Chat via WhatsApp
-              </a>
+              </motion.a>
             )}
             <div className="flex items-center gap-3">
               {socialLinks.map(({ label, icon: Icon, href }) => (
-                <a
+                <motion.a
                   key={label}
                   href={href || '#'}
                   aria-label={label}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="h-9 w-9 rounded-full bg-white/10 border border-white/15 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/20 transition-colors"
+                  className="h-9 w-9 rounded-full bg-white/10 border border-white/15 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/20 transition-colors duration-150"
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                  transition={{ duration: 0.15 }}
                 >
                   <Icon className="h-4 w-4" />
-                </a>
+                </motion.a>
               ))}
             </div>
           </div>

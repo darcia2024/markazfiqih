@@ -294,19 +294,26 @@ function PlaylistMode({
                   <span className="font-semibold text-success">Kelas telah ditandai selesai</span>
                 </div>
               ) : (
-                <Button
-                  size="lg"
-                  onClick={() => enrollmentId && completeEnrollmentMutate({ enrollmentId })}
-                  disabled={isCompleting || !enrollmentId}
-                  className="gap-2"
+                <motion.div
+                  className="inline-block"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ duration: 0.15 }}
                 >
-                  {isCompleting ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <CheckCircle2 className="w-4 h-4" />
-                  )}
-                  Tandai Kelas Selesai
-                </Button>
+                  <Button
+                    size="lg"
+                    onClick={() => enrollmentId && completeEnrollmentMutate({ enrollmentId })}
+                    disabled={isCompleting || !enrollmentId}
+                    className="gap-2"
+                  >
+                    {isCompleting ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="w-4 h-4" />
+                    )}
+                    Tandai Kelas Selesai
+                  </Button>
+                </motion.div>
               )}
             </div>
 
@@ -530,7 +537,7 @@ function Sidebar({
             <div key={mod.id}>
               <button
                 onClick={() => toggleModule(mod.id)}
-                className="w-full flex items-start gap-2 px-4 py-3 text-left hover:bg-muted/50 transition-colors group"
+                className="w-full flex items-start gap-2 px-4 py-3 text-left hover:bg-muted/50 transition-colors duration-150 group"
               >
                 <div className="shrink-0 w-5 h-5 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold mt-0.5">
                   {mod.orderIndex}
@@ -557,7 +564,7 @@ function Sidebar({
                       <li key={dars.id}>
                         <button
                           onClick={() => onSelectDars(dars.id)}
-                          className={`w-full flex items-start gap-3 px-5 py-2.5 text-left text-sm transition-colors ${
+                          className={`w-full flex items-start gap-3 px-5 py-2.5 text-left text-sm transition-colors duration-150 ${
                             isActive
                               ? 'bg-primary/10 border-l-2 border-primary'
                               : 'hover:bg-muted/40 border-l-2 border-transparent'
@@ -712,9 +719,16 @@ function LearnContent() {
         <div className="flex-1 flex items-center justify-center flex-col gap-4 text-center">
           <BookOpen className="w-12 h-12 text-muted-foreground" />
           <h1 className="font-serif text-2xl font-bold">Kelas tidak ditemukan</h1>
-          <Button asChild>
-            <Link href="/my-classes">Kembali ke Kelas Saya</Link>
-          </Button>
+          <motion.div
+            className="inline-block"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ duration: 0.15 }}
+          >
+            <Button asChild>
+              <Link href="/my-classes">Kembali ke Kelas Saya</Link>
+            </Button>
+          </motion.div>
         </div>
       </AppShell>
     );
@@ -762,9 +776,16 @@ function LearnContent() {
               sudah bisa ditonton.
             </p>
           </div>
-          <Button asChild variant="outline">
-            <Link href="/my-classes">Kembali ke Kelas Saya</Link>
-          </Button>
+          <motion.div
+            className="inline-block"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ duration: 0.15 }}
+          >
+            <Button asChild variant="outline">
+              <Link href="/my-classes">Kembali ke Kelas Saya</Link>
+            </Button>
+          </motion.div>
         </div>
       </AppShell>
     );
@@ -850,50 +871,78 @@ function LearnContent() {
                       <span className="text-sm font-semibold text-success">Sudah Selesai</span>
                     </motion.div>
                   </AnimatePresence>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleUnmarkDone}
-                    disabled={isUpdating}
-                    className="text-muted-foreground hover:text-foreground gap-1.5 text-xs"
+                  <motion.div
+                    className="inline-block"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    transition={{ duration: 0.15 }}
                   >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    Tandai Belum
-                  </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleUnmarkDone}
+                      disabled={isUpdating}
+                      className="text-muted-foreground hover:text-foreground gap-1.5 text-xs"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      Tandai Belum
+                    </Button>
+                  </motion.div>
                 </div>
               ) : (
-                <Button onClick={handleMarkDone} disabled={isUpdating} className="gap-2">
-                  {isUpdating ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <CheckCircle2 className="w-4 h-4" />
-                  )}
-                  Tandai Selesai
-                </Button>
+                <motion.div
+                  className="inline-block"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ duration: 0.15 }}
+                >
+                  <Button onClick={handleMarkDone} disabled={isUpdating} className="gap-2">
+                    {isUpdating ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="w-4 h-4" />
+                    )}
+                    Tandai Selesai
+                  </Button>
+                </motion.div>
               )}
 
               {/* Prev / Next */}
               <div className="flex items-center gap-2 sm:ml-auto">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={!prevEntry}
-                  onClick={() => prevEntry && setActiveDarsId(prevEntry.dars.id)}
-                  className="gap-1"
+                <motion.div
+                  className="inline-block"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ duration: 0.15 }}
                 >
-                  <ChevronLeft className="w-4 h-4" />
-                  Sebelumnya
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={!nextEntry}
-                  onClick={() => nextEntry && setActiveDarsId(nextEntry.dars.id)}
-                  className="gap-1"
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={!prevEntry}
+                    onClick={() => prevEntry && setActiveDarsId(prevEntry.dars.id)}
+                    className="gap-1"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    Sebelumnya
+                  </Button>
+                </motion.div>
+                <motion.div
+                  className="inline-block"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ duration: 0.15 }}
                 >
-                  Selanjutnya
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={!nextEntry}
+                    onClick={() => nextEntry && setActiveDarsId(nextEntry.dars.id)}
+                    className="gap-1"
+                  >
+                    Selanjutnya
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </motion.div>
               </div>
             </div>
 

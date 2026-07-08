@@ -32,9 +32,10 @@ export function Navbar({ variant = 'default' }: NavbarProps) {
 
   const isDark = variant === 'dark';
 
+  // Added duration-150 for consistent short transition on link text
   const linkClass = isDark
-    ? 'text-sm font-medium text-white/70 hover:text-[hsl(var(--accent))] transition-colors'
-    : 'text-sm font-medium text-white/80 hover:text-white transition-colors';
+    ? 'text-sm font-medium text-white/70 hover:text-[hsl(var(--accent))] transition-colors duration-150'
+    : 'text-sm font-medium text-white/80 hover:text-white transition-colors duration-150';
 
   return (
     <header
@@ -72,7 +73,8 @@ export function Navbar({ variant = 'default' }: NavbarProps) {
                 className="relative flex h-9 w-9 items-center justify-center rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-friendly"
                 aria-label="Keranjang"
               >
-                <ShoppingCart className="h-5 w-5" />
+                {/* Icon klik: hover:scale-110 */}
+                <ShoppingCart className="h-5 w-5 hover:scale-110 transition-transform duration-150" />
                 <AnimatePresence>
                   {count > 0 && (
                     <motion.span
@@ -124,28 +126,47 @@ export function Navbar({ variant = 'default' }: NavbarProps) {
                 </DropdownMenu>
               ) : (
                 isDark ? (
-                  <Button
-                    asChild
-                    className="font-medium bg-[hsl(var(--accent))] text-white hover:bg-[hsl(var(--brand-gold-hover))]"
+                  // Tombol "Masuk" (dark variant) — bungkus motion.div untuk whileHover/whileTap
+                  <motion.div
+                    className="inline-block"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    transition={{ duration: 0.15 }}
                   >
-                    <Link href="/login">Masuk</Link>
-                  </Button>
+                    <Button
+                      asChild
+                      className="font-medium bg-[hsl(var(--accent))] text-white hover:bg-[hsl(var(--brand-gold-hover))]"
+                    >
+                      <Link href="/login">Masuk</Link>
+                    </Button>
+                  </motion.div>
                 ) : (
-                  <Button asChild className="font-medium bg-white text-primary hover:bg-white/90">
-                    <Link href="/login">Masuk</Link>
-                  </Button>
+                  // Tombol "Masuk" (default variant) — bungkus motion.div untuk whileHover/whileTap
+                  <motion.div
+                    className="inline-block"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    transition={{ duration: 0.15 }}
+                  >
+                    <Button asChild className="font-medium bg-white text-primary hover:bg-white/90">
+                      <Link href="/login">Masuk</Link>
+                    </Button>
+                  </motion.div>
                 )
               )
             )}
 
             {/* Hamburger — hanya tampil di mobile (di bawah md) */}
-            <button
+            <motion.button
               className="md:hidden flex items-center justify-center h-9 w-9 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-friendly"
               onClick={() => setMobileMenuOpen((v) => !v)}
               aria-label={mobileMenuOpen ? 'Tutup menu' : 'Buka menu'}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ duration: 0.15 }}
             >
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </button>
+            </motion.button>
           </div>
         </div>
       </div>
@@ -171,7 +192,7 @@ export function Navbar({ variant = 'default' }: NavbarProps) {
                     isDark
                       ? 'text-white/70 hover:text-[hsl(var(--accent))] hover:bg-white/5'
                       : 'text-white/85 hover:text-white hover:bg-white/10'
-                  } transition-colors`}
+                  } transition-colors duration-150`}
                 >
                   {label}
                 </Link>

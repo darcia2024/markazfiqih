@@ -36,7 +36,8 @@ function ProgressWidget({ enrollments }: { enrollments: EnrollmentItem[] }) {
 
   return (
     <Link href="/dashboard">
-      <div className="mx-3 rounded-[18px] bg-white/10 backdrop-blur-sm border border-white/10 p-4 space-y-3 cursor-pointer hover:bg-white/15 transition-friendly">
+      {/* Card klikable: tambah hover:-translate-y-1 transition-all duration-200 */}
+      <div className="mx-3 rounded-[18px] bg-white/10 backdrop-blur-sm border border-white/10 p-4 space-y-3 cursor-pointer hover:bg-white/15 hover:-translate-y-1 transition-all duration-200">
         <p className="text-xs font-semibold text-white/70 uppercase tracking-wide">
           Progress Kamu
         </p>
@@ -108,10 +109,11 @@ function SidebarContent({
         })}
 
         {isAdmin && (
+          // Admin link: tambah hover:scale-[1.02] selaras dengan nav items lainnya
           <Link
             href="/admin"
             onClick={onClose}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-friendly"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 hover:scale-[1.02] transition-friendly"
           >
             <Settings className="h-4 w-4" />
             Panel Admin
@@ -134,13 +136,17 @@ function SidebarContent({
             <p className="text-sm font-semibold text-white truncate">{displayName}</p>
             <p className="text-xs text-white/60 truncate">{user?.email}</p>
           </div>
-          <button
+          {/* Logout button: ikon aksi — whileHover/whileTap + hover:scale-110 pada ikon */}
+          <motion.button
             onClick={() => { logout(); onClose?.(); }}
             className="shrink-0 p-2 rounded-md text-white/60 hover:text-white hover:bg-white/10 transition-friendly"
             title="Keluar"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ duration: 0.15 }}
           >
-            <LogOut className="h-4 w-4" />
-          </button>
+            <LogOut className="h-4 w-4 hover:scale-110 transition-transform duration-150" />
+          </motion.button>
         </div>
       </div>
     </div>
@@ -172,13 +178,17 @@ export function AppShell({ children }: { children: ReactNode }) {
         <Link href="/" className="flex items-center">
           <img src="/logo.png" alt="Markaz Fiqih" className="h-8 w-auto brightness-0 invert" />
         </Link>
-        <button
+        {/* Mobile hamburger: tombol dengan whileHover/whileTap */}
+        <motion.button
           onClick={() => setMobileOpen(true)}
           className="p-2 rounded-md text-white/80 hover:text-white hover:bg-white/10 transition-friendly"
           aria-label="Buka menu navigasi"
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          transition={{ duration: 0.15 }}
         >
           <Menu className="h-6 w-6" />
-        </button>
+        </motion.button>
       </div>
 
       {/* Mobile drawer overlay + panel */}
@@ -206,14 +216,17 @@ export function AppShell({ children }: { children: ReactNode }) {
               transition={{ type: 'spring', damping: 28, stiffness: 280 }}
               className="lg:hidden fixed inset-y-0 left-0 z-50 w-[260px] shadow-2xl"
             >
-              {/* Close button */}
-              <button
+              {/* Close button: ikon aksi — whileHover/whileTap */}
+              <motion.button
                 onClick={() => setMobileOpen(false)}
                 className="absolute top-4 right-3 z-10 p-1.5 rounded-md text-white/60 hover:text-white hover:bg-white/10 transition-friendly"
                 aria-label="Tutup menu"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                transition={{ duration: 0.15 }}
               >
                 <X className="h-5 w-5" />
-              </button>
+              </motion.button>
 
               <SidebarContent
                 isAdmin={isAdmin}

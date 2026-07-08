@@ -83,14 +83,16 @@ function CatalogHeader() {
             </AnimatePresence>
           </Link>
         )}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="rounded-full"
-          aria-label="Notifikasi"
-        >
-          <Bell className="h-5 w-5 text-muted-foreground" />
-        </Button>
+        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.15 }}>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-full"
+            aria-label="Notifikasi"
+          >
+            <Bell className="h-5 w-5 text-muted-foreground" />
+          </Button>
+        </motion.div>
         <Avatar className="h-9 w-9 border border-border">
           {user ? (
             <>
@@ -134,12 +136,15 @@ export function InstructorSection({
               </div>
             ))
           : instructors.map((instructor) => (
-              <button
+              <motion.button
                 key={instructor.id}
                 type="button"
                 onClick={() =>
                   onSelect(selectedInstructorId === instructor.id ? null : instructor.id)
                 }
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                transition={{ duration: 0.15 }}
                 className={`flex flex-col items-center gap-2 shrink-0 w-24 p-2 rounded-lg transition-colors ${
                   selectedInstructorId === instructor.id
                     ? 'bg-[hsl(var(--accent))]/5 ring-1 ring-[hsl(var(--accent))]/40'
@@ -156,7 +161,7 @@ export function InstructorSection({
                   {instructor.name}
                 </p>
                 <p className="text-xs text-muted-foreground">{instructor.classCount} Kelas</p>
-              </button>
+              </motion.button>
             ))}
       </div>
     </section>
@@ -320,22 +325,27 @@ export function ClassCard({ cls, index, enrolledClassIds = new Set<string>() }: 
 
         {/* Full-width footer — sibling of Link, NOT nested inside it */}
         {enrolledClassIds.has(cls.id) ? (
-          <Link
-            href={`/learn/${cls.id}`}
-            className="w-full py-3 px-4 bg-[hsl(var(--accent))] text-white text-sm font-semibold flex items-center justify-center gap-2 hover:bg-[hsl(var(--brand-gold-hover))] transition-colors"
-          >
-            Lanjutkan Belajar
-            <ArrowRight className="h-4 w-4 shrink-0" />
-          </Link>
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.15 }}>
+            <Link
+              href={`/learn/${cls.id}`}
+              className="w-full py-3 px-4 bg-[hsl(var(--accent))] text-white text-sm font-semibold flex items-center justify-center gap-2 hover:bg-[hsl(var(--brand-gold-hover))] transition-colors"
+            >
+              Lanjutkan Belajar
+              <ArrowRight className="h-4 w-4 shrink-0" />
+            </Link>
+          </motion.div>
         ) : (
-          <button
+          <motion.button
             onClick={handleCartAction}
             disabled={isAdding}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ duration: 0.15 }}
             className="w-full py-3 px-4 bg-gradient-to-r from-primary to-[hsl(var(--brand-red-hover))] text-white text-sm font-semibold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-60"
           >
             {inCart ? 'Lihat di Keranjang' : 'Tambah ke Keranjang'}
             <ArrowRight className="h-4 w-4 shrink-0" />
-          </button>
+          </motion.button>
         )}
       </div>
     </motion.div>
@@ -400,9 +410,11 @@ function EmptyState({ onReset }: { onReset: () => void }) {
       <p className="text-base text-muted-foreground max-w-sm">
         Belum ada kelas yang cocok dengan pencarianmu
       </p>
-      <Button variant="ghost" size="sm" className="mt-4" onClick={onReset}>
-        Reset Filter
-      </Button>
+      <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.15 }} className="inline-block mt-4">
+        <Button variant="ghost" size="sm" onClick={onReset}>
+          Reset Filter
+        </Button>
+      </motion.div>
     </motion.div>
   );
 }
