@@ -606,8 +606,8 @@ function FeaturedClassesSection({
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// SECTION 6: Testimoni — 3 card sejajar (prompt: slice(0,3))
-// Style: quote icon, border gold aksen, avatar+nama+role di footer card
+// SECTION 6: Testimoni — grid 4 card ringkas (prompt: slice(0,4))
+// Style: quote icon kecil, border tipis, shadow halus + hover lift
 // ────────────────────────────────────────────────────────────────────────────
 function TestimonialsSection({
   testimonials,
@@ -627,20 +627,13 @@ function TestimonialsSection({
             Kata Santri
           </p>
           <h2 className="font-serif text-3xl sm:text-4xl font-bold text-foreground leading-tight">
-            Apa kata mereka yang sudah{' '}
-            <span className="text-primary">belajar bersama kami?</span>
+            Kata Mereka yang Sudah{' '}
+            <span className="text-primary">Belajar.</span>
           </h2>
         </div>
 
-        {/* 3 card sejajar di desktop, stack di mobile */}
-        <div className={[
-          'grid gap-5',
-          testimonials.length === 1
-            ? 'grid-cols-1 max-w-xl'
-            : testimonials.length === 2
-            ? 'grid-cols-1 sm:grid-cols-2'
-            : 'grid-cols-1 sm:grid-cols-3',
-        ].join(' ')}>
+        {/* Grid 4 card ringkas: 4 kolom desktop, 2 tablet, 1 mobile */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           {testimonials.map((t) => {
             const initials = t.name
               .split(' ')
@@ -651,49 +644,40 @@ function TestimonialsSection({
             return (
               <div
                 key={t.id}
-                className="relative rounded-2xl bg-white border border-[hsl(var(--brand-red-border))]/40 p-7 flex flex-col overflow-hidden"
+                className="rounded-2xl bg-white border border-border p-5 flex flex-col shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
               >
-                {/* Aksen garis kiri gold */}
-                <div
-                  className="absolute top-0 left-0 h-full w-[3px] rounded-l-2xl"
-                  style={{
-                    background: 'linear-gradient(to bottom, hsl(var(--accent)), hsl(var(--accent) / 0.1))',
-                  }}
-                  aria-hidden="true"
-                />
-
-                {/* Quote mark besar */}
+                {/* Quote mark kecil */}
                 <span
-                  className="font-serif font-bold leading-none select-none block mb-3"
-                  style={{ fontSize: '3rem', lineHeight: 1, color: 'hsl(var(--accent) / 0.25)' }}
+                  className="font-serif font-bold leading-none select-none block mb-2"
+                  style={{ fontSize: '2rem', lineHeight: 1, color: 'hsl(var(--accent) / 0.35)' }}
                   aria-hidden="true"
                 >
                   &ldquo;
                 </span>
 
                 {/* Konten testimoni */}
-                <p className="text-sm italic text-foreground leading-relaxed flex-1">
+                <p className="text-sm text-foreground leading-relaxed flex-1">
                   {t.content}
                 </p>
 
                 {/* Footer: avatar + nama + role */}
-                <div className="flex items-center gap-3 mt-6 pt-5 border-t border-border">
+                <div className="flex items-center gap-2.5 mt-5 pt-4 border-t border-border">
                   {t.photoUrl ? (
                     <img
                       src={t.photoUrl}
                       alt={t.name}
                       loading="lazy"
-                      className="h-9 w-9 rounded-full object-cover shrink-0"
+                      className="h-8 w-8 rounded-full object-cover shrink-0"
                     />
                   ) : (
-                    <div className="h-9 w-9 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold shrink-0">
+                    <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-white text-[11px] font-bold shrink-0">
                       {initials}
                     </div>
                   )}
-                  <div>
-                    <p className="text-sm font-semibold text-foreground leading-tight">{t.name}</p>
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-foreground leading-tight truncate">{t.name}</p>
                     {t.role && (
-                      <p className="text-[11px] text-muted-foreground mt-0.5">{t.role}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{t.role}</p>
                     )}
                   </div>
                 </div>
@@ -807,11 +791,11 @@ export default function LandingPage() {
     ...inst,
     bio: inst.bio ?? undefined,
   }));
-  // Prompt: slice(0, 3) untuk testimoni
+  // Prompt: slice(0, 4) untuk testimoni
   const allTestimonials: TestimonialItem[] = Array.isArray(testimonialsQuery.data)
     ? testimonialsQuery.data
     : [];
-  const testimonials = allTestimonials.slice(0, 3);
+  const testimonials = allTestimonials.slice(0, 4);
   const settings = settingsQuery.data;
 
   const featuredClasses = useMemo(() => allClasses.slice(0, 4), [allClasses]);

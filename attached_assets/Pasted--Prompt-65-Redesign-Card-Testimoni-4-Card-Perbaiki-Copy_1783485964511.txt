@@ -1,0 +1,90 @@
+# Prompt 65: Redesign Card Testimoni (4 Card) + Perbaiki Copy "Tentang Kami"
+
+## Konteks
+Dua perubahan terpisah di landing page. Data testimoni baru sudah
+ditambahkan ke database secara manual (SQL terpisah:
+`65-tambah-testimoni-dummy.sql`, sudah dijalankan) — sekarang total ada 4
+testimoni (1 asli dari Ahmad Fadli + 3 placeholder yang perlu diganti
+nanti dengan testimoni asli lewat Admin Panel).
+
+Edit `artifacts/markaz-fiqh/src/pages/LandingPage.tsx`.
+
+---
+
+## Bagian A — Section Testimoni ("Kata Santri")
+
+### 1. Tampilkan 4 Testimoni (Bukan 1)
+Cari bagian yang membatasi jumlah testimoni yang ditampilkan (kemungkinan
+ada `.slice(0, 1)` atau serupa pada pemanggilan `listTestimonials()` di
+komponen utama `LandingPage`). Ubah supaya menampilkan sampai 4 testimoni
+(`.slice(0, 4)`).
+
+### 2. Redesign Card Testimoni
+Card testimoni sekarang (satu card besar, quote icon di kiri atas, teks
+italic, avatar+nama di footer dengan garis pemisah) — ubah jadi grid 4
+card yang lebih ringkas dan modern:
+
+- Layout grid: `grid-cols-1 sm:grid-cols-2 lg:grid-cols-4` (4 kolom di
+  desktop, 2 di tablet, 1 di mobile) — bukan lagi 1 card besar tunggal.
+- Tiap card: pertahankan elemen quote icon kecil, teks testimoni,
+  avatar+nama+role di bagian bawah — tapi buat lebih ringkas/compact
+  supaya proporsional dengan ukuran card yang lebih kecil (4 dalam satu
+  baris).
+- Beri sedikit variasi visual dibanding versi sebelumnya supaya terasa
+  di-refresh, misal: border tipis alih-alih border tebal gold di kiri,
+  shadow lebih halus dengan hover effect (translate-y kecil + shadow
+  lebih besar saat hover), ukuran avatar sedikit lebih kecil karena card
+  lebih ringkas.
+- Pertahankan warna brand (crimson, gold) sebagai aksen kecil (misal
+  quote icon tetap warna gold pucat, avatar tetap solid crimson dengan
+  inisial putih).
+
+### 3. Perbaiki Judul Section
+Ganti judul "Apa kata mereka yang sudah belajar bersama kami?" dengan
+redaksi baru yang lebih ringkas dan punya statement lebih kuat. Ganti
+menjadi:
+
+**"Kata Mereka yang Sudah Belajar."**
+
+(dengan kata "Belajar" tetap diberi warna aksen crimson seperti pola
+highlight yang sudah ada pada judul ini — pertahankan pola highlight kata
+terakhir dengan warna berbeda, hanya redaksinya yang diringkas)
+
+Label kecil "KATA SANTRI" di atasnya TIDAK perlu diubah.
+
+---
+
+## Bagian B — Perbaiki Copy Section "Tentang Kami"
+
+Ganti judul dan paragraf deskripsi pada section "Tentang Kami"
+(`AboutSection`) — teks yang sekarang menggunakan nada membandingkan
+("Bukan startup edukasi. Bukan konten YouTube yang dikemas ulang...")
+diganti dengan redaksi berikut:
+
+**Judul** (ganti dari "Ilmu yang lahir dari komunitas, bukan dari
+platform."):
+
+"Belajar Fikih yang Tersusun dan Bersanad."
+
+**Paragraf deskripsi** (ganti seluruhnya):
+
+"Markaz Fiqih adalah lembaga keilmuan independen yang berfokus pada
+pendidikan, publikasi, dan kaderisasi kajian fikih berbasis turats
+madzhab Syafi'i. Dirintis oleh pelajar Indonesia yang menempuh studi
+langsung di Al-Azhar, Kairo, kami hadir agar siapa pun bisa mempelajari
+fikih dengan benar dan terstruktur."
+
+Pertahankan style/format judul dan paragraf yang sudah ada (ukuran font,
+highlight warna pada bagian tertentu judul jika ada, dll) — hanya teksnya
+yang diganti.
+
+## Yang Tidak Boleh Berubah
+- Struktur section lain di landing page tidak disentuh
+- Data testimoni tetap dari `listTestimonials()` di `db.ts`, tidak
+  hardcode
+- Warna brand (crimson, gold) tetap dari CSS variables yang sudah ada
+
+## Setelah Selesai
+Konfirmasi: section testimoni menampilkan 4 card dalam grid, judul
+testimoni dan judul+deskripsi "Tentang Kami" sudah diganti sesuai teks
+final di atas.
