@@ -91,7 +91,7 @@ export default function AdminDashboardPage() {
               <li>Manajemen Kelas: kelola daftar kelas dan status publikasinya</li>
               <li>Pesanan: pantau pesanan dari database</li>
               <li>Pengajar: tambah dan kelola data instruktur</li>
-              <li>Testimoni: kelola testimoni santri di halaman utama</li>
+              <li>Testimoni: kelola testimoni pelajar di halaman utama</li>
               <li>Pengaturan: konfigurasi informasi situs</li>
             </ul>
           </CardContent>

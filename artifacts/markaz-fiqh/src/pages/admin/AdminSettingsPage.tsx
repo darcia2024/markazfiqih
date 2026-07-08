@@ -195,10 +195,10 @@ export default function AdminSettingsPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="student-count-label">Label Jumlah Santri</Label>
+              <Label htmlFor="student-count-label">Label Jumlah Pelajar</Label>
               <Input
                 id="student-count-label"
-                placeholder="cth: 1.200+ Santri Aktif"
+                placeholder="cth: 1.200+ Pelajar Aktif"
                 value={form.studentCountLabel}
                 onChange={(e) => updateField('studentCountLabel', e.target.value)}
                 data-testid="input-student-count-label"

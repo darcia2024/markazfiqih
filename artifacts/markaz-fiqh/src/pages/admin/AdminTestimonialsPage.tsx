@@ -179,7 +179,7 @@ export default function AdminTestimonialsPage() {
           <div>
             <h2 className="font-serif text-2xl font-bold text-foreground">Manajemen Testimoni</h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Kelola testimoni santri yang ditampilkan di halaman utama.
+              Kelola testimoni pelajar yang ditampilkan di halaman utama.
             </p>
           </div>
           <Button onClick={openCreateDialog} data-testid="button-add-testimonial">
@@ -204,7 +204,7 @@ export default function AdminTestimonialsPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Santri</TableHead>
+                    <TableHead>Pelajar</TableHead>
                     <TableHead>Testimoni</TableHead>
                     <TableHead>Urutan</TableHead>
                     <TableHead>Status</TableHead>
@@ -305,7 +305,7 @@ export default function AdminTestimonialsPage() {
                   <Label htmlFor="testimonial-role">Peran / Keterangan</Label>
                   <Input
                     id="testimonial-role"
-                    placeholder="cth: Santri Kelas Muamalah"
+                    placeholder="cth: Pelajar Kelas Muamalah"
                     value={form.role}
                     onChange={(e) => setForm((p) => ({ ...p, role: e.target.value }))}
                     data-testid="input-testimonial-role"

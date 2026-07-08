@@ -557,7 +557,7 @@ function CatalogContent() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="newest">Terbaru</SelectItem>
-                <SelectItem value="price_asc">Termurah</SelectItem>
+                <SelectItem value="price_asc">Terhemat</SelectItem>
                 <SelectItem value="price_desc">Termahal</SelectItem>
                 <SelectItem value="popular">Terpopuler</SelectItem>
               </SelectContent>

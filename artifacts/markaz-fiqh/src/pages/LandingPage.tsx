@@ -59,7 +59,7 @@ const GALLERY_PHOTOS = [
   { src: '/gallery/foto-2.jpeg', alt: 'Kajian kitab turats' },
   { src: '/gallery/foto-3.jpeg', alt: 'Sesi tanya jawab bersama pengajar' },
   { src: '/gallery/foto-4.jpeg', alt: 'Suasana pembelajaran online' },
-  { src: '/gallery/foto-5.jpeg', alt: 'Diskusi santri Markaz Fiqih' },
+  { src: '/gallery/foto-5.jpeg', alt: 'Diskusi pelajar Markaz Fiqih' },
   { src: '/gallery/foto-6.jpeg', alt: 'Pengajar Al-Azhar Kairo' },
 ];
 
@@ -160,15 +160,15 @@ function HeroSection({
 
           {/* 3. Paragraf deskripsi — max-w-2xl supaya enak dibaca saat di-center */}
           <p className="text-white/70 text-lg sm:text-xl mt-8 leading-relaxed max-w-2xl">
-            Tempat belajar fiqih madzhab Syafi'i yang tersusun dan bersanad,
-            dibangun dan diajar langsung oleh Mahasiswa Indonesia di Al-Azhar, Kairo.
+            Tempat belajar fiqih madzhab Syafi'i yang rapih dan terstruktur,
+            dibangun dan diajar langsung oleh guru-guru terpercaya.
           </p>
 
           {/* 4. Quote misi — dipindah ke alur utama, di bawah deskripsi */}
           <div className="mt-7 flex flex-col items-center gap-2 max-w-sm">
             <div className="h-px w-16 bg-gradient-to-r from-transparent via-[hsl(var(--accent))]/60 to-transparent" />
             <p className="font-serif text-base italic text-white/55 leading-relaxed text-center">
-              &ldquo;Membumikan Fikih dalam Tiap Lini Masyarakat&rdquo;
+              &ldquo;Membumikan Fiqih di Tiap Lini Kehidupan&rdquo;
             </p>
             <p className="text-xs font-medium text-white/35 tracking-widest uppercase">
               Markaz Fiqih
@@ -333,14 +333,14 @@ function AsymmetricStatsSection() {
             Tentang Markaz Fiqih
           </p>
           <h2 className="font-serif text-3xl sm:text-4xl font-bold text-foreground leading-tight">
-            Belajar Fikih yang{' '}
-            <span className="text-primary">Tersusun dan Bersanad.</span>
+            Pusat Rujukan Fiqih{' '}
+            <span className="text-primary">Berlandaskan Madzhab Syafi'i.</span>
           </h2>
           <p className="text-muted-foreground text-base mt-4 leading-relaxed">
-            Markaz Fiqih adalah lembaga keilmuan independen yang berfokus pada pendidikan,
-            publikasi, dan kaderisasi kajian fikih berbasis turats madzhab Syafi'i. Dirintis
+            Markaz Fiqih adalah lembaga keilmuan independen yang berfokus pada edukasi,
+            publikasi, kaderisasi dan pengembangan kajian fiqih. Dirintis
             oleh pelajar Indonesia yang menempuh studi langsung di Al-Azhar, Kairo, kami
-            hadir agar siapa pun bisa mempelajari fikih dengan benar dan terstruktur.
+            hadir agar siapa pun bisa mempelajari fiqih dengan metode yang tepat dan terstruktur.
           </p>
         </motion.div>
 
@@ -387,19 +387,19 @@ function AsymmetricStatsSection() {
 const METHOD_REFERENCES = [
   {
     number: '01',
-    text: 'Pendapat mu\u2019tamad dalam mazhab Syafi\u2019i',
+    text: 'Pendapat mu\u2019tamad dalam madzhab Syafi\u2019i',
   },
   {
     number: '02',
-    text: 'Pendapat dha\u2019if dalam mazhab Syafi\u2019i (apabila ada kebutuhan dan pertimbangan kuat)',
+    text: 'Pendapat dha\u2019if dalam madzhab Syafi\u2019i',
   },
   {
     number: '03',
-    text: 'Ikhtiyar para imam dan ulama mazhab Syafi\u2019i',
+    text: 'Ikhtiyar para ulama madzhab Syafi\u2019i',
   },
   {
     number: '04',
-    text: 'Pendapat mu\u2019tabar dari mazhab-mazhab fikih lainnya (khususnya empat mazhab)',
+    text: 'Pendapat mu\u2019tabar dari madzhab-madzhab fiqih lainnya (khususnya empat madzhab)',
   },
 ];
 
@@ -422,15 +422,23 @@ function MethodologySection() {
             Metode Keilmuan
           </p>
           <h2 className="font-serif text-3xl sm:text-4xl font-bold text-foreground leading-tight">
-            Bermazhab,{' '}
+            Bermadzhab,{' '}
             <span className="text-primary">bukan asal bicara agama.</span>
           </h2>
           <p className="text-muted-foreground text-base mt-4 leading-relaxed">
-            Markaz Fiqih berpijak pada fikih madzhab Syafi&rsquo;i yang solutif, dengan
-            tetap terbuka terhadap pendapat mazhab lain selama termasuk pendapat yang
+            Markaz Fiqih berpijak pada fiqih madzhab Syafi&rsquo;i yang solutif, dengan
+            tetap terbuka terhadap pendapat madzhab lain selama termasuk pendapat yang
             mu&rsquo;tabar, diakui validitasnya dalam tradisi keilmuan Islam.
           </p>
         </motion.div>
+
+        {/* Label kecil di atas grid — sisi kiri, sebelum 4 card dimulai */}
+        <p
+          className="text-[10px] font-bold uppercase tracking-[0.18em] mt-10"
+          style={{ color: 'hsl(var(--accent))' }}
+        >
+          Urutan Rujukan
+        </p>
 
         {/* Grid 4 card urutan rujukan — sejajar horizontal di bawah teks */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mt-10">
@@ -494,7 +502,7 @@ function InstructorsSection({
             Pengajar
           </p>
           <h2 className="font-serif text-3xl sm:text-4xl font-bold text-foreground leading-tight">
-            Belajar dari mereka yang berguru di Al-Azhar.
+            Belajar dari mereka yang menimba ilmu kepada para ulama.
           </h2>
         </motion.div>
 
@@ -717,7 +725,7 @@ function TestimonialsSection({
         >
           <p className="text-xs font-semibold tracking-wider uppercase mb-4"
             style={{ color: 'hsl(var(--primary))' }}>
-            Kata Santri
+            Kata Mereka
           </p>
           <h2 className="font-serif text-3xl sm:text-4xl font-bold text-foreground leading-tight">
             Kata Mereka yang Sudah{' '}

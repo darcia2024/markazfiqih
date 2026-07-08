@@ -528,7 +528,7 @@ export default function ClassDetailPage() {
                     </div>
                     <div className="flex items-start gap-2.5">
                       <Users className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                      <span>Akses grup diskusi santri</span>
+                      <span>Akses grup diskusi pelajar</span>
                     </div>
                   </div>
                 </div>

@@ -73,7 +73,7 @@ type BadgeDefinition = {
 const ACHIEVEMENT_BADGES: BadgeDefinition[] = [
   { id: 'first-class',    label: 'Langkah Pertama',   description: 'Menyelesaikan kelas pertama',  icon: Sparkles, threshold: 1  },
   { id: 'three-classes',  label: 'Konsisten Belajar',  description: 'Menyelesaikan 3 kelas',        icon: Flame,    threshold: 3  },
-  { id: 'five-classes',   label: 'Santri Aktif',       description: 'Menyelesaikan 5 kelas',        icon: Medal,    threshold: 5  },
+  { id: 'five-classes',   label: 'Pelajar Aktif',      description: 'Menyelesaikan 5 kelas',        icon: Medal,    threshold: 5  },
   { id: 'ten-classes',    label: 'Penuntut Ilmu',      description: 'Menyelesaikan 10 kelas',       icon: Award,    threshold: 10 },
   { id: 'twenty-classes', label: 'Ahli Fiqih Pemula',  description: 'Menyelesaikan 20 kelas',       icon: Crown,    threshold: 20 },
 ];
