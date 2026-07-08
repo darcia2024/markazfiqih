@@ -829,11 +829,11 @@ export default function LandingPage() {
         {/* 2. Kurikulum — format baru: label + headline besar + 3-kolom grid */}
         <CurriculumSection />
 
-        {/* 3. Tentang Markaz Fiqih — galeri foto */}
-        <AsymmetricStatsSection />
-
-        {/* 3b. Metode Keilmuan — prinsip dasar + urutan rujukan */}
-        <MethodologySection />
+        {/* 3. Kelas Pilihan */}
+        <FeaturedClassesSection
+          classes={featuredClasses}
+          isLoading={classesQuery.isLoading}
+        />
 
         {/* 4. Pengajar — 1 featured besar + sisanya list kecil */}
         {(instructorsQuery.isLoading || instructors.length > 0) && (
@@ -843,13 +843,13 @@ export default function LandingPage() {
           />
         )}
 
-        {/* 5. Kelas Pilihan — tidak diubah */}
-        <FeaturedClassesSection
-          classes={featuredClasses}
-          isLoading={classesQuery.isLoading}
-        />
+        {/* 5. Tentang Markaz Fiqih — galeri foto */}
+        <AsymmetricStatsSection />
 
-        {/* 6. Testimoni — 3 card sejajar (slice(0,3)) */}
+        {/* 5b. Metode Keilmuan — prinsip dasar + urutan rujukan */}
+        <MethodologySection />
+
+        {/* 6. Testimoni — grid 4 card */}
         <TestimonialsSection testimonials={testimonials} />
 
         {/* 7. CTA + Social — tidak diubah strukturnya */}
