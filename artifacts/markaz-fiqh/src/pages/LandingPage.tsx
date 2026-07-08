@@ -117,15 +117,10 @@ function HeroSection({
   const badgeText = badgeParts.join(' · ');
 
   return (
-    <section className="relative bg-gradient-to-br from-primary to-[hsl(var(--brand-red-hover))] overflow-hidden">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 opacity-65"
-        style={{
-          background:
-            'radial-gradient(ellipse 60% 50% at 50% 50%, hsl(0 85% 55%) 0%, transparent 70%)',
-        }}
-      />
+    <section
+      className="relative overflow-hidden bg-primary bg-cover bg-center"
+      style={{ backgroundImage: "url('/hero-bg.png')" }}
+    >
 
       <div className="relative z-10 container mx-auto px-5 sm:px-8 lg:px-16 max-w-[1200px]">
         {/* Satu kolom, semua center */}
@@ -141,8 +136,7 @@ function HeroSection({
 
           {/* 2. Judul — simpel, satu baris pesan sambutan, ukuran besar */}
           <h1 className="font-serif font-bold text-white leading-[1.1] tracking-tight text-5xl sm:text-6xl lg:text-7xl max-w-4xl">
-            Selamat Datang di Kelas{' '}
-            <span style={{ color: 'hsl(var(--accent))' }}>Markaz Fiqih</span>
+            Selamat Datang di Kelas Markaz Fiqih
           </h1>
 
           {/* 3. Paragraf deskripsi — max-w-2xl supaya enak dibaca saat di-center */}
