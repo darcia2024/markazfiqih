@@ -166,14 +166,7 @@ function EmptyState() {
       transition={{ duration: 0.5 }}
       className="flex flex-col items-center justify-center text-center py-24 px-4"
     >
-      <div className="relative mb-8">
-        <div className="w-32 h-32 rounded-full bg-primary/10 flex items-center justify-center">
-          <GraduationCap className="w-16 h-16 text-primary/40" />
-        </div>
-        <div className="absolute -top-1 -right-1 w-10 h-10 rounded-full bg-brand-gold-pale flex items-center justify-center shadow-sm border border-brand-gold-pale">
-          <BookOpen className="w-5 h-5 text-brand-gold" />
-        </div>
-      </div>
+      <GraduationCap className="w-20 h-20 text-primary/40 mx-auto mb-8" />
       <h2 className="font-serif text-2xl font-bold text-foreground mb-3">
         Kamu Belum Memiliki Kelas
       </h2>

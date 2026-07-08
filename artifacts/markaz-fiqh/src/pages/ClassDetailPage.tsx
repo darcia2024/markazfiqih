@@ -48,9 +48,7 @@ function ClassNotFound() {
   return (
     <AppShell>
       <main className="flex-1 flex flex-col items-center justify-center gap-4 text-center px-4">
-        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
-          <BookOpen className="w-7 h-7 text-muted-foreground" />
-        </div>
+        <BookOpen className="w-12 h-12 text-muted-foreground/50 mx-auto" />
         <h1 className="font-serif text-2xl font-bold">Kelas Tidak Ditemukan</h1>
         <p className="text-muted-foreground max-w-sm">
           Kelas yang kamu cari tidak tersedia atau belum dipublikasikan.

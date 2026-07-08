@@ -46,9 +46,7 @@ function EmptyCart() {
       animate={{ opacity: 1, y: 0 }}
       className="flex flex-col items-center justify-center text-center py-20 px-4"
     >
-      <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-muted mb-6">
-        <ShoppingCart className="h-9 w-9 text-muted-foreground" />
-      </div>
+      <ShoppingCart className="h-12 w-12 text-muted-foreground/50 mx-auto mb-6" />
       <h2 className="font-serif text-2xl font-bold text-foreground mb-2">
         Keranjang Kamu Masih Kosong
       </h2>
@@ -132,9 +130,7 @@ function CartSuccessView({ invoice, onBackToCatalog }: { invoice: LocalInvoice; 
       animate={{ opacity: 1, y: 0 }}
       className="max-w-lg mx-auto text-center py-16 px-4"
     >
-      <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-success-pale0/20 mb-6">
-        <CheckCircle2 className="h-10 w-10 text-success" />
-      </div>
+      <CheckCircle2 className="h-12 w-12 text-success/70 mx-auto mb-6" />
       <h2 className="font-serif text-2xl font-bold text-foreground mb-2">Pembayaran Berhasil!</h2>
       <p className="text-muted-foreground mb-6">
         Kamu telah berhasil mendaftar ke {invoice.items.length} kelas. Selamat belajar!
@@ -194,9 +190,7 @@ function WaitingForPaymentView({
       animate={{ opacity: 1, y: 0 }}
       className="max-w-md mx-auto text-center py-20 px-4"
     >
-      <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-primary/10 mb-6">
-        <Loader2 className="h-10 w-10 text-primary animate-spin" />
-      </div>
+      <Loader2 className="h-12 w-12 text-primary/60 mx-auto mb-6 animate-spin" />
       <h2 className="font-serif text-2xl font-bold text-foreground mb-2">
         Menunggu Konfirmasi Pembayaran
       </h2>
@@ -522,9 +516,7 @@ function CartContent() {
         animate={{ opacity: 1, y: 0 }}
         className="max-w-md mx-auto text-center py-20 px-4"
       >
-        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-destructive/10 mb-6">
-          <XCircle className="h-10 w-10 text-destructive" />
-        </div>
+        <XCircle className="h-12 w-12 text-destructive/70 mx-auto mb-6" />
         <h2 className="font-serif text-2xl font-bold text-foreground mb-2">Pembayaran Gagal</h2>
         <p className="text-muted-foreground mb-8">
           Pembayaran tidak berhasil diproses. Kamu bisa coba lagi atau pilih metode lain.

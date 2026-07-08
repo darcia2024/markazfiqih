@@ -1,0 +1,93 @@
+# Prompt 72: Tambah Logo Watermark + Pattern Grid di Footer
+
+## Konteks
+Footer (section CTA + copyright yang sudah digabung dari redesign
+sebelumnya) sekarang polos merah solid. Tambahkan dua elemen dekoratif
+supaya senada dengan Hero section (efek "bookend" — section pembuka dan
+penutup landing page punya bahasa visual yang sama):
+
+1. **Logo Markaz Fiqih besar** di pojok kanan-bawah footer, sangat
+   transparan dengan blend mode multiply, sebagai watermark dekoratif.
+2. **Pattern grid** dengan properti yang sama persis seperti yang dipakai
+   di Hero section.
+
+Edit `artifacts/markaz-fiqh/src/pages/LandingPage.tsx`, cari komponen
+footer gabungan (CTA + copyright, hasil dari redesign sebelumnya —
+kemungkinan bernama `SocialSection`, `LandingFooter`, atau sudah digabung
+jadi satu fungsi baru).
+
+## Perubahan
+
+### 1. Pattern Grid (Sama Persis dengan Hero)
+Cari pattern grid yang dipakai di `HeroSection` (elemen dengan
+`backgroundImage` berisi `linear-gradient(rgba(255,255,255,0.06) 1px,
+transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.06) 1px,
+transparent 1px)` dan `backgroundSize: '48px 48px'`). Tambahkan elemen
+dengan pattern IDENTIK (copy persis style/value-nya) ke section footer,
+sebagai layer background paling belakang:
+
+```tsx
+<div
+  aria-hidden="true"
+  className="pointer-events-none absolute inset-0"
+  style={{
+    backgroundImage:
+      'linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px)',
+    backgroundSize: '48px 48px',
+  }}
+/>
+```
+Pastikan section footer punya `position: relative` dan `overflow-hidden`
+pada wrapper terluarnya supaya pattern ini tertata dengan benar dan tidak
+overflow keluar section.
+
+### 2. Logo Watermark di Pojok Kanan-Bawah
+Tambahkan logo Markaz Fiqih (`/logo.png`) berukuran besar di pojok
+kanan-bawah section footer, sebagai elemen dekoratif:
+
+```tsx
+<img
+  src="/logo.png"
+  alt=""
+  aria-hidden="true"
+  className="pointer-events-none absolute -bottom-8 -right-8 w-64 h-64 sm:w-80 sm:h-80 object-contain opacity-10 mix-blend-multiply"
+/>
+```
+
+Sesuaikan ukuran (`w-64 h-64` dsb) dan posisi (`-bottom-8 -right-8`)
+sampai terlihat proporsional terhadap tinggi section footer — logo tidak
+boleh menutupi atau mengganggu keterbacaan teks CTA, tombol WhatsApp,
+ikon sosial media, atau baris copyright di atasnya. Kalau perlu, logo
+boleh dipotong sebagian di luar batas section (`overflow-hidden` pada
+section akan otomatis memotongnya) untuk efek yang lebih halus/tidak
+terlalu penuh.
+
+Catatan tentang `mix-blend-multiply`: karena logo aslinya berwarna putih
+dan background section merah solid, efek `multiply` pada logo putih akan
+cenderung tidak terlihat banyak berubah dibanding overlay biasa (multiply
+dengan putih menghasilkan warna dasar tidak berubah). Jika hasil visual
+`mix-blend-multiply` terlihat kurang terasa/hampir tidak ada bedanya,
+coba alternatif: gunakan `mix-blend-overlay` atau cukup opacity rendah
+tanpa blend mode khusus (`opacity-10` saja) — pilih yang secara visual
+menghasilkan efek watermark paling halus dan sesuai maksud (logo samar
+terlihat di background, bukan solid mencolok).
+
+### 3. Urutan Layer (Z-Index)
+Pastikan urutan elemen di dalam section footer dari belakang ke depan:
+1. Background gradient/solid merah (paling belakang)
+2. Pattern grid (di atas background)
+3. Logo watermark (di atas pattern, di bawah konten)
+4. Konten teks, tombol, ikon sosial, copyright (paling depan, `relative
+   z-10` supaya tidak tertutup elemen dekoratif manapun)
+
+## Yang Tidak Boleh Berubah
+- Semua teks, tombol, dan fungsi (Chat via WhatsApp, ikon sosial media,
+  copyright) tidak berubah
+- Warna dasar background footer (crimson) tidak berubah
+- Section lain di landing page tidak disentuh
+
+## Setelah Selesai
+Konfirmasi pattern grid sudah identik dengan Hero section, dan logo
+watermark muncul di pojok kanan-bawah tanpa mengganggu keterbacaan
+konten. Laporkan blend mode/opacity final yang dipakai kalau berbeda dari
+`mix-blend-multiply` karena alasan visual yang dijelaskan di atas.

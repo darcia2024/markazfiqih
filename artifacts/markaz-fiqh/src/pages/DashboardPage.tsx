@@ -313,9 +313,7 @@ function DashboardContent() {
             transition={{ duration: 0.5 }}
             className="flex flex-col items-center justify-center text-center py-24 px-4 rounded-xl border bg-card"
           >
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-6">
-              <BookOpen className="w-8 h-8 text-primary" />
-            </div>
+            <BookOpen className="w-12 h-12 text-primary/40 mx-auto mb-6" />
             <p className="text-lg font-semibold text-foreground mb-2">
               Kamu belum memulai kelas apapun
             </p>

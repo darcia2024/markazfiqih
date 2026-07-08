@@ -396,9 +396,7 @@ function EmptyState({ onReset }: { onReset: () => void }) {
       exit={{ opacity: 0 }}
       className="col-span-full flex flex-col items-center justify-center py-20 text-center"
     >
-      <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
-        <Search className="w-7 h-7 text-muted-foreground" />
-      </div>
+      <Search className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
       <p className="text-base text-muted-foreground max-w-sm">
         Belum ada kelas yang cocok dengan pencarianmu
       </p>

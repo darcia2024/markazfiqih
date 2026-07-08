@@ -1,0 +1,62 @@
+# Prompt 71: Hapus Lingkaran Background di Belakang Icon Empty State (Seluruh Web)
+
+## Konteks
+Beberapa halaman punya pola "empty state" — icon besar dengan lingkaran
+background pucat di belakangnya (misal icon buku di halaman "Kelas Saya"
+kosong: "Kamu belum memulai kelas apapun"). Hapus lingkaran background
+ini, sisakan icon-nya saja tanpa bulatan di belakangnya, di SEMUA tempat
+pola ini muncul.
+
+## Cakupan
+
+Cari dan cek pola ini di file-file berikut (sudah teridentifikasi
+memiliki elemen `rounded-full` yang membungkus icon dengan
+`items-center justify-center`):
+- `artifacts/markaz-fiqh/src/pages/CartPage.tsx`
+- `artifacts/markaz-fiqh/src/pages/CatalogPage.tsx`
+- `artifacts/markaz-fiqh/src/pages/ClassDetailPage.tsx`
+- `artifacts/markaz-fiqh/src/pages/DashboardPage.tsx`
+- `artifacts/markaz-fiqh/src/pages/LearnPage.tsx`
+- `artifacts/markaz-fiqh/src/pages/MyClassesPage.tsx`
+
+**PENTING — Jangan asal hapus semua match `rounded-full`**: pola
+`rounded-full` juga dipakai untuk elemen LAIN yang BUKAN dimaksud di sini
+(misal avatar bulat instruktur dengan foto/inisial, badge checkmark
+bulat kecil di checklist card, tombol ikon sosial media bulat). HANYA
+hapus lingkaran background pada konteks **empty state** — yaitu icon besar
+(biasanya `h-8 w-8` sampai `h-12 w-12`) yang ditampilkan sendirian di
+tengah, sebagai bagian dari pesan "belum ada data" / "kosong" / semacamnya
+(contoh: "Kamu belum memulai kelas apapun", "Keranjang kosong", "Belum
+ada testimoni", dll — sesuaikan dengan konteks pesan di sekitarnya).
+
+Untuk setiap kemunculan pola ini, struktur sebelumnya kira-kira:
+```tsx
+<div className="mx-auto w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+  <BookOpen className="h-8 w-8 text-primary" />
+</div>
+```
+Ubah menjadi (hapus wrapper lingkaran, render icon langsung):
+```tsx
+<BookOpen className="h-12 w-12 text-primary/40 mx-auto mb-4" />
+```
+(Perbesar sedikit ukuran icon dan turunkan opacity warnanya, misal dari
+solid `text-primary` menjadi `text-primary/40` atau `text-muted-
+foreground`, supaya icon tanpa background tetap terlihat proporsional dan
+tidak terlalu mencolok/gelap sendirian tanpa bulatan pucat di
+belakangnya. Sesuaikan ukuran dan opacity sampai terlihat seimbang secara
+visual di tiap tempat.)
+
+## Yang Tidak Boleh Berubah
+- Avatar bulat (foto/inisial instruktur, user profile) TIDAK diubah,
+  tetap dengan background bulat seperti sekarang
+- Badge checkmark bulat kecil pada checklist card (`CheckItem` di
+  `ClassCard`, dll) TIDAK diubah
+- Tombol ikon sosial media bulat (navbar, footer) TIDAK diubah
+- Teks pesan empty state (judul, deskripsi, tombol CTA) tidak diubah
+  kata-katanya, hanya elemen icon yang diubah
+
+## Setelah Selesai
+Untuk setiap file yang disebutkan di atas, laporkan: apakah ditemukan
+pola empty state dengan lingkaran background, dan apakah sudah diperbaiki
+atau ternyata pola `rounded-full` di file itu semuanya untuk elemen lain
+(avatar/badge) sehingga tidak perlu diubah. Berikan ringkasan per file.
