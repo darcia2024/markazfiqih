@@ -140,7 +140,7 @@ function HeroSection({
               className="block text-3xl sm:text-4xl lg:text-5xl font-semibold italic"
               style={{ color: '#FFCC00' }}
             >
-              Selamat Datang di
+              Ahlan wa Sahlan
             </span>
             <span className="block text-6xl sm:text-7xl lg:text-8xl text-white mt-1">
               Kelas Markaz Fiqih
