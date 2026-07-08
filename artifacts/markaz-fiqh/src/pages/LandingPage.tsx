@@ -167,7 +167,7 @@ function HeroSection({
           <div className="mt-7 flex flex-col items-center gap-2 max-w-sm">
             <div className="h-px w-16 bg-gradient-to-r from-transparent via-[hsl(var(--accent))]/60 to-transparent" />
             <p className="font-serif text-base italic text-white/55 leading-relaxed text-center">
-              &ldquo;Membumikan Fiqih di Setiap Lini Kehidupan&rdquo;
+              &ldquo;Membumikan Fikih dalam Tiap Lini Masyarakat&rdquo;
             </p>
             <p className="text-xs font-medium text-white/35 tracking-widest uppercase">
               — Markaz Fiqih
@@ -330,6 +330,83 @@ function AsymmetricStatsSection() {
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
             </div>
           ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// SECTION 3b: Metode Keilmuan — prinsip dasar + urutan rujukan 4 tingkat
+// ────────────────────────────────────────────────────────────────────────────
+const METHOD_REFERENCES = [
+  {
+    number: '01',
+    text: 'Pendapat mu\u2019tamad dalam mazhab Syafi\u2019i',
+  },
+  {
+    number: '02',
+    text: 'Pendapat dha\u2019if dalam mazhab Syafi\u2019i (apabila ada kebutuhan dan pertimbangan kuat)',
+  },
+  {
+    number: '03',
+    text: 'Ikhtiyar para imam dan ulama mazhab Syafi\u2019i',
+  },
+  {
+    number: '04',
+    text: 'Pendapat mu\u2019tabar dari mazhab-mazhab fikih lainnya (khususnya empat mazhab)',
+  },
+];
+
+function MethodologySection() {
+  return (
+    <section className="bg-background border-b border-border">
+      <div className="container mx-auto px-5 sm:px-8 lg:px-16 py-16 sm:py-20 max-w-[1200px]">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16">
+          {/* Kolom kiri — label, judul, paragraf pembuka */}
+          <div>
+            <p
+              className="text-xs font-semibold tracking-wider uppercase mb-4"
+              style={{ color: 'hsl(var(--accent))' }}
+            >
+              Metode Keilmuan
+            </p>
+            <h2 className="font-serif text-3xl sm:text-4xl font-bold text-foreground leading-tight">
+              Bermazhab,{' '}
+              <span className="text-primary">bukan asal bicara agama.</span>
+            </h2>
+            <p className="text-muted-foreground text-base mt-4 leading-relaxed max-w-lg">
+              Markaz Fiqih berpijak pada fikih madzhab Syafi&rsquo;i yang solutif, dengan
+              tetap terbuka terhadap pendapat mazhab lain selama termasuk pendapat yang
+              mu&rsquo;tabar — diakui validitasnya dalam tradisi keilmuan Islam.
+            </p>
+          </div>
+
+          {/* Kolom kanan — urutan rujukan 4 tingkat */}
+          <div className="flex flex-col gap-6">
+            {METHOD_REFERENCES.map((ref) => (
+              <div
+                key={ref.number}
+                className="relative flex items-start gap-4 rounded-2xl border border-border bg-muted/20 p-5 overflow-hidden"
+              >
+                <span
+                  className="absolute -right-2 -bottom-4 font-serif text-6xl font-bold leading-none select-none"
+                  style={{ color: 'hsl(var(--primary) / 0.08)' }}
+                >
+                  {ref.number}
+                </span>
+                <span
+                  className="relative z-10 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold text-white"
+                  style={{ backgroundColor: 'hsl(var(--primary))' }}
+                >
+                  {ref.number.replace(/^0/, '')}
+                </span>
+                <p className="relative z-10 text-sm text-foreground leading-relaxed pt-1">
+                  {ref.text}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </section>
@@ -770,6 +847,9 @@ export default function LandingPage() {
 
         {/* 3. Tentang Markaz Fiqih — galeri foto */}
         <AsymmetricStatsSection />
+
+        {/* 3b. Metode Keilmuan — prinsip dasar + urutan rujukan */}
+        <MethodologySection />
 
         {/* 4. Pengajar — 1 featured besar + sisanya list kecil */}
         {(instructorsQuery.isLoading || instructors.length > 0) && (

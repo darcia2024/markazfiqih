@@ -1,0 +1,87 @@
+# Prompt 64: Perbaiki Slogan Resmi + Tambah Section "Metode Keilmuan"
+
+## Konteks
+Berdasarkan dokumen profil resmi Markaz Fiqih, ada dua hal yang perlu
+disesuaikan di landing page:
+
+1. Slogan yang dipakai sekarang di web sedikit berbeda dari versi resmi.
+2. Belum ada section yang menjelaskan metode keilmuan Markaz Fiqih —
+   sesuatu yang jadi pembeda kuat (bukan sekadar platform kelas online,
+   tapi punya metodologi keilmuan bermazhab yang jelas dan bisa
+   dipertanggungjawabkan).
+
+Edit `artifacts/markaz-fiqh/src/pages/LandingPage.tsx`.
+
+## Bagian A — Perbaiki Slogan ke Versi Resmi
+
+Cari semua kemunculan teks slogan "Membumikan Fiqih di Setiap Lini
+Kehidupan" (kemungkinan muncul di section "Tentang Kami"/`AboutSection`,
+dan mungkin juga ada di Hero section dari redesign sebelumnya). Ganti
+SEMUA kemunculannya menjadi versi resmi:
+
+**"Membumikan Fikih dalam Tiap Lini Masyarakat"**
+
+(Perhatikan detail: "Fikih" bukan "Fiqih" dan "dalam Tiap Lini Masyarakat"
+bukan "di Setiap Lini Kehidupan" — ikuti persis ejaan resmi ini untuk
+slogan, meskipun penulisan "Fiqih" tetap dipakai di tempat lain sebagai
+nama brand/produk seperti biasa, karena slogan ini adalah kutipan resmi
+dari dokumen profil lembaga.)
+
+## Bagian B — Tambah Section Baru "Metode Keilmuan"
+
+Buat section baru, diletakkan setelah section "Tentang Kami"
+(`AboutSection`) dan sebelum section "Pengajar Kami" (`TeachersSection`).
+
+### Konten (berdasarkan dokumen resmi, ringkas — jangan copy semua detail dokumen)
+
+**Label kecil**: "METODE KEILMUAN"
+
+**Judul**: "Bermazhab, Bukan Asal Bicara Agama." (atau redaksi serupa yang
+menegaskan bahwa Markaz Fiqih punya metodologi jelas — sesuaikan gaya
+bahasa dengan section lain di landing page, boleh dihaluskan)
+
+**Paragraf pembuka singkat** (ringkas dari "Metode Keilmuan" di dokumen):
+Markaz Fiqih berbasis fikih madzhab Syafi'i yang solutif, dengan tetap
+terbuka terhadap pendapat mazhab lain selama termasuk pendapat yang
+mu'tabar (diakui validitasnya dalam tradisi keilmuan Islam).
+
+**Urutan rujukan** (4 tingkat, tampilkan sebagai list bernomor/bertingkat
+yang jelas, bukan paragraf panjang):
+1. Pendapat mu'tamad dalam mazhab Syafi'i
+2. Pendapat dha'if dalam mazhab Syafi'i (apabila ada kebutuhan dan
+   pertimbangan kuat)
+3. Ikhtiyar para imam dan ulama mazhab Syafi'i
+4. Pendapat mu'tabar dari mazhab-mazhab fikih lainnya (khususnya empat
+   mazhab)
+
+## Struktur Visual
+
+Buat 2 kolom (mirip pola section lain di file ini untuk konsistensi):
+- **Kolom kiri**: label, judul, paragraf pembuka
+- **Kolom kanan**: 4 urutan rujukan di atas, ditampilkan sebagai list
+  bertingkat dengan nomor besar (mirip pola numbered list yang mungkin
+  sudah dipakai di section lain seperti "Cara Belajar" — gunakan style
+  angka besar semi-transparan sebagai watermark di belakang tiap item,
+  atau badge angka bulat kecil di samping tiap poin, pilih yang lebih
+  konsisten dengan section-section di sekitarnya)
+
+Style card/section: gunakan warna dan tipografi brand yang sudah ada
+(crimson `--primary`, gold `--accent`, font serif untuk judul) — TIDAK
+perlu meniru warna slide presentasi asli (yang pakai background merah
+solid polos), sesuaikan dengan bahasa desain landing page yang sudah ada.
+
+## Yang Tidak Boleh Berubah
+- Section lain di landing page tidak disentuh strukturnya
+- Data testimoni, instruktur, kelas tetap dari fungsi `db.ts` yang sudah
+  ada, tidak diubah
+- Jangan memasukkan seluruh detail dari dokumen (Identitas, Latar
+  Belakang, Misi 5 poin, Nilai Dasar, Karakteristik, Bidang Kegiatan) —
+  HANYA Metode Keilmuan yang ditambahkan sebagai section baru, sesuai
+  arahan. Bagian lain dari dokumen tidak perlu ditambahkan ke landing
+  page pada tahap ini.
+
+## Setelah Selesai
+Konfirmasi slogan sudah diperbaiki ke versi resmi di semua tempat
+kemunculannya, dan section "Metode Keilmuan" baru sudah tampil dengan
+struktur 2 kolom (prinsip dasar + urutan rujukan 4 tingkat) sesuai
+posisi yang diminta.
