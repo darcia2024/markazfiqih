@@ -414,7 +414,7 @@ function PlaylistMode({
             {classCategory && relatedClasses.length > 0 && (
               <div className="bg-card rounded-2xl border p-5 space-y-4">
                 <p className="text-sm font-semibold text-foreground">
-                  Kelas Lainnya{classCategory ? ` — ${classCategory}` : ''}
+                  Kelas Lainnya{classCategory ? `: ${classCategory}` : ''}
                 </p>
                 <div className="space-y-3">
                   {relatedClasses.map((cls) => (
