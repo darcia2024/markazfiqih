@@ -560,6 +560,7 @@ function GallerySection() {
               <img
                 src={photo.src}
                 alt={photo.alt}
+                loading="lazy"
                 className="w-full aspect-[4/3] object-cover transition-transform duration-300 ease-in-out hover:scale-105"
               />
             </div>
@@ -637,7 +638,7 @@ function LandingFooter({
     <footer className="bg-background border-t border-border">
       <div className="container mx-auto px-5 sm:px-8 lg:px-16 py-8 max-w-[1200px]">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-          <img src="/logo.png" alt="Markaz Fiqih" className="h-7 w-auto brightness-0" />
+          <img src="/logo.png" alt="Markaz Fiqih" loading="lazy" className="h-7 w-auto brightness-0" />
           <p className="text-xs text-muted-foreground">
             © {new Date().getFullYear()} Markaz Fiqih. Seluruh hak cipta dilindungi.
           </p>

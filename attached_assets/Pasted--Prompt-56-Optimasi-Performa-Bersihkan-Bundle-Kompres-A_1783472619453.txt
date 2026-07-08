@@ -1,0 +1,74 @@
+# Prompt 56: Optimasi Performa — Bersihkan Bundle, Kompres Asset, Lazy Load
+
+## Konteks
+Audit menemukan beberapa hal yang bisa langsung dioptimasi tanpa risiko
+mengubah fungsi/tampilan:
+
+## Section 1 — Hapus Asset Tidak Terpakai
+- `public/banner.png` (2.0MB) — tidak direferensikan di manapun dalam
+  kode (`grep -rn "banner.png" src/` kosong). Hapus file ini.
+
+## Section 2 — Kompres Gambar Galeri
+File-file berikut di `public/gallery/` berukuran besar untuk konteks web:
+- `foto-5.jpeg` (1.1MB) — paling besar, prioritas utama
+- `foto-1.jpeg` (193KB)
+- Sisanya (foto-2 s/d foto-6) juga di kisaran 80-110KB, masih bisa
+  dikompres lebih lanjut
+
+Kompres semua file di `public/gallery/` menggunakan tool image
+optimization yang tersedia di environment (`sharp`, `imagemagick`, atau
+sejenisnya — cek dulu apa yang tersedia). Target: turunkan ukuran file
+signifikan (idealnya di bawah 200KB per file) tanpa penurunan kualitas
+visual yang terlihat jelas. Kalau memungkinkan, konversi ke format WebP
+untuk kompresi lebih baik, dengan fallback JPEG kalau ada masalah
+kompatibilitas — tapi kalau konversi format terlalu rumit untuk
+dikerjakan sekarang, cukup kompres JPEG-nya saja ke kualitas ~80%.
+
+## Section 3 — Lazy Load Gambar
+Tambahkan `loading="lazy"` pada semua tag `<img>` di `LandingPage.tsx`
+dan halaman lain yang menampilkan banyak gambar (`CatalogPage.tsx`,
+`BundlesPage.tsx`, galeri), KECUALI gambar yang tampil di atas fold /
+langsung terlihat saat halaman dibuka (misal logo di navbar, gambar hero
+kalau ada) — gambar-gambar itu sebaiknya tetap eager load supaya tidak
+ada delay yang terlihat.
+
+## Section 4 — Bersihkan Komponen shadcn/ui yang Tidak Terpakai
+Komponen berikut ada di `src/components/ui/` tapi TIDAK di-import di
+manapun selain definisinya sendiri (sudah diverifikasi lewat grep):
+`chart.tsx`, `calendar.tsx`, `carousel.tsx`, `command.tsx`,
+`input-otp.tsx`, `drawer.tsx`, `resizable.tsx`.
+
+Hapus ketujuh file ini, DAN hapus dependency terkait dari
+`package.json` (`artifacts/markaz-fiqh/package.json`) kalau memang tidak
+dipakai di tempat lain:
+- `recharts` (dipakai chart.tsx)
+- `react-day-picker` (dipakai calendar.tsx)
+- `embla-carousel-react` (dipakai carousel.tsx)
+- `cmdk` (dipakai command.tsx)
+- `input-otp` (dipakai input-otp.tsx)
+- `vaul` (dipakai drawer.tsx)
+- `react-resizable-panels` (dipakai resizable.tsx)
+
+**PENTING**: sebelum menghapus, jalankan grep ulang untuk memastikan
+tidak ada import tersembunyi yang terlewat (misal lewat re-export di file
+lain), dan pastikan build (`pnpm run build` atau `pnpm run typecheck`)
+tetap berhasil setelah penghapusan — kalau ada error karena komponen lain
+ternyata bergantung pada salah satu file ini, batalkan penghapusan file
+tersebut saja dan laporkan.
+
+## Section 5 — Cek Ukuran Bundle Setelah Build
+Jalankan `pnpm run build` di `artifacts/markaz-fiqh`, lihat output ukuran
+bundle akhir (Vite biasanya menampilkan ringkasan ukuran file di akhir
+build). Laporkan ukuran sebelum dan sesudah perubahan Section 4 kalau bisa
+dibandingkan, atau minimal laporkan ukuran akhir untuk jadi baseline.
+
+## Yang Tidak Boleh Berubah
+- Tidak ada perubahan visual/fungsional pada halaman manapun — ini murni
+  optimasi teknis (ukuran file, lazy loading, dependency cleanup)
+- Kualitas visual gambar setelah kompresi harus tetap terlihat baik,
+  jangan over-kompres sampai terlihat pecah/blur
+
+## Setelah Selesai
+Laporkan: ukuran sebelum/sesudah tiap gambar yang dikompres, file mana
+saja yang dihapus (asset dan komponen), dependency mana yang dihapus dari
+package.json, dan hasil build akhir (berhasil/gagal, ukuran bundle).

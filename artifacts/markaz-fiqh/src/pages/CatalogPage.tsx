@@ -255,6 +255,7 @@ export function ClassCard({ cls, index }: { cls: ClassSummary; index: number }) 
             <img
               src={cls.coverImage}
               alt={cls.title}
+              loading="lazy"
               className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
             />
             {cls.level && (
