@@ -292,14 +292,14 @@ function AsymmetricStatsSection() {
             Tentang Markaz Fiqih
           </p>
           <h2 className="font-serif text-3xl sm:text-4xl font-bold text-foreground leading-tight">
-            Ilmu yang lahir dari komunitas,{' '}
-            <span className="text-primary">bukan dari platform.</span>
+            Belajar Fikih yang{' '}
+            <span className="text-primary">Tersusun dan Bersanad.</span>
           </h2>
           <p className="text-muted-foreground text-base mt-4 leading-relaxed">
-            Kami adalah masisir — pelajar Indonesia yang belajar langsung di Al-Azhar Kairo.
-            Bukan startup edukasi. Bukan konten YouTube yang dikemas ulang. Ini adalah
-            proyek berbagi ilmu dari sesama masisir untuk semua yang ingin belajar
-            fiqih Syafi'i dengan benar dan bersanad.
+            Markaz Fiqih adalah lembaga keilmuan independen yang berfokus pada pendidikan,
+            publikasi, dan kaderisasi kajian fikih berbasis turats madzhab Syafi'i. Dirintis
+            oleh pelajar Indonesia yang menempuh studi langsung di Al-Azhar, Kairo, kami
+            hadir agar siapa pun bisa mempelajari fikih dengan benar dan terstruktur.
           </p>
         </div>
 
