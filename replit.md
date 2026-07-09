@@ -70,7 +70,17 @@ artifacts/
 attached_assets/   Course images and design docs
 ```
 
+## Replit setup notes
+
+- Dependencies installed via `pnpm install` from repo root (all 9 workspace packages)
+- Secrets configured in Replit Secrets: `SUPABASE_DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
+- Two workflows configured and verified running:
+  - **Backend API**: `cd artifacts/api-server && PORT=8080 pnpm run dev` → port 8080
+  - **Start application**: `cd artifacts/markaz-fiqh && PORT=5000 BASE_PATH=/ pnpm run dev` → port 5000
+- Database: Supabase (external) — do not migrate to Replit's built-in PostgreSQL
+
 ## User preferences
 
 - Keep the existing pnpm monorepo structure intact
 - Do not restructure or migrate the stack without explicit request
+- Keep using Supabase — do not migrate to Replit's built-in database

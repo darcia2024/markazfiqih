@@ -1,0 +1,80 @@
+# Prompt 121: Fix "Progress Kamu" di Sidebar Gak Ikut Kelas Model Video Tunggal
+
+## Konteks
+`components/AppShell.tsx`, komponen `ProgressWidget` (sidebar kiri,
+"PROGRESS KAMU X%") menghitung rata-rata progress SELURUH kelas dengan
+rumus:
+```ts
+const totalDarsAcross = enrollments.reduce((s, e) => s + e.class.totalDarsCount, 0);
+const totalDoneDars = enrollments.reduce((s, e) => s + e.class.completedDarsCount, 0);
+const overallProgress = totalDarsAcross > 0 ? Math.round((totalDoneDars / totalDarsAcross) * 100) : 0;
+```
+Ini SAMA PERSIS dengan bug yang sudah diperbaiki di `DashboardPage.tsx`
+lewat Prompt 95 (Fix 2) — tapi komponen ini ada di FILE TERPISAH
+(`AppShell.tsx`) sehingga kelewat waktu itu.
+
+Masalahnya: kelas model video tunggal (`totalDarsCount = 0`, ditandai
+selesai lewat tombol "Tandai Kelas Selesai") TIDAK PERNAH menyumbang ke
+`totalDarsAcross` maupun `totalDoneDars` (kontribusinya 0 di
+dua-duanya), jadi status selesainya kelas itu tidak pernah tercermin di
+rata-rata keseluruhan — kelas-kelas modul yang progress-nya masih 0%
+lah yang mendominasi angka akhir.
+
+## Fix — Terapkan Pola yang Sama dengan Prompt 95 Fix 2
+
+Edit `components/AppShell.tsx`, function `ProgressWidget`:
+
+```ts
+function ProgressWidget({ enrollments }: { enrollments: EnrollmentItem[] }) {
+  const totalOwned = enrollments.length;
+  if (totalOwned === 0) return null;
+
+  // Untuk tiap kelas: kalau punya struktur dars, hitung rasio dars
+  // selesai/total sebagai kontribusi "1 kelas" ke rata-rata. Kalau
+  // model video tunggal (totalDarsCount = 0), kontribusinya 1 (selesai)
+  // atau 0 (belum) berdasarkan enrollment.isCompleted — supaya kelas
+  // ini tetap ikut dihitung proporsional, bukan diabaikan sepenuhnya.
+  const perClassProgress = enrollments.map((e) => {
+    if (e.class.totalDarsCount > 0) {
+      return e.class.completedDarsCount / e.class.totalDarsCount;
+    }
+    return e.isCompleted ? 1 : 0;
+  });
+
+  const overallProgress = Math.round(
+    (perClassProgress.reduce((sum, p) => sum + p, 0) / totalOwned) * 100,
+  );
+
+  return (
+    // ... JSX di bawah ini TIDAK berubah, cuma sumber `overallProgress` yang beda ...
+  );
+}
+```
+
+**Penting**: pendekatan ini SEDIKIT BEDA dari Prompt 95 Fix 2 di
+`DashboardPage.tsx` (yang menjumlahkan dars mentah lintas kelas). Di
+sini pakai rata-rata PER KELAS (tiap kelas kontribusinya setara 1 unit
+ke rata-rata, terlepas dari jumlah dars-nya) — supaya kelas dengan
+banyak dars tidak mendominasi rata-rata dibanding kelas video tunggal.
+Ini pilihan yang lebih adil untuk widget ringkasan seperti ini. Kalau
+ternyata `DashboardPage.tsx` juga masih pakai pendekatan penjumlahan
+dars mentah (bukan rata-rata per kelas) dan hasilnya terasa tidak
+konsisten dengan widget sidebar ini setelah prompt ini selesai, laporkan
+balik supaya diselaraskan formulanya di kedua tempat.
+
+## Yang Tidak Boleh Berubah
+- JSX/tampilan `ProgressWidget` (card, progress bar, teks) TIDAK diubah,
+  cuma formula `overallProgress` yang diperbaiki.
+- Perubahan dari Prompt 95 di `lib/db.ts` (`listEnrollments`) TIDAK
+  disentuh — prompt ini murni pakai data yang sudah benar dari situ,
+  cuma formula agregasinya di komponen ini yang diperbaiki.
+
+## Setelah Selesai
+1. Buka Dashboard, konfirmasi "PROGRESS KAMU" di sidebar kiri sekarang
+   ikut memperhitungkan kelas yang sudah ditandai selesai (model video
+   tunggal), tidak lagi 0% kalau ada kelas yang sudah selesai.
+2. Bandingkan angka ini dengan progress per-kelas di "Progress Belajar"
+   (list kanan Dashboard) untuk sanity check masuk akal (tidak perlu
+   sama persis rumusnya, tapi arahnya harus konsisten — makin banyak
+   kelas selesai, makin naik angkanya).
+3. Jalankan `pnpm run typecheck`, harus 0 error.
