@@ -1,0 +1,59 @@
+# Prompt 112: Box "Biografi Detail" di Halaman Pengajar
+
+## Konteks
+Halaman detail pengajar (`InstructorDetailPage.tsx`, dari Prompt 101)
+sekarang cuma punya 1 bio pendek yang tampil di box profil atas (bareng
+foto, nama, jumlah kelas). Klien minta TAMBAHAN box terpisah di antara
+profil atas dan daftar "Kelas yang Diajar", isinya biografi yang lebih
+detail/panjang.
+
+Field `bio` yang sudah ada TETAP dipakai untuk bio pendek di box profil
+atas (TIDAK diubah). Perlu field BARU untuk biografi detail.
+
+## Bagian A — SQL Migrasi (Siapkan untuk Saya Jalankan Manual)
+
+```sql
+ALTER TABLE instructors ADD COLUMN IF NOT EXISTS detailed_bio TEXT NOT NULL DEFAULT '';
+```
+
+## Bagian B — Update `lib/db.ts`
+
+1. Di semua function yang select data instructor untuk halaman detail
+   (`getInstructorWithClasses` dari Prompt 101, atau function serupa),
+   tambahkan `detailed_bio` ke kolom yang di-select, map ke
+   `detailedBio: data.detailed_bio as string`.
+2. Di form admin kelola pengajar (`AdminInstructorsPage.tsx` — cek nama
+   filenya, mungkin beda), tambahkan textarea baru "Biografi Detail"
+   (multi-baris, lebih besar dari input bio pendek yang sudah ada),
+   sertakan di payload insert/update.
+
+## Bagian C — Tampilkan di `InstructorDetailPage.tsx`
+
+Di antara box profil atas dan section "Kelas yang Diajar", tambahkan box
+baru (card dengan style konsisten box lain di halaman ini):
+```tsx
+{instructor.detailedBio && (
+  <div className="bg-card rounded-2xl border p-6 space-y-2">
+    <p className="text-sm font-semibold text-foreground">Biografi</p>
+    <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+      {instructor.detailedBio}
+    </p>
+  </div>
+)}
+```
+Kalau `detailedBio` kosong (belum diisi admin), box ini tidak tampil
+sama sekali (jangan tampilkan box kosong).
+
+## Yang Tidak Boleh Berubah
+- Field `bio` (pendek) di box profil atas TIDAK diubah/dihapus.
+- `InstructorsPage.tsx` (halaman list) TIDAK perlu menampilkan
+  `detailedBio` — itu cukup di halaman detail saja.
+
+## Setelah Selesai
+1. Isi "Biografi Detail" untuk 1 pengajar contoh lewat Admin Panel,
+   konfirmasi box baru muncul di halaman detail pengajar itu, posisinya
+   di antara profil atas dan daftar kelas.
+2. Konfirmasi pengajar yang belum diisi `detailedBio` tidak menampilkan
+   box kosong.
+3. Jalankan `pnpm run typecheck`, harus 0 error.
+4. Tegaskan SQL Bagian A perlu saya jalankan manual dulu.

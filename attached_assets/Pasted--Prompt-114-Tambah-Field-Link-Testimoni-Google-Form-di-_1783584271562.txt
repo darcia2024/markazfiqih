@@ -1,0 +1,77 @@
+# Prompt 114: Tambah Field "Link Testimoni" (Google Form) di Fasilitas Kelas
+
+## Konteks
+`FacilitasCard.tsx` sekarang sudah punya 4 item: Materi PDF, Grup WA,
+Soal Latihan, Ebook (dari Prompt 103, sudah berjalan — kolom
+`soal_latihan_url` dan `ebook_url` sudah ada di database). Klien minta
+1 item TAMBAHAN: **"Testimoni"** — ini BUKAN sistem review/rating
+bintang, murni LINK KELUAR ke Google Form tempat pelajar mengisi
+testimoni sendiri, persis pola yang sama seperti Soal Latihan/Ebook
+(field URL biasa, bukan fitur baru yang kompleks).
+
+## Bagian A — SQL Migrasi (Siapkan untuk Saya Jalankan Manual)
+
+```sql
+ALTER TABLE classes ADD COLUMN IF NOT EXISTS testimoni_form_url TEXT;
+```
+
+## Bagian B — Update `lib/db.ts`
+
+1. Tambahkan `testimoni_form_url` ke kolom yang di-select di
+   `getClassById` (di tempat yang sama dengan `soal_latihan_url,
+   ebook_url` sudah di-select).
+2. Tambahkan mapping `testimoniFormUrl: data.testimoni_form_url as
+   string | null` ke object yang di-return.
+3. Di function admin save kelas, tambahkan `testimoniFormUrl` ke
+   payload insert/update, pola sama persis dengan `soalLatihanUrl`/
+   `ebookUrl` yang sudah ada.
+
+## Bagian C — Update `components/FacilitasCard.tsx`
+
+Tambahkan prop `testimoniFormUrl?: string | null` dan render item baru,
+pola SAMA PERSIS seperti 4 item yang sudah ada:
+```tsx
+{testimoniFormUrl && (
+  <a href={testimoniFormUrl} target="_blank" rel="noopener noreferrer"
+     className="flex items-center gap-2 p-3 rounded-lg border border-border hover:border-primary hover:bg-[hsl(var(--brand-red-tint))] transition-colors w-full text-sm text-foreground">
+    <MessageSquareQuote className="w-4 h-4 text-primary shrink-0" />
+    Isi Testimoni
+  </a>
+)}
+```
+(Import `MessageSquareQuote` dari `lucide-react`, atau icon lain yang
+cocok kalau nama ini tidak tersedia di versi lucide-react yang dipakai
+— cek dulu.)
+
+Update kondisi render awal component (`if (!gdriveMateriUrl &&
+!waGroupUrl && !soalLatihanUrl && !ebookUrl) return null;`) supaya juga
+mengecek `!testimoniFormUrl`.
+
+## Bagian D — Teruskan Prop di Semua Pemanggil
+
+Cari SEMUA pemanggilan `<FacilitasCard` di `LearnPage.tsx` dan
+`ClassDetailPage.tsx` (ada beberapa lokasi, sama seperti saat menambah
+Soal Latihan/Ebook di Prompt 103), teruskan `testimoniFormUrl={...}` di
+setiap satu, konsisten dengan cara `soalLatihanUrl`/`ebookUrl` sudah
+diteruskan.
+
+## Bagian E — Form Admin
+
+Di `AdminClassesPage.tsx`, tambahkan input baru "Link Testimoni (Google
+Form)" di dekat input Soal Latihan/Ebook yang sudah ada, placeholder
+`https://forms.gle/...`.
+
+## Yang Tidak Boleh Berubah
+- Sistem Review & Rating (Prompt 102, kalau sudah dikerjakan) TIDAK
+  disentuh — itu fitur terpisah (bintang + ulasan tersimpan di database),
+  field ini murni link keluar biasa.
+- 4 item fasilitas yang sudah ada TIDAK diubah perilakunya.
+
+## Setelah Selesai
+1. Isi "Link Testimoni" untuk 1 kelas contoh, konfirmasi item "Isi
+   Testimoni" muncul di Fasilitas Kelas, klik membuka link Google Form
+   di tab baru.
+2. Konfirmasi kelas yang belum diisi field ini tetap tampil normal
+   (item tidak muncul, bukan error).
+3. Jalankan `pnpm run typecheck`, harus 0 error.
+4. Tegaskan SQL Bagian A perlu saya jalankan manual dulu.

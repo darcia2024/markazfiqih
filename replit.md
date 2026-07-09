@@ -12,12 +12,18 @@ An online learning platform for Shafi'i fiqh, built and taught by Indonesian stu
 
 ## How to run
 
+Install dependencies from the repo root first (only needed once after clone):
+
+```bash
+pnpm install
+```
+
 Two workflows run in parallel:
 
 | Workflow | Command | Port |
 |---|---|---|
-| `Start application` | `cd artifacts/markaz-fiqh && PORT=5000 BASE_PATH=/ pnpm run dev` | 5000 (webview) |
-| `Backend API` | `cd artifacts/api-server && PORT=8080 pnpm run dev` | 8080 (console) |
+| `artifacts/markaz-fiqh: web` | `pnpm --filter @workspace/markaz-fiqh run dev` | webview |
+| `artifacts/api-server: API Server` | `pnpm --filter @workspace/api-server run dev` | 8080 |
 
 The frontend proxies `/api/*` requests to the backend at `http://localhost:8080`.
 
