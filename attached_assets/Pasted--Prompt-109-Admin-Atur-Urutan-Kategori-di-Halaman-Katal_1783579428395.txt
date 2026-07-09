@@ -1,0 +1,103 @@
+# Prompt 109: Admin Atur Urutan Kategori di Halaman Katalog
+
+## Konteks
+Urutan section kategori di Katalog (saat filter "Semua" aktif — Fiqih
+Tematik, lalu Fiqih Kitab, lalu Akademi) sekarang HARDCODE di
+`CatalogPage.tsx`:
+```ts
+const CATEGORY_ORDER = ['Fiqih Tematik', 'Fiqih Kitab', 'Akademi'];
+```
+Buat ini bisa diatur admin dari Admin Panel, tersimpan di database,
+tanpa perlu edit kode kalau mau ganti urutan section.
+
+(Catatan: urutan KELAS DI DALAM tiap kategori sudah bisa diatur lewat
+`display_order` per kelas dari Prompt 89 — TIDAK diubah, prompt ini
+KHUSUS untuk urutan SECTION/kategorinya, bukan urutan kelas di
+dalamnya.)
+
+## Bagian A — SQL Migrasi (Siapkan untuk Saya Jalankan Manual)
+
+```sql
+ALTER TABLE site_settings
+  ADD COLUMN IF NOT EXISTS catalog_category_order TEXT
+  NOT NULL DEFAULT '["Fiqih Tematik","Fiqih Kitab","Akademi"]';
+```
+
+## Bagian B — Update `lib/db.ts`
+
+1. Di function `getSettings` (cari yang select dari `site_settings`),
+   tambahkan `catalog_category_order` ke kolom yang di-select, lalu parse
+   JSON-nya ke array saat di-return:
+   ```ts
+   catalogCategoryOrder: (() => {
+     try {
+       const parsed = JSON.parse(data.catalog_category_order ?? '[]');
+       return Array.isArray(parsed) ? (parsed as string[]) : [];
+     } catch {
+       return ['Fiqih Tematik', 'Fiqih Kitab', 'Akademi'];
+     }
+   })(),
+   ```
+2. Di function `updateSettings` (yang dipakai `AdminSettingsPage.tsx`
+   untuk save), tambahkan handling untuk field baru ini — kalau ada
+   `catalogCategoryOrder` di payload, `JSON.stringify()` dulu sebelum
+   disimpan ke kolom `catalog_category_order`.
+
+## Bagian C — UI di `AdminSettingsPage.tsx`
+
+Tambahkan section baru "Urutan Kategori Katalog":
+- Tampilkan daftar kategori yang ada di `form.catalogCategoryOrder`
+  sebagai list dengan tombol panah atas/bawah di tiap baris (bukan
+  drag-and-drop, cukup tombol naik/turun — lebih sederhana dan konsisten
+  dengan pola input lain di halaman ini).
+- Setiap klik panah naik/turun, tukar posisi item itu dengan tetangganya
+  di array state lokal (belum tersimpan ke DB sampai tombol "Simpan"
+  utama di halaman ini ditekan — ikuti pola form yang sudah ada,
+  JANGAN auto-save per klik).
+- Kalau ada kategori baru yang belum ada di daftar (misal admin nambah
+  kategori baru lewat "Kelola Kelas" yang belum tercakup di urutan ini),
+  tampilkan otomatis di paling bawah list dengan indikator kecil "belum
+  diurutkan" — supaya tidak hilang begitu saja dari Katalog.
+
+## Bagian D — `CatalogPage.tsx`: Pakai Data dari Settings
+
+Ganti:
+```ts
+const CATEGORY_ORDER = ['Fiqih Tematik', 'Fiqih Kitab', 'Akademi'];
+```
+Jadi ambil dari `getSettings()` (query yang sudah dipakai di halaman
+lain untuk `site_settings`, cek pola importnya) dengan fallback ke array
+default yang sama kalau data belum ada/kosong:
+```ts
+const settingsQuery = useQuery({ queryKey: ['settings'], queryFn: getSettings });
+const CATEGORY_ORDER = settingsQuery.data?.catalogCategoryOrder?.length
+  ? settingsQuery.data.catalogCategoryOrder
+  : ['Fiqih Tematik', 'Fiqih Kitab', 'Akademi'];
+```
+Pastikan logic `groupedByCategory` (yang sudah pakai `CATEGORY_ORDER`
+untuk urutan `knownKeys`, sekitar baris 429-533) tetap berfungsi sama
+persis, cuma sumber datanya yang berubah dari konstanta jadi dari
+settings.
+
+## Yang Tidak Boleh Berubah
+- `display_order` per kelas (Prompt 89) TIDAK disentuh — itu tetap
+  mengatur urutan kelas DI DALAM satu kategori, terpisah dari urutan
+  section ini.
+- Kategori yang dipakai untuk FILTER PILL (Prompt 92, "Semua", "Fiqih
+  Tematik", dst) TIDAK berubah — itu daftar filter yang fixed, bukan
+  bagian dari fitur ini.
+- Halaman `MyClassesPage.tsx` boleh TETAP pakai urutan constant lokal
+  kalau memang tidak ingin ikut berubah (cek dulu apakah client ingin
+  urutan section di "Kelas Saya" juga ikut settings ini atau tidak —
+  KALAU TIDAK ADA INSTRUKSI eksplisit soal itu, JANGAN diubah, cukup
+  fokus ke `CatalogPage.tsx` saja untuk prompt ini).
+
+## Setelah Selesai
+1. Buka Admin Panel → Pengaturan Situs, konfirmasi section "Urutan
+   Kategori Katalog" muncul dengan 3 kategori + tombol naik/turun.
+2. Ubah urutan (misal Fiqih Kitab ke atas), simpan, buka halaman Katalog
+   dengan filter "Semua" aktif, konfirmasi urutan section berubah sesuai.
+3. Refresh halaman, konfirmasi urutan tetap tersimpan (bukan cuma state
+   lokal yang hilang saat reload).
+4. Jalankan `pnpm run typecheck`, harus 0 error.
+5. Tegaskan SQL Bagian A perlu saya jalankan manual dulu.

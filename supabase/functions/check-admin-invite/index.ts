@@ -52,27 +52,32 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Hanya redeem invite kalau promote benar-benar berhasil mengubah baris
-    // profil user (mis. profil belum ter-provisioning saat ini dipanggil).
+    // Sebelumnya UPDATE saja, sekarang UPSERT supaya tetap berhasil walau
+    // baris user_profiles belum sempat dibuat (misal user belum selesai
+    // onboarding nickname saat invite di-redeem)
     const { data: updated, error: updateError } = await supabaseAdmin
       .from('user_profiles')
-      .update({ is_admin: true })
-      .eq('user_id', user.id)
+      .upsert(
+        { user_id: user.id, is_admin: true },
+        { onConflict: 'user_id', ignoreDuplicates: false },
+      )
       .select('user_id')
       .maybeSingle();
 
     if (updateError) throw updateError;
 
     if (!updated) {
-      return new Response(JSON.stringify({ promoted: false, reason: 'profile_not_found' }), {
+      return new Response(JSON.stringify({ promoted: false, reason: 'upsert_failed' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    await supabaseAdmin
+    const { error: redeemError } = await supabaseAdmin
       .from('admin_invites')
       .update({ redeemed_at: new Date().toISOString(), redeemed_by: user.id })
       .eq('id', invite.id);
+
+    if (redeemError) throw redeemError;
 
     return new Response(JSON.stringify({ promoted: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

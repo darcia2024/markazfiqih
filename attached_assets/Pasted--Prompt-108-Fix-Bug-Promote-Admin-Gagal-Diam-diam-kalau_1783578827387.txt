@@ -1,0 +1,84 @@
+# Prompt 108: Fix Bug Promote Admin Gagal Diam-diam kalau `user_profiles` Belum Ada
+
+## Konteks — Bug Dikonfirmasi
+Ditemukan kasus nyata: user diundang jadi admin (`admin_invites`), sudah
+login, tapi TIDAK ter-promote. Root cause: baris `user_profiles` untuk
+user itu baru dibuat saat mereka SELESAI mengisi nickname di halaman
+onboarding (`OnboardingNamaPage.tsx` → `setNickname` → upsert). Kalau
+user login tapi belum/tidak sampai menyelesaikan step itu (skip, tutup
+tab, dll), baris `user_profiles` tidak pernah ada.
+
+Edge function `check-admin-invite` (`supabase/functions/check-admin-invite/index.ts`)
+melakukan:
+```ts
+const { data: updated } = await supabaseAdmin
+  .from('user_profiles')
+  .update({ is_admin: true })
+  .eq('user_id', user.id)
+  .select('user_id')
+  .maybeSingle();
+```
+Kalau baris `user_profiles` belum ada, `UPDATE` ini match 0 baris,
+`updated` jadi `null`, function return `{ promoted: false, reason:
+'profile_not_found' }` — GAGAL DIAM-DIAM, tidak ada error yang terlihat
+user maupun log yang jelas ke admin.
+
+## Fix — Ganti UPDATE Jadi UPSERT
+
+Edit `supabase/functions/check-admin-invite/index.ts`, ganti bagian
+UPDATE tersebut jadi UPSERT supaya baris `user_profiles` otomatis dibuat
+kalau belum ada, alih-alih diam-diam gagal:
+
+```ts
+// Sebelumnya UPDATE saja, sekarang UPSERT supaya tetap berhasil walau
+// baris user_profiles belum sempat dibuat (misal user belum selesai
+// onboarding nickname saat invite di-redeem)
+const { data: updated, error: updateError } = await supabaseAdmin
+  .from('user_profiles')
+  .upsert(
+    { user_id: user.id, is_admin: true },
+    { onConflict: 'user_id', ignoreDuplicates: false },
+  )
+  .select('user_id')
+  .maybeSingle();
+
+if (updateError) throw updateError;
+
+if (!updated) {
+  return new Response(JSON.stringify({ promoted: false, reason: 'upsert_failed' }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+```
+
+**Penting**: `upsert` dengan `onConflict: 'user_id'` HANYA akan menimpa
+kolom yang disebutkan (`is_admin`), TAPI kalau baris belum ada dan
+di-INSERT baru, kolom `nickname` akan ke-set `NULL` (karena tidak
+disebutkan di object upsert). Ini tidak masalah — user tetap akan
+diminta isi nickname lewat flow onboarding normal saat mereka
+lanjut pakai aplikasi (cek `OnboardingNamaPage.tsx` sudah menangani
+kasus `nickname === null` dengan benar, redirect ke onboarding kalau
+belum diisi — JANGAN diubah, cukup pastikan behavior ini tetap jalan
+normal untuk admin yang baru di-upsert ini).
+
+## Yang Tidak Boleh Berubah
+- Alur `OnboardingNamaPage.tsx` dan `setNickname` di `AuthContext.tsx`
+  TIDAK diubah.
+- Logic pencarian & validasi `admin_invites` (redeem sekali, cek
+  `redeemed_at IS NULL`) TIDAK diubah, hanya bagian promote ke
+  `user_profiles` yang diperbaiki.
+
+## Setelah Selesai
+1. Jelaskan skenario test: undang email baru yang BELUM PERNAH login
+   sama sekali ke `admin_invites`, minta email itu login (jangan isi
+   nickname dulu, langsung cek), konfirmasi `is_admin` langsung `true`
+   di `user_profiles` walau nickname masih kosong/belum diisi.
+2. Konfirmasi user itu tetap diarahkan ke halaman onboarding nickname
+   seperti biasa setelah promote (tidak ada regresi di alur onboarding).
+3. Jalankan `pnpm run typecheck`, harus 0 error.
+
+## Deploy yang Perlu Dilakukan Manual
+- **Edge function `check-admin-invite` perlu di-deploy ulang manual**
+  setelah perubahan ini — ingatkan saya untuk deploy lewat Supabase
+  Dashboard/CLI setelah Agent selesai.
+- Tidak ada SQL/migrasi database untuk prompt ini.

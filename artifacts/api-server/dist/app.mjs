@@ -64905,6 +64905,9 @@ var classesTable = pgTable("classes", {
   youtubePlaylistId: text("youtube_playlist_id"),
   gdriveMateriUrl: text("gdrive_materi_url"),
   waGroupUrl: text("wa_group_url"),
+  meetingCount: integer("meeting_count"),
+  soalLatihanUrl: text("soal_latihan_url"),
+  ebookUrl: text("ebook_url"),
   displayOrder: integer("display_order").notNull().default(0),
   instructorId: uuid("instructor_id").notNull().references(() => instructorsTable.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -73045,7 +73048,7 @@ router2.get("/classes/recommended", requireAuth, async (req, res) => {
   const userId = req.auth.userId;
   const cartRows = await db.select({ classId: cartItemsTable.classId }).from(cartItemsTable).where(eq(cartItemsTable.userId, userId));
   const enrollmentRows = await db.select({ classId: enrollmentsTable.classId }).from(enrollmentsTable).where(eq(enrollmentsTable.userId, userId));
-  const excludeIds = [.../* @__PURE__ */ new Set([...cartRows.map((r) => r.classId), ...enrollmentRows.map((r) => r.classId)])];
+  const excludeIds = [.../* @__PURE__ */ new Set([...cartRows.map((r) => r.classId), ...enrollmentRows.map((r) => r.classId)])].filter((id) => id !== null);
   const conditions = [eq(classesTable.status, "published")];
   if (excludeIds.length > 0) {
     conditions.push(notInArray(classesTable.id, excludeIds));
@@ -73448,6 +73451,7 @@ router4.get("/cart", requireAuth, async (req, res) => {
   const items = await db.select().from(cartItemsTable).where(eq(cartItemsTable.userId, userId));
   const result = [];
   for (const item of items) {
+    if (!item.classId) continue;
     const cls = await toClassSummary(item.classId);
     if (!cls) continue;
     result.push({
@@ -73514,7 +73518,7 @@ async function markInvoiceAsPaid(invoiceId) {
   const items = await db.select().from(invoiceItemsTable).where(eq(invoiceItemsTable.invoiceId, invoiceId));
   const existingEnrollments = await db.select().from(enrollmentsTable).where(eq(enrollmentsTable.userId, invoice.userId));
   const enrolledClassIds = new Set(existingEnrollments.map((e) => e.classId));
-  const toEnroll = items.filter((item) => !enrolledClassIds.has(item.classId));
+  const toEnroll = items.filter((item) => item.classId !== null && !enrolledClassIds.has(item.classId));
   if (toEnroll.length > 0) {
     await db.insert(enrollmentsTable).values(
       toEnroll.map((item) => ({
@@ -73533,7 +73537,7 @@ async function buildInvoiceResponse(invoiceId) {
   const invoice = invoiceRows[0];
   if (!invoice) return null;
   const items = await db.select().from(invoiceItemsTable).where(eq(invoiceItemsTable.invoiceId, invoiceId));
-  const classIds = items.map((i) => i.classId);
+  const classIds = items.map((i) => i.classId).filter((id) => id !== null);
   const classes = classIds.length ? await db.select({
     id: classesTable.id,
     title: classesTable.title,
@@ -73559,7 +73563,7 @@ async function buildInvoiceResponse(invoiceId) {
     paymentUrl: null,
     // diisi oleh Mayar nanti
     items: items.map((item) => {
-      const cls = classById.get(item.classId);
+      const cls = classById.get(item.classId ?? "");
       return {
         id: item.id,
         classId: item.classId,
@@ -73611,16 +73615,16 @@ router5.post("/checkout", requireAuth, async (req, res) => {
     res.status(400).json({ error: "Cart is empty" });
     return;
   }
-  const classIds = cartItems.map((c) => c.classId);
-  const classes = await db.select({ id: classesTable.id, basePrice: classesTable.basePrice, discountPrice: classesTable.discountPrice }).from(classesTable).where(inArray(classesTable.id, classIds));
+  const classIds = cartItems.map((c) => c.classId).filter((id) => id !== null);
+  const classes = classIds.length ? await db.select({ id: classesTable.id, basePrice: classesTable.basePrice, discountPrice: classesTable.discountPrice }).from(classesTable).where(inArray(classesTable.id, classIds)) : [];
   const priceByClass = new Map(classes.map((c) => [c.id, c.discountPrice ?? c.basePrice]));
-  const totalAmount = cartItems.reduce((sum, item) => sum + (priceByClass.get(item.classId) ?? 0), 0);
+  const totalAmount = cartItems.reduce((sum, item) => sum + (priceByClass.get(item.classId ?? "") ?? 0), 0);
   const [invoice] = await db.insert(invoicesTable).values({ userId, totalAmount, status: "pending" }).returning();
   await db.insert(invoiceItemsTable).values(
     cartItems.map((item) => ({
       invoiceId: invoice.id,
       classId: item.classId,
-      price: priceByClass.get(item.classId) ?? 0
+      price: priceByClass.get(item.classId ?? "") ?? 0
     }))
   );
   const response = await buildInvoiceResponse(invoice.id);

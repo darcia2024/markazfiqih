@@ -15,7 +15,7 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import { useQuery } from '@tanstack/react-query';
-import { listClasses, listInstructors, listEnrollments, listClassRatings } from '@/lib/db';
+import { listClasses, listInstructors, listEnrollments, listClassRatings, getSettings } from '@/lib/db';
 import { StarRating } from '@/components/StarRating';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -438,7 +438,7 @@ function EmptyState({ onReset }: { onReset: () => void }) {
   );
 }
 
-const CATEGORY_ORDER = ['Fiqih Tematik', 'Fiqih Kitab', 'Akademi'];
+const DEFAULT_CATEGORY_ORDER = ['Fiqih Tematik', 'Fiqih Kitab', 'Akademi'];
 
 const CATALOG_CATEGORY_FILTERS = [
   { label: 'Semua', value: 'all' },
@@ -486,6 +486,11 @@ function CatalogContent() {
   const [selectedInstructorId, setSelectedInstructorId] = useState<string | null>(null);
 
   const { user } = useAuth();
+
+  const settingsQuery = useQuery({ queryKey: ['settings'], queryFn: getSettings });
+  const CATEGORY_ORDER = settingsQuery.data?.catalogCategoryOrder?.length
+    ? settingsQuery.data.catalogCategoryOrder
+    : DEFAULT_CATEGORY_ORDER;
 
   const enrolledClassIdsQuery = useQuery({
     queryKey: ['enrolled-class-ids', user?.id],
@@ -560,7 +565,7 @@ function CatalogContent() {
     const knownKeys = CATEGORY_ORDER.filter((k) => groups.has(k));
     const restKeys = [...groups.keys()].filter((k) => !CATEGORY_ORDER.includes(k)).sort();
     return [...knownKeys, ...restKeys].map((cat) => ({ category: cat, classes: groups.get(cat)! }));
-  }, [sortedClasses, category]);
+  }, [sortedClasses, category, CATEGORY_ORDER]);
 
   const handleReset = () => {
     setSearch('');

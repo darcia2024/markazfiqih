@@ -362,6 +362,14 @@ export async function getSettings() {
     socialTiktok: data.social_tiktok as string,
     studentCountLabel: data.student_count_label as string | null,
     aboutUsContent: data.about_us_content as string | null,
+    catalogCategoryOrder: (() => {
+      try {
+        const parsed = JSON.parse(data.catalog_category_order ?? '[]');
+        return Array.isArray(parsed) ? (parsed as string[]) : [];
+      } catch {
+        return ['Fiqih Tematik', 'Fiqih Kitab', 'Akademi'];
+      }
+    })(),
   };
 }
 
@@ -842,6 +850,7 @@ export async function updateSettings(data: {
   founderName?: string; founderBio?: string; founderPhotoUrl?: string;
   socialInstagram?: string; socialYoutube?: string; socialFacebook?: string;
   socialTiktok?: string; studentCountLabel?: string; aboutUsContent?: string;
+  catalogCategoryOrder?: string[];
 }) {
   const patch: Record<string, unknown> = {};
   if (data.siteName !== undefined) patch.site_name = data.siteName;
@@ -859,21 +868,38 @@ export async function updateSettings(data: {
   if (data.socialTiktok !== undefined) patch.social_tiktok = data.socialTiktok;
   if (data.studentCountLabel !== undefined) patch.student_count_label = data.studentCountLabel;
   if (data.aboutUsContent !== undefined) patch.about_us_content = data.aboutUsContent;
+  if (data.catalogCategoryOrder !== undefined) patch.catalog_category_order = JSON.stringify(data.catalogCategoryOrder);
   const { error } = await supabase.from('site_settings').update(patch).eq('id', 1);
   if (error) {
-    // Kolom about_us_content mungkin belum ada jika migrasi SQL belum dijalankan.
-    // Coba lagi tanpa field ini supaya field lain tetap bisa disimpan.
-    const isMissingColumn = 'about_us_content' in patch && /about_us_content/i.test(error.message ?? '');
-    if (isMissingColumn) {
-      const { about_us_content, ...fallbackPatch } = patch;
+    // Beberapa kolom mungkin belum ada jika migrasi SQL belum dijalankan.
+    // Coba lagi tanpa kolom-kolom opsional tersebut supaya field lain tetap bisa disimpan.
+    const missingAboutUs = 'about_us_content' in patch && /about_us_content/i.test(error.message ?? '');
+    const missingCategoryOrder = 'catalog_category_order' in patch && /catalog_category_order/i.test(error.message ?? '');
+    if (missingAboutUs || missingCategoryOrder) {
+      const { about_us_content, catalog_category_order, ...fallbackPatch } = patch;
       const { error: retryError } = await supabase.from('site_settings').update(fallbackPatch).eq('id', 1);
       if (retryError) throw retryError;
+      const missingFields = [
+        missingAboutUs && '"Konten Tentang Kami"',
+        missingCategoryOrder && '"Urutan Kategori Katalog"',
+      ].filter(Boolean).join(' dan ');
       throw new Error(
-        'Pengaturan lain berhasil disimpan, tapi kolom "Konten Tentang Kami" belum tersedia di database. Jalankan migrasi SQL terlebih dahulu.'
+        `Pengaturan lain berhasil disimpan, tapi kolom ${missingFields} belum tersedia di database. Jalankan migrasi SQL terlebih dahulu.`
       );
     }
     throw error;
   }
+}
+
+/** Ambil daftar kategori unik dari semua kelas (termasuk draft) — untuk Admin Panel. */
+export async function listDistinctCategories(): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('classes')
+    .select('category')
+    .not('category', 'is', null);
+  if (error) throw error;
+  const categories = new Set((data ?? []).map((c: any) => c.category as string).filter(Boolean));
+  return [...categories].sort();
 }
 
 // ─── ADMIN CLASSES CRUD ───────────────────────────────────────────────────────

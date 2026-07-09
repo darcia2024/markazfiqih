@@ -5,10 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, ChevronUp, ChevronDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getSettings, updateSettings } from '@/lib/db';
+import { getSettings, updateSettings, listDistinctCategories } from '@/lib/db';
+
+const DEFAULT_CATEGORY_ORDER = ['Fiqih Tematik', 'Fiqih Kitab', 'Akademi'];
 
 type SettingsFormState = {
   siteName: string;
@@ -26,6 +29,7 @@ type SettingsFormState = {
   socialTiktok: string;
   studentCountLabel: string;
   aboutUsContent: string;
+  catalogCategoryOrder: string[];
 };
 
 const EMPTY_FORM: SettingsFormState = {
@@ -44,6 +48,7 @@ const EMPTY_FORM: SettingsFormState = {
   socialTiktok: '',
   studentCountLabel: '',
   aboutUsContent: '',
+  catalogCategoryOrder: DEFAULT_CATEGORY_ORDER,
 };
 
 export default function AdminSettingsPage() {
@@ -52,6 +57,10 @@ export default function AdminSettingsPage() {
   const queryClient = useQueryClient();
 
   const settingsQuery = useQuery({ queryKey: ['settings'], queryFn: getSettings });
+  const categoriesQuery = useQuery({
+    queryKey: ['distinct-categories'],
+    queryFn: listDistinctCategories,
+  });
 
   useEffect(() => {
     if (settingsQuery.data) {
@@ -72,9 +81,23 @@ export default function AdminSettingsPage() {
         socialTiktok: s.socialTiktok ?? '',
         studentCountLabel: s.studentCountLabel ?? '',
         aboutUsContent: s.aboutUsContent ?? '',
+        catalogCategoryOrder: s.catalogCategoryOrder?.length
+          ? s.catalogCategoryOrder
+          : DEFAULT_CATEGORY_ORDER,
       });
     }
   }, [settingsQuery.data]);
+
+  /** Tukar posisi item di index dengan tetangganya (ke atas atau ke bawah). */
+  function moveCategoryItem(index: number, direction: 'up' | 'down') {
+    setForm((prev) => {
+      const arr = [...prev.catalogCategoryOrder];
+      const swapIndex = direction === 'up' ? index - 1 : index + 1;
+      if (swapIndex < 0 || swapIndex >= arr.length) return prev;
+      [arr[index], arr[swapIndex]] = [arr[swapIndex], arr[index]];
+      return { ...prev, catalogCategoryOrder: arr };
+    });
+  }
 
   const updateMutation = useMutation({
     mutationFn: (data: SettingsFormState) => updateSettings(data),
@@ -316,6 +339,71 @@ export default function AdminSettingsPage() {
                 data-testid="input-about-us-content"
               />
             </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Urutan Kategori Katalog</CardTitle>
+            <CardDescription>
+              Atur urutan section kategori yang muncul di halaman Katalog saat filter "Semua" aktif.
+              Gunakan tombol panah untuk mengubah urutan, lalu klik Simpan.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {(() => {
+              const allDbCategories = categoriesQuery.data ?? [];
+              const unordered = allDbCategories.filter(
+                (cat) => !form.catalogCategoryOrder.includes(cat),
+              );
+              return (
+                <>
+                  {form.catalogCategoryOrder.map((cat, idx) => (
+                    <div
+                      key={cat}
+                      className="flex items-center justify-between gap-3 rounded-md border border-border bg-muted/40 px-4 py-2.5"
+                    >
+                      <span className="text-sm font-medium text-foreground">{cat}</span>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          disabled={idx === 0}
+                          onClick={() => moveCategoryItem(idx, 'up')}
+                          aria-label={`Naik: ${cat}`}
+                        >
+                          <ChevronUp className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          disabled={idx === form.catalogCategoryOrder.length - 1}
+                          onClick={() => moveCategoryItem(idx, 'down')}
+                          aria-label={`Turun: ${cat}`}
+                        >
+                          <ChevronDown className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  {unordered.map((cat) => (
+                    <div
+                      key={cat}
+                      className="flex items-center justify-between gap-3 rounded-md border border-dashed border-border bg-muted/20 px-4 py-2.5"
+                    >
+                      <span className="text-sm text-muted-foreground">{cat}</span>
+                      <Badge variant="outline" className="text-xs text-muted-foreground shrink-0">
+                        belum diurutkan
+                      </Badge>
+                    </div>
+                  ))}
+                </>
+              );
+            })()}
           </CardContent>
         </Card>
 
