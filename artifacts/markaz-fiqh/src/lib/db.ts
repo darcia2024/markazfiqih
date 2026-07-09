@@ -1142,6 +1142,71 @@ export async function deleteDashboardMessage(id: string) {
   if (error) throw error;
 }
 
+// ── Public: Instructors ───────────────────────────────────────────────────────
+
+export type PublicInstructor = {
+  id: string;
+  name: string;
+  bio: string;
+  photoUrl: string;
+};
+
+export type InstructorWithClasses = PublicInstructor & {
+  classes: {
+    id: string;
+    title: string;
+    coverImage: string;
+    category: string | null;
+  }[];
+};
+
+export async function listActiveInstructors(): Promise<PublicInstructor[]> {
+  const { data, error } = await supabase
+    .from('instructors')
+    .select('id, name, bio, photo_url')
+    .eq('is_active', true)
+    .order('name');
+  if (error) throw error;
+  return (data ?? []).map((i: any) => ({
+    id: i.id,
+    name: i.name,
+    bio: i.bio ?? '',
+    photoUrl: i.photo_url ?? '',
+  }));
+}
+
+export async function getInstructorWithClasses(id: string): Promise<InstructorWithClasses | null> {
+  const { data: instructor, error } = await supabase
+    .from('instructors')
+    .select('id, name, bio, photo_url')
+    .eq('id', id)
+    .eq('is_active', true)
+    .maybeSingle();
+  if (error) throw error;
+  if (!instructor) return null;
+
+  const { data: classes, error: classesError } = await supabase
+    .from('classes')
+    .select('id, title, cover_image, category')
+    .eq('instructor_id', id)
+    .eq('status', 'published')
+    .order('display_order');
+  if (classesError) throw classesError;
+
+  return {
+    id: instructor.id,
+    name: instructor.name,
+    bio: instructor.bio ?? '',
+    photoUrl: instructor.photo_url ?? '',
+    classes: (classes ?? []).map((c: any) => ({
+      id: c.id,
+      title: c.title,
+      coverImage: c.cover_image ?? '',
+      category: c.category,
+    })),
+  };
+}
+
 // ── Admin: List All Users ─────────────────────────────────────────────────────
 
 export type AdminUserRow = {

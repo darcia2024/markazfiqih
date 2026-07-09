@@ -26,6 +26,8 @@ import AdminManageAdminsPage from '@/pages/admin/AdminManageAdminsPage';
 import AdminDashboardMessagesPage from '@/pages/admin/AdminDashboardMessagesPage';
 import AdminVouchersPage from '@/pages/admin/AdminVouchersPage';
 import AdminUsersPage from '@/pages/admin/AdminUsersPage';
+import InstructorsPage from '@/pages/InstructorsPage';
+import InstructorDetailPage from '@/pages/InstructorDetailPage';
 import BundlesPage from '@/pages/BundlesPage';
 import AboutUsPage from '@/pages/AboutUsPage';
 
@@ -44,6 +46,8 @@ function Router() {
       <Route path="/tentang-kami" component={AboutUsPage} />
       <Route path="/keranjang" component={CartPage} />
       <Route path="/paket-bundle" component={BundlesPage} />
+      <Route path="/pengajar" component={InstructorsPage} />
+      <Route path="/pengajar/:id" component={InstructorDetailPage} />
       <Route path="/learn/:classId" component={LearnPage} />
       <Route path="/admin">
         {() => <RequireAdminRoute><AdminDashboardPage /></RequireAdminRoute>}

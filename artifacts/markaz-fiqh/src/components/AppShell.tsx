@@ -11,6 +11,7 @@ import {
   Menu,
   X,
   Info,
+  GraduationCap,
   type LucideIcon,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -22,6 +23,7 @@ const NAV_ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/katalog', label: 'Katalog Kelas', icon: LayoutGrid },
   { href: '/paket-bundle', label: 'Paket Bundle', icon: Package },
+  { href: '/pengajar', label: 'Pengajar', icon: GraduationCap },
   { href: '/my-classes', label: 'Kelas Saya', icon: BookMarked },
   { href: '/tentang-kami', label: 'Tentang Kami', icon: Info },
 ];
@@ -92,7 +94,7 @@ function SidebarContent({
           Menu Utama
         </p>
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-          const isActive = location === href;
+          const isActive = location === href || location.startsWith(href + '/');
           return (
             <Link
               key={href}
