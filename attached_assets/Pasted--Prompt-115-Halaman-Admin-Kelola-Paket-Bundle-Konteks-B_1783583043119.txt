@@ -1,0 +1,225 @@
+# Prompt 115: Halaman Admin "Kelola Paket Bundle"
+
+## Konteks
+Bundle (paket gabungan beberapa kelas dengan harga diskon) sudah
+berfungsi penuh di sisi PELAJAR (halaman `BundlesPage.tsx`, checkout,
+enrollment otomatis semua kelas dalam bundle) — tapi TIDAK ADA halaman
+admin untuk membuat/edit/hapus bundle. Semua bundle yang ada sekarang
+dibuat manual lewat SQL Editor. Buat halaman admin baru untuk CRUD
+lengkap.
+
+## Bagian A — Function CRUD di `lib/db.ts`
+
+Function `listBundles` (publik, sudah ada) JANGAN diubah. Tambahkan
+function baru khusus admin:
+
+```ts
+export type AdminBundle = {
+  id: string;
+  title: string;
+  description: string;
+  normalPrice: number;
+  bundlePrice: number;
+  coverImage: string;
+  status: 'draft' | 'published';
+  classIds: string[]; // untuk keperluan form edit (checklist kelas)
+};
+
+export async function listAllBundlesForAdmin(): Promise<AdminBundle[]> {
+  const { data, error } = await supabase
+    .from('bundles')
+    .select(`
+      id, title, description, normal_price, bundle_price, cover_image, status,
+      bundle_classes ( class_id )
+    `)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((b: any) => ({
+    id: b.id,
+    title: b.title,
+    description: b.description ?? '',
+    normalPrice: b.normal_price,
+    bundlePrice: b.bundle_price,
+    coverImage: b.cover_image ?? '',
+    status: b.status,
+    classIds: (b.bundle_classes ?? []).map((bc: any) => bc.class_id as string),
+  }));
+}
+
+export async function createBundle(payload: {
+  title: string;
+  description: string;
+  normalPrice: number;
+  bundlePrice: number;
+  coverImage: string;
+  status: 'draft' | 'published';
+  classIds: string[];
+}): Promise<void> {
+  const { data: bundle, error } = await supabase
+    .from('bundles')
+    .insert({
+      title: payload.title,
+      description: payload.description,
+      normal_price: payload.normalPrice,
+      bundle_price: payload.bundlePrice,
+      cover_image: payload.coverImage,
+      status: payload.status,
+    })
+    .select('id')
+    .single();
+  if (error) throw error;
+
+  if (payload.classIds.length > 0) {
+    const { error: linkError } = await supabase
+      .from('bundle_classes')
+      .insert(payload.classIds.map((classId) => ({ bundle_id: bundle.id, class_id: classId })));
+    if (linkError) throw linkError;
+  }
+}
+
+export async function updateBundle(
+  id: string,
+  payload: {
+    title: string;
+    description: string;
+    normalPrice: number;
+    bundlePrice: number;
+    coverImage: string;
+    status: 'draft' | 'published';
+    classIds: string[];
+  },
+): Promise<void> {
+  const { error } = await supabase
+    .from('bundles')
+    .update({
+      title: payload.title,
+      description: payload.description,
+      normal_price: payload.normalPrice,
+      bundle_price: payload.bundlePrice,
+      cover_image: payload.coverImage,
+      status: payload.status,
+    })
+    .eq('id', id);
+  if (error) throw error;
+
+  // Sinkronisasi kelas dalam bundle: hapus semua link lama, insert ulang
+  // yang baru (paling simpel & aman untuk jumlah kelas per bundle yang wajar)
+  const { error: deleteError } = await supabase.from('bundle_classes').delete().eq('bundle_id', id);
+  if (deleteError) throw deleteError;
+
+  if (payload.classIds.length > 0) {
+    const { error: linkError } = await supabase
+      .from('bundle_classes')
+      .insert(payload.classIds.map((classId) => ({ bundle_id: id, class_id: classId })));
+    if (linkError) throw linkError;
+  }
+}
+
+export async function deleteBundle(id: string): Promise<void> {
+  const { error } = await supabase.from('bundles').delete().eq('id', id);
+  if (error) throw error;
+}
+```
+
+## Bagian B — SQL: RLS Policy Admin untuk `bundles` & `bundle_classes`
+
+Cek dulu policy yang sudah ada sebelum menambah (supaya tidak bentrok
+nama), siapkan untuk saya jalankan manual:
+
+```sql
+SELECT tablename, policyname, cmd FROM pg_policies
+WHERE tablename IN ('bundles', 'bundle_classes');
+```
+
+Kemudian (sesuaikan kalau ternyata sudah ada sebagian, cukup tambah
+yang belum ada):
+
+```sql
+CREATE POLICY "bundles: admin bisa insert"
+  ON bundles FOR INSERT
+  WITH CHECK (
+    EXISTS (SELECT 1 FROM user_profiles WHERE user_profiles.user_id = auth.uid()::text AND user_profiles.is_admin = true)
+  );
+
+CREATE POLICY "bundles: admin bisa update"
+  ON bundles FOR UPDATE
+  USING (
+    EXISTS (SELECT 1 FROM user_profiles WHERE user_profiles.user_id = auth.uid()::text AND user_profiles.is_admin = true)
+  );
+
+CREATE POLICY "bundles: admin bisa delete"
+  ON bundles FOR DELETE
+  USING (
+    EXISTS (SELECT 1 FROM user_profiles WHERE user_profiles.user_id = auth.uid()::text AND user_profiles.is_admin = true)
+  );
+
+CREATE POLICY "bundles: admin bisa baca semua"
+  ON bundles FOR SELECT
+  USING (
+    status = 'published'
+    OR EXISTS (SELECT 1 FROM user_profiles WHERE user_profiles.user_id = auth.uid()::text AND user_profiles.is_admin = true)
+  );
+
+CREATE POLICY "bundle_classes: admin bisa kelola"
+  ON bundle_classes FOR ALL
+  USING (
+    EXISTS (SELECT 1 FROM user_profiles WHERE user_profiles.user_id = auth.uid()::text AND user_profiles.is_admin = true)
+  )
+  WITH CHECK (
+    EXISTS (SELECT 1 FROM user_profiles WHERE user_profiles.user_id = auth.uid()::text AND user_profiles.is_admin = true)
+  );
+```
+
+## Bagian C — Halaman `AdminBundlesPage.tsx`
+
+Buat `artifacts/markaz-fiqh/src/pages/admin/AdminBundlesPage.tsx`, pola
+UI konsisten dengan `AdminClassesPage.tsx`:
+
+- Table: cover thumbnail kecil, judul, harga normal (dicoret) → harga
+  bundle, jumlah kelas di dalamnya, badge status (Published/Draft),
+  aksi (edit, hapus dengan konfirmasi, toggle publish/draft).
+- Tombol "Tambah Bundle" buka Dialog form:
+  - Input Judul, Deskripsi (textarea)
+  - Input Harga Normal, Input Harga Bundle (number, format rupiah)
+  - Input URL Cover Image
+  - Select Status (Draft/Published)
+  - **Checklist kelas** — daftar SEMUA kelas (dari `listClasses({
+    includeAll: true })`), dikelompokkan per kategori, dengan checkbox
+    pilih kelas mana saja yang masuk bundle ini. Tampilkan harga
+    masing-masing kelas di sebelah judulnya untuk membantu admin hitung
+    manual apakah harga bundle masuk akal.
+  - Validasi ringan: kalau harga bundle >= total harga kelas yang
+    dicentang, tampilkan warning inline (tidak block submit): "Harga
+    bundle ini tidak lebih murah dari beli satuan, kurang menarik buat
+    pelajar."
+- Edit bundle pakai Dialog yang sama, prefill data + checklist kelas
+  yang sudah ada di `classIds`.
+- Hapus bundle pakai AlertDialog konfirmasi, tampilkan warning kalau
+  bundle ini pernah dibeli (cek dari tabel `invoice_items` yang
+  `bundle_id` match): "Bundle ini pernah dibeli N kali. Menghapusnya
+  tidak membatalkan transaksi yang sudah terjadi."
+
+## Bagian D — Routing & Sidebar
+
+1. `App.tsx`: tambahkan route `/admin/bundles` → `AdminBundlesPage`,
+   dibungkus `RequireAdminRoute`.
+2. `components/admin/AdminLayout.tsx`: tambahkan menu "Kelola Bundle"
+   (icon `Package` dari lucide-react), posisi setelah "Kelola Kelas".
+
+## Yang Tidak Boleh Berubah
+- `listBundles` (publik, dipakai `BundlesPage.tsx`) TIDAK diubah.
+- Struktur tabel `bundles`/`bundle_classes` TIDAK diubah, hanya
+  ditambah policy RLS baru.
+- Sistem checkout bundle yang sudah bekerja TIDAK disentuh.
+
+## Setelah Selesai
+1. Buat bundle baru lewat Admin Panel, pilih beberapa kelas via
+   checklist, konfirmasi tersimpan dan muncul di `BundlesPage.tsx`
+   (halaman publik) kalau status Published.
+2. Edit bundle yang sudah ada, ubah kelas yang termasuk di dalamnya,
+   konfirmasi perubahan tersimpan (kelas lama yang di-uncheck hilang
+   dari bundle, yang baru dicentang masuk).
+3. Set status Draft, konfirmasi bundle itu hilang dari halaman publik
+   tapi tetap ada di Admin Panel.
+4. Jalankan `pnpm run typecheck`, harus 0 error.
+5. Tegaskan SQL Bagian B perlu saya cek & jalankan manual dulu.

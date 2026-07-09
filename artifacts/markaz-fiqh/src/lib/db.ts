@@ -1397,6 +1397,122 @@ export async function markVideoCompleted(params: {
   if (error) throw error;
 }
 
+// ─── ADMIN BUNDLES CRUD ───────────────────────────────────────────────────────
+
+export type AdminBundle = {
+  id: string;
+  title: string;
+  description: string;
+  normalPrice: number;
+  bundlePrice: number;
+  coverImage: string;
+  status: 'draft' | 'published';
+  classIds: string[];
+};
+
+export async function listAllBundlesForAdmin(): Promise<AdminBundle[]> {
+  const { data, error } = await supabase
+    .from('bundles')
+    .select(`
+      id, title, description, normal_price, bundle_price, cover_image, status,
+      bundle_classes ( class_id )
+    `)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((b: any) => ({
+    id: b.id,
+    title: b.title,
+    description: b.description ?? '',
+    normalPrice: b.normal_price,
+    bundlePrice: b.bundle_price,
+    coverImage: b.cover_image ?? '',
+    status: b.status,
+    classIds: (b.bundle_classes ?? []).map((bc: any) => bc.class_id as string),
+  }));
+}
+
+export async function createBundle(payload: {
+  title: string;
+  description: string;
+  normalPrice: number;
+  bundlePrice: number;
+  coverImage: string;
+  status: 'draft' | 'published';
+  classIds: string[];
+}): Promise<void> {
+  const { data: bundle, error } = await supabase
+    .from('bundles')
+    .insert({
+      title: payload.title,
+      description: payload.description,
+      normal_price: payload.normalPrice,
+      bundle_price: payload.bundlePrice,
+      cover_image: payload.coverImage,
+      status: payload.status,
+    })
+    .select('id')
+    .single();
+  if (error) throw error;
+
+  if (payload.classIds.length > 0) {
+    const { error: linkError } = await supabase
+      .from('bundle_classes')
+      .insert(payload.classIds.map((classId) => ({ bundle_id: bundle.id, class_id: classId })));
+    if (linkError) throw linkError;
+  }
+}
+
+export async function updateBundle(
+  id: string,
+  payload: {
+    title: string;
+    description: string;
+    normalPrice: number;
+    bundlePrice: number;
+    coverImage: string;
+    status: 'draft' | 'published';
+    classIds: string[];
+  },
+): Promise<void> {
+  const { error } = await supabase
+    .from('bundles')
+    .update({
+      title: payload.title,
+      description: payload.description,
+      normal_price: payload.normalPrice,
+      bundle_price: payload.bundlePrice,
+      cover_image: payload.coverImage,
+      status: payload.status,
+    })
+    .eq('id', id);
+  if (error) throw error;
+
+  // Sinkronisasi kelas dalam bundle: hapus semua link lama, insert ulang yang baru
+  const { error: deleteError } = await supabase.from('bundle_classes').delete().eq('bundle_id', id);
+  if (deleteError) throw deleteError;
+
+  if (payload.classIds.length > 0) {
+    const { error: linkError } = await supabase
+      .from('bundle_classes')
+      .insert(payload.classIds.map((classId) => ({ bundle_id: id, class_id: classId })));
+    if (linkError) throw linkError;
+  }
+}
+
+export async function deleteBundle(id: string): Promise<void> {
+  const { error } = await supabase.from('bundles').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function getBundlePurchaseCount(bundleId: string): Promise<number> {
+  const { count, error } = await supabase
+    .from('invoice_items')
+    .select('id', { count: 'exact', head: true })
+    .eq('bundle_id', bundleId);
+  if (error) throw error;
+  return count ?? 0;
+}
+
 // ─── CATALOG LAYOUT ──────────────────────────────────────────────────────────
 
 /**
