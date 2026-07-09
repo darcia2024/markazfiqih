@@ -128,6 +128,7 @@ function PlaylistMode({
   waGroupUrl,
   soalLatihanUrl,
   ebookUrl,
+  reverseVideoOrder = false,
 }: {
   classId: string;
   classTitle: string;
@@ -145,6 +146,7 @@ function PlaylistMode({
   waGroupUrl?: string | null;
   soalLatihanUrl?: string | null;
   ebookUrl?: string | null;
+  reverseVideoOrder?: boolean;
 }) {
   const queryClient = useQueryClient();
 
@@ -229,7 +231,7 @@ function PlaylistMode({
       try {
         const ids: string[] = event.target.getPlaylist() ?? [];
         if (ids.length > 0) {
-          setVideoIds(ids);
+          setVideoIds(reverseVideoOrder ? [...ids].reverse() : ids);
           teardown(event.target);
           return;
         }
@@ -245,7 +247,7 @@ function PlaylistMode({
           try {
             const ids: string[] = event.target.getPlaylist() ?? [];
             if (ids.length > 0) {
-              setVideoIds(ids);
+              setVideoIds(reverseVideoOrder ? [...ids].reverse() : ids);
             } else {
               setMetaError(true);
             }
@@ -286,7 +288,7 @@ function PlaylistMode({
       teardown(metaPlayerRef.current);
       metaPlayerRef.current = null;
     };
-  }, [playlistId, ytApiReady, videoIds]);
+  }, [playlistId, ytApiReady, videoIds, reverseVideoOrder]);
 
   // ── Helper: hitung & tampilkan persentase TANPA menulis ke DB ──
   // Dipanggil saat buffering/seek agar indikator update real-time
@@ -1085,6 +1087,7 @@ function LearnContent() {
         waGroupUrl={classDetail.waGroupUrl}
         soalLatihanUrl={classDetail.soalLatihanUrl}
         ebookUrl={classDetail.ebookUrl}
+        reverseVideoOrder={classDetail.reverseVideoOrder}
       />
     );
   }

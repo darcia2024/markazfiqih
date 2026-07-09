@@ -125,7 +125,7 @@ export async function getClassById(id: string) {
     .from('classes')
     .select(`
       id, title, description, cover_image, base_price, discount_price,
-      status, level, category, youtube_playlist_id, gdrive_materi_url, wa_group_url, soal_latihan_url, ebook_url, meeting_count, display_order,
+      status, level, category, youtube_playlist_id, gdrive_materi_url, wa_group_url, soal_latihan_url, ebook_url, meeting_count, display_order, reverse_video_order,
       instructors ( id, name, photo_url, bio ),
       modules (
         id, title, order_index,
@@ -190,6 +190,7 @@ export async function getClassById(id: string) {
     soalLatihanUrl: data.soal_latihan_url as string | null,
     ebookUrl: data.ebook_url as string | null,
     displayOrder: (data.display_order ?? 0) as number,
+    reverseVideoOrder: (data.reverse_video_order ?? false) as boolean,
     instructor: inst
       ? { id: inst.id, name: inst.name, photoUrl: inst.photo_url, bio: inst.bio ?? '', classCount: instructorClassCount }
       : { id: '', name: 'Pengajar', photoUrl: '', bio: '', classCount: 0 },
@@ -912,7 +913,7 @@ export async function createClass(data: {
   youtubePlaylistId?: string | null; gdriveMateriUrl?: string | null;
   waGroupUrl?: string | null; soalLatihanUrl?: string | null;
   ebookUrl?: string | null; meetingCount?: number | null;
-  displayOrder?: number | null;
+  displayOrder?: number | null; reverseVideoOrder?: boolean;
 }) {
   const { data: created, error } = await supabase
     .from('classes')
@@ -929,6 +930,7 @@ export async function createClass(data: {
       ebook_url: data.ebookUrl ?? null,
       meeting_count: data.meetingCount ?? null,
       display_order: data.displayOrder ?? 0,
+      reverse_video_order: data.reverseVideoOrder ?? false,
     })
     .select().single();
   if (error) throw error;
@@ -945,7 +947,7 @@ export async function updateClass(
     youtubePlaylistId: string | null; gdriveMateriUrl: string | null;
     waGroupUrl: string | null; soalLatihanUrl: string | null;
     ebookUrl: string | null; meetingCount: number | null;
-    displayOrder: number;
+    displayOrder: number; reverseVideoOrder: boolean;
   }>,
 ) {
   const patch: Record<string, unknown> = {};
@@ -965,6 +967,7 @@ export async function updateClass(
   if ('ebookUrl' in data) patch.ebook_url = data.ebookUrl;
   if ('meetingCount' in data) patch.meeting_count = data.meetingCount;
   if (data.displayOrder !== undefined) patch.display_order = data.displayOrder;
+  if (data.reverseVideoOrder !== undefined) patch.reverse_video_order = data.reverseVideoOrder;
   const { error } = await supabase.from('classes').update(patch).eq('id', id);
   if (error) throw error;
 }

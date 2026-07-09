@@ -39,6 +39,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Plus, Search, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { formatPrice } from '@/pages/CatalogPage';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -71,6 +72,7 @@ type ClassFormState = {
   ebookUrl: string;
   meetingCount: string;
   displayOrder: string;
+  reverseVideoOrder: boolean;
 };
 
 const EMPTY_FORM: ClassFormState = {
@@ -90,6 +92,7 @@ const EMPTY_FORM: ClassFormState = {
   ebookUrl: '',
   meetingCount: '',
   displayOrder: '0',
+  reverseVideoOrder: false,
 };
 
 function classToForm(cls: ClassDetail): ClassFormState {
@@ -110,6 +113,7 @@ function classToForm(cls: ClassDetail): ClassFormState {
     ebookUrl: cls.ebookUrl ?? '',
     meetingCount: cls.meetingCount != null ? String(cls.meetingCount) : '',
     displayOrder: String(cls.displayOrder ?? 0),
+    reverseVideoOrder: cls.reverseVideoOrder ?? false,
   };
 }
 
@@ -224,6 +228,7 @@ export default function AdminClassesPage() {
       ebookUrl: '',
       meetingCount: '',
       displayOrder: String(cls.displayOrder ?? 0),
+      reverseVideoOrder: false,
     });
     setDialogOpen(true);
   }
@@ -253,6 +258,7 @@ export default function AdminClassesPage() {
       ebookUrl: form.ebookUrl.trim() || null,
       meetingCount: form.meetingCount ? parseInt(form.meetingCount, 10) : null,
       displayOrder: form.displayOrder ? parseInt(form.displayOrder, 10) : 0,
+      reverseVideoOrder: form.reverseVideoOrder,
     };
 
     if (editingClass) {
@@ -562,6 +568,22 @@ export default function AdminClassesPage() {
                   onChange={(e) => setForm((p) => ({ ...p, youtubePlaylistId: e.target.value }))}
                   data-testid="input-class-youtube-playlist"
                 />
+              </div>
+              <div className="flex items-start gap-3 rounded-lg border p-4">
+                <Switch
+                  id="class-reverse-video-order"
+                  checked={form.reverseVideoOrder}
+                  onCheckedChange={(checked) => setForm((p) => ({ ...p, reverseVideoOrder: checked }))}
+                  data-testid="switch-class-reverse-video-order"
+                />
+                <div className="space-y-0.5">
+                  <Label htmlFor="class-reverse-video-order" className="cursor-pointer font-medium">
+                    Balik Urutan Video
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Aktifkan kalau urutan video di playlist YouTube kelas ini kebalik dari urutan pertemuan aslinya.
+                  </p>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="class-meeting-count">Jumlah Pertemuan</Label>

@@ -1,0 +1,89 @@
+# Prompt 111: Toggle "Balik Urutan Video" per Kelas
+
+## Konteks
+Kelas "Fiqih Najis" (dan berpotensi kelas lain ke depannya) urutan video
+di playlist YouTube-nya kebalik dari urutan pertemuan asli (video
+"Pertemuan 2" ada di posisi pertama playlist, "Pertemuan 1" di posisi
+kedua) — bikin sistem salah label "Pertemuan ke-X" karena label itu murni
+dari POSISI video di playlist, bukan baca judul asli video.
+
+Daripada urus manual reorder di YouTube Studio tiap kali ada kasus
+begini, tambahkan toggle simpel di Admin Panel per kelas: "Balik Urutan
+Video" — kalau diaktifkan, urutan video yang ditampilkan ke pelajar
+otomatis dibalik dari urutan asli playlist.
+
+## Bagian A — SQL Migrasi (Siapkan untuk Saya Jalankan Manual)
+
+```sql
+ALTER TABLE classes
+  ADD COLUMN IF NOT EXISTS reverse_video_order BOOLEAN NOT NULL DEFAULT false;
+```
+
+## Bagian B — Update `lib/db.ts`
+
+1. Di function `getClassById` (dan function lain yang select data kelas
+   lengkap untuk `LearnPage.tsx`), tambahkan `reverse_video_order` ke
+   kolom yang di-select, map ke `reverseVideoOrder: data.reverse_video_order as boolean`.
+2. Di function admin save kelas (`AdminClassesPage.tsx` punya
+   fungsinya), tambahkan handling field baru ini ke payload
+   insert/update, pola sama seperti field boolean lain yang sudah ada.
+
+## Bagian C — Terapkan di `pages/LearnPage.tsx`
+
+Cari KEDUA lokasi `setVideoIds(ids)` dipanggil (sekitar baris 217 dan
+233, dari hasil `getPlaylist()`), ubah supaya membalik array kalau
+`reverseVideoOrder` aktif untuk kelas ini:
+
+```ts
+setVideoIds(reverseVideoOrder ? [...ids].reverse() : ids);
+```
+
+`reverseVideoOrder` perlu diambil dari data kelas yang sudah di-fetch
+(`classDetail.reverseVideoOrder` atau sejenisnya — cek nama variable
+yang menyimpan detail kelas di scope function ini) dan disediakan
+sebagai dependency di `useEffect`/`useCallback` yang membungkus logic
+ini supaya tidak stale.
+
+**Penting**: karena video dibalik urutan TAMPILANNYA, pastikan fitur
+lain yang bergantung pada index video tetap konsisten:
+- Progress resume (`video_watch_progress`, `videoIndex`) — index yang
+  disimpan tetap merujuk ke POSISI ASLI di playlist YouTube (sebelum
+  dibalik), supaya kalau toggle ini nanti dimatikan lagi, data resume
+  lama tidak jadi rusak/nunjuk ke video yang salah. Cara paling aman:
+  simpan/baca `video_watch_progress` dan `video_completions`
+  menggunakan index ASLI (sebelum dibalik), baru dikonversi ke index
+  TAMPILAN saat render "Pertemuan ke-X" dan saat navigasi
+  Sebelumnya/Selanjutnya. Kalau ini bikin terlalu kompleks untuk
+  di-refactor sekarang, alternatif lebih sederhana: BALIK array
+  `videoIds` di satu tempat SAJA (sumbernya), lalu biarkan semua index
+  turunan (progress, completions, currentIndex) konsisten mengikuti
+  urutan yang SUDAH dibalik itu sebagai satu-satunya sumber kebenaran —
+  pilih pendekatan ini kalau lebih simpel diimplementasikan, karena
+  dampaknya cuma ke kelas yang togglenya aktif (kasus jarang terjadi).
+
+## Bagian D — Toggle di `AdminClassesPage.tsx`
+
+Tambahkan `Switch` (komponen yang sudah dipakai untuk toggle boolean
+lain di form ini) dengan label **"Balik Urutan Video"**, deskripsi kecil
+di bawahnya: "Aktifkan kalau urutan video di playlist YouTube kelas ini
+kebalik dari urutan pertemuan aslinya." Posisi di dekat field
+`youtube_playlist_id`.
+
+## Yang Tidak Boleh Berubah
+- Playlist YouTube itu sendiri TIDAK disentuh/diminta diubah — solusi ini
+  murni di level tampilan web.
+- Kelas lain yang togglenya tidak diaktifkan (`false`, default) TIDAK
+  terpengaruh sama sekali, urutan tampil tetap seperti sekarang.
+
+## Setelah Selesai
+1. Aktifkan toggle "Balik Urutan Video" untuk kelas "Fiqih Najis" lewat
+   Admin Panel.
+2. Buka halaman belajar kelas itu, konfirmasi video yang berjudul
+   "Pertemuan 2" (sesuai overlay teks di videonya) sekarang tampil
+   sebagai "Pertemuan ke-2" (bukan ke-1 lagi), dan sebaliknya.
+3. Konfirmasi navigasi Sebelumnya/Selanjutnya tetap jalan normal sesuai
+   urutan yang sudah dibalik.
+4. Konfirmasi kelas LAIN yang togglenya tidak diaktifkan tetap tampil
+   normal seperti sebelumnya (tidak ada regresi).
+5. Jalankan `pnpm run typecheck`, harus 0 error.
+6. Tegaskan SQL Bagian A perlu saya jalankan manual dulu.
