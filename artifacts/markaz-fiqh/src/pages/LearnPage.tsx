@@ -69,6 +69,7 @@ import {
   markVideoCompleted,
   getInstructorRatingForClass,
   submitInstructorRating,
+  getClassMeetingTitles,
 } from '@/lib/db';
 import { StarRating } from '@/components/StarRating';
 
@@ -163,6 +164,13 @@ function PlaylistMode({
     queryKey: ['instructor-rating', instructorId, classId, userId],
     queryFn: () => getInstructorRatingForClass(userId, instructorId, classId),
     enabled: !!instructorId && !!classId,
+  });
+
+  // ── Judul/deskripsi custom per pertemuan (Prompt 127 — khusus video playlist) ──
+  const { data: meetingTitles = new Map<number, { videoIndex: number; title: string | null; description: string | null }>() } = useQuery({
+    queryKey: ['class-meeting-titles', classId],
+    queryFn: () => getClassMeetingTitles(classId),
+    enabled: !!classId,
   });
 
   const submitInstructorRatingMutation = useMutation({
@@ -670,7 +678,7 @@ function PlaylistMode({
                               : 'text-foreground/70'
                           }`}
                         >
-                          Pertemuan ke-{i + 1}
+                          {meetingTitles.get(i)?.title || `Pertemuan ke-${i + 1}`}
                         </p>
                       </button>
                     </div>
@@ -710,8 +718,13 @@ function PlaylistMode({
                     Pertemuan ke-{currentIndex + 1} dari {videoIds.length}
                   </p>
                   <h2 className="font-serif text-lg font-bold text-foreground mt-0.5">
-                    Pertemuan ke-{currentIndex + 1}
+                    {meetingTitles.get(currentIndex)?.title || `Pertemuan ke-${currentIndex + 1}`}
                   </h2>
+                  {meetingTitles.get(currentIndex)?.description && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {meetingTitles.get(currentIndex)?.description}
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <Button

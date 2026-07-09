@@ -1426,6 +1426,47 @@ export async function submitClassReview(params: {
   if (error) throw error;
 }
 
+// ── Judul/Deskripsi per Pertemuan — kelas video playlist (Prompt 127) ────────
+
+export type MeetingTitle = {
+  videoIndex: number;
+  title: string | null;
+  description: string | null;
+};
+
+export async function getClassMeetingTitles(classId: string): Promise<Map<number, MeetingTitle>> {
+  const { data, error } = await supabase
+    .from('class_meeting_titles')
+    .select('video_index, title, description')
+    .eq('class_id', classId);
+  if (error) throw error;
+  const map = new Map<number, MeetingTitle>();
+  (data ?? []).forEach((row: any) => {
+    map.set(row.video_index, { videoIndex: row.video_index, title: row.title, description: row.description });
+  });
+  return map;
+}
+
+export async function upsertClassMeetingTitle(params: {
+  classId: string;
+  videoIndex: number;
+  title: string;
+  description: string;
+}): Promise<void> {
+  const { error } = await supabase
+    .from('class_meeting_titles')
+    .upsert(
+      {
+        class_id: params.classId,
+        video_index: params.videoIndex,
+        title: params.title || null,
+        description: params.description || null,
+      },
+      { onConflict: 'class_id,video_index' },
+    );
+  if (error) throw error;
+}
+
 // ── Admin: Kelola Review (Prompt 125) ─────────────────────────────────────────
 
 export type AdminReviewRow = {

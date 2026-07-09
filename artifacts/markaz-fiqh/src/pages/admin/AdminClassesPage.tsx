@@ -51,10 +51,14 @@ import {
   createClass,
   updateClass,
   deleteClass,
+  getClassMeetingTitles,
+  upsertClassMeetingTitle,
 } from '@/lib/db';
 
 type ClassSummary = Awaited<ReturnType<typeof listClasses>>[0];
 type ClassDetail = Awaited<ReturnType<typeof getClassById>>;
+
+type MeetingTitleRow = { videoIndex: number; title: string; description: string };
 
 type ClassFormState = {
   title: string;
@@ -127,6 +131,7 @@ export default function AdminClassesPage() {
   const [editingClass, setEditingClass] = useState<ClassSummary | null>(null);
   const [form, setForm] = useState<ClassFormState>(EMPTY_FORM);
   const [deleteTarget, setDeleteTarget] = useState<ClassSummary | null>(null);
+  const [meetingTitleRows, setMeetingTitleRows] = useState<MeetingTitleRow[]>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -148,13 +153,22 @@ export default function AdminClassesPage() {
     enabled: !!editingClass && dialogOpen,
   });
 
+  const { data: existingMeetingTitles } = useQuery({
+    queryKey: ['class-meeting-titles', 'admin', editingId],
+    queryFn: () => getClassMeetingTitles(editingId),
+    enabled: !!editingClass && dialogOpen,
+  });
+
   const invalidateClasses = () =>
     queryClient.invalidateQueries({ queryKey: ['classes', 'admin'] });
 
   const createMutation = useMutation({
     mutationFn: (payload: Parameters<typeof createClass>[0]) => createClass(payload),
-    onSuccess: () => {
+    onSuccess: async (created: any) => {
       invalidateClasses();
+      if (created?.id && meetingTitleRows.length > 0) {
+        await saveMeetingTitles(created.id);
+      }
       toast({ title: 'Kelas berhasil ditambahkan' });
       setDialogOpen(false);
     },
@@ -166,8 +180,11 @@ export default function AdminClassesPage() {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Parameters<typeof updateClass>[1] }) =>
       updateClass(id, data),
-    onSuccess: () => {
+    onSuccess: async (_result, variables) => {
       invalidateClasses();
+      if (meetingTitleRows.length > 0) {
+        await saveMeetingTitles(variables.id);
+      }
       toast({ title: 'Kelas berhasil diperbarui' });
       setDialogOpen(false);
     },
@@ -203,6 +220,54 @@ export default function AdminClassesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingClassDetail]);
 
+  // ── Sinkronkan baris "Judul per Pertemuan" saat data tersimpan berhasil dimuat (Prompt 127) ──
+  useEffect(() => {
+    if (existingMeetingTitles && editingClass) {
+      const maxIndex = existingMeetingTitles.size > 0 ? Math.max(...existingMeetingTitles.keys()) : -1;
+      const rows: MeetingTitleRow[] = [];
+      for (let i = 0; i <= maxIndex; i++) {
+        const saved = existingMeetingTitles.get(i);
+        rows.push({ videoIndex: i, title: saved?.title ?? '', description: saved?.description ?? '' });
+      }
+      setMeetingTitleRows(rows);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [existingMeetingTitles]);
+
+  function addMeetingTitleRow() {
+    setMeetingTitleRows((rows) => [
+      ...rows,
+      { videoIndex: rows.length, title: '', description: '' },
+    ]);
+  }
+
+  function removeMeetingTitleRow(videoIndex: number) {
+    setMeetingTitleRows((rows) =>
+      rows.filter((r) => r.videoIndex !== videoIndex).map((r, i) => ({ ...r, videoIndex: i })),
+    );
+  }
+
+  function updateMeetingTitleRow(videoIndex: number, patch: Partial<Pick<MeetingTitleRow, 'title' | 'description'>>) {
+    setMeetingTitleRows((rows) =>
+      rows.map((r) => (r.videoIndex === videoIndex ? { ...r, ...patch } : r)),
+    );
+  }
+
+  async function saveMeetingTitles(classId: string) {
+    await Promise.all(
+      meetingTitleRows.map((row) =>
+        upsertClassMeetingTitle({
+          classId,
+          videoIndex: row.videoIndex,
+          title: row.title,
+          description: row.description,
+        }),
+      ),
+    );
+    queryClient.invalidateQueries({ queryKey: ['class-meeting-titles', classId] });
+    queryClient.invalidateQueries({ queryKey: ['class-meeting-titles', 'admin', classId] });
+  }
+
   const filtered = classes
     .filter((c) => c.title.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
@@ -210,11 +275,13 @@ export default function AdminClassesPage() {
   function openCreateDialog() {
     setEditingClass(null);
     setForm({ ...EMPTY_FORM, instructorId: instructors[0]?.id ?? '' });
+    setMeetingTitleRows([]);
     setDialogOpen(true);
   }
 
   function openEditDialog(cls: ClassSummary) {
     setEditingClass(cls);
+    setMeetingTitleRows([]);
     setForm({
       title: cls.title,
       description: cls.description,
@@ -605,6 +672,66 @@ export default function AdminClassesPage() {
                   Khusus kelas berbasis playlist video (tanpa breakdown modul manual). Ditampilkan sebagai "X Pertemuan" di halaman kelas.
                 </p>
               </div>
+              {form.youtubePlaylistId.trim() && (
+                <div className="space-y-3 rounded-lg border p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label>Judul per Pertemuan</Label>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Khusus kelas video playlist. Kosongkan judul kalau ingin tetap pakai default "Pertemuan ke-N".
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addMeetingTitleRow}
+                      data-testid="button-add-meeting-title"
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Tambah Pertemuan
+                    </Button>
+                  </div>
+                  {meetingTitleRows.length === 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Belum ada baris. Klik "Tambah Pertemuan" untuk mulai mengisi.
+                    </p>
+                  )}
+                  <div className="space-y-3">
+                    {meetingTitleRows.map((row) => (
+                      <div key={row.videoIndex} className="flex gap-2 items-start rounded-md border p-3">
+                        <div className="flex-1 space-y-2">
+                          <p className="text-xs font-medium text-muted-foreground">
+                            Pertemuan ke-{row.videoIndex + 1}
+                          </p>
+                          <Input
+                            placeholder={`Judul (contoh: Pembahasan Hukum Wudhu)`}
+                            value={row.title}
+                            onChange={(e) => updateMeetingTitleRow(row.videoIndex, { title: e.target.value })}
+                            data-testid={`input-meeting-title-${row.videoIndex}`}
+                          />
+                          <Textarea
+                            placeholder="Deskripsi singkat (opsional)"
+                            rows={2}
+                            value={row.description}
+                            onChange={(e) => updateMeetingTitleRow(row.videoIndex, { description: e.target.value })}
+                            data-testid={`input-meeting-description-${row.videoIndex}`}
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeMeetingTitleRow(row.videoIndex)}
+                          data-testid={`button-remove-meeting-title-${row.videoIndex}`}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="class-gdrive-materi">Link Google Drive Materi (PDF)</Label>
                 <Input
