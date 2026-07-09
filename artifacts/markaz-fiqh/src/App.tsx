@@ -24,6 +24,7 @@ import AdminTestimonialsPage from '@/pages/admin/AdminTestimonialsPage';
 import AdminSettingsPage from '@/pages/admin/AdminSettingsPage';
 import AdminManageAdminsPage from '@/pages/admin/AdminManageAdminsPage';
 import AdminDashboardMessagesPage from '@/pages/admin/AdminDashboardMessagesPage';
+import AdminVouchersPage from '@/pages/admin/AdminVouchersPage';
 import BundlesPage from '@/pages/BundlesPage';
 import AboutUsPage from '@/pages/AboutUsPage';
 
@@ -66,6 +67,9 @@ function Router() {
       </Route>
       <Route path="/admin/dashboard-messages">
         {() => <RequireAdminRoute><AdminDashboardMessagesPage /></RequireAdminRoute>}
+      </Route>
+      <Route path="/admin/vouchers">
+        {() => <RequireAdminRoute><AdminVouchersPage /></RequireAdminRoute>}
       </Route>
       <Route component={NotFound} />
     </Switch>

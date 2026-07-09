@@ -18,11 +18,12 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthContext';
-import { BookOpen, LayoutDashboard, GraduationCap, Receipt, Users, ExternalLink, MessageSquareQuote, Settings, UserCog, ShieldPlus, StickyNote } from 'lucide-react';
+import { BookOpen, LayoutDashboard, GraduationCap, Receipt, Users, ExternalLink, MessageSquareQuote, Settings, UserCog, ShieldPlus, StickyNote, Ticket } from 'lucide-react';
 
 const NAV_ITEMS = [
   { title: 'Dashboard', url: '/admin', icon: LayoutDashboard },
   { title: 'Manajemen Kelas', url: '/admin/classes', icon: GraduationCap },
+  { title: 'Kelola Voucher', url: '/admin/vouchers', icon: Ticket },
   { title: 'Manajemen Pengajar', url: '/admin/instructors', icon: UserCog },
   { title: 'Pesanan', url: '/admin/orders', icon: Receipt },
   { title: 'Testimoni', url: '/admin/testimonials', icon: MessageSquareQuote },

@@ -1,0 +1,192 @@
+# Prompt 94: Halaman Admin "Kelola Voucher"
+
+## Konteks
+Sistem voucher (`class_vouchers`) sudah ada dan berfungsi di checkout
+(`validateVoucher`, `createCheckout` di `lib/db.ts`), tapi SEMUA
+pengelolaan voucher (bikin, edit, hapus, nonaktifkan) masih manual lewat
+SQL Editor. Buat halaman admin baru supaya voucher bisa dikelola dari
+Admin Panel, mengikuti pola CRUD yang sudah ada di
+`AdminTestimonialsPage.tsx` dan `AdminDashboardMessagesPage.tsx`.
+
+## Skema Tabel yang Sudah Ada (JANGAN diubah strukturnya)
+```sql
+class_vouchers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+  code TEXT NOT NULL,
+  discount_price INTEGER NOT NULL,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  max_uses INTEGER,           -- NULL = tidak dibatasi
+  used_count INTEGER NOT NULL DEFAULT 0
+)
+```
+RLS yang sudah aktif: publik boleh SELECT voucher yang `is_active = true`
+(dipakai untuk validasi kode di checkout). Untuk INSERT/UPDATE/DELETE dari
+admin panel, tambahkan policy admin baru (lihat bagian SQL di bawah).
+
+## Bagian A — Function CRUD di `lib/db.ts`
+
+Tambahkan function-function berikut, ikuti pola query Supabase yang sudah
+dipakai di function voucher/testimonial yang ada:
+
+```ts
+export type AdminVoucher = {
+  id: string;
+  classId: string;
+  className: string; // hasil join ke classes.title, untuk ditampilkan di tabel
+  code: string;
+  discountPrice: number;
+  isActive: boolean;
+  maxUses: number | null;
+  usedCount: number;
+};
+
+export async function listAllVouchersForAdmin(): Promise<AdminVoucher[]>
+// SELECT dari class_vouchers, JOIN ke classes(title), urutkan by created_at desc
+// (jika tidak ada kolom created_at, urutkan by code)
+
+export async function createVoucher(payload: {
+  classId: string;
+  code: string;
+  discountPrice: number;
+  maxUses: number | null;
+}): Promise<void>
+// INSERT ke class_vouchers, is_active default true, used_count default 0
+// Uppercase-kan code sebelum insert (kode voucher konvensinya huruf besar)
+
+export async function updateVoucher(
+  id: string,
+  payload: Partial<{ code: string; discountPrice: number; isActive: boolean; maxUses: number | null }>
+): Promise<void>
+// UPDATE by id, uppercase-kan code jika ada di payload
+
+export async function deleteVoucher(id: string): Promise<void>
+// DELETE by id
+```
+
+Untuk `listAllVouchersForAdmin`, gunakan join eksplisit ke `classes` untuk
+ambil `title`, contoh pola query (sesuaikan ke gaya Supabase client yang
+dipakai di file ini):
+```ts
+const { data, error } = await supabase
+  .from('class_vouchers')
+  .select('id, class_id, code, discount_price, is_active, max_uses, used_count, classes(title)')
+  .order('code');
+```
+
+## Bagian B — Halaman `AdminVouchersPage.tsx`
+
+Buat `artifacts/markaz-fiqh/src/pages/admin/AdminVouchersPage.tsx`, pola
+UI identik dengan `AdminTestimonialsPage.tsx`:
+
+- Table daftar voucher: kolom Kelas (nama, bukan UUID), Kode, Harga
+  Diskon (format rupiah), Status (badge Aktif/Nonaktif), Pemakaian
+  (`used_count / max_uses`, tampilkan "∞" kalau `max_uses` null), Aksi
+  (edit, toggle aktif/nonaktif via Switch, hapus dengan konfirmasi
+  AlertDialog).
+- Tombol "Tambah Voucher" buka Dialog form:
+  - Select kelas (dropdown, isi dari `listClasses` yang sudah ada,
+    tampilkan title)
+  - Input Kode Voucher (text, auto-uppercase saat mengetik untuk preview)
+  - Input Harga Diskon (number, format rupiah)
+  - Input Batas Pemakaian (number, kosongkan = tidak dibatasi)
+  - Validasi: harga diskon harus lebih kecil dari `base_price` kelas yang
+    dipilih — kalau tidak, tampilkan warning inline (tidak block submit,
+    cukup peringatan, karena mungkin ada kasus valid untuk itu) dengan
+    teks: "Harga diskon ini lebih tinggi/sama dengan harga normal kelas,
+    voucher jadi tidak masuk akal sebagai diskon."
+- Edit voucher pakai Dialog yang sama, prefill data existing.
+- Toggle aktif/nonaktif langsung dari table (tanpa buka dialog), pakai
+  `updateVoucher(id, { isActive })`.
+- Hapus voucher pakai AlertDialog konfirmasi, tampilkan warning kalau
+  `used_count > 0`: "Voucher ini sudah pernah dipakai N kali. Menghapusnya
+  tidak akan membatalkan transaksi yang sudah terjadi, hanya mencegah
+  pemakaian baru."
+
+## Bagian C — Routing & Sidebar
+
+1. Di `App.tsx`, tambahkan route `/admin/vouchers` mengarah ke
+   `AdminVouchersPage`, dibungkus `RequireAdminRoute` (pola sama seperti
+   route admin lain).
+2. Di `components/admin/AdminLayout.tsx`, tambahkan item menu baru
+   "Kelola Voucher" di sidebar admin, posisi setelah "Kelola Kelas".
+   Gunakan icon `Ticket` dari `lucide-react`.
+
+## Bagian D — SQL: Policy RLS untuk Admin
+
+Siapkan SQL berikut untuk saya jalankan manual di Supabase SQL Editor
+(class_vouchers saat ini cuma punya policy SELECT publik, belum ada
+policy untuk admin insert/update/delete):
+
+```sql
+CREATE POLICY "class_vouchers: admin bisa insert"
+  ON class_vouchers FOR INSERT
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM user_profiles
+      WHERE user_profiles.user_id = auth.uid()::text
+      AND user_profiles.is_admin = true
+    )
+  );
+
+CREATE POLICY "class_vouchers: admin bisa update"
+  ON class_vouchers FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1 FROM user_profiles
+      WHERE user_profiles.user_id = auth.uid()::text
+      AND user_profiles.is_admin = true
+    )
+  );
+
+CREATE POLICY "class_vouchers: admin bisa delete"
+  ON class_vouchers FOR DELETE
+  USING (
+    EXISTS (
+      SELECT 1 FROM user_profiles
+      WHERE user_profiles.user_id = auth.uid()::text
+      AND user_profiles.is_admin = true
+    )
+  );
+
+CREATE POLICY "class_vouchers: admin bisa baca semua"
+  ON class_vouchers FOR SELECT
+  USING (
+    is_active = true
+    OR EXISTS (
+      SELECT 1 FROM user_profiles
+      WHERE user_profiles.user_id = auth.uid()::text
+      AND user_profiles.is_admin = true
+    )
+  );
+```
+
+Catatan: policy SELECT publik yang lama (`is_active = true`) mungkin
+perlu di-drop dulu kalau nama policy-nya bentrok — cek dulu policy yang
+sudah ada dengan:
+```sql
+SELECT policyname FROM pg_policies WHERE tablename = 'class_vouchers';
+```
+sebelum CREATE POLICY baru, supaya tidak duplikat/konflik. Kalau ada
+policy SELECT lama dengan nama berbeda, drop dulu dengan
+`DROP POLICY IF EXISTS "nama_lama" ON class_vouchers;` sebelum bikin
+yang baru, supaya admin bisa lihat voucher non-aktif juga (voucher
+non-aktif tetap perlu tampil di admin panel biar bisa diaktifkan lagi).
+
+## Yang Tidak Boleh Berubah
+- Struktur tabel `class_vouchers` tidak diubah (tidak nambah/hapus
+  kolom).
+- Function `validateVoucher` dan `createCheckout` yang sudah ada di
+  checkout flow tidak disentuh.
+- Halaman lain (`AdminTestimonialsPage.tsx`,
+  `AdminDashboardMessagesPage.tsx`) hanya dijadikan referensi pola, tidak
+  diedit.
+
+## Setelah Selesai
+1. Konfirmasi halaman "Kelola Voucher" bisa diakses dari sidebar admin,
+   list voucher tampil dengan nama kelas (bukan UUID).
+2. Konfirmasi tambah/edit/hapus/toggle aktif voucher berfungsi.
+3. Tegaskan SQL policy RLS di atas perlu saya jalankan manual, dan minta
+   saya cek dulu policy SELECT lama sebelum jalankan (supaya tidak
+   konflik nama).
+4. Jalankan `pnpm run typecheck`, harus 0 error.
