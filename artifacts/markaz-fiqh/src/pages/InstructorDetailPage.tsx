@@ -88,6 +88,16 @@ function InstructorDetailContent({ id }: { id: string }) {
               </div>
             </div>
 
+            {/* Biografi Detail */}
+            {instructor.detailedBio && (
+              <div className="bg-card rounded-2xl border p-6 space-y-2">
+                <p className="text-sm font-semibold text-foreground">Biografi</p>
+                <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+                  {instructor.detailedBio}
+                </p>
+              </div>
+            )}
+
             {/* Classes section */}
             <div className="space-y-4">
               <h2 className="font-serif text-lg font-bold text-foreground">

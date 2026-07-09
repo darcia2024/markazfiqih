@@ -225,13 +225,14 @@ export async function listInstructors() {
 export async function listAllInstructorsForAdmin() {
   const { data, error } = await supabase
     .from('instructors')
-    .select('id, name, bio, photo_url, is_active, classes(id, status)')
+    .select('id, name, bio, detailed_bio, photo_url, is_active, classes(id, status)')
     .order('name');
   if (error) throw error;
   return (data ?? []).map((i: any) => ({
     id: i.id as string,
     name: i.name as string,
     bio: i.bio as string | null,
+    detailedBio: (i.detailed_bio ?? '') as string,
     photoUrl: i.photo_url as string,
     isActive: i.is_active as boolean,
     classCount: (i.classes ?? []).filter((c: any) => c.status === 'published').length as number,
@@ -243,11 +244,18 @@ export async function listAllInstructorsForAdmin() {
 export async function createInstructor(data: {
   name: string;
   bio?: string;
+  detailedBio?: string;
   photoUrl?: string;
 }) {
   const { data: created, error } = await supabase
     .from('instructors')
-    .insert({ name: data.name, bio: data.bio ?? null, photo_url: data.photoUrl ?? '', is_active: true })
+    .insert({
+      name: data.name,
+      bio: data.bio ?? null,
+      detailed_bio: data.detailedBio ?? '',
+      photo_url: data.photoUrl ?? '',
+      is_active: true,
+    })
     .select()
     .single();
   if (error) throw error;
@@ -256,11 +264,12 @@ export async function createInstructor(data: {
 
 export async function updateInstructor(
   id: string,
-  data: Partial<{ name: string; bio: string | null; photoUrl: string; isActive: boolean }>,
+  data: Partial<{ name: string; bio: string | null; detailedBio: string; photoUrl: string; isActive: boolean }>,
 ) {
   const patch: Record<string, unknown> = {};
   if (data.name !== undefined) patch.name = data.name;
   if ('bio' in data) patch.bio = data.bio;
+  if ('detailedBio' in data) patch.detailed_bio = data.detailedBio;
   if (data.photoUrl !== undefined) patch.photo_url = data.photoUrl;
   if (data.isActive !== undefined) patch.is_active = data.isActive;
   const { error } = await supabase.from('instructors').update(patch).eq('id', id);
@@ -1214,6 +1223,7 @@ export type PublicInstructor = {
 };
 
 export type InstructorWithClasses = PublicInstructor & {
+  detailedBio: string;
   classes: {
     id: string;
     title: string;
@@ -1240,7 +1250,7 @@ export async function listActiveInstructors(): Promise<PublicInstructor[]> {
 export async function getInstructorWithClasses(id: string): Promise<InstructorWithClasses | null> {
   const { data: instructor, error } = await supabase
     .from('instructors')
-    .select('id, name, bio, photo_url')
+    .select('id, name, bio, detailed_bio, photo_url')
     .eq('id', id)
     .eq('is_active', true)
     .maybeSingle();
@@ -1259,6 +1269,7 @@ export async function getInstructorWithClasses(id: string): Promise<InstructorWi
     id: instructor.id,
     name: instructor.name,
     bio: instructor.bio ?? '',
+    detailedBio: (instructor as any).detailed_bio ?? '',
     photoUrl: instructor.photo_url ?? '',
     classes: (classes ?? []).map((c: any) => ({
       id: c.id,

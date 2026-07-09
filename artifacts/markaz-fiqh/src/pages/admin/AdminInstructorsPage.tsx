@@ -40,6 +40,7 @@ type InstructorSummary = Awaited<ReturnType<typeof listAllInstructorsForAdmin>>[
 type InstructorFormState = {
   name: string;
   bio: string;
+  detailedBio: string;
   photoUrl: string;
   isActive: boolean;
 };
@@ -47,6 +48,7 @@ type InstructorFormState = {
 const EMPTY_FORM: InstructorFormState = {
   name: '',
   bio: '',
+  detailedBio: '',
   photoUrl: '',
   isActive: true,
 };
@@ -55,6 +57,7 @@ function instructorToForm(ins: InstructorSummary): InstructorFormState {
   return {
     name: ins.name,
     bio: ins.bio ?? '',
+    detailedBio: ins.detailedBio ?? '',
     photoUrl: ins.photoUrl ?? '',
     isActive: ins.isActive ?? true,
   };
@@ -87,7 +90,7 @@ export default function AdminInstructorsPage() {
     queryClient.invalidateQueries({ queryKey: ['instructors', 'admin'] });
 
   const createMutation = useMutation({
-    mutationFn: (payload: { name: string; bio?: string; photoUrl?: string }) =>
+    mutationFn: (payload: { name: string; bio?: string; detailedBio?: string; photoUrl?: string }) =>
       createInstructor(payload),
     onSuccess: () => {
       invalidateList();
@@ -160,6 +163,7 @@ export default function AdminInstructorsPage() {
     const payload = {
       name: form.name.trim(),
       bio: form.bio.trim() || undefined,
+      detailedBio: form.detailedBio.trim(),
       photoUrl: form.photoUrl.trim() || undefined,
       isActive: form.isActive,
     };
@@ -167,7 +171,12 @@ export default function AdminInstructorsPage() {
     if (editingInstructor) {
       updateMutation.mutate({ id: editingInstructor.id, data: payload });
     } else {
-      createMutation.mutate({ name: payload.name, bio: payload.bio, photoUrl: payload.photoUrl });
+      createMutation.mutate({
+        name: payload.name,
+        bio: payload.bio,
+        detailedBio: payload.detailedBio,
+        photoUrl: payload.photoUrl,
+      });
     }
   }
 
@@ -312,7 +321,7 @@ export default function AdminInstructorsPage() {
 
               {/* Bio */}
               <div className="space-y-2">
-                <Label htmlFor="instructor-bio">Bio (opsional)</Label>
+                <Label htmlFor="instructor-bio">Bio Singkat (opsional)</Label>
                 <Textarea
                   id="instructor-bio"
                   value={form.bio}
@@ -321,6 +330,22 @@ export default function AdminInstructorsPage() {
                   data-testid="input-instructor-bio"
                   rows={3}
                 />
+              </div>
+
+              {/* Biografi Detail */}
+              <div className="space-y-2">
+                <Label htmlFor="instructor-detailed-bio">Biografi Detail (opsional)</Label>
+                <Textarea
+                  id="instructor-detailed-bio"
+                  value={form.detailedBio}
+                  placeholder="Tuliskan riwayat pendidikan, pengalaman mengajar, karya, dan hal-hal lain yang ingin ditampilkan di halaman profil pengajar."
+                  onChange={(e) => setForm((p) => ({ ...p, detailedBio: e.target.value }))}
+                  data-testid="input-instructor-detailed-bio"
+                  rows={6}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Ditampilkan di halaman detail pengajar, di antara profil dan daftar kelas.
+                </p>
               </div>
 
               {/* Photo URL + Preview */}
