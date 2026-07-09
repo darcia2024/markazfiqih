@@ -1393,3 +1393,22 @@ export async function markVideoCompleted(params: {
     );
   if (error) throw error;
 }
+
+// ─── CATALOG LAYOUT ──────────────────────────────────────────────────────────
+
+/**
+ * Update display_order banyak kelas sekaligus secara paralel.
+ * Dipakai oleh halaman drag-and-drop "Atur Tata Letak Katalog".
+ * Kolom display_order sudah ada — tidak ada perubahan skema.
+ */
+export async function bulkUpdateDisplayOrder(
+  updates: { id: string; displayOrder: number }[],
+): Promise<void> {
+  const results = await Promise.all(
+    updates.map((u) =>
+      supabase.from('classes').update({ display_order: u.displayOrder }).eq('id', u.id),
+    ),
+  );
+  const firstError = results.find((r) => r.error)?.error;
+  if (firstError) throw firstError;
+}

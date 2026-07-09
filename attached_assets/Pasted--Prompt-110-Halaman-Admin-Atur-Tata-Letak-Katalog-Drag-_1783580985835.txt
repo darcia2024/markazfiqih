@@ -1,0 +1,153 @@
+# Prompt 110: Halaman Admin "Atur Tata Letak Katalog" (Drag-and-Drop)
+
+## Konteks
+Urutan kelas per kategori sudah bisa diatur lewat field "Urutan Tampil"
+(`display_order`) di form edit kelas (Prompt 89), tapi caranya buka
+dialog edit satu-satu dan ketik angka manual — kurang praktis kalau mau
+susun ulang banyak kelas sekaligus. Buat halaman admin baru khusus:
+drag-and-drop kelas langsung untuk atur urutan tampil di Katalog.
+
+Field `display_order` yang dipakai TETAP SAMA seperti yang sudah ada
+(TIDAK ada kolom baru) — halaman ini cuma cara baru yang lebih praktis
+untuk mengubah nilai kolom yang sudah ada itu.
+
+## Bagian A — Install Dependency
+
+Install `@dnd-kit/core` dan `@dnd-kit/sortable` (belum ada di
+package.json project ini):
+```bash
+npm install @dnd-kit/core @dnd-kit/sortable @dnd-kit/utilities
+```
+
+## Bagian B — Function di `lib/db.ts`
+
+```ts
+export async function bulkUpdateDisplayOrder(
+  updates: { id: string; displayOrder: number }[],
+): Promise<void> {
+  // Jalankan semua update secara paralel — cepat untuk jumlah kelas
+  // yang wajar (puluhan), tidak perlu batching kompleks
+  const results = await Promise.all(
+    updates.map((u) =>
+      supabase.from('classes').update({ display_order: u.displayOrder }).eq('id', u.id),
+    ),
+  );
+  const firstError = results.find((r) => r.error)?.error;
+  if (firstError) throw firstError;
+}
+```
+
+## Bagian C — Halaman `AdminCatalogLayoutPage.tsx`
+
+Buat `artifacts/markaz-fiqh/src/pages/admin/AdminCatalogLayoutPage.tsx`:
+
+1. **Fetch semua kelas** pakai `listClasses({ includeAll: true })` (fungsi
+   yang sudah ada), group berdasarkan `category` (mirip pola
+   `groupedByCategory` di `CatalogPage.tsx` — boleh comot logic
+   grouping-nya sebagai referensi, JANGAN import langsung dari
+   CatalogPage, duplikat logic sederhana ini di file baru).
+
+2. **Tab atau accordion per kategori** — satu grup drag-and-drop
+   terpisah untuk tiap kategori (Fiqih Tematik, Fiqih Kitab, Akademi,
+   dan kategori lain yang mungkin ada). Reorder HANYA berlaku di dalam
+   kategori yang sama (tidak bisa drag kelas dari satu kategori ke
+   kategori lain di halaman ini — kalau mau pindah kategori, tetap
+   lewat form edit kelas biasa).
+
+3. **Setup `@dnd-kit`**:
+   ```tsx
+   import {
+     DndContext, closestCenter, PointerSensor, useSensor, useSensors,
+   } from '@dnd-kit/core';
+   import {
+     SortableContext, verticalListSortingStrategy, useSortable, arrayMove,
+   } from '@dnd-kit/sortable';
+   import { CSS } from '@dnd-kit/utilities';
+   ```
+
+4. **Item yang bisa di-drag**, tampilkan cover thumbnail kecil + judul
+   kelas + handle drag (icon `GripVertical` dari lucide-react):
+   ```tsx
+   function SortableClassItem({ cls }: { cls: ClassRow }) {
+     const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+       useSortable({ id: cls.id });
+     const style = {
+       transform: CSS.Transform.toString(transform),
+       transition,
+       opacity: isDragging ? 0.5 : 1,
+     };
+     return (
+       <div
+         ref={setNodeRef}
+         style={style}
+         className="flex items-center gap-3 p-3 bg-card border rounded-lg"
+       >
+         <button {...attributes} {...listeners} className="cursor-grab touch-none text-muted-foreground">
+           <GripVertical className="w-4 h-4" />
+         </button>
+         <img src={cls.coverImage} alt="" className="w-10 h-12 object-cover rounded" />
+         <span className="flex-1 text-sm font-medium">{cls.title}</span>
+         <span className="text-xs text-muted-foreground">{cls.status === 'published' ? 'Published' : 'Draft'}</span>
+       </div>
+     );
+   }
+   ```
+
+5. **Handler drop**, langsung SIMPAN OTOMATIS ke database begitu drop
+   selesai (bukan tombol "Simpan" terpisah — sesuai ekspektasi umum
+   tool drag-and-drop, user langsung lihat hasilnya tersimpan):
+   ```tsx
+   function handleDragEnd(event: DragEndEvent, category: string) {
+     const { active, over } = event;
+     if (!over || active.id === over.id) return;
+
+     setGroupedClasses((prev) => {
+       const group = prev[category];
+       const oldIndex = group.findIndex((c) => c.id === active.id);
+       const newIndex = group.findIndex((c) => c.id === over.id);
+       const reordered = arrayMove(group, oldIndex, newIndex);
+
+       // Simpan display_order baru berdasar posisi (kelipatan 10 supaya
+       // ada celah untuk sisipan manual di masa depan lewat form edit)
+       const updates = reordered.map((c, idx) => ({ id: c.id, displayOrder: (idx + 1) * 10 }));
+       bulkUpdateDisplayOrderMutation.mutate(updates);
+
+       return { ...prev, [category]: reordered };
+     });
+   }
+   ```
+   Tambahkan mutation dengan `useMutation` + toast sukses/gagal, dan
+   `queryClient.invalidateQueries` untuk query classes terkait supaya
+   halaman Katalog yang sebenarnya ikut ter-refresh datanya.
+
+6. Loading state & empty state konsisten dengan halaman admin lain.
+
+## Bagian D — Routing & Sidebar
+
+1. `App.tsx`: tambahkan route `/admin/catalog-layout` →
+   `AdminCatalogLayoutPage`, dibungkus `RequireAdminRoute`.
+2. `components/admin/AdminLayout.tsx`: tambahkan menu "Atur Tata Letak
+   Katalog" (icon `LayoutGrid` dari lucide-react), posisi setelah
+   "Kelola Kelas".
+
+## Yang Tidak Boleh Berubah
+- Kolom `display_order` TIDAK berubah struktur, cuma cara mengedit
+  nilainya yang baru.
+- Field "Urutan Tampil" di form edit kelas biasa (`AdminClassesPage.tsx`)
+  TETAP ADA — halaman baru ini pelengkap, bukan pengganti.
+- Urutan kategori (Prompt 109, kalau sudah dikerjakan) TIDAK disentuh —
+  ini murni urutan kelas DI DALAM kategori.
+
+## Setelah Selesai
+1. Buka halaman "Atur Tata Letak Katalog", konfirmasi kelas ter-grup per
+   kategori dan bisa di-drag reorder dengan mouse.
+2. Drag salah satu kelas ke posisi baru, konfirmasi otomatis tersimpan
+   (cek toast sukses, refresh halaman, urutan tetap sesuai).
+3. Buka halaman Katalog sungguhan, konfirmasi urutan kelas di kategori
+   yang barusan diubah ikut berubah sesuai.
+4. Jalankan `pnpm run typecheck`, harus 0 error.
+
+## Deploy yang Perlu Dilakukan Manual
+- Tidak ada SQL untuk prompt ini (kolom `display_order` sudah ada dari
+  Prompt 89).
+- Tidak ada edge function yang disentuh.

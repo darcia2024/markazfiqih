@@ -26,6 +26,7 @@ import AdminManageAdminsPage from '@/pages/admin/AdminManageAdminsPage';
 import AdminDashboardMessagesPage from '@/pages/admin/AdminDashboardMessagesPage';
 import AdminVouchersPage from '@/pages/admin/AdminVouchersPage';
 import AdminUsersPage from '@/pages/admin/AdminUsersPage';
+import AdminCatalogLayoutPage from '@/pages/admin/AdminCatalogLayoutPage';
 import InstructorsPage from '@/pages/InstructorsPage';
 import InstructorDetailPage from '@/pages/InstructorDetailPage';
 import BundlesPage from '@/pages/BundlesPage';
@@ -78,6 +79,9 @@ function Router() {
       </Route>
       <Route path="/admin/users">
         {() => <RequireAdminRoute><AdminUsersPage /></RequireAdminRoute>}
+      </Route>
+      <Route path="/admin/catalog-layout">
+        {() => <RequireAdminRoute><AdminCatalogLayoutPage /></RequireAdminRoute>}
       </Route>
       <Route component={NotFound} />
     </Switch>
