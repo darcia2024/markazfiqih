@@ -125,7 +125,7 @@ export async function getClassById(id: string) {
     .from('classes')
     .select(`
       id, title, description, cover_image, base_price, discount_price,
-      status, level, category, youtube_playlist_id, gdrive_materi_url, wa_group_url, soal_latihan_url, ebook_url, meeting_count, display_order, reverse_video_order,
+      status, level, category, youtube_playlist_id, gdrive_materi_url, wa_group_url, soal_latihan_url, ebook_url, testimoni_form_url, meeting_count, display_order, reverse_video_order,
       instructors ( id, name, photo_url, bio ),
       modules (
         id, title, order_index,
@@ -189,6 +189,7 @@ export async function getClassById(id: string) {
     waGroupUrl: data.wa_group_url as string | null,
     soalLatihanUrl: data.soal_latihan_url as string | null,
     ebookUrl: data.ebook_url as string | null,
+    testimoniFormUrl: data.testimoni_form_url as string | null,
     displayOrder: (data.display_order ?? 0) as number,
     reverseVideoOrder: (data.reverse_video_order ?? false) as boolean,
     instructor: inst
@@ -921,7 +922,7 @@ export async function createClass(data: {
   category?: string | null; instructorId: string;
   youtubePlaylistId?: string | null; gdriveMateriUrl?: string | null;
   waGroupUrl?: string | null; soalLatihanUrl?: string | null;
-  ebookUrl?: string | null; meetingCount?: number | null;
+  ebookUrl?: string | null; testimoniFormUrl?: string | null; meetingCount?: number | null;
   displayOrder?: number | null; reverseVideoOrder?: boolean;
 }) {
   const { data: created, error } = await supabase
@@ -937,6 +938,7 @@ export async function createClass(data: {
       wa_group_url: data.waGroupUrl ?? null,
       soal_latihan_url: data.soalLatihanUrl ?? null,
       ebook_url: data.ebookUrl ?? null,
+      testimoni_form_url: data.testimoniFormUrl ?? null,
       meeting_count: data.meetingCount ?? null,
       display_order: data.displayOrder ?? 0,
       reverse_video_order: data.reverseVideoOrder ?? false,
@@ -955,7 +957,7 @@ export async function updateClass(
     category: string | null; instructorId: string;
     youtubePlaylistId: string | null; gdriveMateriUrl: string | null;
     waGroupUrl: string | null; soalLatihanUrl: string | null;
-    ebookUrl: string | null; meetingCount: number | null;
+    ebookUrl: string | null; testimoniFormUrl: string | null; meetingCount: number | null;
     displayOrder: number; reverseVideoOrder: boolean;
   }>,
 ) {
@@ -974,6 +976,7 @@ export async function updateClass(
   if ('waGroupUrl' in data) patch.wa_group_url = data.waGroupUrl;
   if ('soalLatihanUrl' in data) patch.soal_latihan_url = data.soalLatihanUrl;
   if ('ebookUrl' in data) patch.ebook_url = data.ebookUrl;
+  if ('testimoniFormUrl' in data) patch.testimoni_form_url = data.testimoniFormUrl;
   if ('meetingCount' in data) patch.meeting_count = data.meetingCount;
   if (data.displayOrder !== undefined) patch.display_order = data.displayOrder;
   if (data.reverseVideoOrder !== undefined) patch.reverse_video_order = data.reverseVideoOrder;

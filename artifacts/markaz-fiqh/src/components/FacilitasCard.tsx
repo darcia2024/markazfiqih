@@ -1,15 +1,16 @@
-import { BookOpen, ClipboardList, FileText, MessageCircle } from 'lucide-react';
+import { BookOpen, ClipboardList, FileText, MessageCircle, MessageSquareQuote } from 'lucide-react';
 
 interface FacilitasCardProps {
   gdriveMateriUrl?: string | null;
   waGroupUrl?: string | null;
   soalLatihanUrl?: string | null;
   ebookUrl?: string | null;
+  testimoniFormUrl?: string | null;
 }
 
-/** Render hanya jika minimal satu dari empat link terisi. */
-export function FacilitasCard({ gdriveMateriUrl, waGroupUrl, soalLatihanUrl, ebookUrl }: FacilitasCardProps) {
-  if (!gdriveMateriUrl && !waGroupUrl && !soalLatihanUrl && !ebookUrl) return null;
+/** Render hanya jika minimal satu dari lima link terisi. */
+export function FacilitasCard({ gdriveMateriUrl, waGroupUrl, soalLatihanUrl, ebookUrl, testimoniFormUrl }: FacilitasCardProps) {
+  if (!gdriveMateriUrl && !waGroupUrl && !soalLatihanUrl && !ebookUrl && !testimoniFormUrl) return null;
 
   return (
     <div className="p-6 space-y-3">
@@ -57,6 +58,17 @@ export function FacilitasCard({ gdriveMateriUrl, waGroupUrl, soalLatihanUrl, ebo
           >
             <BookOpen className="w-4 h-4 text-primary shrink-0" />
             Ebook
+          </a>
+        )}
+        {testimoniFormUrl && (
+          <a
+            href={testimoniFormUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 p-3 rounded-lg border border-border hover:border-primary hover:bg-[hsl(var(--brand-red-tint))] transition-colors w-full text-sm text-foreground"
+          >
+            <MessageSquareQuote className="w-4 h-4 text-primary shrink-0" />
+            Isi Testimoni
           </a>
         )}
       </div>

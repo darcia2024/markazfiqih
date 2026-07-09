@@ -70,6 +70,7 @@ type ClassFormState = {
   waGroupUrl: string;
   soalLatihanUrl: string;
   ebookUrl: string;
+  testimoniFormUrl: string;
   meetingCount: string;
   displayOrder: string;
   reverseVideoOrder: boolean;
@@ -90,6 +91,7 @@ const EMPTY_FORM: ClassFormState = {
   waGroupUrl: '',
   soalLatihanUrl: '',
   ebookUrl: '',
+  testimoniFormUrl: '',
   meetingCount: '',
   displayOrder: '0',
   reverseVideoOrder: false,
@@ -111,6 +113,7 @@ function classToForm(cls: ClassDetail): ClassFormState {
     waGroupUrl: cls.waGroupUrl ?? '',
     soalLatihanUrl: cls.soalLatihanUrl ?? '',
     ebookUrl: cls.ebookUrl ?? '',
+    testimoniFormUrl: cls.testimoniFormUrl ?? '',
     meetingCount: cls.meetingCount != null ? String(cls.meetingCount) : '',
     displayOrder: String(cls.displayOrder ?? 0),
     reverseVideoOrder: cls.reverseVideoOrder ?? false,
@@ -226,6 +229,7 @@ export default function AdminClassesPage() {
       waGroupUrl: '',
       soalLatihanUrl: '',
       ebookUrl: '',
+      testimoniFormUrl: '',
       meetingCount: '',
       displayOrder: String(cls.displayOrder ?? 0),
       reverseVideoOrder: false,
@@ -256,6 +260,7 @@ export default function AdminClassesPage() {
       waGroupUrl: form.waGroupUrl.trim() || null,
       soalLatihanUrl: form.soalLatihanUrl.trim() || null,
       ebookUrl: form.ebookUrl.trim() || null,
+      testimoniFormUrl: form.testimoniFormUrl.trim() || null,
       meetingCount: form.meetingCount ? parseInt(form.meetingCount, 10) : null,
       displayOrder: form.displayOrder ? parseInt(form.displayOrder, 10) : 0,
       reverseVideoOrder: form.reverseVideoOrder,
@@ -276,6 +281,7 @@ export default function AdminClassesPage() {
   }
 
   const isSaving = createMutation.isPending || updateMutation.isPending;
+  const isDetailLoading = !!editingClass && !editingClassDetail;
 
   return (
     <AdminLayout>
@@ -643,13 +649,24 @@ export default function AdminClassesPage() {
                   data-testid="input-class-ebook"
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="class-testimoni">Link Testimoni (Google Form)</Label>
+                <Input
+                  id="class-testimoni"
+                  type="url"
+                  placeholder="https://forms.gle/..."
+                  value={form.testimoniFormUrl}
+                  onChange={(e) => setForm((p) => ({ ...p, testimoniFormUrl: e.target.value }))}
+                  data-testid="input-class-testimoni"
+                />
+              </div>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
                 Batal
               </Button>
-              <Button type="submit" disabled={isSaving} data-testid="button-submit-class">
-                {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              <Button type="submit" disabled={isSaving || isDetailLoading} data-testid="button-submit-class">
+                {(isSaving || isDetailLoading) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 {editingClass ? 'Simpan Perubahan' : 'Tambah Kelas'}
               </Button>
             </DialogFooter>

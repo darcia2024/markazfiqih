@@ -611,7 +611,7 @@ export default function ClassDetailPage() {
                       </motion.div>
                     </div>
 
-                    {(cls.gdriveMateriUrl || cls.waGroupUrl || cls.soalLatihanUrl || cls.ebookUrl) && (
+                    {(cls.gdriveMateriUrl || cls.waGroupUrl || cls.soalLatihanUrl || cls.ebookUrl || cls.testimoniFormUrl) && (
                       <>
                         <Separator />
                         <FacilitasCard
@@ -619,6 +619,7 @@ export default function ClassDetailPage() {
                           waGroupUrl={cls.waGroupUrl}
                           soalLatihanUrl={cls.soalLatihanUrl}
                           ebookUrl={cls.ebookUrl}
+                          testimoniFormUrl={cls.testimoniFormUrl}
                         />
                       </>
                     )}

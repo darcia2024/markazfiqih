@@ -1,0 +1,115 @@
+# Prompt 116: Tambah Field "Nama" di Form Review Kelas
+
+## Konteks
+Sistem Review & Rating (Prompt 102, kalau sudah dikerjakan) menampilkan
+nama dari `user_profiles.nickname` otomatis, tanpa input eksplisit.
+Klien minta form pengisian review punya urutan tampilan yang jelas:
+**Bintang 1-5 → Nama → Ulasan**, dengan field Nama sebagai input
+terpisah yang terlihat jelas di form (bukan cuma otomatis dari akun).
+
+## Perubahan
+
+Cari komponen form submit review (dari Prompt 102, di
+`LearnPage.tsx`/`ClassDetailPage.tsx` bagian "Review & Ulasan"). Tambahkan
+input Nama EKSPLISIT di form, dengan default value dari nickname akun
+(supaya tidak perlu diketik ulang kalau memang sudah sesuai), tapi tetap
+BISA diedit manual oleh pengisi review:
+
+```tsx
+<div className="space-y-4">
+  {/* 1. Bintang rating */}
+  <StarRating rating={rating} interactive onChange={setRating} size="lg" />
+
+  {/* 2. Nama — TAMBAHAN BARU */}
+  <div className="space-y-1.5">
+    <Label htmlFor="review-name">Nama</Label>
+    <Input
+      id="review-name"
+      value={reviewerName}
+      onChange={(e) => setReviewerName(e.target.value)}
+      placeholder="Nama kamu"
+    />
+  </div>
+
+  {/* 3. Ulasan */}
+  <div className="space-y-1.5">
+    <Label htmlFor="review-comment">Ulasan</Label>
+    <Textarea
+      id="review-comment"
+      value={comment}
+      onChange={(e) => setComment(e.target.value)}
+      placeholder="Ceritakan pengalaman belajarmu di kelas ini..."
+    />
+  </div>
+
+  <Button onClick={handleSubmitReview}>Kirim Review</Button>
+</div>
+```
+
+`reviewerName` di-inisialisasi dari `user?.nickname ?? ''` saat form
+dibuka pertama kali.
+
+## Update `submitClassReview` di `lib/db.ts`
+
+Tambahkan parameter `reviewerName` yang disimpan ke kolom baru (BUKAN
+menimpa `user_profiles.nickname` akun secara permanen — nama di review
+ini spesifik untuk review itu saja, orangnya bisa saja ganti nama
+tampilan khusus untuk 1 review tanpa mengubah nickname akunnya secara
+global).
+
+### SQL Migrasi (Siapkan untuk Saya Jalankan Manual)
+```sql
+ALTER TABLE class_reviews ADD COLUMN IF NOT EXISTS reviewer_name TEXT;
+```
+
+Update function:
+```ts
+export async function submitClassReview(params: {
+  classId: string;
+  rating: number;
+  comment: string;
+  reviewerName: string;
+}): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Harus login untuk memberi review.');
+  const { error } = await supabase
+    .from('class_reviews')
+    .upsert(
+      {
+        class_id: params.classId,
+        user_id: user.id,
+        rating: params.rating,
+        comment: params.comment,
+        reviewer_name: params.reviewerName,
+      },
+      { onConflict: 'class_id,user_id' },
+    );
+  if (error) throw error;
+}
+```
+
+Update juga `listClassReviews` supaya menampilkan `reviewer_name` (kalau
+ada) sebagai prioritas nama yang ditampilkan, fallback ke
+`user_profiles.nickname` kalau `reviewer_name` kosong (untuk review lama
+sebelum field ini ada):
+```ts
+userDisplayName: r.reviewer_name || r.user_profiles?.nickname || 'Pelajar',
+```
+
+## Yang Tidak Boleh Berubah
+- `user_profiles.nickname` (nickname akun) TIDAK diubah oleh form ini.
+- Struktur tabel `class_reviews` lain (rating, comment, dst) tidak
+  berubah, hanya tambah 1 kolom.
+
+## Setelah Selesai
+1. Isi review baru, konfirmasi urutan form: Bintang → Nama (prefilled
+   dari nickname, bisa diedit) → Ulasan.
+2. Submit dengan nama yang diedit beda dari nickname akun, konfirmasi
+   nama yang tampil di list review sesuai yang diketik di form (bukan
+   nickname akun).
+3. Jalankan `pnpm run typecheck`, harus 0 error.
+4. Tegaskan SQL migrasi perlu saya jalankan manual dulu.
+
+## Catatan
+Prompt ini ASUMSI Prompt 102 (Sistem Review & Rating) sudah dikerjakan
+duluan. Kalau belum, kerjakan Prompt 102 dulu sebelum prompt ini.
