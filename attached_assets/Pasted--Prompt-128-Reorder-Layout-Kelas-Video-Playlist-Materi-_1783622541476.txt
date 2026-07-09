@@ -1,0 +1,88 @@
+# Prompt 128: Reorder Layout Kelas Video Playlist — Materi Kiri, Video Tengah, Pengajar Kanan
+
+## Konteks
+Layout desktop mode Video Playlist (kelas single-video, contoh: Fiqih
+Maulud) urutan kolomnya sekarang SALAH:
+- Kolom 1 (kiri): "Tentang Pengajar" + "Kelas Lainnya"
+- Kolom 2 (tengah): "Kelas Saya" back-link + judul kelas + progress +
+  Daftar Materi (list Pertemuan)
+- Kolom 3 (kanan): video player + breadcrumb pertemuan + deskripsi kelas
+  + tombol "Tandai Kelas Selesai"
+
+Klien minta diubah jadi:
+- **Kolom 1 (kiri)**: Daftar Materi (list "Pertemuan ke-N") — yang
+  sekarang di kolom tengah, PINDAH ke kiri.
+- **Kolom 2 (tengah, LEBIH BESAR)**: video player — yang sekarang di
+  kolom kanan, PINDAH ke tengah dan diperbesar jadi kolom utama.
+- **Kolom 3 (kanan)**: "Tentang Pengajar" — yang sekarang di kolom
+  kiri, PINDAH ke kanan. "Kelas Lainnya" TIDAK ikut pindah ke sini
+  (lihat poin berikutnya).
+- **DI BAWAH ketiga kolom** (full-width, bukan lagi bagian dari
+  kolom manapun): breadcrumb pertemuan ("PERTEMUAN KE-1 DARI 2" +
+  judul + tombol Sebelumnya/Selanjutnya), deskripsi kelas ("Fiqih
+  Maulud" + nama pengajar + paragraf deskripsi), tombol "Tandai Kelas
+  Selesai", DAN section "Kelas Lainnya: [Kategori]" (rekomendasi kelas
+  lain) — semua ini jadi 1 section full-width di bawah, BUKAN nempel di
+  salah satu kolom sempit seperti sekarang.
+
+## Langkah Kerja
+1. Cari struktur JSX untuk mode Video Playlist di `LearnPage.tsx` (fungsi
+   yang handle kelas dengan `videoIds`, BUKAN yang pakai `modules`/`dars`
+   — ada 2 mode berbeda di file ini sejak Prompt 122, PASTIKAN hanya
+   mengubah mode Video Playlist, mode Modul/Bab untuk kelas Fiqih Kitab
+   JANGAN ikut diubah layoutnya).
+2. Identifikasi 3 blok yang sekarang jadi kolom: (a) sidebar kiri berisi
+   "Kelas Saya" + judul + progress + Daftar Materi, (b) blok tengah
+   berisi breadcrumb + deskripsi + tombol selesai, (c) sidebar kanan
+   berisi video + "Tentang Pengajar" + "Kelas Lainnya" — CATATAN: urutan
+   fisik blok di kode mungkin tidak sama persis dengan urutan visual
+   sekarang (tergantung flex-order atau urutan DOM), jadi telusuri dulu
+   dengan cermat mana blok yang isinya video, mana yang isinya
+   Tentang Pengajar, dst, sebelum menyusun ulang.
+3. Susun ulang jadi grid 3 kolom BARU dengan proporsi lebar: kolom kiri
+   (Daftar Materi) tetap ramping (`w-80`/`w-96` seperti sebelumnya),
+   kolom tengah (video) JADI YANG PALING LEBAR (`flex-1`, ambil sisa
+   ruang), kolom kanan (Tentang Pengajar SAJA, tanpa "Kelas Lainnya")
+   ramping juga (`w-80`/`w-96`).
+4. Video player: pastikan ukurannya menyesuaikan lebar kolom tengah yang
+   baru (biasanya `aspect-video w-full` sudah otomatis menyesuaikan,
+   cukup pastikan container-nya tidak dibatasi max-width kecil seperti
+   sebelumnya).
+5. Pindahkan breadcrumb pertemuan + card deskripsi kelas + tombol
+   "Tandai Kelas Selesai" + section "Kelas Lainnya" jadi 1 blok
+   FULL-WIDTH di BAWAH grid 3 kolom (bukan lagi di dalam salah satu
+   kolom), pakai container terpisah dengan `max-w-*` yang wajar/konsisten
+   dengan lebar total 3 kolom di atasnya.
+
+## Yang Tidak Boleh Berubah
+- Mode Modul/Bab (kelas Fiqih Kitab) TIDAK ikut diubah — layout untuk
+  mode itu tetap seperti sekarang (sidebar kiri materi, video+konten di
+  kanan, TANPA kolom Pengajar terpisah — atau kalau Prompt 122 kemarin
+  sudah menambahkan kolom Pengajar juga di mode ini, PERTAHANKAN apa
+  adanya, JANGAN ikut di-reorder, prompt ini KHUSUS mode Video Playlist).
+- Konten di setiap bagian (Daftar Materi, video, Tentang Pengajar,
+  deskripsi, tombol) TIDAK berubah fungsinya, cuma POSISI/URUTAN
+  tampilannya yang berubah.
+- Versi mobile TIDAK boleh rusak — pastikan di layar kecil, urutan
+  tumpuk (stack) tetap masuk akal: video dulu di atas (paling penting
+  dilihat duluan di mobile), baru Daftar Materi, baru Tentang Pengajar,
+  baru deskripsi+kelas lainnya di paling bawah. Cek dan sesuaikan
+  breakpoint responsive yang ada supaya urutan mobile tetap nyaman
+  dipakai walau urutan desktop berubah total.
+
+## Setelah Selesai
+1. Buka kelas video playlist (misal Fiqih Maulud) di desktop, konfirmasi
+   urutan kolom: Daftar Materi (kiri) → Video besar (tengah) → Tentang
+   Pengajar (kanan).
+2. Scroll ke bawah, konfirmasi breadcrumb pertemuan + deskripsi kelas +
+   tombol Tandai Selesai + "Kelas Lainnya" semua tampil full-width
+   sebagai 1 section, bukan lagi nempel di kolom sempit.
+3. Cek di mobile, pastikan urutan tumpuk tetap masuk akal dan tidak ada
+   yang kepotong/rusak.
+4. Buka kelas Fiqih Kitab (modul/bab), konfirmasi TIDAK ADA perubahan
+   layout di mode ini.
+5. Jalankan `pnpm run typecheck`, harus 0 error.
+
+## Catatan
+Tidak ada SQL untuk prompt ini — murni reorganisasi layout JSX di
+frontend.
