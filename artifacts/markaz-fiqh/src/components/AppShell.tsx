@@ -35,10 +35,19 @@ function ProgressWidget({ enrollments }: { enrollments: EnrollmentItem[] }) {
   const totalOwned = enrollments.length;
   if (totalOwned === 0) return null;
 
-  const totalDarsAcross = enrollments.reduce((s, e) => s + e.class.totalDarsCount, 0);
-  const totalDoneDars = enrollments.reduce((s, e) => s + e.class.completedDarsCount, 0);
-  const overallProgress =
-    totalDarsAcross > 0 ? Math.round((totalDoneDars / totalDarsAcross) * 100) : 0;
+  // Rata-rata PER KELAS: tiap kelas kontribusinya setara 1 unit ke rata-rata,
+  // terlepas dari jumlah dars-nya. Kelas video tunggal (totalDarsCount = 0)
+  // dihitung selesai/belum berdasarkan enrollment.isCompleted, bukan diabaikan.
+  const perClassProgress = enrollments.map((e) => {
+    if (e.class.totalDarsCount > 0) {
+      return e.class.completedDarsCount / e.class.totalDarsCount;
+    }
+    return e.isCompleted ? 1 : 0;
+  });
+
+  const overallProgress = Math.round(
+    (perClassProgress.reduce((sum, p) => sum + p, 0) / totalOwned) * 100,
+  );
 
   return (
     <Link href="/dashboard">
