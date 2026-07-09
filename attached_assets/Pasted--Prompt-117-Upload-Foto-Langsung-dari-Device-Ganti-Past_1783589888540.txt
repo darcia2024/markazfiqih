@@ -1,0 +1,221 @@
+# Prompt 117: Upload Foto Langsung dari Device (Ganti Paste URL Manual)
+
+## Konteks
+Field foto pengajar ("URL Foto") dan cover kelas ("URL Gambar Sampul")
+sekarang cuma nerima link URL yang di-paste manual — admin harus hosting
+foto sendiri di tempat lain dulu (Google Drive, dll) baru copy link-nya.
+Ganti jadi bisa **upload file langsung dari device**, sekaligus tetap
+sediakan opsi paste URL manual untuk fleksibilitas (misal admin sudah
+punya link dari sumber lain).
+
+## Bagian A — Setup Supabase Storage Bucket (Siapkan untuk Saya Jalankan Manual)
+
+**Bagian ini TIDAK bisa lewat kode/Replit Agent** — bucket storage harus
+dibuat lewat Supabase Dashboard atau SQL Editor:
+
+```sql
+-- Bikin bucket baru khusus gambar yang diupload dari Admin Panel
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'admin-uploads',
+  'admin-uploads',
+  true,
+  5242880, -- 5MB
+  ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- RLS: publik boleh baca (supaya foto tampil ke semua pengunjung web)
+CREATE POLICY "admin-uploads: publik bisa baca"
+  ON storage.objects FOR SELECT
+  USING (bucket_id = 'admin-uploads');
+
+-- RLS: hanya admin yang boleh upload
+CREATE POLICY "admin-uploads: admin bisa upload"
+  ON storage.objects FOR INSERT
+  WITH CHECK (
+    bucket_id = 'admin-uploads'
+    AND EXISTS (
+      SELECT 1 FROM user_profiles
+      WHERE user_profiles.user_id = auth.uid()::text
+      AND user_profiles.is_admin = true
+    )
+  );
+
+-- RLS: hanya admin yang boleh hapus/ganti file
+CREATE POLICY "admin-uploads: admin bisa update"
+  ON storage.objects FOR UPDATE
+  USING (
+    bucket_id = 'admin-uploads'
+    AND EXISTS (
+      SELECT 1 FROM user_profiles
+      WHERE user_profiles.user_id = auth.uid()::text
+      AND user_profiles.is_admin = true
+    )
+  );
+
+CREATE POLICY "admin-uploads: admin bisa delete"
+  ON storage.objects FOR DELETE
+  USING (
+    bucket_id = 'admin-uploads'
+    AND EXISTS (
+      SELECT 1 FROM user_profiles
+      WHERE user_profiles.user_id = auth.uid()::text
+      AND user_profiles.is_admin = true
+    )
+  );
+```
+
+## Bagian B — Function Upload di `lib/db.ts`
+
+```ts
+export async function uploadAdminImage(file: File): Promise<string> {
+  const ext = file.name.split('.').pop();
+  const fileName = `${crypto.randomUUID()}.${ext}`;
+  const { error } = await supabase.storage
+    .from('admin-uploads')
+    .upload(fileName, file, { cacheControl: '3600', upsert: false });
+  if (error) throw error;
+
+  const { data } = supabase.storage.from('admin-uploads').getPublicUrl(fileName);
+  return data.publicUrl;
+}
+```
+
+## Bagian C — Komponen Reusable `ImageUploadField.tsx`
+
+Buat `artifacts/markaz-fiqh/src/components/ImageUploadField.tsx`:
+
+```tsx
+import { useState, useRef } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Upload, Loader2 } from 'lucide-react';
+import { uploadAdminImage } from '@/lib/db';
+import { toast } from '@/hooks/use-toast'; // sesuaikan import toast dengan yang sudah dipakai di project
+
+interface ImageUploadFieldProps {
+  value: string;
+  onChange: (url: string) => void;
+  previewClassName?: string; // untuk styling preview beda-beda (bulat utk foto, persegi utk cover)
+}
+
+export function ImageUploadField({ value, onChange, previewClassName }: ImageUploadFieldProps) {
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: 'Ukuran file terlalu besar', description: 'Maksimal 5MB', variant: 'destructive' });
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const url = await uploadAdminImage(file);
+      onChange(url);
+      toast({ title: 'Foto berhasil diupload' });
+    } catch (error) {
+      toast({ title: 'Gagal upload foto', description: (error as Error).message, variant: 'destructive' });
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-3">
+        {value ? (
+          <img src={value} alt="" className={previewClassName ?? 'w-16 h-16 rounded-full object-cover border'} />
+        ) : (
+          <div className={previewClassName ?? 'w-16 h-16 rounded-full bg-muted flex items-center justify-center text-muted-foreground text-xs'}>
+            No image
+          </div>
+        )}
+        <div className="flex-1 space-y-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={isUploading}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {isUploading ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Upload className="w-4 h-4 mr-2" />
+            )}
+            {isUploading ? 'Mengupload...' : 'Upload dari Device'}
+          </Button>
+        </div>
+      </div>
+      <div className="space-y-1">
+        <p className="text-xs text-muted-foreground">atau tempel URL manual</p>
+        <Input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="https://example.com/foto.jpg"
+        />
+      </div>
+    </div>
+  );
+}
+```
+(Sesuaikan import `toast` dengan pola yang sudah dipakai di project ini
+— cek `AdminTestimonialsPage.tsx` atau file admin lain untuk pola toast
+yang benar, JANGAN asumsikan path importnya kalau ternyata beda.)
+
+## Bagian D — Pasang di Form Pengajar & Form Kelas
+
+1. **`AdminInstructorsPage.tsx`** (atau nama file yang benar untuk form
+   pengajar): ganti input teks "URL Foto" jadi:
+   ```tsx
+   <ImageUploadField
+     value={form.photoUrl}
+     onChange={(url) => setForm({ ...form, photoUrl: url })}
+     previewClassName="w-16 h-16 rounded-full object-cover border"
+   />
+   ```
+
+2. **`AdminClassesPage.tsx`**: ganti input teks "URL Gambar Sampul" jadi:
+   ```tsx
+   <ImageUploadField
+     value={form.coverImage}
+     onChange={(url) => setForm({ ...form, coverImage: url })}
+     previewClassName="w-16 h-20 rounded object-cover border"
+   />
+   ```
+
+## Yang Tidak Boleh Berubah
+- Field `photo_url`/`cover_image` di database TETAP menyimpan STRING URL
+  biasa (bukan berubah tipe data) — cuma URL-nya sekarang bisa berasal
+  dari Supabase Storage ATAU tetap dari link eksternal yang di-paste
+  manual, dua-duanya valid.
+- Foto/cover yang SUDAH ADA (masih pakai URL eksternal lama) TIDAK perlu
+  diubah, tetap tampil normal karena tetap string URL biasa.
+
+## Setelah Selesai
+1. Buka form edit pengajar, klik "Upload dari Device", pilih foto dari
+   komputer, konfirmasi preview berubah dan tersimpan setelah form
+   disubmit.
+2. Konfirmasi opsi "tempel URL manual" di bawahnya tetap berfungsi kalau
+   ingin pakai link eksternal.
+3. Test yang sama di form Kelola Kelas untuk cover image.
+4. Test upload file > 5MB, konfirmasi ditolak dengan pesan jelas.
+5. Test upload file non-gambar (misal .pdf), konfirmasi ditolak oleh
+   `accept` attribute / validasi MIME type bucket.
+6. Jalankan `pnpm run typecheck`, harus 0 error.
+7. Tegaskan SQL Bagian A (bikin bucket + RLS) HARUS saya jalankan dulu
+   sebelum fitur ini bisa dipakai sama sekali — tanpa bucket, upload
+   akan selalu gagal.

@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Plus, Pencil, Trash2, Loader2, UserCog } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { ImageUploadField } from '@/components/ImageUploadField';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   listAllInstructorsForAdmin,
@@ -348,28 +349,14 @@ export default function AdminInstructorsPage() {
                 </p>
               </div>
 
-              {/* Photo URL + Preview */}
+              {/* Photo URL + Upload */}
               <div className="space-y-2">
-                <Label htmlFor="instructor-photo">URL Foto (opsional)</Label>
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-11 w-11 shrink-0 border border-border">
-                    <AvatarImage src={form.photoUrl || undefined} alt={form.name} />
-                    <AvatarFallback className="bg-primary/10 text-primary font-bold text-sm">
-                      {form.name ? getInitials(form.name) : '?'}
-                    </AvatarFallback>
-                  </Avatar>
-                  <Input
-                    id="instructor-photo"
-                    type="url"
-                    value={form.photoUrl}
-                    placeholder="https://example.com/foto.jpg"
-                    onChange={(e) => setForm((p) => ({ ...p, photoUrl: e.target.value }))}
-                    data-testid="input-instructor-photo"
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Preview foto di sebelah kiri akan otomatis berubah saat URL diisi.
-                </p>
+                <Label>Foto Pengajar (opsional)</Label>
+                <ImageUploadField
+                  value={form.photoUrl}
+                  onChange={(url) => setForm((p) => ({ ...p, photoUrl: url }))}
+                  previewClassName="w-16 h-16 rounded-full object-cover border"
+                />
               </div>
 
               {/* Toggle Aktif — hanya tampil saat edit, bukan tambah baru */}

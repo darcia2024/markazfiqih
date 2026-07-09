@@ -41,6 +41,7 @@ import {
 import { Plus, Search, Pencil, Trash2, Loader2 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
+import { ImageUploadField } from '@/components/ImageUploadField';
 import { formatPrice } from '@/pages/CatalogPage';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -457,12 +458,11 @@ export default function AdminClassesPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="class-cover">URL Gambar Sampul</Label>
-                <Input
-                  id="class-cover"
+                <Label>Gambar Sampul</Label>
+                <ImageUploadField
                   value={form.coverImage}
-                  onChange={(e) => setForm((p) => ({ ...p, coverImage: e.target.value }))}
-                  data-testid="input-class-cover"
+                  onChange={(url) => setForm((p) => ({ ...p, coverImage: url }))}
+                  previewClassName="w-16 h-20 rounded object-cover border"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">

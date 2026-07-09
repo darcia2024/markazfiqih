@@ -1354,6 +1354,20 @@ export async function submitClassReview(params: {
   if (error) throw error;
 }
 
+// ── Storage ────────────────────────────────────────────────────────────────────
+
+export async function uploadAdminImage(file: File): Promise<string> {
+  const ext = file.name.split('.').pop();
+  const fileName = `${crypto.randomUUID()}.${ext}`;
+  const { error } = await supabase.storage
+    .from('admin-uploads')
+    .upload(fileName, file, { cacheControl: '3600', upsert: false });
+  if (error) throw error;
+
+  const { data } = supabase.storage.from('admin-uploads').getPublicUrl(fileName);
+  return data.publicUrl;
+}
+
 /** Bulk rating summary untuk Katalog — 1 query untuk semua kelas */
 export async function listClassRatings(): Promise<Record<string, { averageRating: number; totalReviews: number }>> {
   const { data, error } = await supabase
