@@ -50,6 +50,7 @@ import {
 import { AppShell } from '@/components/AppShell';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { FacilitasCard } from '@/components/FacilitasCard';
+import { ClassReviewSection } from '@/components/ClassReviewSection';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -549,23 +550,97 @@ function PlaylistMode({
     </div>
   );
 
-  // ── Prompt 128: "Tentang Pengajar" + Fasilitas SAJA (tanpa "Kelas Lainnya",
-  //    yang sekarang jadi section full-width terpisah di bawah grid 3 kolom) ──
-  const InstructorAndFacilitasCards = () => (
-    <>
-      <InstructorCard />
-      {(gdriveMateriUrl || waGroupUrl || soalLatihanUrl || ebookUrl || testimoniFormUrl) && (
-        <div className="bg-card rounded-2xl border overflow-hidden">
-          <FacilitasCard
-            gdriveMateriUrl={gdriveMateriUrl}
-            waGroupUrl={waGroupUrl}
-            soalLatihanUrl={soalLatihanUrl}
-            ebookUrl={ebookUrl}
-            testimoniFormUrl={testimoniFormUrl}
-          />
+  // ── Prompt 131: card "Kelas Saya" + progress + Daftar Pertemuan — dipakai
+  //    ulang di kolom kanan sticky (desktop) & kolom kiri (mobile, di bawah
+  //    card video). Styling & fungsi navigasi SAMA seperti sebelumnya
+  //    (Prompt 107/122), cuma posisinya yang berpindah. ──
+  const DaftarPertemuanCard = () => (
+    <div className="bg-card rounded-2xl border flex flex-col overflow-hidden">
+      {/* Header */}
+      <div className="p-4 border-b space-y-3 bg-card">
+        <Link
+          href="/my-classes"
+          className="inline-flex items-center text-xs font-medium text-muted-foreground hover:text-primary transition-colors"
+        >
+          <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
+          Kelas Saya
+        </Link>
+        <h2 className="font-serif text-sm font-bold text-foreground line-clamp-2 leading-snug">
+          {classTitle}
+        </h2>
+        {/* Progress bar — pakai data completedIndexes dari Prompt 107 */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">Progress belajar</span>
+            <span className="font-bold text-primary">{playlistProgressPct}%</span>
+          </div>
+          <div className="h-2 bg-muted rounded-full overflow-hidden">
+            <motion.div
+              className="h-full bg-primary rounded-full"
+              initial={{ width: 0 }}
+              animate={{ width: `${playlistProgressPct}%` }}
+              transition={{ duration: 0.6, ease: 'easeOut' }}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {completedIndexes.size} dari {videoIds?.length ?? '…'} pertemuan selesai
+          </p>
         </div>
-      )}
-    </>
+      </div>
+
+      {/* Daftar pertemuan (scrollable) — ikon & styling identik dengan dars Modul/Bab */}
+      <nav className="max-h-[420px] lg:max-h-[calc(100vh-22rem)] overflow-y-auto py-2">
+        {!videoIds && !metaError && (
+          <div className="flex items-center gap-3 px-4 py-3 text-muted-foreground text-sm">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Memuat daftar video...
+          </div>
+        )}
+        {metaError && (
+          <p className="px-4 py-3 text-sm text-muted-foreground">
+            Gagal memuat daftar video.
+          </p>
+        )}
+        {videoIds &&
+          videoIds.map((_, i) => {
+            const isActive = i === currentIndex;
+            const isDone = completedIndexes.has(i);
+            return (
+              <div key={i}>
+                <button
+                  onClick={() => goToIndex(i)}
+                  className={`w-full flex items-start gap-3 px-5 py-2.5 text-left text-sm transition-colors duration-150 ${
+                    isActive
+                      ? 'bg-primary/10 border-l-2 border-primary'
+                      : 'hover:bg-muted/40 border-l-2 border-transparent'
+                  }`}
+                >
+                  <div className="shrink-0 mt-0.5">
+                    {isActive ? (
+                      <PlayCircle className="w-4 h-4 text-primary" fill="currentColor" />
+                    ) : isDone ? (
+                      <CheckCircle2 className="w-4 h-4 text-success" />
+                    ) : (
+                      <Circle className="w-4 h-4 text-muted-foreground/40" />
+                    )}
+                  </div>
+                  <p
+                    className={`leading-snug flex-1 min-w-0 ${
+                      isActive
+                        ? 'font-semibold text-primary'
+                        : isDone
+                        ? 'text-foreground/80'
+                        : 'text-foreground/70'
+                    }`}
+                  >
+                    {meetingTitles.get(i)?.title || `Pertemuan ke-${i + 1}`}
+                  </p>
+                </button>
+              </div>
+            );
+          })}
+      </nav>
+    </div>
   );
 
   const KelasLainnyaSection = () =>
@@ -598,251 +673,192 @@ function PlaylistMode({
 
   return (
     <AppShell>
-      <div className="flex-1 flex flex-col">
-        {/* ── Prompt 128: grid 3 kolom — Daftar Materi (kiri) | Video (tengah,
-            paling lebar) | Tentang Pengajar (kanan). Di mobile, urutan tumpuk:
-            video dulu, lalu Daftar Materi, lalu Tentang Pengajar. Breadcrumb,
-            deskripsi kelas, tombol selesai, dan "Kelas Lainnya" dipindah jadi
-            section full-width TERPISAH di bawah grid ini (lihat setelah </div> ini). ── */}
-        <div className="flex flex-col lg:flex-row">
-
-        {/* ── Kolom kiri: navigasi pertemuan (Daftar Materi) ───────────────────
-            Di desktop: sticky di kiri, sama persis gaya Sidebar mode Modul/Bab.
-            Di mobile: muncul SETELAH video (order-2). */}
-        <div className="order-2 lg:order-1 w-full lg:w-auto">
-          <aside className="w-full lg:w-80 xl:w-96 shrink-0 border-r bg-card flex flex-col lg:h-[calc(100vh-4rem)] lg:sticky lg:top-16 overflow-hidden">
-            {/* Header */}
-            <div className="p-4 border-b space-y-3 bg-card">
-              <Link
-                href="/my-classes"
-                className="inline-flex items-center text-xs font-medium text-muted-foreground hover:text-primary transition-colors"
-              >
-                <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
-                Kelas Saya
-              </Link>
-              <h2 className="font-serif text-sm font-bold text-foreground line-clamp-2 leading-snug">
-                {classTitle}
-              </h2>
-              {/* Progress bar — pakai data completedIndexes dari Prompt 107 */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Progress belajar</span>
-                  <span className="font-bold text-primary">{playlistProgressPct}%</span>
-                </div>
-                <div className="h-2 bg-muted rounded-full overflow-hidden">
-                  <motion.div
-                    className="h-full bg-primary rounded-full"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${playlistProgressPct}%` }}
-                    transition={{ duration: 0.6, ease: 'easeOut' }}
-                  />
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {completedIndexes.size} dari {videoIds?.length ?? '…'} pertemuan selesai
-                </p>
+      {/* ── Prompt 131: layout 2 kolom — GANTI grid 3 kolom Prompt 128.
+          Kolom KIRI (lebar, flex-1): video+breadcrumb+judul+deskripsi+tombol
+          selesai jadi 1 card menyatu, lalu di bawahnya card "Tentang
+          Pengajar" yang diperluas (rating pengajar + Review & Komentar).
+          Kolom KANAN (sempit, w-80/xl:w-96, sticky): card "Kelas Saya" +
+          Daftar Pertemuan, lalu di bawahnya "Kelas Lainnya".
+          Mobile: stack vertikal — video dulu, lalu breadcrumb+judul+tombol
+          selesai, lalu Daftar Pertemuan, lalu Tentang Pengajar+Review, lalu
+          Kelas Lainnya paling bawah (diatur lewat urutan DOM + `lg:order-*`). */}
+      <div className="flex-1 container mx-auto px-4 lg:px-8 py-6">
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* ── Kolom kiri (lebar) ────────────────────────────────────────────
+              Satu flex-col tunggal — urutan mobile diatur SELURUHNYA lewat
+              class `order-*` di sini (termasuk "Kelas Lainnya" di order-5),
+              bukan lewat container terpisah, supaya sesuai spesifikasi. */}
+          <div className="flex-1 min-w-0 flex flex-col gap-6">
+            {/* Video + breadcrumb pertemuan + judul + deskripsi + tombol
+                "Tandai Kelas Selesai" — 1 card menyatu (order-1, paling atas
+                di mobile juga karena video paling penting dilihat duluan). */}
+            <div className="order-1 bg-card rounded-2xl border overflow-hidden">
+              <div className="w-full aspect-video overflow-hidden bg-black relative">
+                {metaError ? (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-zinc-400 px-6 text-center">
+                    <Video className="w-12 h-12 opacity-30" />
+                    <p className="text-sm font-medium opacity-60">
+                      Gagal memuat video. Silakan reload halaman.
+                    </p>
+                  </div>
+                ) : (
+                  <div id="yt-video-container" className="w-full h-full" />
+                )}
               </div>
-            </div>
+              {/* Player tersembunyi, dipakai sekali membaca daftar video lewat getPlaylist() */}
+              <div id="yt-meta-container" className="sr-only" aria-hidden="true" />
 
-            {/* Daftar pertemuan (scrollable) — ikon & styling identik dengan dars Modul/Bab */}
-            <nav className="flex-1 overflow-y-auto py-2">
-              {!videoIds && !metaError && (
-                <div className="flex items-center gap-3 px-4 py-3 text-muted-foreground text-sm">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Memuat daftar video...
-                </div>
-              )}
-              {metaError && (
-                <p className="px-4 py-3 text-sm text-muted-foreground">
-                  Gagal memuat daftar video.
-                </p>
-              )}
-              {videoIds &&
-                videoIds.map((_, i) => {
-                  const isActive = i === currentIndex;
-                  const isDone = completedIndexes.has(i);
-                  return (
-                    <div key={i}>
-                      <button
-                        onClick={() => goToIndex(i)}
-                        className={`w-full flex items-start gap-3 px-5 py-2.5 text-left text-sm transition-colors duration-150 ${
-                          isActive
-                            ? 'bg-primary/10 border-l-2 border-primary'
-                            : 'hover:bg-muted/40 border-l-2 border-transparent'
-                        }`}
-                      >
-                        <div className="shrink-0 mt-0.5">
-                          {isActive ? (
-                            <PlayCircle className="w-4 h-4 text-primary" fill="currentColor" />
-                          ) : isDone ? (
-                            <CheckCircle2 className="w-4 h-4 text-success" />
-                          ) : (
-                            <Circle className="w-4 h-4 text-muted-foreground/40" />
-                          )}
-                        </div>
-                        <p
-                          className={`leading-snug flex-1 min-w-0 ${
-                            isActive
-                              ? 'font-semibold text-primary'
-                              : isDone
-                              ? 'text-foreground/80'
-                              : 'text-foreground/70'
-                          }`}
-                        >
-                          {meetingTitles.get(i)?.title || `Pertemuan ke-${i + 1}`}
+              <div className="p-6 space-y-4">
+                {/* Breadcrumb pertemuan + tombol navigasi */}
+                {videoIds && videoIds.length > 0 && currentIndex !== null && (
+                  <div className="flex items-center justify-between gap-4 flex-wrap pb-4 border-b">
+                    <div>
+                      <p className="text-xs font-medium text-primary uppercase tracking-wide">
+                        Pertemuan ke-{currentIndex + 1} dari {videoIds.length}
+                      </p>
+                      <h2 className="font-serif text-lg font-bold text-foreground mt-0.5">
+                        {meetingTitles.get(currentIndex)?.title || `Pertemuan ke-${currentIndex + 1}`}
+                      </h2>
+                      {meetingTitles.get(currentIndex)?.description && (
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {meetingTitles.get(currentIndex)?.description}
                         </p>
-                      </button>
+                      )}
                     </div>
-                  );
-                })}
-            </nav>
-          </aside>
-        </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={currentIndex <= 0}
+                        onClick={() => goToIndex(currentIndex - 1)}
+                        className="gap-1"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                        Sebelumnya
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={currentIndex >= videoIds.length - 1}
+                        onClick={() => goToIndex(currentIndex + 1)}
+                        className="gap-1"
+                      >
+                        Selanjutnya
+                        <ChevronRight className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
 
-        {/* ── Kolom tengah: video SAJA — kolom paling lebar (flex-1) ──────────
-            Di desktop: di tengah (order-2). Di mobile: PALING ATAS (order-1),
-            karena video paling penting dilihat duluan. */}
-        <main className="order-1 lg:order-2 flex-1 min-w-0 flex flex-col gap-6 px-4 lg:px-8 py-6">
-          {/* Video
-              CATATAN: YT IFrame API dipakai supaya bisa baca/tulis posisi playback.
-              Video dimuat SATU per satu — lihat komentar PlaylistMode untuk detail privasi. */}
-          <div className="w-full aspect-video rounded-[14px] overflow-hidden bg-black relative">
-            {metaError ? (
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-zinc-400 px-6 text-center">
-                <Video className="w-12 h-12 opacity-30" />
-                <p className="text-sm font-medium opacity-60">
-                  Gagal memuat video. Silakan reload halaman.
-                </p>
-              </div>
-            ) : (
-              <div id="yt-video-container" className="w-full h-full" />
-            )}
-          </div>
-          {/* Player tersembunyi, dipakai sekali membaca daftar video lewat getPlaylist() */}
-          <div id="yt-meta-container" className="sr-only" aria-hidden="true" />
-        </main>
-
-        {/* ── Kolom kanan: Tentang Pengajar + Fasilitas SAJA ────────────────────
-            Tampil di mobile JUGA (bukan hidden), tapi urutannya SETELAH Daftar
-            Materi (order-3). "Kelas Lainnya" TIDAK di sini lagi (Prompt 128). */}
-        <aside className="order-3 flex flex-col gap-4 w-full lg:w-[320px] shrink-0 p-4 py-6">
-          <InstructorAndFacilitasCards />
-        </aside>
-        </div>
-
-        {/* ── Prompt 128: section FULL-WIDTH di bawah grid 3 kolom ─────────────
-            Breadcrumb pertemuan + deskripsi kelas + tombol "Tandai Kelas
-            Selesai" + "Kelas Lainnya" — semua jadi 1 section full-width,
-            bukan lagi bagian dari salah satu kolom sempit. Tampil PALING
-            BAWAH di mobile juga. */}
-        <div className="w-full px-4 lg:px-8 py-6 max-w-5xl mx-auto lg:mx-0 flex flex-col gap-6">
-          {/* Breadcrumb pertemuan + tombol navigasi */}
-          {videoIds && videoIds.length > 0 && currentIndex !== null && (
-            <div className="bg-card rounded-2xl border p-6">
-              <div className="flex items-center justify-between gap-4 flex-wrap">
-                <div>
-                  <p className="text-xs font-medium text-primary uppercase tracking-wide">
-                    Pertemuan ke-{currentIndex + 1} dari {videoIds.length}
-                  </p>
-                  <h2 className="font-serif text-lg font-bold text-foreground mt-0.5">
-                    {meetingTitles.get(currentIndex)?.title || `Pertemuan ke-${currentIndex + 1}`}
-                  </h2>
-                  {meetingTitles.get(currentIndex)?.description && (
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {meetingTitles.get(currentIndex)?.description}
+                {/* Judul kelas, deskripsi, tombol "Tandai Kelas Selesai" */}
+                <div className="space-y-1">
+                  <h1 className="font-serif text-2xl font-bold text-foreground leading-snug">
+                    {classTitle}
+                  </h1>
+                  <p className="text-sm text-muted-foreground">{instructorName}</p>
+                  {watchedPercent > 0 && (
+                    <div className="space-y-1.5 pt-1">
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>Progres menonton</span>
+                        <span className="font-medium">{watchedPercent}%</span>
+                      </div>
+                      <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-primary transition-all duration-500"
+                          style={{ width: `${watchedPercent}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  {classDescription && (
+                    <p className="text-sm text-muted-foreground leading-relaxed pt-1">
+                      {classDescription}
                     </p>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={currentIndex <= 0}
-                    onClick={() => goToIndex(currentIndex - 1)}
-                    className="gap-1"
+
+                {isCompleted ? (
+                  <div className="inline-flex items-center gap-2 rounded-lg bg-success-pale border border-success-pale px-4 py-3">
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: 'spring', stiffness: 400, damping: 10 }}
+                    >
+                      <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
+                    </motion.div>
+                    <span className="font-semibold text-success">Kelas telah ditandai selesai</span>
+                  </div>
+                ) : (
+                  <motion.div
+                    className="inline-block"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    transition={{ duration: 0.15 }}
                   >
-                    <ChevronLeft className="w-4 h-4" />
-                    Sebelumnya
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={currentIndex >= videoIds.length - 1}
-                    onClick={() => goToIndex(currentIndex + 1)}
-                    className="gap-1"
-                  >
-                    Selanjutnya
-                    <ChevronRight className="w-4 h-4" />
-                  </Button>
-                </div>
+                    <Button
+                      size="lg"
+                      onClick={() => enrollmentId && completeEnrollmentMutate({ enrollmentId })}
+                      disabled={isCompleting || !enrollmentId}
+                      className="gap-2"
+                    >
+                      {isCompleting ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="w-4 h-4" />
+                      )}
+                      Tandai Kelas Selesai
+                    </Button>
+                  </motion.div>
+                )}
               </div>
             </div>
-          )}
 
-          {/* Info panel: judul kelas, deskripsi, tombol "Tandai Kelas Selesai" */}
-          <div className="bg-card rounded-2xl border p-6 space-y-4">
-            <div className="space-y-1">
-              <h1 className="font-serif text-2xl font-bold text-foreground leading-snug">
-                {classTitle}
-              </h1>
-              <p className="text-sm text-muted-foreground">{instructorName}</p>
-              {watchedPercent > 0 && (
-                <div className="space-y-1.5 pt-1">
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>Progres menonton</span>
-                    <span className="font-medium">{watchedPercent}%</span>
-                  </div>
-                  <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-primary transition-all duration-500"
-                      style={{ width: `${watchedPercent}%` }}
-                    />
-                  </div>
-                </div>
-              )}
-              {classDescription && (
-                <p className="text-sm text-muted-foreground leading-relaxed pt-1">
-                  {classDescription}
-                </p>
-              )}
+            {/* Daftar Pertemuan — di mobile tampil SETELAH card video (order-2),
+                sebelum Tentang Pengajar. Di desktop pindah ke kolom kanan
+                (hidden di sini lewat `lg:hidden`, lihat duplikatnya di kolom
+                kanan dengan `hidden lg:block`). */}
+            <div className="order-2 lg:hidden">
+              <DaftarPertemuanCard />
             </div>
 
-            {isCompleted ? (
-              <div className="inline-flex items-center gap-2 rounded-lg bg-success-pale border border-success-pale px-4 py-3">
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 10 }}
-                >
-                  <CheckCircle2 className="w-5 h-5 text-success shrink-0" />
-                </motion.div>
-                <span className="font-semibold text-success">Kelas telah ditandai selesai</span>
+            {/* Tentang Pengajar — diperluas: foto+bio+rating pengajar DAN
+                Review & Komentar kelas (Prompt 102/116) menyatu di card yang
+                sama (order-3, di mobile setelah Daftar Pertemuan). */}
+            <div className="order-3 bg-card rounded-2xl border p-5 space-y-6">
+              <InstructorCard />
+              <div className="pt-2 border-t">
+                <ClassReviewSection classId={classId} currentUserId={userId} variant="card" />
               </div>
-            ) : (
-              <motion.div
-                className="inline-block"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                transition={{ duration: 0.15 }}
-              >
-                <Button
-                  size="lg"
-                  onClick={() => enrollmentId && completeEnrollmentMutate({ enrollmentId })}
-                  disabled={isCompleting || !enrollmentId}
-                  className="gap-2"
-                >
-                  {isCompleting ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <CheckCircle2 className="w-4 h-4" />
-                  )}
-                  Tandai Kelas Selesai
-                </Button>
-              </motion.div>
+            </div>
+
+            {(gdriveMateriUrl || waGroupUrl || soalLatihanUrl || ebookUrl || testimoniFormUrl) && (
+              <div className="order-4 bg-card rounded-2xl border overflow-hidden">
+                <FacilitasCard
+                  gdriveMateriUrl={gdriveMateriUrl}
+                  waGroupUrl={waGroupUrl}
+                  soalLatihanUrl={soalLatihanUrl}
+                  ebookUrl={ebookUrl}
+                  testimoniFormUrl={testimoniFormUrl}
+                />
+              </div>
             )}
+
+            {/* "Kelas Lainnya" — paling bawah di mobile (order-5, bagian dari
+                stack tunggal kolom kiri). Di desktop disembunyikan di sini
+                (`lg:hidden`) karena sudah dirender ulang di kolom kanan
+                sticky di bawah. */}
+            <div className="order-5 lg:hidden">
+              <KelasLainnyaSection />
+            </div>
           </div>
 
-          {/* "Kelas Lainnya" — full-width, di paling bawah */}
-          <KelasLainnyaSection />
+          {/* ── Kolom kanan (sempit, sticky) ───────────────────────────────────
+              Hanya tampil sebagai kolom terpisah di desktop (`lg:flex`); di
+              mobile kontennya sudah dirender di stack kolom kiri di atas. */}
+          <aside className="hidden lg:flex lg:flex-col gap-6 w-full lg:w-80 xl:w-96 shrink-0 lg:sticky lg:top-20 lg:self-start">
+            <DaftarPertemuanCard />
+            <KelasLainnyaSection />
+          </aside>
         </div>
       </div>
     </AppShell>

@@ -1,0 +1,105 @@
+# Prompt 131: Layout Baru Halaman Belajar — 2 Kolom (GANTI Prompt 128)
+
+## ⚠️ Prompt Ini Menggantikan Prompt 128
+Kalau Prompt 128 ("Reorder Layout Kelas Video Playlist") SUDAH dikerjakan
+duluan, prompt ini MENIMPA hasilnya — target layout final ikuti wireframe
+di bawah ini, BUKAN instruksi 3-kolom dari Prompt 128. Kalau Prompt 128
+BELUM dikerjakan, abaikan saja, langsung kerjakan prompt ini dari kondisi
+sekarang.
+
+## Konteks — Target Layout (sesuai wireframe dari klien)
+Mode Video Playlist (`LearnPage.tsx`, kelas single-video seperti Fiqih
+Alkohol) diubah jadi **2 kolom** di desktop:
+
+```
+┌─────────────────────────────┬──────────────────┐
+│                              │  Kelas Saya (←)   │
+│                              │  Judul Kelas       │
+│       VIDEO PLAYER           │  Progress belajar  │
+│   (+ breadcrumb pertemuan,   │  ──────────────    │
+│    judul, deskripsi, tombol  │  Daftar Pertemuan  │
+│    Tandai Selesai)           │  (list Pertemuan   │
+│                              │   ke-1, ke-2, dst) │
+├─────────────────────────────┤                    │
+│                              ├──────────────────┤
+│   TENTANG PENGAJAR           │                    │
+│   + Rating pengajar          │   Kelas Lainnya:   │
+│   + Review & Komentar kelas  │   [Kategori]       │
+│   (list review + form isi)   │   (rekomendasi     │
+│                              │    kelas lain)      │
+└─────────────────────────────┴──────────────────┘
+```
+
+- **Kolom KIRI (lebih lebar, `flex-1`)**: video player di atas (dengan
+  breadcrumb pertemuan, judul, deskripsi, tombol "Tandai Kelas Selesai"
+  langsung menyatu di bawah video sebagai 1 card/section), lalu DI
+  BAWAHNYA card "Tentang Pengajar" — yang SEKARANG DIPERLUAS berisi:
+  foto+nama+bio pengajar, rating pengajar (dari Prompt 118), DAN section
+  Review & Komentar kelas (dari Prompt 102/116 — list review pelajar +
+  form kasih review kalau sudah enroll).
+- **Kolom KANAN (sempit, `w-80`/`w-96`, sticky)**: card "Kelas Saya"
+  back-link + judul + progress + Daftar Pertemuan (list "Pertemuan
+  ke-N") di ATAS, lalu DI BAWAHNYA card "Kelas Lainnya: [Kategori]"
+  (rekomendasi kelas lain dari kategori yang sama).
+
+## Langkah Kerja
+1. Cari struktur JSX mode Video Playlist di `LearnPage.tsx` (fungsi yang
+   handle kelas dengan `videoIds`, BUKAN mode Modul/Bab untuk kelas
+   Fiqih Kitab — mode itu TIDAK disentuh sama sekali oleh prompt ini).
+2. Susun ulang container utama jadi 2 kolom flex: `<div className="flex
+   flex-col lg:flex-row gap-6">` dengan kolom kiri `flex-1 min-w-0` dan
+   kolom kanan `w-full lg:w-80 xl:w-96 shrink-0`.
+3. **Kolom kiri**, urutan dari atas: (a) video player + breadcrumb
+   pertemuan + judul + deskripsi + tombol Tandai Selesai — SEMUA jadi 1
+   card menyatu (sesuai wireframe, bukan dipisah card video vs card teks
+   seperti layout sebelumnya), (b) card "Tentang Pengajar" yang
+   diperluas dengan rating pengajar (sudah ada dari Prompt 118, cukup
+   dipindah render-nya ke sini kalau sebelumnya di tempat lain) DAN
+   section Review & Komentar kelas (dari Prompt 102, pindahkan render-
+   nya ke sini juga kalau sebelumnya di lokasi lain di halaman).
+4. **Kolom kanan**, urutan dari atas: (a) card "Kelas Saya" + judul +
+   progress bar + Daftar Pertemuan (list ini SUDAH ADA dari Prompt 107/
+   122, styling-nya TIDAK berubah, cuma posisinya yang pindah ke kolom
+   kanan sempit ini), (b) card "Kelas Lainnya: [Kategori]" (SUDAH ADA,
+   posisinya pindah ke bawah Daftar Pertemuan dalam kolom yang sama,
+   bukan lagi jadi kolom terpisah).
+5. Kolom kanan pakai `sticky top-4` supaya tetap terlihat saat kolom
+   kiri di-scroll (isinya lebih pendek dari kolom kiri yang punya video
+   + pengajar + review, jadi enak kalau kolom kanan "nempel" mengikuti
+   scroll).
+
+## Yang Tidak Boleh Berubah
+- Mode Modul/Bab (kelas Fiqih Kitab, Safinah an-Naja dkk) SAMA SEKALI
+  TIDAK diubah — layout itu tetap seperti sekarang, TIDAK ikut jadi
+  2-kolom seperti ini. Prompt ini KHUSUS mode Video Playlist.
+- Semua fungsi (navigasi pertemuan, tandai selesai, submit review,
+  submit rating pengajar, dll) TIDAK berubah perilakunya, cuma posisi
+  render-nya yang berpindah sesuai layout baru.
+- Versi mobile: stack vertikal dengan urutan yang masuk akal — video
+  paling atas (paling penting dilihat duluan), lalu breadcrumb+judul+
+  tombol selesai, lalu Daftar Pertemuan, lalu Tentang Pengajar+Rating+
+  Review, lalu Kelas Lainnya paling bawah. Sesuaikan breakpoint
+  responsive supaya urutan mobile ini tercapai walau urutan DOM/kolom
+  desktop berbeda (pakai flex-order atau susun ulang urutan elemen
+  dengan class `lg:` untuk desktop-only reposisi, sesuaikan mana yang
+  lebih praktis diimplementasikan).
+
+## Setelah Selesai
+1. Buka kelas video playlist (misal Fiqih Alkohol) di desktop,
+   konfirmasi layout 2 kolom sesuai wireframe: video+pengajar+review di
+   kiri (lebar), Daftar Pertemuan+Kelas Lainnya di kanan (sempit,
+   sticky).
+2. Scroll kolom kiri yang panjang, konfirmasi kolom kanan tetap
+   terlihat (sticky).
+3. Test submit review dan rating pengajar, konfirmasi masih berfungsi
+   normal di posisi barunya.
+4. Cek mobile, konfirmasi urutan tumpuk masuk akal (video dulu, baru
+   sisanya).
+5. Buka kelas Fiqih Kitab (modul/bab), konfirmasi TIDAK ADA perubahan
+   layout di mode ini.
+6. Jalankan `pnpm run typecheck`, harus 0 error.
+
+## Catatan
+Tidak ada SQL untuk prompt ini — murni reorganisasi layout JSX di
+frontend, semua data/fungsi yang dipakai sudah ada dari prompt-prompt
+sebelumnya (102, 107, 116, 118, 122).
