@@ -1,0 +1,161 @@
+# Prompt 102: Sistem Review & Rating per Kelas
+
+## Konteks
+Klien minta setiap kelas punya review dari pelajar: bintang 1-5 + ulasan
+teks. Review ini harus tampil di Katalog (sebelum beli, sebagai bahan
+pertimbangan) dan di halaman kelas (setelah beli). Referensi gaya:
+fahimturats.
+
+Fitur ini butuh tabel baru + RLS baru.
+
+## Bagian A — SQL Migrasi (Siapkan untuk Saya Jalankan Manual)
+
+```sql
+CREATE TABLE IF NOT EXISTS class_reviews (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL,
+  rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  comment TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (class_id, user_id)
+);
+
+ALTER TABLE class_reviews ENABLE ROW LEVEL SECURITY;
+
+-- Semua orang (termasuk yang belum login) boleh baca review — dipakai
+-- di Katalog sebelum beli
+CREATE POLICY "class_reviews: publik bisa baca"
+  ON class_reviews FOR SELECT
+  USING (true);
+
+-- Hanya pelajar yang PUNYA ENROLLMENT AKTIF di kelas itu yang boleh
+-- kasih review (mencegah orang yang belum beli kasih rating)
+CREATE POLICY "class_reviews: hanya yang enroll bisa insert"
+  ON class_reviews FOR INSERT
+  WITH CHECK (
+    auth.uid()::text = user_id
+    AND EXISTS (
+      SELECT 1 FROM enrollments e
+      WHERE e.class_id = class_reviews.class_id
+      AND e.user_id = auth.uid()::text
+    )
+  );
+
+-- User cuma boleh edit review miliknya sendiri
+CREATE POLICY "class_reviews: user edit review sendiri"
+  ON class_reviews FOR UPDATE
+  USING (auth.uid()::text = user_id)
+  WITH CHECK (auth.uid()::text = user_id);
+
+CREATE POLICY "class_reviews: user hapus review sendiri"
+  ON class_reviews FOR DELETE
+  USING (auth.uid()::text = user_id);
+```
+
+Catatan: constraint `UNIQUE (class_id, user_id)` memastikan satu user
+cuma bisa kasih 1 review per kelas (submit ulang = update review lama,
+bukan bikin baru).
+
+## Bagian B — Function di `lib/db.ts`
+
+```ts
+export type ClassReview = {
+  id: string;
+  userId: string;
+  userNickname: string | null;
+  rating: number;
+  comment: string;
+  createdAt: string;
+};
+
+export type ClassReviewSummary = {
+  averageRating: number;
+  totalReviews: number;
+  reviews: ClassReview[];
+};
+
+export async function listClassReviews(classId: string): Promise<ClassReviewSummary> {
+  const { data, error } = await supabase
+    .from('class_reviews')
+    .select('id, user_id, rating, comment, created_at, user_profiles(nickname)')
+    .eq('class_id', classId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+
+  const reviews = (data ?? []).map((r: any) => ({
+    id: r.id,
+    userId: r.user_id,
+    userNickname: r.user_profiles?.nickname ?? null,
+    rating: r.rating,
+    comment: r.comment,
+    createdAt: r.created_at,
+  }));
+
+  const averageRating =
+    reviews.length > 0
+      ? Math.round((reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) * 10) / 10
+      : 0;
+
+  return { averageRating, totalReviews: reviews.length, reviews };
+}
+
+export async function submitClassReview(params: {
+  classId: string;
+  rating: number;
+  comment: string;
+}): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Harus login untuk memberi review.');
+  const { error } = await supabase
+    .from('class_reviews')
+    .upsert(
+      { class_id: params.classId, user_id: user.id, rating: params.rating, comment: params.comment },
+      { onConflict: 'class_id,user_id' },
+    );
+  if (error) throw error;
+}
+```
+
+## Bagian C — UI di Katalog & Halaman Kelas
+
+1. **`CatalogPage.tsx`** dan/atau **`ClassDetailPage.tsx`**: di card/detail
+   kelas, tampilkan ringkasan rating (bintang rata-rata + jumlah review,
+   contoh: "★ 4.8 (23 ulasan)"). Query `listClassReviews` cukup ambil
+   summary-nya saja untuk tampilan card (pertimbangkan bikin function
+   ringkas terpisah `getClassRatingSummary` kalau query di atas terlalu
+   berat untuk dipanggil per-card di grid Katalog — gunakan agregat SQL
+   langsung kalau perlu untuk performa, bukan fetch semua review lalu
+   dihitung di client untuk banyak kelas sekaligus).
+
+2. **Halaman kelas yang sudah dibeli** (`LearnPage.tsx` atau
+   `ClassDetailPage.tsx` versi sudah enroll): tampilkan section "Review
+   & Ulasan":
+   - List semua review (nama pelajar/nickname, bintang, komentar,
+     tanggal).
+   - Kalau user yang login sudah enroll DAN belum pernah kasih review:
+     tampilkan form kasih rating (klik bintang 1-5) + textarea komentar
+     + tombol submit.
+   - Kalau user sudah pernah review: tampilkan review miliknya dengan
+     tombol "Edit" (bukan form kosong lagi).
+
+3. Komponen bintang rating: buat komponen reusable `StarRating.tsx` di
+   `components/`, props `{ rating: number; size?: 'sm' | 'md' | 'lg';
+   interactive?: boolean; onChange?: (rating: number) => void }` — dipakai
+   baik untuk tampilan (read-only) maupun input (interactive, klik
+   bintang untuk pilih rating).
+
+## Yang Tidak Boleh Berubah
+- Tidak ada perubahan ke tabel `enrollments`, `classes` yang sudah ada.
+- Sistem checkout/bundle tidak disentuh.
+
+## Setelah Selesai
+1. Konfirmasi rating rata-rata tampil di Katalog (card kelas).
+2. Login sebagai user yang sudah enroll di suatu kelas, submit review,
+   konfirmasi tersimpan dan muncul di list.
+3. Coba submit review lagi (harusnya jadi edit, bukan duplikat).
+4. Coba akses submit review dari user yang BELUM enroll di kelas itu,
+   konfirmasi ditolak (RLS bekerja).
+5. Jalankan `pnpm run typecheck`, harus 0 error.
+6. Tegaskan ke saya bahwa SQL Bagian A perlu dijalankan manual di
+   Supabase SQL Editor sebelum fitur ini berfungsi.

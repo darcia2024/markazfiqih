@@ -132,7 +132,7 @@ export function InstructorSection({
       viewport={{ once: true, margin: '-50px' }}
       transition={{ duration: 0.5, ease: 'easeOut' }}
     >
-      <h3 className="text-xl font-semibold text-foreground mb-4">Instruktur</h3>
+      <h3 className="text-xl font-semibold text-foreground mb-4">Pengajar</h3>
       <div className="flex gap-4 overflow-x-auto pb-2 -mx-1 px-1">
         {isLoading
           ? Array.from({ length: 4 }).map((_, i) => (

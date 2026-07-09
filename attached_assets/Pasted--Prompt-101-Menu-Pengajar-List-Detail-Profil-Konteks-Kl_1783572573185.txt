@@ -1,0 +1,122 @@
+# Prompt 101: Menu "Pengajar" — List & Detail Profil
+
+## Konteks
+Klien minta menu baru di sidebar utama: "Pengajar". Isinya daftar semua
+pengajar (foto + nama), diklik → halaman detail profil pengajar
+(bio lengkap) + daftar semua kelas yang pernah diajar pengajar itu.
+
+Tabel `instructors` sudah punya field yang dibutuhkan: `name`, `bio`,
+`photo_url`, `is_active`. Tidak perlu migrasi database.
+
+## Bagian A — Function di `lib/db.ts`
+
+```ts
+export type PublicInstructor = {
+  id: string;
+  name: string;
+  bio: string;
+  photoUrl: string;
+};
+
+export type InstructorWithClasses = PublicInstructor & {
+  classes: {
+    id: string;
+    title: string;
+    coverImage: string;
+    category: string | null;
+  }[];
+};
+
+export async function listActiveInstructors(): Promise<PublicInstructor[]> {
+  const { data, error } = await supabase
+    .from('instructors')
+    .select('id, name, bio, photo_url')
+    .eq('is_active', true)
+    .order('name');
+  if (error) throw error;
+  return (data ?? []).map((i: any) => ({
+    id: i.id,
+    name: i.name,
+    bio: i.bio ?? '',
+    photoUrl: i.photo_url ?? '',
+  }));
+}
+
+export async function getInstructorWithClasses(id: string): Promise<InstructorWithClasses | null> {
+  const { data: instructor, error } = await supabase
+    .from('instructors')
+    .select('id, name, bio, photo_url')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throw error;
+  if (!instructor) return null;
+
+  const { data: classes, error: classesError } = await supabase
+    .from('classes')
+    .select('id, title, cover_image, category')
+    .eq('instructor_id', id)
+    .eq('status', 'published')
+    .order('display_order');
+  if (classesError) throw classesError;
+
+  return {
+    id: instructor.id,
+    name: instructor.name,
+    bio: instructor.bio ?? '',
+    photoUrl: instructor.photo_url ?? '',
+    classes: (classes ?? []).map((c: any) => ({
+      id: c.id,
+      title: c.title,
+      coverImage: c.cover_image ?? '',
+      category: c.category,
+    })),
+  };
+}
+```
+
+## Bagian B — Halaman List `InstructorsPage.tsx`
+
+Buat `artifacts/markaz-fiqh/src/pages/InstructorsPage.tsx`:
+- Grid card pengajar (foto bulat/rounded, nama, ringkasan bio 1-2 baris
+  terpotong `line-clamp-2`).
+- Klik card → navigasi ke `/pengajar/:id`.
+- Gunakan `ProtectedRoute` SAMA seperti halaman lain yang butuh login
+  (ikuti pola routing yang sudah ada — cek apakah Katalog perlu login
+  atau tidak untuk konsistensi; kalau Katalog bisa diakses tanpa login,
+  halaman Pengajar juga sebaiknya begitu).
+- Loading & empty state konsisten dengan halaman lain (skeleton/spinner
+  yang sudah dipakai di `CatalogPage.tsx`).
+
+## Bagian C — Halaman Detail `InstructorDetailPage.tsx`
+
+Buat `artifacts/markaz-fiqh/src/pages/InstructorDetailPage.tsx`:
+- Header: foto besar, nama, bio lengkap (bukan terpotong).
+- Section "Kelas yang Diajar": grid card kelas (pakai komponen card
+  kelas yang sudah ada di `CatalogPage.tsx` kalau ada yang reusable,
+  atau bikin versi ringkas card kelas: cover, judul, kategori).
+- Klik card kelas → navigasi ke halaman detail kelas yang sudah ada.
+- Tombol kembali ke `/pengajar`.
+
+## Bagian D — Routing & Sidebar
+
+1. `App.tsx`: tambahkan route `/pengajar` → `InstructorsPage`, dan
+   `/pengajar/:id` → `InstructorDetailPage`.
+2. Sidebar utama (BUKAN sidebar admin — cek komponen sidebar yang dipakai
+   di halaman biasa seperti Dashboard/Katalog, kemungkinan di
+   `components/AppShell.tsx` atau serupa): tambahkan menu item
+   "Pengajar" dengan icon `GraduationCap` dari lucide-react, posisi
+   setelah menu "Paket Bundle" dan sebelum "Kelas Saya" (ikuti urutan
+   yang masuk akal, sesuaikan dengan struktur sidebar yang ada).
+
+## Yang Tidak Boleh Berubah
+- Tidak ada perubahan skema tabel `instructors` atau `classes`.
+- Halaman admin (`AdminInstructorsPage`, kalau ada) tidak disentuh —
+  ini murni halaman publik baru untuk pelajar.
+
+## Setelah Selesai
+1. Konfirmasi menu "Pengajar" muncul di sidebar, list pengajar tampil
+   dengan foto & bio ringkas.
+2. Klik salah satu pengajar, konfirmasi halaman detail menampilkan bio
+   lengkap + semua kelas yang diajar pengajar tersebut (hanya yang
+   status published).
+3. Jalankan `pnpm run typecheck`, harus 0 error.

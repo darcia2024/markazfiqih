@@ -161,7 +161,7 @@ function HeroSection({
           {/* 3. Paragraf deskripsi — max-w-2xl supaya enak dibaca saat di-center */}
           <p className="text-white/70 text-lg sm:text-xl mt-8 leading-relaxed max-w-2xl">
             Tempat belajar fiqih madzhab Syafi'i yang rapih dan terstruktur,
-            dibangun dan diajar langsung oleh guru-guru terpercaya.
+            dibangun dan diajar langsung oleh guru-guru kompeten.
           </p>
 
           {/* 4. Quote misi — dipindah ke alur utama, di bawah deskripsi */}
@@ -428,7 +428,7 @@ function MethodologySection() {
           <p className="text-muted-foreground text-base mt-4 leading-relaxed">
             Markaz Fiqih berpijak pada fiqih madzhab Syafi&rsquo;i yang solutif, dengan
             tetap terbuka terhadap pendapat madzhab lain selama termasuk pendapat yang
-            mu&rsquo;tabar, diakui validitasnya dalam tradisi keilmuan Islam.
+            mu&rsquo;tabar, diakui validitasnya sesuai kaidah ilmu.
           </p>
         </motion.div>
 
