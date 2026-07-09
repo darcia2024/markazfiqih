@@ -1,0 +1,139 @@
+# Prompt 106: Cegah Beli Ulang Kelas yang Sudah Dimiliki
+
+## Konteks — Bug Dikonfirmasi
+Klien melaporkan: user yang sudah punya kelas masih bisa beli lagi kelas
+yang sama, dan kalau beli bundle yang salah satu isinya sudah dimiliki,
+itu juga masih bisa lolos. Setelah investigasi, ditemukan:
+
+1. `ClassDetailPage.tsx` pakai variabel `isEnrolledDemo` yang CUMA aktif
+   lewat parameter URL manual `?demo=enrolled` (ada komentar TODO
+   "ganti isEnrolledDemo dengan pengecekan enrollment asli setelah
+   backend siap" — belum pernah diganti). Di kondisi real, ini SELALU
+   `false`, jadi tombol "Tambah ke Keranjang" tetap muncul walau user
+   sudah punya kelas itu.
+2. `CatalogPage.tsx` SUDAH BENAR (pakai `enrolledClassIds` dari
+   `listEnrollments`, sudah tukar tombol jadi "Lanjutkan Belajar" kalau
+   sudah dimiliki) — jangan diubah, cukup jadikan referensi pola.
+3. `BundlesPage.tsx` SAMA SEKALI belum ada pengecekan kepemilikan kelas
+   di dalam bundle.
+4. Edge function `checkout` tidak punya pengecekan akhir terhadap
+   enrollment yang SUDAH ADA sebelumnya (cuma cek duplikasi ANTAR item
+   di keranjang yang sama, bukan terhadap histori pembelian lama) — ini
+   celah paling kritis karena kalau UI berhasil dilewati (bug lain, atau
+   race condition), pembayaran tetap bisa lolos.
+
+## Fix 1 — `ClassDetailPage.tsx`: Ganti `isEnrolledDemo` dengan Data Asli
+
+Hapus baris ini:
+```ts
+// TODO: ganti isEnrolledDemo dengan pengecekan enrollment asli setelah backend siap
+const isEnrolledDemo =
+  new URLSearchParams(window.location.search).get('demo') === 'enrolled';
+```
+
+Ganti dengan pengecekan asli, ikuti pola PERSIS yang sudah dipakai di
+`CatalogPage.tsx` (`enrolledClassIdsQuery` dengan `listEnrollments`):
+
+```ts
+const { user } = useAuth();
+const enrolledClassIdsQuery = useQuery({
+  queryKey: ['enrolled-class-ids', user?.id],
+  queryFn: async () => {
+    const enrollments = await listEnrollments(user!.id);
+    return new Set(enrollments.map((e) => e.class.id));
+  },
+  enabled: !!user?.id,
+});
+const isEnrolled = cls ? (enrolledClassIdsQuery.data?.has(cls.id) ?? false) : false;
+```
+
+Ganti SEMUA pemakaian `isEnrolledDemo` di file ini (ada beberapa lokasi:
+sekitar baris 193, 353, 381, 547) jadi `isEnrolled`. Pastikan
+`listEnrollments` sudah di-import dari `@/lib/db` di bagian atas file
+(cek dulu, mungkin belum ada importnya di file ini).
+
+## Fix 2 — `BundlesPage.tsx`: Cegah Beli Bundle yang Isinya Sudah Dimiliki
+
+1. Tambahkan query `enrolledClassIdsQuery` dengan pola SAMA PERSIS
+   seperti di `CatalogPage.tsx`/`ClassDetailPage.tsx` (lihat Fix 1 di
+   atas) di komponen utama `BundlesPage.tsx`.
+2. Untuk setiap bundle yang di-render, cek apakah ADA class_id di dalam
+   `bundle.classes` (atau field serupa yang berisi daftar kelas dalam
+   bundle — cek struktur data bundle yang dikembalikan `listBundles`)
+   yang match dengan `enrolledClassIds`.
+3. Kalau ada minimal 1 kelas yang sudah dimiliki:
+   - Nonaktifkan tombol "Tambah ke Keranjang" untuk bundle itu.
+   - Tampilkan teks kecil di bawah tombol: "Kamu sudah memiliki
+     beberapa kelas dalam paket ini, hubungi admin untuk info lebih
+     lanjut." (karena kasusnya bisa PARSIAL — user cuma punya sebagian
+     isi bundle, bukan solusi otomatis yang sederhana, jadi untuk versi
+     ini cukup DICEGAH dulu dan diarahkan kontak admin, bukan langsung
+     dibuatkan logic split pembelian otomatis).
+
+## Fix 3 — Edge Function `checkout`: Safety Net Terakhir
+
+Di `supabase/functions/checkout/index.ts`, SETELAH bagian validasi
+duplikasi bundle+individual yang sudah ada (sekitar baris 129-151),
+TAMBAHKAN pengecekan baru terhadap enrollment yang SUDAH ADA sebelumnya:
+
+```ts
+// ── Cegah checkout kelas yang SUDAH DIMILIKI dari histori pembelian lama ──
+const allClassIdsInCart = new Set<string>();
+for (const item of cartItems as any[]) {
+  if (item.class_id) allClassIdsInCart.add(item.class_id);
+  if (item.bundle_id && item.bundles) {
+    for (const bc of (item.bundles.bundle_classes ?? [])) {
+      if (bc.class_id) allClassIdsInCart.add(bc.class_id);
+    }
+  }
+}
+
+if (allClassIdsInCart.size > 0) {
+  const { data: existingEnrollments, error: enrollCheckError } = await supabaseAdmin
+    .from('enrollments')
+    .select('class_id, classes(title)')
+    .eq('user_id', user.id)
+    .in('class_id', Array.from(allClassIdsInCart));
+  if (enrollCheckError) throw enrollCheckError;
+
+  if (existingEnrollments && existingEnrollments.length > 0) {
+    const titles = existingEnrollments
+      .map((e: any) => e.classes?.title ?? e.class_id)
+      .join(', ');
+    return new Response(
+      JSON.stringify({
+        error: `Kamu sudah memiliki kelas berikut, hapus dari keranjang sebelum checkout: ${titles}.`,
+      }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+}
+```
+
+Cari variabel `user` yang merepresentasikan user yang sedang checkout
+(kemungkinan sudah ada di scope function ini dari proses auth di awal
+function, cek nama variabelnya persis dan sesuaikan referensi `user.id`
+di atas kalau beda nama).
+
+## Yang Tidak Boleh Berubah
+- Logic `CatalogPage.tsx` TIDAK diubah, hanya dijadikan referensi pola.
+- Validasi duplikasi bundle+individual dalam cart yang sudah ada di
+  `checkout/index.ts` TETAP ADA, Fix 3 ini TAMBAHAN, bukan pengganti.
+- Tidak ada perubahan skema database, tidak ada SQL untuk prompt ini.
+
+## Setelah Selesai
+1. Test: buka halaman detail kelas yang SUDAH dimiliki user yang login,
+   konfirmasi tombol berubah jadi "Lanjutkan Belajar" (bukan "Tambah ke
+   Keranjang" lagi).
+2. Test: coba tambah bundle ke keranjang yang salah satu isinya sudah
+   dimiliki, konfirmasi tombol nonaktif + muncul pesan.
+3. Test paling penting — coba PAKSA checkout via cara lain (misal masukin
+   manual ke `cart_items` lewat SQL Editor kelas yang sudah dimiliki,
+   lalu coba checkout dari UI), konfirmasi edge function MENOLAK dengan
+   pesan error yang jelas, TIDAK membuat invoice baru.
+4. Jalankan `pnpm run typecheck`, harus 0 error.
+
+## Deploy yang Perlu Dilakukan Manual
+- **Edge function `checkout` perlu di-deploy ulang manual** setelah
+  perubahan ini (sama seperti prompt-prompt sebelumnya yang menyentuh
+  edge function). Ingatkan saya untuk deploy setelah Agent selesai.

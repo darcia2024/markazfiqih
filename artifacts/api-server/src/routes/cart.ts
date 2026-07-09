@@ -76,6 +76,7 @@ router.get("/cart", requireAuth, async (req, res): Promise<void> => {
 
   const result = [];
   for (const item of items) {
+    if (!item.classId) continue;
     const cls = await toClassSummary(item.classId);
     if (!cls) continue;
     result.push({

@@ -35,7 +35,7 @@ router.get("/classes/recommended", requireAuth, async (req, res): Promise<void> 
     .from(enrollmentsTable)
     .where(eq(enrollmentsTable.userId, userId));
 
-  const excludeIds = [...new Set([...cartRows.map((r) => r.classId), ...enrollmentRows.map((r) => r.classId)])];
+  const excludeIds = [...new Set([...cartRows.map((r) => r.classId), ...enrollmentRows.map((r) => r.classId)])].filter((id): id is string => id !== null);
 
   const conditions = [eq(classesTable.status, "published")];
   if (excludeIds.length > 0) {

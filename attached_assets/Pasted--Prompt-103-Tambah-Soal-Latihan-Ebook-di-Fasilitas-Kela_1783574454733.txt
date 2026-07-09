@@ -1,0 +1,115 @@
+# Prompt 103: Tambah "Soal Latihan" & "Ebook" di Fasilitas Kelas
+
+## Konteks
+`FacilitasCard.tsx` sekarang cuma punya 2 item: link Materi PDF
+(`gdrive_materi_url`) dan Grup WA (`wa_group_url`). Klien minta ditambah
+2 lagi: "Soal Latihan" dan "Ebook" — sama-sama berupa link eksternal
+(kemungkinan link Google Form untuk soal latihan, dan link Google
+Drive/PDF untuk ebook), mengikuti pola yang sama seperti 2 item yang
+sudah ada.
+
+## Bagian A — SQL Migrasi (Siapkan untuk Saya Jalankan Manual)
+
+```sql
+ALTER TABLE classes ADD COLUMN IF NOT EXISTS soal_latihan_url TEXT;
+ALTER TABLE classes ADD COLUMN IF NOT EXISTS ebook_url TEXT;
+```
+
+## Bagian B — Update `lib/db.ts`
+
+1. Tambahkan `soal_latihan_url, ebook_url` ke kolom yang di-select di
+   function `getClassById` (cari query yang sudah select
+   `gdrive_materi_url, wa_group_url`, tambahkan 2 kolom baru di situ).
+2. Tambahkan mapping `soalLatihanUrl: data.soal_latihan_url as string |
+   null` dan `ebookUrl: data.ebook_url as string | null` ke object yang
+   di-return.
+3. Di function admin save kelas (yang sudah handle `waGroupUrl`,
+   tambahkan `soalLatihanUrl` dan `ebookUrl` ke payload insert/update
+   dengan pola yang sama persis.
+
+## Bagian C — Update `components/FacilitasCard.tsx`
+
+```tsx
+interface FacilitasCardProps {
+  gdriveMateriUrl?: string | null;
+  waGroupUrl?: string | null;
+  soalLatihanUrl?: string | null;
+  ebookUrl?: string | null;
+}
+
+export function FacilitasCard({
+  gdriveMateriUrl,
+  waGroupUrl,
+  soalLatihanUrl,
+  ebookUrl,
+}: FacilitasCardProps) {
+  if (!gdriveMateriUrl && !waGroupUrl && !soalLatihanUrl && !ebookUrl) return null;
+
+  return (
+    <div className="p-6 space-y-3">
+      <p className="text-sm font-semibold text-foreground mb-3">Fasilitas Kelas</p>
+      <div className="space-y-2">
+        {gdriveMateriUrl && (
+          <a href={gdriveMateriUrl} target="_blank" rel="noopener noreferrer"
+             className="flex items-center gap-2 p-3 rounded-lg border border-border hover:border-primary hover:bg-[hsl(var(--brand-red-tint))] transition-colors w-full text-sm text-foreground">
+            <FileText className="w-4 h-4 text-primary shrink-0" />
+            Materi &amp; Slide (PDF)
+          </a>
+        )}
+        {waGroupUrl && (
+          <a href={waGroupUrl} target="_blank" rel="noopener noreferrer"
+             className="flex items-center gap-2 p-3 rounded-lg border border-border hover:border-primary hover:bg-[hsl(var(--brand-red-tint))] transition-colors w-full text-sm text-foreground">
+            <MessageCircle className="w-4 h-4 text-primary shrink-0" />
+            Gabung Grup WhatsApp
+          </a>
+        )}
+        {soalLatihanUrl && (
+          <a href={soalLatihanUrl} target="_blank" rel="noopener noreferrer"
+             className="flex items-center gap-2 p-3 rounded-lg border border-border hover:border-primary hover:bg-[hsl(var(--brand-red-tint))] transition-colors w-full text-sm text-foreground">
+            <ClipboardList className="w-4 h-4 text-primary shrink-0" />
+            Soal Latihan
+          </a>
+        )}
+        {ebookUrl && (
+          <a href={ebookUrl} target="_blank" rel="noopener noreferrer"
+             className="flex items-center gap-2 p-3 rounded-lg border border-border hover:border-primary hover:bg-[hsl(var(--brand-red-tint))] transition-colors w-full text-sm text-foreground">
+            <BookOpen className="w-4 h-4 text-primary shrink-0" />
+            Ebook
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+```
+(Tambahkan import `ClipboardList, BookOpen` dari `lucide-react` di
+bagian atas file.)
+
+## Bagian D — Teruskan Props di Pemanggil
+
+Semua tempat yang memanggil `<FacilitasCard ... />` (ada beberapa lokasi
+di `LearnPage.tsx` dan `ClassDetailPage.tsx`) perlu diteruskan prop baru
+`soalLatihanUrl` dan `ebookUrl` dari `classDetail`/`cls`, mengikuti pola
+yang sama persis seperti `gdriveMateriUrl`/`waGroupUrl` sudah diteruskan.
+Cari SEMUA pemanggilan `<FacilitasCard` di kedua file (ada beberapa,
+jangan cuma yang pertama ketemu) dan update semuanya konsisten.
+
+## Bagian E — Form Admin
+
+Di `AdminClassesPage.tsx`, form edit/tambah kelas, tambahkan 2 input
+baru "Link Soal Latihan" dan "Link Ebook" di dekat input "Link Materi
+PDF" dan "Link Grup WA" yang sudah ada, pola sama persis (text input,
+placeholder URL, opsional/boleh kosong).
+
+## Yang Tidak Boleh Berubah
+- 2 item lama (Materi PDF, Grup WA) tidak diubah perilakunya.
+- Tidak ada perubahan ke tabel selain menambah 2 kolom baru.
+
+## Setelah Selesai
+1. Isi field baru di Admin Panel untuk 1 kelas contoh, konfirmasi 4 item
+   fasilitas (PDF, WA, Soal Latihan, Ebook) semua tampil dengan benar di
+   halaman kelas.
+2. Konfirmasi kelas yang belum diisi field-field ini tetap tampil normal
+   (item yang kosong tidak muncul, bukan error).
+3. Jalankan `pnpm run typecheck`, harus 0 error.
+4. Tegaskan SQL Bagian A perlu saya jalankan manual dulu.

@@ -1,0 +1,94 @@
+# Prompt 104: Dashboard — Urutkan "Lanjutkan Belajar" dari Paling Baru Dibeli/Ditonton
+
+## Konteks
+`listEnrollments` di `lib/db.ts` sekarang TIDAK ada `.order()` sama
+sekali, jadi urutan kelas di section "Lanjutkan Belajar" Dashboard selalu
+sama/statis, tidak peduli kelas apa yang baru dibeli atau baru ditonton.
+Klien minta: begitu checkout kelas baru, atau abis nonton video di suatu
+kelas, kelas itu harus muncul PALING ATAS di Dashboard, biar gampang
+lanjut belajar dari situ.
+
+Prioritas urutan yang diminta: **paling baru DITONTON** dulu (kalau ada
+histori tonton), baru fallback ke **paling baru DIBELI** untuk kelas yang
+belum pernah ditonton sama sekali.
+
+## Fix — Edit `listEnrollments` di `lib/db.ts`
+
+Tambahkan fetch data `video_watch_progress` (untuk `updated_at` per
+kelas) dalam satu query tambahan, gabungkan dengan data enrollment, lalu
+urutkan hasil akhirnya:
+
+```ts
+export async function listEnrollments(userId: string): Promise<EnrollmentItem[]> {
+  const { data, error } = await supabase
+    .from('enrollments')
+    .select(`
+      id, enrolled_at, is_completed,
+      classes (
+        id, title, cover_image, base_price, discount_price, level, category,
+        instructors ( id, name, photo_url ),
+        modules ( id, dars ( id, duration_minutes ) )
+      )
+    `)
+    .eq('user_id', userId)
+    .order('enrolled_at', { ascending: false }); // fallback: terbaru dibeli dulu
+  if (error) throw error;
+
+  // ... (bagian progress dari Prompt 95 tetap ada di sini, tidak dihapus) ...
+
+  // Ambil kapan terakhir nonton per kelas
+  const { data: watchRows, error: watchError } = await supabase
+    .from('video_watch_progress')
+    .select('class_id, updated_at')
+    .eq('user_id', userId);
+  if (watchError) throw watchError;
+  const lastWatchedMap = new Map(
+    (watchRows ?? []).map((w: any) => [w.class_id as string, w.updated_at as string]),
+  );
+
+  const items = (data ?? [])
+    .filter((e: any) => e.classes != null)
+    .map((e: any) => {
+      // ... (mapping class yang sudah ada dari sebelumnya, TIDAK diubah) ...
+      const lastWatchedAt = lastWatchedMap.get(cls.id) ?? null;
+      return {
+        id: e.id as string,
+        enrolledAt: e.enrolled_at as string,
+        lastWatchedAt, // ← TAMBAHAN BARU
+        isCompleted: e.is_completed as boolean,
+        class: { /* ...sama seperti sebelumnya... */ },
+      };
+    });
+
+  // Urutkan: yang punya lastWatchedAt paling baru dulu, baru fallback ke enrolledAt
+  return items.sort((a, b) => {
+    const aTime = a.lastWatchedAt ? new Date(a.lastWatchedAt).getTime() : new Date(a.enrolledAt).getTime();
+    const bTime = b.lastWatchedAt ? new Date(b.lastWatchedAt).getTime() : new Date(b.enrolledAt).getTime();
+    return bTime - aTime;
+  });
+}
+```
+
+Tambahkan `lastWatchedAt: string | null;` ke type `EnrollmentItem` (cari
+type definition-nya, biasanya dekat function ini).
+
+## Yang Tidak Boleh Berubah
+- Perubahan dari Prompt 95 (perhitungan `completedDarsCount` dari tabel
+  `progress`) TIDAK dihapus, digabung saja dengan perubahan ini di
+  function yang sama.
+- `MyClassesPage.tsx` boleh TETAP pakai urutan lain (misal alfabetis atau
+  sesuai filter kategori) — perubahan sorting ini KHUSUS memengaruhi
+  urutan array yang di-return `listEnrollments`, yang dipakai Dashboard.
+  Kalau `MyClassesPage.tsx` butuh urutan berbeda, sort ulang di level
+  komponen itu (jangan biarkan urutan global ini memaksa semua halaman
+  ikut berubah kalau memang tidak diinginkan — cek dulu apakah
+  `MyClassesPage.tsx` sudah punya sorting sendiri sebelum menyentuhnya).
+- Tidak ada perubahan skema tabel, tidak ada SQL untuk prompt ini.
+
+## Setelah Selesai
+1. Beli kelas baru (checkout), buka Dashboard, konfirmasi kelas yang
+   baru dibeli muncul paling atas di "Lanjutkan Belajar".
+2. Nonton video di kelas lain yang sudah lama dimiliki, kembali ke
+   Dashboard, konfirmasi kelas yang baru ditonton itu naik ke paling
+   atas (mengalahkan kelas yang baru dibeli tapi belum ditonton).
+3. Jalankan `pnpm run typecheck`, harus 0 error.

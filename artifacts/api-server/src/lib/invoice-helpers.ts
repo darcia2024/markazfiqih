@@ -37,13 +37,13 @@ export async function markInvoiceAsPaid(invoiceId: string): Promise<void> {
     .where(eq(enrollmentsTable.userId, invoice.userId));
 
   const enrolledClassIds = new Set(existingEnrollments.map((e) => e.classId));
-  const toEnroll = items.filter((item) => !enrolledClassIds.has(item.classId));
+  const toEnroll = items.filter((item) => item.classId !== null && !enrolledClassIds.has(item.classId));
 
   if (toEnroll.length > 0) {
     await db.insert(enrollmentsTable).values(
       toEnroll.map((item) => ({
         userId: invoice.userId,
-        classId: item.classId,
+        classId: item.classId as string,
       })),
     );
   }

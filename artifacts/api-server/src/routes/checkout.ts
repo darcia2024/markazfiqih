@@ -29,7 +29,7 @@ async function buildInvoiceResponse(invoiceId: string) {
     .from(invoiceItemsTable)
     .where(eq(invoiceItemsTable.invoiceId, invoiceId));
 
-  const classIds = items.map((i) => i.classId);
+  const classIds = items.map((i) => i.classId).filter((id): id is string => id !== null);
   const classes = classIds.length
     ? await db
         .select({
@@ -62,7 +62,7 @@ async function buildInvoiceResponse(invoiceId: string) {
     paidAt: invoice.paidAt ? invoice.paidAt.toISOString() : null,
     paymentUrl: null as string | null, // diisi oleh Mayar nanti
     items: items.map((item) => {
-      const cls = classById.get(item.classId);
+      const cls = classById.get(item.classId ?? '');
       return {
         id: item.id,
         classId: item.classId,
@@ -127,14 +127,16 @@ router.post("/checkout", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
-  const classIds = cartItems.map((c) => c.classId);
-  const classes = await db
-    .select({ id: classesTable.id, basePrice: classesTable.basePrice, discountPrice: classesTable.discountPrice })
-    .from(classesTable)
-    .where(inArray(classesTable.id, classIds));
+  const classIds = cartItems.map((c) => c.classId).filter((id): id is string => id !== null);
+  const classes = classIds.length
+    ? await db
+        .select({ id: classesTable.id, basePrice: classesTable.basePrice, discountPrice: classesTable.discountPrice })
+        .from(classesTable)
+        .where(inArray(classesTable.id, classIds))
+    : [];
   const priceByClass = new Map(classes.map((c) => [c.id, c.discountPrice ?? c.basePrice]));
 
-  const totalAmount = cartItems.reduce((sum, item) => sum + (priceByClass.get(item.classId) ?? 0), 0);
+  const totalAmount = cartItems.reduce((sum, item) => sum + (priceByClass.get(item.classId ?? '') ?? 0), 0);
 
   const [invoice] = await db
     .insert(invoicesTable)
@@ -145,7 +147,7 @@ router.post("/checkout", requireAuth, async (req, res): Promise<void> => {
     cartItems.map((item) => ({
       invoiceId: invoice.id,
       classId: item.classId,
-      price: priceByClass.get(item.classId) ?? 0,
+      price: priceByClass.get(item.classId ?? '') ?? 0,
     })),
   );
 
