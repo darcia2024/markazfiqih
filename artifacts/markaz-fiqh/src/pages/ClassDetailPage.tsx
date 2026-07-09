@@ -327,9 +327,14 @@ export default function ClassDetailPage() {
     queryFn: () => getClassById(id ?? ''),
     enabled: !!id,
   });
-  // TODO: ganti isEnrolledDemo dengan pengecekan enrollment asli setelah backend siap
-  const isEnrolledDemo =
-    new URLSearchParams(window.location.search).get('demo') === 'enrolled';
+  const enrolledClassIdsQuery = useQuery({
+    queryKey: ['enrolled-class-ids', user?.id],
+    queryFn: async () => {
+      const enrollments = await listEnrollments(user!.id);
+      return new Set(enrollments.map((e) => e.class.id));
+    },
+    enabled: !!user?.id,
+  });
 
   const { classIdsInCart, addToCart, isAdding } = useCart();
   const [, setLocation] = useLocation();
@@ -338,6 +343,7 @@ export default function ClassDetailPage() {
   if (isError || !cls || cls.status !== 'published') return <ClassNotFound />;
 
   const inCart = classIdsInCart.has(cls.id);
+  const isEnrolled = enrolledClassIdsQuery.data?.has(cls.id) ?? false;
 
   const handleBuyClick = async () => {
     if (!user) {
@@ -393,7 +399,7 @@ export default function ClassDetailPage() {
                       Sedang Promo
                     </Badge>
                   )}
-                  {isEnrolledDemo && (
+                  {isEnrolled && (
                     <Badge variant="success" className="text-xs font-semibold">
                       Terdaftar
                     </Badge>
@@ -553,7 +559,7 @@ export default function ClassDetailPage() {
                                     key={darsIdx}
                                     className="flex items-center gap-2.5 py-2 px-2 rounded-md text-sm text-muted-foreground"
                                   >
-                                    {isEnrolledDemo ? (
+                                    {isEnrolled ? (
                                       isDoneDemo ? (
                                         <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
                                       ) : (
@@ -581,9 +587,9 @@ export default function ClassDetailPage() {
             {/* ── Right Column: Purchase Card ── */}
             <div className="lg:col-span-1">
               <div className="sticky top-24 rounded-xl border bg-card shadow-md overflow-hidden">
-                {isEnrolledDemo ? (
+                {isEnrolled ? (
                   <>
-                    {/* Progress Belajar (demo) */}
+                    {/* Progress Belajar */}
                     <div className="p-6 flex flex-col items-center gap-4 text-center">
                       <p className="text-sm font-semibold text-foreground">
                         Progress Belajar
@@ -752,7 +758,7 @@ export default function ClassDetailPage() {
       </footer>
 
       {/* Mobile sticky buy bar — hanya muncul di bawah lg, disembunyikan jika sudah enrolled */}
-      {!isEnrolledDemo && (
+      {!isEnrolled && (
         <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 border-t bg-background/95 backdrop-blur-sm px-4 py-3 flex items-center justify-between gap-3 shadow-[0_-4px_16px_rgba(0,0,0,0.08)]">
           <div className="min-w-0">
             {hasDiscount ? (

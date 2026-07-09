@@ -6,7 +6,7 @@ import { Package2, ShoppingCart, Tag, ArrowRight } from 'lucide-react';
 
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
-import { listBundles } from '@/lib/db';
+import { listBundles, listEnrollments } from '@/lib/db';
 import type { BundleItem } from '@/lib/db';
 import { formatPrice } from '@/pages/CatalogPage';
 import { Button } from '@/components/ui/button';
@@ -59,7 +59,15 @@ function BundlesHeader() {
 
 // ── Kartu Bundle ──────────────────────────────────────────────────────────────
 
-function BundleCard({ bundle, index }: { bundle: BundleItem; index: number }) {
+function BundleCard({
+  bundle,
+  index,
+  enrolledClassIds,
+}: {
+  bundle: BundleItem;
+  index: number;
+  enrolledClassIds: Set<string>;
+}) {
   const { user } = useAuth();
   const { bundleIdsInCart, addBundleToCart, isAdding } = useCart();
   const [, setLocation] = useLocation();
@@ -67,6 +75,7 @@ function BundleCard({ bundle, index }: { bundle: BundleItem; index: number }) {
   const inCart = bundleIdsInCart.has(bundle.id);
   const hemat = bundle.normalPrice - bundle.bundlePrice;
   const persen = Math.round((hemat / bundle.normalPrice) * 100);
+  const hasOwnedClass = bundle.classes.some((cls) => enrolledClassIds.has(cls.id));
 
   const handleCartAction = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -174,15 +183,20 @@ function BundleCard({ bundle, index }: { bundle: BundleItem; index: number }) {
         {/* Full-width gradient footer button — konsisten dengan ClassCard */}
         <motion.button
           onClick={handleCartAction}
-          disabled={isAdding}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
+          disabled={isAdding || hasOwnedClass}
+          whileHover={{ scale: hasOwnedClass ? 1 : 1.02 }}
+          whileTap={{ scale: hasOwnedClass ? 1 : 0.98 }}
           transition={{ duration: 0.15 }}
           className="w-full py-3 px-4 bg-gradient-to-r from-primary to-[hsl(var(--brand-red-hover))] text-white text-sm font-semibold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-60"
         >
           {inCart ? 'Lihat di Keranjang' : 'Tambah ke Keranjang'}
           <ArrowRight className="h-4 w-4 shrink-0" />
         </motion.button>
+        {hasOwnedClass && (
+          <p className="text-[11px] text-muted-foreground text-center px-4 py-2 leading-relaxed">
+            Kamu sudah memiliki beberapa kelas dalam paket ini, hubungi admin untuk info lebih lanjut.
+          </p>
+        )}
       </div>
     </motion.div>
   );
@@ -241,13 +255,23 @@ function EmptyBundles() {
 // ── Konten Halaman ────────────────────────────────────────────────────────────
 
 function BundlesContent() {
+  const { user } = useAuth();
   const bundlesQuery = useQuery({
     queryKey: ['bundles'],
     queryFn: listBundles,
   });
+  const enrolledClassIdsQuery = useQuery({
+    queryKey: ['enrolled-class-ids', user?.id],
+    queryFn: async () => {
+      const enrollments = await listEnrollments(user!.id);
+      return new Set(enrollments.map((e) => e.class.id));
+    },
+    enabled: !!user?.id,
+  });
 
   const bundles = bundlesQuery.data ?? [];
   const isLoading = bundlesQuery.isLoading;
+  const enrolledClassIds = enrolledClassIdsQuery.data ?? new Set<string>();
 
   return (
     <AppShell>
@@ -260,7 +284,7 @@ function BundlesContent() {
 
           {!isLoading &&
             bundles.map((bundle, idx) => (
-              <BundleCard key={bundle.id} bundle={bundle} index={idx} />
+              <BundleCard key={bundle.id} bundle={bundle} index={idx} enrolledClassIds={enrolledClassIds} />
             ))}
         </div>
       </main>

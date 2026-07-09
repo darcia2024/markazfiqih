@@ -152,6 +152,38 @@ Deno.serve(async (req) => {
       );
     }
 
+    // ── Cegah checkout kelas yang SUDAH DIMILIKI dari histori pembelian lama ──
+    const allClassIdsInCart = new Set<string>();
+    for (const item of cartItems as any[]) {
+      if (item.class_id) allClassIdsInCart.add(item.class_id);
+      if (item.bundle_id && item.bundles) {
+        for (const bc of (item.bundles.bundle_classes ?? [])) {
+          if (bc.class_id) allClassIdsInCart.add(bc.class_id);
+        }
+      }
+    }
+
+    if (allClassIdsInCart.size > 0) {
+      const { data: existingEnrollments, error: enrollCheckError } = await supabaseAdmin
+        .from('enrollments')
+        .select('class_id, classes(title)')
+        .eq('user_id', user.id)
+        .in('class_id', Array.from(allClassIdsInCart));
+      if (enrollCheckError) throw enrollCheckError;
+
+      if (existingEnrollments && existingEnrollments.length > 0) {
+        const titles = existingEnrollments
+          .map((e: any) => e.classes?.title ?? e.class_id)
+          .join(', ');
+        return new Response(
+          JSON.stringify({
+            error: `Kamu sudah memiliki kelas berikut, hapus dari keranjang sebelum checkout: ${titles}.`,
+          }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
     // ── Hitung total ──────────────────────────────────────────────────────────
     let totalAmount = 0;
     for (const item of cartItems as any[]) {
