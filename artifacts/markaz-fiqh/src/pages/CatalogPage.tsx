@@ -193,6 +193,7 @@ export type ClassSummary = {
   moduleCount: number;
   meetingCount: number | null;
   totalDurationMinutes: number | null;
+  displayOrder?: number | null;
 };
 
 // Bullet checkmark row — reused inside ClassCard checklist
@@ -633,7 +634,7 @@ function CatalogContent() {
   const [search, setSearch] = useState('');
   const [level, setLevel] = useState<'all' | 'pemula' | 'menengah' | 'lanjutan'>('all');
   const [category, setCategory] = useState<'all' | string>(initialCategory);
-  const [sort, setSort] = useState<'newest' | 'price_asc' | 'price_desc' | 'popular'>('newest');
+  const [sort, setSort] = useState<'alphabetical' | 'newest' | 'price_asc' | 'price_desc' | 'popular' | 'manual'>('alphabetical');
   const [selectedInstructorId, setSelectedInstructorId] = useState<string | null>(null);
 
   const { user } = useAuth();
@@ -707,6 +708,12 @@ function CatalogContent() {
   const sortedClasses = useMemo(() => {
     const arr = [...classes];
     switch (sort) {
+      case 'alphabetical':
+        arr.sort((a, b) => a.title.localeCompare(b.title, 'id'));
+        break;
+      case 'manual':
+        arr.sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+        break;
       case 'price_asc':
         arr.sort((a, b) => (a.discountPrice ?? a.basePrice) - (b.discountPrice ?? b.basePrice));
         break;
@@ -745,7 +752,7 @@ function CatalogContent() {
     setSearch('');
     setLevel('all');
     setCategory('all');
-    setSort('newest');
+    setSort('alphabetical');
     setSelectedInstructorId(null);
   };
 
@@ -794,10 +801,12 @@ function CatalogContent() {
                   <SelectValue placeholder="Urutkan" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="alphabetical">A-Z</SelectItem>
                   <SelectItem value="newest">Terbaru</SelectItem>
                   <SelectItem value="price_asc">Terhemat</SelectItem>
                   <SelectItem value="price_desc">Termahal</SelectItem>
                   <SelectItem value="popular">Terpopuler</SelectItem>
+                  <SelectItem value="manual">Urutan Admin</SelectItem>
                 </SelectContent>
               </Select>
             )}
