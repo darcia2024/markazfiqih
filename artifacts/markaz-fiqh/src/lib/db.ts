@@ -1343,3 +1343,27 @@ export async function listAllUsersForAdmin(): Promise<AdminUserRow[]> {
   }
   return data.users as AdminUserRow[];
 }
+
+export async function getVideoCompletions(userId: string, classId: string): Promise<Set<number>> {
+  const { data, error } = await supabase
+    .from('video_completions')
+    .select('video_index')
+    .eq('user_id', userId)
+    .eq('class_id', classId);
+  if (error) throw error;
+  return new Set((data ?? []).map((r: any) => r.video_index as number));
+}
+
+export async function markVideoCompleted(params: {
+  userId: string;
+  classId: string;
+  videoIndex: number;
+}): Promise<void> {
+  const { error } = await supabase
+    .from('video_completions')
+    .upsert(
+      { user_id: params.userId, class_id: params.classId, video_index: params.videoIndex },
+      { onConflict: 'user_id,class_id,video_index' },
+    );
+  if (error) throw error;
+}

@@ -65,6 +65,8 @@ import {
   completeEnrollment as completeEnrollmentFn,
   getVideoWatchProgress,
   saveVideoWatchProgress,
+  getVideoCompletions,
+  markVideoCompleted,
 } from '@/lib/db';
 
 // ── Local types (sesuai return getClassById dari db.ts) ───────────────────────
@@ -166,6 +168,13 @@ function PlaylistMode({
     queryFn: () => getVideoWatchProgress(userId, classId),
     enabled: !!userId && !!classId,
     staleTime: Infinity,
+  });
+
+  // ── Load video completions (centang per-pertemuan) ──
+  const { data: completedIndexes = new Set<number>() } = useQuery({
+    queryKey: ['video-completions', userId, classId],
+    queryFn: () => getVideoCompletions(userId!, classId!),
+    enabled: !!userId && !!classId,
   });
 
   // ── Load YouTube IFrame API script (once, globally) ──
@@ -355,7 +364,14 @@ function PlaylistMode({
           }
         },
         onStateChange: (event: { target: any; data: number }) => {
-          if (event.data === 2) {
+          if (event.data === 0 && userId && classId) {
+            // ENDED: tandai pertemuan ini selesai secara otomatis
+            markVideoCompletedMutation.mutate({
+              userId,
+              classId,
+              videoIndex: currentIndexRef.current,
+            });
+          } else if (event.data === 2) {
             // PAUSED: flush ke DB sekaligus update persentase
             flushProgress();
           } else if (event.data === 3) {
@@ -424,6 +440,13 @@ function PlaylistMode({
     },
     onError: (error) => {
       toast.error(error instanceof Error ? error.message : 'Gagal menyimpan, coba lagi.');
+    },
+  });
+
+  const markVideoCompletedMutation = useMutation({
+    mutationFn: markVideoCompleted,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['video-completions', userId, classId] });
     },
   });
 
@@ -509,12 +532,20 @@ function PlaylistMode({
 
                 {/* Daftar Materi */}
                 <div className="pt-3 border-t">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
-                    Daftar Materi
-                  </p>
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                      Daftar Materi
+                    </p>
+                    {completedIndexes.size > 0 && (
+                      <span className="text-xs text-success font-medium">
+                        {completedIndexes.size} dari {videoIds.length} selesai
+                      </span>
+                    )}
+                  </div>
                   <ul className="space-y-1 max-h-72 overflow-y-auto">
                     {videoIds.map((_, i) => {
                       const isActive = i === currentIndex;
+                      const isDone = completedIndexes.has(i);
                       return (
                         <li key={i}>
                           <button
@@ -527,10 +558,14 @@ function PlaylistMode({
                           >
                             {isActive ? (
                               <PlayCircle className="w-3.5 h-3.5 shrink-0" fill="currentColor" />
+                            ) : isDone ? (
+                              <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-success" />
                             ) : (
                               <Circle className="w-3.5 h-3.5 shrink-0 text-muted-foreground/40" />
                             )}
-                            <span className="flex-1">Pertemuan ke-{i + 1}</span>
+                            <span className={`flex-1 ${isDone && !isActive ? 'text-foreground/50' : ''}`}>
+                              Pertemuan ke-{i + 1}
+                            </span>
                           </button>
                         </li>
                       );

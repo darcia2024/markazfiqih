@@ -1,0 +1,175 @@
+# Prompt 107: Checklist Otomatis per Pertemuan (Kelas Model Video Playlist)
+
+## Konteks
+Sistem "Tandai Kelas Selesai" (whole-class, manual klik) TETAP seperti
+sekarang, TIDAK diubah. Ini fitur TAMBAHAN: setiap video/pertemuan dalam
+satu kelas otomatis ditandai selesai begitu user selesai nonton video itu
+sampai habis (YouTube player event ENDED), TANPA perlu klik apapun.
+Tujuannya supaya pelajar ingat sudah sampai pertemuan berapa, terlihat
+lewat centang di "Daftar Materi".
+
+Ini KHUSUS untuk kelas model video playlist tunggal (`LearnPage.tsx`),
+BUKAN untuk kelas model modul/dars (yang sudah punya sistem centang
+manual sendiri dari sebelumnya, tidak disentuh).
+
+## Bagian A — SQL Migrasi (Siapkan untuk Saya Jalankan Manual)
+
+```sql
+CREATE TABLE IF NOT EXISTS video_completions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id TEXT NOT NULL,
+  class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+  video_index INTEGER NOT NULL,
+  completed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (user_id, class_id, video_index)
+);
+
+ALTER TABLE video_completions ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "video_completions: user lihat milik sendiri"
+  ON video_completions FOR SELECT
+  USING (auth.uid()::text = user_id);
+
+CREATE POLICY "video_completions: user insert milik sendiri"
+  ON video_completions FOR INSERT
+  WITH CHECK (auth.uid()::text = user_id);
+
+CREATE POLICY "video_completions: user update milik sendiri"
+  ON video_completions FOR UPDATE
+  USING (auth.uid()::text = user_id);
+```
+
+## Bagian B — Function di `lib/db.ts`
+
+```ts
+export async function getVideoCompletions(userId: string, classId: string): Promise<Set<number>> {
+  const { data, error } = await supabase
+    .from('video_completions')
+    .select('video_index')
+    .eq('user_id', userId)
+    .eq('class_id', classId);
+  if (error) throw error;
+  return new Set((data ?? []).map((r: any) => r.video_index as number));
+}
+
+export async function markVideoCompleted(params: {
+  userId: string;
+  classId: string;
+  videoIndex: number;
+}): Promise<void> {
+  const { error } = await supabase
+    .from('video_completions')
+    .upsert(
+      { user_id: params.userId, class_id: params.classId, video_index: params.videoIndex },
+      { onConflict: 'user_id,class_id,video_index' },
+    );
+  if (error) throw error;
+}
+```
+
+## Bagian C — `LearnPage.tsx`: Fetch, Auto-Mark, dan Tampilkan Centang
+
+1. **Fetch data completions** saat halaman dibuka, mirip pola fetch
+   `savedProgress` yang sudah ada. Tambahkan query:
+   ```ts
+   const { data: completedIndexes = new Set<number>() } = useQuery({
+     queryKey: ['video-completions', userId, classId],
+     queryFn: () => getVideoCompletions(userId!, classId!),
+     enabled: !!userId && !!classId,
+   });
+   ```
+
+2. **Auto-mark saat video ENDED**: cari bagian `events: { onReady: () =>
+   {...} }` di setup player (sekitar baris 325-330), tambahkan handler
+   `onStateChange`:
+   ```ts
+   events: {
+     onReady: () => {
+       if (resumeSeconds > 0) {
+         toast.info(getResumeLabel(resumeSeconds), { duration: 4000 });
+       }
+     },
+     onStateChange: (event: { data: number }) => {
+       // YT.PlayerState.ENDED === 0
+       if (event.data === 0 && userId && classId) {
+         markVideoCompletedMutation.mutate({
+           userId,
+           classId,
+           videoIndex: currentIndexRef.current,
+         });
+       }
+     },
+   },
+   ```
+   Tambahkan mutation-nya di dekat mutation lain yang sudah ada:
+   ```ts
+   const queryClient = useQueryClient(); // pastikan sudah ada di scope, biasanya sudah
+   const markVideoCompletedMutation = useMutation({
+     mutationFn: markVideoCompleted,
+     onSuccess: () => {
+       queryClient.invalidateQueries({ queryKey: ['video-completions', userId, classId] });
+     },
+   });
+   ```
+
+3. **Tampilkan centang** di "Daftar Materi" (sekitar baris 478-497),
+   ganti icon `Circle` untuk item yang video-nya sudah pernah ditonton
+   sampai selesai:
+   ```tsx
+   {videoIds.map((_, i) => {
+     const isActive = i === currentIndex;
+     const isDone = completedIndexes.has(i);
+     return (
+       <li key={i}>
+         <button
+           onClick={() => goToIndex(i)}
+           className={`w-full flex items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+             isActive
+               ? 'bg-primary/10 text-primary font-semibold'
+               : 'hover:bg-muted/50 text-foreground/70'
+           }`}
+         >
+           {isActive ? (
+             <PlayCircle className="w-3.5 h-3.5 shrink-0" fill="currentColor" />
+           ) : isDone ? (
+             <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-success" />
+           ) : (
+             <Circle className="w-3.5 h-3.5 shrink-0 text-muted-foreground/40" />
+           )}
+           <span className={`flex-1 ${isDone && !isActive ? 'text-foreground/50' : ''}`}>
+             Pertemuan ke-{i + 1}
+           </span>
+         </button>
+       </li>
+     );
+   })}
+   ```
+   (Tambahkan import `CheckCircle2` dari `lucide-react` kalau belum ada.)
+
+4. Tambahkan juga indikator ringkas di dekat progress bar dari Prompt 98
+   (kalau sudah dikerjakan), contoh teks kecil: "X dari Y pertemuan
+   selesai ditonton" — dihitung dari `completedIndexes.size` dan
+   `videoIds.length`.
+
+## Yang Tidak Boleh Berubah
+- Tombol "Tandai Kelas Selesai" (whole-class, `enrollment.isCompleted`)
+  TIDAK diubah — status "Tuntas" kelas tetap murni dari klik tombol itu,
+  BUKAN dari `video_completions`. Dua sistem ini SENGAJA terpisah:
+  centang per-pertemuan otomatis (video_completions) hanya untuk
+  membantu pelajar mengingat progres, TIDAK otomatis menyelesaikan
+  status kelas secara keseluruhan.
+- Sistem `progress`/dars untuk kelas model modul TIDAK disentuh.
+- Sistem resume (`video_watch_progress`) TIDAK diubah, cuma ditambah
+  fitur baru berdampingan.
+
+## Setelah Selesai
+1. Tonton video sampai benar-benar habis (biarkan sampai player masuk
+   status ENDED, jangan cuma di-skip/pindah manual), konfirmasi
+   "Pertemuan ke-X" itu berubah jadi centang hijau di Daftar Materi.
+2. Refresh halaman, konfirmasi centang tetap ada (data tersimpan di DB,
+   bukan cuma state lokal).
+3. Konfirmasi klik "Tandai Kelas Selesai" TETAP berfungsi independen,
+   tidak terpengaruh sudah berapa video yang di-centang otomatis.
+4. Jalankan `pnpm run typecheck`, harus 0 error.
+5. Tegaskan SQL Bagian A perlu saya jalankan manual dulu sebelum fitur
+   ini berfungsi.
