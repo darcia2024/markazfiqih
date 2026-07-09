@@ -7,6 +7,7 @@ import { supabase } from './supabase';
 export type EnrollmentItem = {
   id: string;
   enrolledAt: string;
+  lastWatchedAt: string | null;
   isCompleted: boolean;
   class: {
     id: string;
@@ -550,7 +551,8 @@ export async function listEnrollments(userId: string): Promise<EnrollmentItem[]>
         modules ( id, dars ( id, duration_minutes ) )
       )
     `)
-    .eq('user_id', userId);
+    .eq('user_id', userId)
+    .order('enrolled_at', { ascending: false }); // fallback: terbaru dibeli dulu
   if (error) throw error;
 
   // Satu query untuk semua progress user — hindari N+1
@@ -561,16 +563,28 @@ export async function listEnrollments(userId: string): Promise<EnrollmentItem[]>
   if (progressError) throw progressError;
   const completedDarsIds = new Set((progressRows ?? []).map((p: any) => p.dars_id as string));
 
-  return (data ?? [])
+  // Ambil kapan terakhir nonton per kelas (dipakai untuk sorting dashboard)
+  const { data: watchRows, error: watchError } = await supabase
+    .from('video_watch_progress')
+    .select('class_id, updated_at')
+    .eq('user_id', userId);
+  if (watchError) throw watchError;
+  const lastWatchedMap = new Map(
+    (watchRows ?? []).map((w: any) => [w.class_id as string, w.updated_at as string]),
+  );
+
+  const items = (data ?? [])
     .filter((e: any) => e.classes != null)
     .map((e: any) => {
       const cls = e.classes;
       const modules = cls.modules ?? [];
       const dars = modules.flatMap((m: any) => m.dars ?? []);
       const completedDarsCount = dars.filter((d: any) => completedDarsIds.has(d.id)).length;
+      const lastWatchedAt = lastWatchedMap.get(cls.id as string) ?? null;
       return {
         id: e.id as string,
         enrolledAt: e.enrolled_at as string,
+        lastWatchedAt,
         isCompleted: e.is_completed as boolean,
         class: {
           id: cls.id as string,
@@ -597,6 +611,17 @@ export async function listEnrollments(userId: string): Promise<EnrollmentItem[]>
         },
       };
     });
+
+  // Urutkan: yang punya lastWatchedAt paling baru dulu, baru fallback ke enrolledAt
+  return items.sort((a, b) => {
+    const aTime = a.lastWatchedAt
+      ? new Date(a.lastWatchedAt).getTime()
+      : new Date(a.enrolledAt).getTime();
+    const bTime = b.lastWatchedAt
+      ? new Date(b.lastWatchedAt).getTime()
+      : new Date(b.enrolledAt).getTime();
+    return bTime - aTime;
+  });
 }
 
 export async function checkEnrollment(userId: string, classId: string): Promise<boolean> {
