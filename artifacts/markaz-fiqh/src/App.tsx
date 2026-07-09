@@ -21,6 +21,7 @@ import AdminClassesPage from '@/pages/admin/AdminClassesPage';
 import AdminInstructorsPage from '@/pages/admin/AdminInstructorsPage';
 import AdminOrdersPage from '@/pages/admin/AdminOrdersPage';
 import AdminTestimonialsPage from '@/pages/admin/AdminTestimonialsPage';
+import AdminReviewsPage from '@/pages/admin/AdminReviewsPage';
 import AdminSettingsPage from '@/pages/admin/AdminSettingsPage';
 import AdminManageAdminsPage from '@/pages/admin/AdminManageAdminsPage';
 import AdminDashboardMessagesPage from '@/pages/admin/AdminDashboardMessagesPage';
@@ -70,6 +71,9 @@ function Router() {
       </Route>
       <Route path="/admin/testimonials">
         {() => <RequireAdminRoute><AdminTestimonialsPage /></RequireAdminRoute>}
+      </Route>
+      <Route path="/admin/reviews">
+        {() => <RequireAdminRoute><AdminReviewsPage /></RequireAdminRoute>}
       </Route>
       <Route path="/admin/settings">
         {() => <RequireAdminRoute><AdminSettingsPage /></RequireAdminRoute>}

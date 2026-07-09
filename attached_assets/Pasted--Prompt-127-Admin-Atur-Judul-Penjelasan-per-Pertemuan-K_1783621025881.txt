@@ -1,0 +1,146 @@
+# Prompt 127: Admin Atur Judul/Penjelasan per Pertemuan (Kelas Video Playlist)
+
+## Konteks
+Kelas model video playlist (Fiqih Tematik) sekarang cuma nampilin
+"Pertemuan ke-1", "Pertemuan ke-2", dst — angka doang, gak ada
+penjelasan topik apa yang dibahas di pertemuan itu. Klien minta admin
+bisa kasih judul/deskripsi tiap pertemuan, contoh: "Pertemuan 1 -
+Pembahasan Hukum Wudhu".
+
+Ini KHUSUS kelas video playlist (bukan kelas modul/dars — itu sudah
+punya judul per-dars dari field `dars.title` yang sudah ada).
+
+## Bagian A — SQL Migrasi (Siapkan untuk Saya Jalankan Manual)
+
+```sql
+CREATE TABLE IF NOT EXISTS class_meeting_titles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+  video_index INTEGER NOT NULL,
+  title TEXT,
+  description TEXT,
+  UNIQUE (class_id, video_index)
+);
+
+ALTER TABLE class_meeting_titles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "class_meeting_titles: publik bisa baca"
+  ON class_meeting_titles FOR SELECT
+  USING (true);
+
+CREATE POLICY "class_meeting_titles: admin bisa kelola"
+  ON class_meeting_titles FOR ALL
+  USING (
+    EXISTS (SELECT 1 FROM user_profiles WHERE user_profiles.user_id = auth.uid()::text AND user_profiles.is_admin = true)
+  )
+  WITH CHECK (
+    EXISTS (SELECT 1 FROM user_profiles WHERE user_profiles.user_id = auth.uid()::text AND user_profiles.is_admin = true)
+  );
+```
+
+## Bagian B — Function di `lib/db.ts`
+
+```ts
+export type MeetingTitle = {
+  videoIndex: number;
+  title: string | null;
+  description: string | null;
+};
+
+export async function getClassMeetingTitles(classId: string): Promise<Map<number, MeetingTitle>> {
+  const { data, error } = await supabase
+    .from('class_meeting_titles')
+    .select('video_index, title, description')
+    .eq('class_id', classId);
+  if (error) throw error;
+  const map = new Map<number, MeetingTitle>();
+  (data ?? []).forEach((row: any) => {
+    map.set(row.video_index, { videoIndex: row.video_index, title: row.title, description: row.description });
+  });
+  return map;
+}
+
+export async function upsertClassMeetingTitle(params: {
+  classId: string;
+  videoIndex: number;
+  title: string;
+  description: string;
+}): Promise<void> {
+  const { error } = await supabase
+    .from('class_meeting_titles')
+    .upsert(
+      {
+        class_id: params.classId,
+        video_index: params.videoIndex,
+        title: params.title || null,
+        description: params.description || null,
+      },
+      { onConflict: 'class_id,video_index' },
+    );
+  if (error) throw error;
+}
+```
+
+## Bagian C — Tampilkan di `LearnPage.tsx`
+
+1. Fetch data pakai `useQuery` dengan `getClassMeetingTitles(classId)`
+   saat halaman dibuka (mode video playlist saja).
+
+2. Di breadcrumb pertemuan (sekitar baris 705-714), ganti judul supaya
+   pakai custom title kalau ada, fallback ke "Pertemuan ke-N" default
+   kalau belum diisi admin:
+   ```tsx
+   const meetingTitle = meetingTitles.get(currentIndex)?.title;
+   const meetingDescription = meetingTitles.get(currentIndex)?.description;
+   // ...
+   <p className="text-xs font-medium text-primary uppercase tracking-wide">
+     Pertemuan ke-{currentIndex + 1} dari {videoIds.length}
+   </p>
+   <h2 className="font-serif text-lg font-bold text-foreground mt-0.5">
+     {meetingTitle || `Pertemuan ke-${currentIndex + 1}`}
+   </h2>
+   {meetingDescription && (
+     <p className="text-sm text-muted-foreground mt-1">{meetingDescription}</p>
+   )}
+   ```
+
+3. Di list "Daftar Materi"/sidebar kiri (sekitar baris 673, dari Prompt
+   107/122), tampilkan custom title juga kalau ada, fallback ke
+   "Pertemuan ke-N":
+   ```tsx
+   <span className="flex-1">
+     {meetingTitles.get(i)?.title || `Pertemuan ke-${i + 1}`}
+   </span>
+   ```
+
+## Bagian D — Form Admin
+
+Di form edit kelas (`AdminClassesPage.tsx`), untuk kelas yang punya
+`youtube_playlist_id` (bukan modul/dars), tambahkan section baru "Judul
+per Pertemuan" — list dinamis sejumlah video di playlist (fetch
+`getPlaylist()` sama seperti `LearnPage.tsx` untuk tahu berapa total
+video), tiap baris ada input Judul + Deskripsi singkat untuk pertemuan
+ke-N, tersimpan lewat `upsertClassMeetingTitle` per baris saat form
+disubmit.
+
+(Kalau fetching playlist real-time di form admin dirasa terlalu
+kompleks untuk diimplementasikan sekarang, alternatif lebih sederhana:
+render input judul untuk video_index 0 sampai N-1 berdasarkan jumlah
+video yang SUDAH PERNAH tersimpan di `class_meeting_titles` ditambah
+tombol "+ Tambah Pertemuan" manual untuk menambah baris baru — admin
+tahu sendiri berapa total pertemuan di kelasnya.)
+
+## Yang Tidak Boleh Berubah
+- Kelas model modul/dars TIDAK terpengaruh — mereka tetap pakai
+  `dars.title` yang sudah ada, TIDAK perlu tabel baru ini.
+- Kalau admin belum mengisi judul custom untuk suatu pertemuan, fallback
+  ke "Pertemuan ke-N" seperti sekarang — TIDAK boleh tampil kosong/error.
+
+## Setelah Selesai
+1. Isi judul + deskripsi untuk beberapa pertemuan di 1 kelas contoh
+   lewat Admin Panel.
+2. Buka halaman belajar kelas itu, konfirmasi judul custom muncul di
+   breadcrumb DAN di sidebar "Daftar Materi", untuk pertemuan yang
+   sudah diisi maupun fallback default untuk yang belum diisi.
+3. Jalankan `pnpm run typecheck`, harus 0 error.
+4. Tegaskan SQL Bagian A perlu saya jalankan manual dulu.

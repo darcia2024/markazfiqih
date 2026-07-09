@@ -1,0 +1,100 @@
+# Prompt 126: Urutan Default Katalog Jadi Abjad (A-Z)
+
+## Konteks
+Katalog sekarang default sort "Terbaru" (`newest`, urutan dari
+`created_at DESC`). Klien minta default-nya diganti jadi urut ABJAD
+(A-Z berdasarkan judul kelas). Sistem urutan manual admin (Prompt 89
+`display_order` + Prompt 110 drag-and-drop) TETAP DIPERTAHANKAN sebagai
+salah satu OPSI di dropdown "Urutkan" — bukan dihapus, cuma tidak lagi
+jadi default.
+
+## Perubahan di `pages/CatalogPage.tsx`
+
+1. Cari deklarasi state sort (sekitar baris 636):
+   ```ts
+   const [sort, setSort] = useState<'newest' | 'price_asc' | 'price_desc' | 'popular'>('newest');
+   ```
+   Ganti jadi:
+   ```ts
+   const [sort, setSort] = useState<'alphabetical' | 'newest' | 'price_asc' | 'price_desc' | 'popular' | 'manual'>('alphabetical');
+   ```
+
+2. Cari logic `sortedClasses` (sekitar baris 707-721), tambahkan case
+   baru DAN case untuk urutan manual (pakai `display_order` yang sudah
+   ada):
+   ```ts
+   const sortedClasses = useMemo(() => {
+     const arr = [...classes];
+     switch (sort) {
+       case 'alphabetical':
+         arr.sort((a, b) => a.title.localeCompare(b.title, 'id'));
+         break;
+       case 'manual':
+         arr.sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0));
+         break;
+       case 'price_asc':
+         arr.sort((a, b) => (a.discountPrice ?? a.basePrice) - (b.discountPrice ?? b.basePrice));
+         break;
+       case 'price_desc':
+         arr.sort((a, b) => (b.discountPrice ?? b.basePrice) - (a.discountPrice ?? a.basePrice));
+         break;
+       case 'popular':
+         arr.sort((a, b) => b.moduleCount - a.moduleCount);
+         break;
+       case 'newest':
+       default:
+         break; // sudah diurutkan by created_at DESC dari Supabase
+     }
+     return arr;
+   }, [classes, sort]);
+   ```
+   (Pastikan tipe data `classes`/`ClassItem` di file ini punya field
+   `displayOrder` — cek dulu, kemungkinan sudah ada dari Prompt 89/110,
+   kalau belum ter-expose di type lokal, tambahkan.)
+
+3. Cari dropdown "Urutkan" (sekitar baris 792-799), tambahkan opsi baru
+   "A-Z" DAN "Urutan Admin" (untuk `manual`), letakkan "A-Z" di paling
+   atas sebagai pilihan pertama:
+   ```tsx
+   <Select value={sort} onValueChange={(v) => setSort(v as typeof sort)}>
+     <SelectTrigger className="h-9 w-auto min-w-[110px] rounded-full px-4 text-[13px] border-secondary-border bg-secondary">
+       <SelectValue placeholder="Urutkan" />
+     </SelectTrigger>
+     <SelectContent>
+       <SelectItem value="alphabetical">A-Z</SelectItem>
+       <SelectItem value="newest">Terbaru</SelectItem>
+       <SelectItem value="price_asc">Terhemat</SelectItem>
+       <SelectItem value="price_desc">Termahal</SelectItem>
+       <SelectItem value="popular">Terpopuler</SelectItem>
+       <SelectItem value="manual">Urutan Admin</SelectItem>
+     </SelectContent>
+   </Select>
+   ```
+
+4. Cari tempat reset filter (sekitar baris 748, `setSort('newest')`),
+   ganti default reset-nya jadi `setSort('alphabetical')` supaya
+   konsisten dengan default awal.
+
+## Yang Tidak Boleh Berubah
+- Fitur drag-and-drop admin (Prompt 110) dan field "Urutan Tampil" di
+  form edit kelas (Prompt 89) TIDAK diubah — datanya (`display_order`)
+  tetap tersimpan dan bisa dipakai lewat opsi "Urutan Admin" yang baru.
+- Grouping per kategori saat filter "Semua" aktif (dari Prompt 90/109)
+  TIDAK berubah perilakunya — urutan A-Z ini berlaku DI DALAM tiap
+  kelompok kategori, bukan menghilangkan pengelompokan.
+- Halaman `MyClassesPage.tsx` ("Kelas Saya") TIDAK terpengaruh, prompt
+  ini KHUSUS `CatalogPage.tsx`.
+
+## Setelah Selesai
+1. Buka Katalog TANPA filter apapun, konfirmasi default urutan sekarang
+   A-Z berdasarkan judul kelas.
+2. Ganti dropdown "Urutkan" ke "Urutan Admin", konfirmasi urutan
+   berubah sesuai `display_order` yang sudah diatur admin sebelumnya
+   (Prompt 89/110) — memastikan fitur lama tidak rusak/hilang.
+3. Konfirmasi grouping kategori (filter "Semua") tetap rapi, A-Z
+   berlaku per kelompok kategori.
+4. Jalankan `pnpm run typecheck`, harus 0 error.
+
+## Catatan
+Tidak ada SQL untuk prompt ini — murni perubahan default & opsi sorting
+di frontend.

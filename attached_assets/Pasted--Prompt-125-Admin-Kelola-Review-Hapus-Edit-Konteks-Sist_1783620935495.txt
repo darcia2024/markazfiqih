@@ -1,0 +1,123 @@
+# Prompt 125: Admin Kelola Review (Hapus, Edit)
+
+## Konteks
+Sistem Review & Rating (Prompt 102) sudah berjalan di sisi pelajar
+(kasih bintang + ulasan), tapi BELUM ADA halaman admin untuk moderasi —
+admin perlu bisa lihat semua review dari semua kelas, edit (misal ada
+typo/kata kasar yang perlu disunting), dan hapus (review yang tidak
+pantas/spam).
+
+## Bagian A — Function di `lib/db.ts`
+
+```ts
+export type AdminReviewRow = {
+  id: string;
+  classId: string;
+  classTitle: string;
+  userId: string;
+  reviewerName: string | null;
+  rating: number;
+  comment: string;
+  createdAt: string;
+};
+
+export async function listAllReviewsForAdmin(): Promise<AdminReviewRow[]> {
+  const { data, error } = await supabase
+    .from('class_reviews')
+    .select('id, class_id, user_id, reviewer_name, rating, comment, created_at, classes(title)')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((r: any) => ({
+    id: r.id,
+    classId: r.class_id,
+    classTitle: r.classes?.title ?? '(kelas terhapus)',
+    userId: r.user_id,
+    reviewerName: r.reviewer_name,
+    rating: r.rating,
+    comment: r.comment,
+    createdAt: r.created_at,
+  }));
+}
+
+export async function adminUpdateReview(
+  id: string,
+  payload: { rating?: number; comment?: string; reviewerName?: string },
+): Promise<void> {
+  const patch: Record<string, unknown> = {};
+  if (payload.rating !== undefined) patch.rating = payload.rating;
+  if (payload.comment !== undefined) patch.comment = payload.comment;
+  if (payload.reviewerName !== undefined) patch.reviewer_name = payload.reviewerName;
+  const { error } = await supabase.from('class_reviews').update(patch).eq('id', id);
+  if (error) throw error;
+}
+
+export async function adminDeleteReview(id: string): Promise<void> {
+  const { error } = await supabase.from('class_reviews').delete().eq('id', id);
+  if (error) throw error;
+}
+```
+
+## Bagian B — SQL: RLS Policy Admin untuk `class_reviews`
+
+Cek dulu policy yang sudah ada (dari Prompt 102, cuma ada policy untuk
+user yang bersangkutan insert/update review miliknya sendiri), TAMBAHKAN
+policy admin untuk update/delete SEMUA review:
+
+```sql
+SELECT policyname, cmd FROM pg_policies WHERE tablename = 'class_reviews';
+```
+
+```sql
+CREATE POLICY "class_reviews: admin bisa update semua"
+  ON class_reviews FOR UPDATE
+  USING (
+    EXISTS (SELECT 1 FROM user_profiles WHERE user_profiles.user_id = auth.uid()::text AND user_profiles.is_admin = true)
+  );
+
+CREATE POLICY "class_reviews: admin bisa delete semua"
+  ON class_reviews FOR DELETE
+  USING (
+    EXISTS (SELECT 1 FROM user_profiles WHERE user_profiles.user_id = auth.uid()::text AND user_profiles.is_admin = true)
+  );
+```
+(Policy UPDATE/DELETE milik user sendiri yang sudah ada dari Prompt 102
+TETAP ADA, tidak dihapus — policy baru ini cuma menambah cakupan untuk
+admin, keduanya akan digabung OR oleh Postgres RLS.)
+
+## Bagian C — Halaman `AdminReviewsPage.tsx`
+
+Buat `artifacts/markaz-fiqh/src/pages/admin/AdminReviewsPage.tsx`, pola
+UI konsisten dengan `AdminTestimonialsPage.tsx`:
+- Table: nama kelas, nama pereview, bintang (tampilkan sebagai ikon
+  bintang, bukan angka doang), cuplikan ulasan (`line-clamp-2`),
+  tanggal, aksi (edit via Dialog, hapus via AlertDialog konfirmasi).
+- Search/filter sederhana by nama kelas atau nama pereview (opsional,
+  boleh cukup search text biasa di frontend kalau datanya belum banyak).
+- Dialog edit: form rating (pakai `StarRating` interactive dari Prompt
+  102), textarea komentar, input nama.
+- AlertDialog hapus: konfirmasi biasa, tidak perlu warning khusus
+  (beda dari hapus voucher yang ada dampak transaksi — review tidak
+  ada dampak finansial).
+
+## Bagian D — Routing & Sidebar
+
+1. `App.tsx`: route `/admin/reviews` → `AdminReviewsPage`, dibungkus
+   `RequireAdminRoute`.
+2. `AdminLayout.tsx`: menu "Kelola Review" (icon `MessageSquareText`
+   dari lucide-react), posisi setelah "Testimoni".
+
+## Yang Tidak Boleh Berubah
+- Flow submit review dari sisi pelajar (`LearnPage.tsx`, Prompt 102/116)
+  TIDAK disentuh.
+- Policy RLS user (insert/update review milik sendiri) TIDAK dihapus,
+  hanya ditambah cakupan admin.
+
+## Setelah Selesai
+1. Buka halaman "Kelola Review", konfirmasi semua review dari semua
+   kelas muncul dengan nama kelas & pereview yang benar.
+2. Edit salah satu review, konfirmasi perubahan tersimpan dan langsung
+   terlihat juga di halaman kelas terkait (sisi pelajar).
+3. Hapus salah satu review, konfirmasi hilang dari list dan dari
+   halaman kelas terkait.
+4. Jalankan `pnpm run typecheck`, harus 0 error.
+5. Tegaskan SQL Bagian B perlu saya cek & jalankan manual dulu.

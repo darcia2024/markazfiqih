@@ -18,7 +18,7 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthContext';
-import { BookOpen, LayoutDashboard, GraduationCap, Receipt, Users, ExternalLink, MessageSquareQuote, Settings, UserCog, ShieldPlus, StickyNote, Ticket, LayoutGrid, Package } from 'lucide-react';
+import { BookOpen, LayoutDashboard, GraduationCap, Receipt, Users, ExternalLink, MessageSquareQuote, MessageSquareText, Settings, UserCog, ShieldPlus, StickyNote, Ticket, LayoutGrid, Package } from 'lucide-react';
 
 const NAV_ITEMS = [
   { title: 'Dashboard', url: '/admin', icon: LayoutDashboard },
@@ -30,6 +30,7 @@ const NAV_ITEMS = [
   { title: 'Manajemen Pengajar', url: '/admin/instructors', icon: UserCog },
   { title: 'Pesanan', url: '/admin/orders', icon: Receipt },
   { title: 'Testimoni', url: '/admin/testimonials', icon: MessageSquareQuote },
+  { title: 'Kelola Review', url: '/admin/reviews', icon: MessageSquareText },
   { title: 'Pesan Dashboard', url: '/admin/dashboard-messages', icon: StickyNote },
   { title: 'Pengguna & Akses', url: '/admin/users', icon: Users },
   { title: 'Kelola Admin', url: '/admin/manage-admins', icon: ShieldPlus },

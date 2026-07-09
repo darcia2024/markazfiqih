@@ -1426,6 +1426,54 @@ export async function submitClassReview(params: {
   if (error) throw error;
 }
 
+// ── Admin: Kelola Review (Prompt 125) ─────────────────────────────────────────
+
+export type AdminReviewRow = {
+  id: string;
+  classId: string;
+  classTitle: string;
+  userId: string;
+  reviewerName: string | null;
+  rating: number;
+  comment: string;
+  createdAt: string;
+};
+
+export async function listAllReviewsForAdmin(): Promise<AdminReviewRow[]> {
+  const { data, error } = await supabase
+    .from('class_reviews')
+    .select('id, class_id, user_id, reviewer_name, rating, comment, created_at, classes(title)')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((r: any) => ({
+    id: r.id,
+    classId: r.class_id,
+    classTitle: r.classes?.title ?? '(kelas terhapus)',
+    userId: r.user_id,
+    reviewerName: r.reviewer_name,
+    rating: r.rating,
+    comment: r.comment,
+    createdAt: r.created_at,
+  }));
+}
+
+export async function adminUpdateReview(
+  id: string,
+  payload: { rating?: number; comment?: string; reviewerName?: string },
+): Promise<void> {
+  const patch: Record<string, unknown> = {};
+  if (payload.rating !== undefined) patch.rating = payload.rating;
+  if (payload.comment !== undefined) patch.comment = payload.comment;
+  if (payload.reviewerName !== undefined) patch.reviewer_name = payload.reviewerName;
+  const { error } = await supabase.from('class_reviews').update(patch).eq('id', id);
+  if (error) throw error;
+}
+
+export async function adminDeleteReview(id: string): Promise<void> {
+  const { error } = await supabase.from('class_reviews').delete().eq('id', id);
+  if (error) throw error;
+}
+
 // ── Instructor Ratings (Prompt 118 — terpisah dari class_reviews) ─────────────
 
 export type InstructorRatingForClass = {
