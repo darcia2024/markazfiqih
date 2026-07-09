@@ -1,0 +1,145 @@
+# Prompt 95: Fix Progress Belajar Tidak Terhitung & Badge "Tuntas" Tidak Berfungsi
+
+## Konteks — 2 Bug Terkait
+Klien melaporkan: "Kelas telah ditandai selesai, tidak berpengaruh ke
+progress." Setelah investigasi, ini BUKAN soal status yang reset saat
+keluar-masuk halaman (itu sudah benar dari Prompt 83), tapi dua bug
+terpisah di perhitungan progress:
+
+**Bug 1**: `completedDarsCount` di `listEnrollments` (`lib/db.ts`)
+di-hardcode ke `0` dengan komentar "Progress tracking akan
+diimplementasi terpisah" — padahal tabel `progress` sudah ada dan
+beneran dipakai untuk menandai per-materi (dars) selesai dari
+`LearnPage.tsx`. Akibatnya semua persentase progress (Dashboard, Kelas
+Saya) selalu 0%, walau user sudah menandai materi selesai satu-satu.
+
+**Bug 2**: Badge status "Tuntas / Sedang Belajar / Belum Dimulai" di
+`MyClassesPage.tsx` dan `DashboardPage.tsx` dihitung MURNI dari
+`completedDarsCount / totalDarsCount`, TIDAK PERNAH mengecek
+`enrollment.isCompleted` (field yang diisi tombol "Tandai Kelas
+Selesai"). Untuk kelas lama yang cuma punya 1 video YouTube tanpa
+struktur modul/dars (`totalDarsCount = 0`), klik "Tandai Kelas Selesai"
+tidak akan PERNAH mengubah badge jadi "Tuntas", karena rumus persentase
+selalu menghasilkan 0% saat `totalDarsCount` nol.
+
+## Fix 1 — Hitung `completedDarsCount` yang Benar
+
+Edit `artifacts/markaz-fiqh/src/lib/db.ts`, function `listEnrollments`
+(sekitar baris 540-585). Tambahkan query kedua untuk ambil semua progress
+milik user tersebut, lalu hitung `completedDarsCount` per kelas dari situ
+— JANGAN query per-kelas satu-satu (N+1), cukup 1 query tambahan untuk
+seluruh progress user, lalu di-map di sisi client.
+
+Pola yang disarankan:
+
+```ts
+export async function listEnrollments(userId: string): Promise<EnrollmentItem[]> {
+  const { data, error } = await supabase
+    .from('enrollments')
+    .select(`
+      id, enrolled_at, is_completed,
+      classes (
+        id, title, cover_image, base_price, discount_price, level, category,
+        instructors ( id, name, photo_url ),
+        modules ( id, dars ( id, duration_minutes ) )
+      )
+    `)
+    .eq('user_id', userId);
+  if (error) throw error;
+
+  // Ambil semua progress (dars_id yang sudah ditandai selesai) milik user ini,
+  // dalam SATU query, lalu buat Set untuk lookup cepat.
+  const { data: progressRows, error: progressError } = await supabase
+    .from('progress')
+    .select('dars_id')
+    .eq('user_id', userId);
+  if (progressError) throw progressError;
+  const completedDarsIds = new Set((progressRows ?? []).map((p: any) => p.dars_id as string));
+
+  return (data ?? [])
+    .filter((e: any) => e.classes != null)
+    .map((e: any) => {
+      const cls = e.classes;
+      const modules = cls.modules ?? [];
+      const dars = modules.flatMap((m: any) => m.dars ?? []);
+      const completedDarsCount = dars.filter((d: any) => completedDarsIds.has(d.id)).length;
+      return {
+        id: e.id as string,
+        enrolledAt: e.enrolled_at as string,
+        isCompleted: e.is_completed as boolean,
+        class: {
+          id: cls.id as string,
+          title: cls.title as string,
+          coverImage: cls.cover_image as string,
+          basePrice: cls.base_price as number,
+          discountPrice: cls.discount_price as number | null,
+          level: cls.level as string | null,
+          category: cls.category as string | null,
+          instructor: cls.instructors
+            ? {
+                id: cls.instructors.id as string,
+                name: cls.instructors.name as string,
+                photoUrl: cls.instructors.photo_url as string,
+              }
+            : { id: '', name: 'Pengajar', photoUrl: '' },
+          moduleCount: modules.length as number,
+          totalDarsCount: dars.length as number,
+          completedDarsCount, // sekarang dihitung dari data progress asli
+          totalDurationMinutes: dars.reduce(
+            (acc: number, d: any) => acc + (d.duration_minutes ?? 0),
+            0,
+          ) as number,
+        },
+      };
+    });
+}
+```
+
+## Fix 2 — Badge Status Harus Menghormati `isCompleted` untuk Kelas Tanpa Dars
+
+Edit `artifacts/markaz-fiqh/src/pages/MyClassesPage.tsx`, function
+`KelasCard` (sekitar baris 33-37). Ganti logic `pct`/`isComplete`
+supaya:
+- Kalau `totalDarsCount > 0`: persentase tetap dari
+  `completedDarsCount / totalDarsCount` seperti biasa (sekarang sudah
+  benar berkat Fix 1).
+- Kalau `totalDarsCount === 0` (kelas tanpa struktur modul/dars, model
+  video tunggal lama): status "Tuntas" mengikuti `enrollment.isCompleted`
+  langsung, BUKAN dari persentase dars.
+
+Contoh:
+```tsx
+const { totalDarsCount, completedDarsCount, totalDurationMinutes } = cls;
+const pct = totalDarsCount > 0 ? Math.round((completedDarsCount / totalDarsCount) * 100) : 0;
+const isComplete = totalDarsCount > 0 ? pct === 100 : enrollment.isCompleted;
+```
+(`enrollment` di sini adalah prop yang sudah diterima `KelasCard`, sudah
+ada `enrollment.isCompleted` dari tipe `EnrollmentItem`.)
+
+Terapkan pola yang sama persis di `artifacts/markaz-fiqh/src/pages/DashboardPage.tsx`
+di SEMUA tempat yang menghitung `pct`/status selesai dari
+`completedDarsCount`/`totalDarsCount` (ada beberapa lokasi: sekitar baris
+134, 268-273, 307-309, 363-364, 441 — cek satu-satu, beberapa di
+antaranya menghitung agregat "Progress Kamu X%" gabungan semua kelas,
+bukan per-kelas, jadi sesuaikan logicnya: untuk kelas dengan
+`totalDarsCount === 0` yang `isCompleted`, hitung sebagai 100% pada
+agregat; yang belum selesai hitung sebagai 0%, supaya tidak mengganggu
+rata-rata gabungan dengan pembagi yang salah).
+
+## Yang Tidak Boleh Berubah
+- Struktur tabel `progress`, `enrollments` tidak diubah.
+- Function `updateProgress`, `completeEnrollment`, `listProgress` yang
+  sudah ada di `lib/db.ts` tidak disentuh, hanya `listEnrollments` yang
+  diperbaiki.
+- Tidak perlu SQL apapun untuk prompt ini — murni perbaikan query/logic
+  di frontend.
+
+## Setelah Selesai
+1. Test dengan kelas yang punya modul/dars: tandai beberapa materi
+   selesai di `LearnPage`, buka Dashboard & Kelas Saya, konfirmasi
+   persentase & badge berubah sesuai (bukan 0% lagi).
+2. Test dengan kelas single-video lama: klik "Tandai Kelas Selesai",
+   buka Kelas Saya, konfirmasi badge berubah jadi "Tuntas".
+3. Refresh halaman (keluar-masuk), konfirmasi progress & badge TIDAK
+   reset balik ke awal.
+4. Jalankan `pnpm run typecheck`, harus 0 error.

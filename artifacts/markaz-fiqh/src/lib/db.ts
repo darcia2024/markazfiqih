@@ -551,12 +551,21 @@ export async function listEnrollments(userId: string): Promise<EnrollmentItem[]>
     .eq('user_id', userId);
   if (error) throw error;
 
+  // Satu query untuk semua progress user — hindari N+1
+  const { data: progressRows, error: progressError } = await supabase
+    .from('progress')
+    .select('dars_id')
+    .eq('user_id', userId);
+  if (progressError) throw progressError;
+  const completedDarsIds = new Set((progressRows ?? []).map((p: any) => p.dars_id as string));
+
   return (data ?? [])
     .filter((e: any) => e.classes != null)
     .map((e: any) => {
       const cls = e.classes;
       const modules = cls.modules ?? [];
       const dars = modules.flatMap((m: any) => m.dars ?? []);
+      const completedDarsCount = dars.filter((d: any) => completedDarsIds.has(d.id)).length;
       return {
         id: e.id as string,
         enrolledAt: e.enrolled_at as string,
@@ -578,7 +587,7 @@ export async function listEnrollments(userId: string): Promise<EnrollmentItem[]>
             : { id: '', name: 'Pengajar', photoUrl: '' },
           moduleCount: modules.length as number,
           totalDarsCount: dars.length as number,
-          completedDarsCount: 0, // Progress tracking akan diimplementasi terpisah
+          completedDarsCount,
           totalDurationMinutes: dars.reduce(
             (acc: number, d: any) => acc + (d.duration_minutes ?? 0),
             0,

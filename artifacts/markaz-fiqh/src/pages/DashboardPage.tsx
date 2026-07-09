@@ -142,7 +142,7 @@ function KelasCard({ enrollment, index }: { enrollment: EnrollmentItem; index: n
   const cls = enrollment.class;
   const { totalDarsCount, completedDarsCount, totalDurationMinutes } = cls;
   const pct = totalDarsCount > 0 ? Math.round((completedDarsCount / totalDarsCount) * 100) : 0;
-  const isComplete = pct === 100;
+  const isComplete = totalDarsCount > 0 ? pct === 100 : enrollment.isCompleted;
   const learnUrl = `/learn/${cls.id}`;
 
   return (
@@ -274,10 +274,14 @@ function KelasCard({ enrollment, index }: { enrollment: EnrollmentItem; index: n
 function StatsSummary({ enrollments }: { enrollments: EnrollmentItem[] }) {
   const totalOwned = enrollments.length;
   const totalCompleted = enrollments.filter(
-    (e) => e.class.totalDarsCount > 0 && e.class.completedDarsCount === e.class.totalDarsCount,
+    (e) =>
+      (e.class.totalDarsCount > 0 && e.class.completedDarsCount === e.class.totalDarsCount) ||
+      (e.class.totalDarsCount === 0 && e.isCompleted),
   ).length;
-  const totalDarsAcross = enrollments.reduce((s, e) => s + e.class.totalDarsCount, 0);
-  const totalDoneDars = enrollments.reduce((s, e) => s + e.class.completedDarsCount, 0);
+  // Hanya kelas dengan dars yang masuk perhitungan persentase (hindari pembagi salah)
+  const darsClasses = enrollments.filter((e) => e.class.totalDarsCount > 0);
+  const totalDarsAcross = darsClasses.reduce((s, e) => s + e.class.totalDarsCount, 0);
+  const totalDoneDars = darsClasses.reduce((s, e) => s + e.class.completedDarsCount, 0);
   const overallPct =
     totalDarsAcross > 0 ? Math.round((totalDoneDars / totalDarsAcross) * 100) : 0;
   const totalMinutes = enrollments.reduce((s, e) => s + (e.class.totalDurationMinutes ?? 0), 0);
@@ -315,7 +319,9 @@ function ProgressSidebar({ enrollments }: { enrollments: EnrollmentItem[] }) {
           {enrollments.map((enrollment) => {
             const { totalDarsCount, completedDarsCount } = enrollment.class;
             const pct =
-              totalDarsCount > 0 ? Math.round((completedDarsCount / totalDarsCount) * 100) : 0;
+              totalDarsCount > 0
+                ? Math.round((completedDarsCount / totalDarsCount) * 100)
+                : enrollment.isCompleted ? 100 : 0;
             return (
               <div key={enrollment.id}>
                 <div className="flex items-center justify-between gap-2">
@@ -374,10 +380,8 @@ function DashboardContent() {
   const classesToShow = showEmpty ? [] : enrollments;
 
   const allInProgressEnrollments = classesToShow.filter((e) => {
-    const pct =
-      e.class.totalDarsCount > 0
-        ? Math.round((e.class.completedDarsCount / e.class.totalDarsCount) * 100)
-        : 0;
+    if (e.class.totalDarsCount === 0) return !e.isCompleted;
+    const pct = Math.round((e.class.completedDarsCount / e.class.totalDarsCount) * 100);
     return pct < 100;
   });
   const inProgressEnrollments = allInProgressEnrollments.slice(0, 3);
@@ -454,7 +458,9 @@ function DashboardContent() {
             >
               <AchievementBadges
                 totalCompleted={enrollments.filter(
-                  (e) => e.class.totalDarsCount > 0 && e.class.completedDarsCount === e.class.totalDarsCount,
+                  (e) =>
+                    (e.class.totalDarsCount > 0 && e.class.completedDarsCount === e.class.totalDarsCount) ||
+                    (e.class.totalDarsCount === 0 && e.isCompleted),
                 ).length}
               />
             </motion.div>

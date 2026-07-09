@@ -35,7 +35,7 @@ function KelasCard({ enrollment, index }: { enrollment: EnrollmentItem; index: n
   const cls = enrollment.class;
   const { totalDarsCount, completedDarsCount, totalDurationMinutes } = cls;
   const pct = totalDarsCount > 0 ? Math.round((completedDarsCount / totalDarsCount) * 100) : 0;
-  const isComplete = pct === 100;
+  const isComplete = totalDarsCount > 0 ? pct === 100 : enrollment.isCompleted;
   const learnUrl = `/learn/${cls.id}`;
 
   return (
