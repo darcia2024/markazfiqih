@@ -1,0 +1,93 @@
+# Prompt 120: Fitur Jual Ebook — Bagian Frontend (Katalog, Beli, Download)
+
+## Konteks
+LANJUTAN dari Prompt 119 (backend sudah selesai: tabel `ebooks`,
+`ebook_purchases`, checkout mendukung ebook, admin CRUD sudah ada).
+Prompt ini fokus ke sisi yang dilihat pelajar: ebook muncul sebagai
+tab/filter di halaman Katalog Kelas yang sudah ada, bisa dibeli lewat
+cart yang sama, dan setelah dibeli bisa didownload dari halaman "Ebook
+Saya".
+
+**PRASYARAT**: pastikan Prompt 119 sudah dikerjakan & SQL-nya sudah
+dijalankan sebelum mengerjakan prompt ini.
+
+## Bagian A — Tab "Ebook" di `CatalogPage.tsx`
+
+Tambahkan pilihan baru di filter pill kategori yang sudah ada (dari
+Prompt 92: "Semua", "Fiqih Tematik", "Fiqih Kitab", "Akademi") — TAMBAH
+SATU LAGI: **"Ebook"**. Saat pill "Ebook" aktif:
+- Query data pakai `listEbooksCatalog()` (BUKAN `listClasses`), tampilkan
+  grid card ebook (cover, judul, penulis, harga — pola card mirip card
+  kelas yang sudah ada, tapi untuk ebook TIDAK ada info level/durasi,
+  ganti dengan nama penulis).
+- Tombol di card: "Tambah ke Keranjang" (pakai `addEbookToCart`) kalau
+  belum dimiliki, atau "Baca/Download" (redirect ke halaman "Ebook
+  Saya") kalau sudah dimiliki — cek kepemilikan dengan query
+  `listMyEbooks` mirip pola `enrolledClassIds` yang sudah ada untuk
+  kelas.
+- Search bar & filter Level/Urutkan yang sudah ada TETAP ADA tapi hanya
+  berfungsi untuk mode kelas — saat tab "Ebook" aktif, sembunyikan atau
+  nonaktifkan filter Level (ebook tidak punya level), search tetap bisa
+  dipakai untuk cari judul ebook.
+- Saat pill "Semua" aktif, ebook TIDAK ikut nongol campur sama kelas di
+  grouping kategori (biarkan "Semua" tetap khusus kelas seperti sekarang
+  — ebook cuma muncul saat tab "Ebook" dipilih eksplisit, supaya tidak
+  mengacaukan pengelompokan kategori kelas yang sudah ada).
+
+## Bagian B — `CartPage.tsx`: Render Item Ebook di Ringkasan
+
+Cari bagian render item cart & invoice (yang sudah ada logic khusus
+bundle dari Prompt 96), TAMBAHKAN handling untuk item yang punya
+`ebookId`:
+- Di cart (sebelum checkout): tampilkan judul ebook + harga, mirip item
+  kelas biasa (bukan bundle, jadi TIDAK perlu dikelompokkan seperti
+  bundle — tampil sebagai baris normal).
+- Icon pembeda kecil (misal `BookOpen` dari lucide-react) di samping
+  judul supaya pelajar sadar itu produk ebook, bukan kelas.
+
+## Bagian C — Halaman "Ebook Saya"
+
+Buat `artifacts/markaz-fiqh/src/pages/MyEbooksPage.tsx`:
+- Fetch pakai `listMyEbooks(user.id)`.
+- Grid card ebook yang sudah dimiliki (cover, judul, penulis).
+- Tombol "Download" di tiap card — saat diklik, panggil
+  `getEbookDownloadUrl(ebookId)`, lalu `window.open(url, '_blank')` untuk
+  buka link Google Drive di tab baru. Tampilkan loading state saat
+  fetch URL berlangsung (request ke server dulu untuk validasi
+  kepemilikan, baru dapat link asli).
+- Route baru `/ebook-saya` di `App.tsx`, dibungkus `ProtectedRoute`.
+- Tambahkan menu "Ebook Saya" di sidebar utama (`components/AppShell.tsx`
+  atau file sidebar yang sesuai), posisi setelah menu "Kelas Saya", icon
+  `BookOpen` dari lucide-react.
+
+## Bagian D — `ClassDetailPage.tsx` Setara untuk Ebook (Opsional tapi Disarankan)
+
+Buat halaman detail ebook sederhana `EbookDetailPage.tsx` (route
+`/ebook/:id`), isinya: cover besar, judul, penulis, deskripsi lengkap,
+harga, tombol beli (atau tombol download kalau sudah dimiliki). Card
+ebook di Katalog (Bagian A) klik menuju ke halaman ini, bukan langsung
+tombol beli dari grid (konsisten dengan pola kelas yang punya halaman
+detail sendiri sebelum bisa ditambah ke keranjang — TAPI kalau di
+`CatalogPage.tsx` kelas biasa bisa langsung "Tambah ke Keranjang" dari
+card grid tanpa buka detail dulu, ikuti pola YANG SAMA untuk ebook demi
+konsistensi, halaman detail ini opsional sebagai info tambahan saja,
+bukan wajib sebelum bisa beli).
+
+## Yang Tidak Boleh Berubah
+- Alur Katalog untuk kelas (filter kategori, grouping, sorting) TIDAK
+  berubah — ebook murni tab tambahan yang terpisah rendering-nya.
+- `MyClassesPage.tsx` ("Kelas Saya") TIDAK dicampur dengan ebook — ebook
+  punya halaman sendiri "Ebook Saya", terpisah total.
+
+## Setelah Selesai
+1. Buka Katalog, klik tab "Ebook", konfirmasi ebook published tampil
+   dengan cover, judul, harga.
+2. Tambah ebook ke keranjang bareng 1 kelas, checkout sekaligus,
+   konfirmasi invoice menampilkan dua-duanya dengan benar.
+3. Setelah "Simulasi Lunas", buka "Ebook Saya", konfirmasi ebook yang
+   baru dibeli muncul, klik "Download" konfirmasi terbuka link Google
+   Drive yang benar.
+4. Coba akses `getEbookDownloadUrl` untuk ebook yang BELUM dibeli
+   (lewat console browser misalnya), konfirmasi ditolak dengan error
+   "Kamu belum membeli ebook ini."
+5. Jalankan `pnpm run typecheck`, harus 0 error.

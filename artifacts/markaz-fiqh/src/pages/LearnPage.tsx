@@ -67,7 +67,10 @@ import {
   saveVideoWatchProgress,
   getVideoCompletions,
   markVideoCompleted,
+  getInstructorRatingForClass,
+  submitInstructorRating,
 } from '@/lib/db';
+import { StarRating } from '@/components/StarRating';
 
 // ── Local types (sesuai return getClassById dari db.ts) ───────────────────────
 type DarsItem = { id: string; title: string; durationMinutes: number | null; orderIndex: number };
@@ -116,6 +119,7 @@ function PlaylistMode({
   classTitle,
   classDescription,
   classCategory,
+  instructorId,
   instructorName,
   instructorBio,
   instructorPhotoUrl,
@@ -135,6 +139,7 @@ function PlaylistMode({
   classTitle: string;
   classDescription: string;
   classCategory: string | null;
+  instructorId: string;
   instructorName: string;
   instructorBio: string;
   instructorPhotoUrl: string;
@@ -151,6 +156,28 @@ function PlaylistMode({
   reverseVideoOrder?: boolean;
 }) {
   const queryClient = useQueryClient();
+  const isEnrolled = !!enrollmentId;
+
+  // ── Rating Pengajar (Prompt 118 — spesifik per kelas, terpisah dari review kelas) ──
+  const { data: instructorRatingData = { average: 0, count: 0, myRating: null } } = useQuery({
+    queryKey: ['instructor-rating', instructorId, classId, userId],
+    queryFn: () => getInstructorRatingForClass(userId, instructorId, classId),
+    enabled: !!instructorId && !!classId,
+  });
+
+  const submitInstructorRatingMutation = useMutation({
+    mutationFn: (params: { instructorId: string; classId: string; rating: number }) =>
+      submitInstructorRating(params),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['instructor-rating', instructorId, classId, userId] });
+      queryClient.invalidateQueries({ queryKey: ['instructor-detail'] });
+      queryClient.invalidateQueries({ queryKey: ['instructor-overall-rating', instructorId] });
+      toast.success('Rating pengajar tersimpan');
+    },
+    onError: (err: any) => {
+      toast.error(err?.message ?? 'Gagal menyimpan rating pengajar');
+    },
+  });
 
   // ── YouTube IFrame API state ──
   const [ytApiReady, setYtApiReady] = useState(false);
@@ -672,6 +699,29 @@ function PlaylistMode({
                     )}
                   </div>
                 </div>
+                <div className="pt-2 border-t mt-2 space-y-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <StarRating rating={instructorRatingData.average} size="sm" />
+                    <span className="text-xs text-muted-foreground">
+                      {instructorRatingData.average > 0
+                        ? `${instructorRatingData.average} (${instructorRatingData.count} rating)`
+                        : 'Belum ada rating'}
+                    </span>
+                  </div>
+                  {isEnrolled && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs text-muted-foreground">Rating kamu:</span>
+                      <StarRating
+                        rating={instructorRatingData.myRating ?? 0}
+                        size="sm"
+                        interactive
+                        onChange={(r) =>
+                          submitInstructorRatingMutation.mutate({ instructorId, classId, rating: r })
+                        }
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Fasilitas Kelas */}
@@ -738,6 +788,29 @@ function PlaylistMode({
                     </p>
                   )}
                 </div>
+              </div>
+              <div className="pt-2 border-t mt-2 space-y-1.5">
+                <div className="flex items-center gap-1.5">
+                  <StarRating rating={instructorRatingData.average} size="sm" />
+                  <span className="text-xs text-muted-foreground">
+                    {instructorRatingData.average > 0
+                      ? `${instructorRatingData.average} (${instructorRatingData.count} rating)`
+                      : 'Belum ada rating'}
+                  </span>
+                </div>
+                {isEnrolled && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-muted-foreground">Rating kamu:</span>
+                    <StarRating
+                      rating={instructorRatingData.myRating ?? 0}
+                      size="sm"
+                      interactive
+                      onChange={(r) =>
+                        submitInstructorRatingMutation.mutate({ instructorId, classId, rating: r })
+                      }
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1077,6 +1150,7 @@ function LearnContent() {
         classTitle={classDetail.title}
         classDescription={classDetail.description}
         classCategory={classDetail.category}
+        instructorId={classDetail.instructor.id}
         instructorName={classDetail.instructor.name}
         instructorBio={classDetail.instructor.bio}
         instructorPhotoUrl={classDetail.instructor.photoUrl}

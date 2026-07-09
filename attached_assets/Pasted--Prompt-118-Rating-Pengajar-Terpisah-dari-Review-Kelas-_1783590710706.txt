@@ -1,0 +1,175 @@
+# Prompt 118: Rating Pengajar (Terpisah dari Review Kelas)
+
+## Konteks
+Tambah fitur rating KHUSUS PENGAJAR (bintang 1-5, tanpa teks ulasan),
+TERPISAH dari sistem Review & Rating kelas (Prompt 102, itu untuk rating
+kontennya kelas). Rating pengajar ini nempel di card "Tentang Pengajar"
+yang sudah ada di `LearnPage.tsx` (kiri-atas sidebar kanan, ada di 2
+lokasi: versi mobile ~baris 563 dan versi desktop ~baris 630).
+
+Rating pengajar ini SPESIFIK PER KELAS (1 pengajar yang ngajar banyak
+kelas bisa dapat rating berbeda-beda di tiap kelasnya — misal cara
+ngajar di kelas A dirasa lebih baik dibanding kelas B), TAPI juga
+ditampilkan sebagai RATA-RATA GABUNGAN di halaman detail pengajar
+(`InstructorDetailPage.tsx`, dari Prompt 101).
+
+## Bagian A — SQL Migrasi (Siapkan untuk Saya Jalankan Manual)
+
+```sql
+CREATE TABLE IF NOT EXISTS instructor_ratings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id TEXT NOT NULL,
+  instructor_id UUID NOT NULL REFERENCES instructors(id) ON DELETE CASCADE,
+  class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+  rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (user_id, instructor_id, class_id)
+);
+
+ALTER TABLE instructor_ratings ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "instructor_ratings: publik bisa baca"
+  ON instructor_ratings FOR SELECT
+  USING (true);
+
+-- Hanya yang enroll di kelas itu boleh kasih rating pengajarnya
+CREATE POLICY "instructor_ratings: hanya yang enroll bisa insert"
+  ON instructor_ratings FOR INSERT
+  WITH CHECK (
+    auth.uid()::text = user_id
+    AND EXISTS (
+      SELECT 1 FROM enrollments e
+      WHERE e.class_id = instructor_ratings.class_id
+      AND e.user_id = auth.uid()::text
+    )
+  );
+
+CREATE POLICY "instructor_ratings: user edit rating sendiri"
+  ON instructor_ratings FOR UPDATE
+  USING (auth.uid()::text = user_id)
+  WITH CHECK (auth.uid()::text = user_id);
+```
+
+## Bagian B — Function di `lib/db.ts`
+
+```ts
+export async function getInstructorRatingForClass(
+  userId: string,
+  instructorId: string,
+  classId: string,
+): Promise<{ average: number; count: number; myRating: number | null }> {
+  const { data, error } = await supabase
+    .from('instructor_ratings')
+    .select('user_id, rating')
+    .eq('instructor_id', instructorId)
+    .eq('class_id', classId);
+  if (error) throw error;
+
+  const rows = data ?? [];
+  const average = rows.length > 0 ? Math.round((rows.reduce((s, r) => s + r.rating, 0) / rows.length) * 10) / 10 : 0;
+  const mine = rows.find((r) => r.user_id === userId);
+
+  return { average, count: rows.length, myRating: mine?.rating ?? null };
+}
+
+export async function submitInstructorRating(params: {
+  instructorId: string;
+  classId: string;
+  rating: number;
+}): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Harus login untuk memberi rating.');
+  const { error } = await supabase
+    .from('instructor_ratings')
+    .upsert(
+      { user_id: user.id, instructor_id: params.instructorId, class_id: params.classId, rating: params.rating },
+      { onConflict: 'user_id,instructor_id,class_id' },
+    );
+  if (error) throw error;
+}
+
+// Rata-rata gabungan SEMUA kelas — dipakai di InstructorDetailPage
+export async function getInstructorOverallRating(instructorId: string): Promise<{ average: number; count: number }> {
+  const { data, error } = await supabase
+    .from('instructor_ratings')
+    .select('rating')
+    .eq('instructor_id', instructorId);
+  if (error) throw error;
+  const rows = data ?? [];
+  const average = rows.length > 0 ? Math.round((rows.reduce((s, r) => s + r.rating, 0) / rows.length) * 10) / 10 : 0;
+  return { average, count: rows.length };
+}
+```
+
+## Bagian C — UI di Card "Tentang Pengajar" (`LearnPage.tsx`)
+
+Tambahkan rating di BAWAH bio pengajar, di KEDUA lokasi card ini (mobile
+~baris 563 dan desktop ~baris 630 — terapkan di dua-duanya, jangan cuma
+satu):
+
+```tsx
+<div className="pt-2 border-t mt-2 space-y-1.5">
+  <div className="flex items-center gap-1.5">
+    <StarRating rating={instructorRatingData.average} size="sm" />
+    <span className="text-xs text-muted-foreground">
+      {instructorRatingData.average > 0
+        ? `${instructorRatingData.average} (${instructorRatingData.count} rating)`
+        : 'Belum ada rating'}
+    </span>
+  </div>
+  {isEnrolled && (
+    <div className="flex items-center gap-1.5">
+      <span className="text-xs text-muted-foreground">Rating kamu:</span>
+      <StarRating
+        rating={instructorRatingData.myRating ?? 0}
+        size="sm"
+        interactive
+        onChange={(r) => submitInstructorRatingMutation.mutate({ instructorId, classId, rating: r })}
+      />
+    </div>
+  )}
+</div>
+```
+
+(Komponen `StarRating` sudah dibuat di Prompt 102 — reuse, JANGAN bikin
+komponen bintang baru. Kalau Prompt 102 belum dikerjakan, buat versi
+sederhana dulu khusus prompt ini mengikuti spesifikasi `StarRating` yang
+sudah didefinisikan di Prompt 102 supaya tidak ada 2 komponen bintang
+yang beda gaya.)
+
+Fetch data pakai `useQuery` dengan `getInstructorRatingForClass`, dan
+mutation pakai `useMutation` dengan `submitInstructorRating` +
+`invalidateQueries` setelah sukses.
+
+## Bagian D — UI di `InstructorDetailPage.tsx`
+
+Di box profil atas (dekat foto, nama, "22 kelas"), tambahkan rata-rata
+rating gabungan:
+```tsx
+<div className="flex items-center gap-1.5 mt-1">
+  <StarRating rating={overallRating.average} size="sm" />
+  <span className="text-xs text-muted-foreground">
+    {overallRating.average > 0 ? `${overallRating.average} (${overallRating.count} rating)` : 'Belum ada rating'}
+  </span>
+</div>
+```
+Fetch pakai `getInstructorOverallRating`.
+
+## Yang Tidak Boleh Berubah
+- Sistem Review & Rating kelas (Prompt 102, `class_reviews`) TIDAK
+  disentuh — ini tabel & fitur terpisah total.
+- Card "Tentang Pengajar" yang sudah ada (foto, nama, jumlah kelas, bio)
+  TIDAK dihapus, cuma ditambah bagian rating di bawahnya.
+
+## Setelah Selesai
+1. Buka kelas yang sudah di-enroll, konfirmasi bisa kasih rating
+   pengajar (klik bintang) di card "Tentang Pengajar", tersimpan dan
+   rata-rata ter-update.
+2. Buka kelas LAIN dari pengajar yang SAMA, konfirmasi rating di kelas
+   ini independen (tidak ikut rating dari kelas sebelumnya).
+3. Buka halaman detail pengajar tersebut, konfirmasi rata-rata yang
+   tampil adalah gabungan dari SEMUA kelas yang sudah dikasih rating.
+4. User yang BELUM enroll di kelas itu tidak bisa kasih rating (cuma
+   bisa lihat rata-rata), konfirmasi RLS bekerja.
+5. Jalankan `pnpm run typecheck`, harus 0 error.
+6. Tegaskan SQL Bagian A perlu saya jalankan manual dulu.

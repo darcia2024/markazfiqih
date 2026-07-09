@@ -1354,6 +1354,71 @@ export async function submitClassReview(params: {
   if (error) throw error;
 }
 
+// ── Instructor Ratings (Prompt 118 — terpisah dari class_reviews) ─────────────
+
+export type InstructorRatingForClass = {
+  average: number;
+  count: number;
+  myRating: number | null;
+};
+
+/** Rating pengajar SPESIFIK untuk satu kelas (bukan gabungan semua kelasnya). */
+export async function getInstructorRatingForClass(
+  userId: string,
+  instructorId: string,
+  classId: string,
+): Promise<InstructorRatingForClass> {
+  const { data, error } = await supabase
+    .from('instructor_ratings')
+    .select('user_id, rating')
+    .eq('instructor_id', instructorId)
+    .eq('class_id', classId);
+  if (error) throw error;
+
+  const rows = (data ?? []) as { user_id: string; rating: number }[];
+  const average =
+    rows.length > 0 ? Math.round((rows.reduce((s, r) => s + r.rating, 0) / rows.length) * 10) / 10 : 0;
+  const mine = rows.find((r) => r.user_id === userId);
+
+  return { average, count: rows.length, myRating: mine?.rating ?? null };
+}
+
+export async function submitInstructorRating(params: {
+  instructorId: string;
+  classId: string;
+  rating: number;
+}): Promise<void> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error('Harus login untuk memberi rating.');
+  const { error } = await supabase.from('instructor_ratings').upsert(
+    {
+      user_id: user.id,
+      instructor_id: params.instructorId,
+      class_id: params.classId,
+      rating: params.rating,
+    },
+    { onConflict: 'user_id,instructor_id,class_id' },
+  );
+  if (error) throw error;
+}
+
+export type InstructorOverallRating = { average: number; count: number };
+
+/** Rata-rata gabungan SEMUA kelas — dipakai di InstructorDetailPage. */
+export async function getInstructorOverallRating(instructorId: string): Promise<InstructorOverallRating> {
+  const { data, error } = await supabase
+    .from('instructor_ratings')
+    .select('rating')
+    .eq('instructor_id', instructorId);
+  if (error) throw error;
+  const rows = (data ?? []) as { rating: number }[];
+  const average =
+    rows.length > 0 ? Math.round((rows.reduce((s, r) => s + r.rating, 0) / rows.length) * 10) / 10 : 0;
+  return { average, count: rows.length };
+}
+
 // ── Storage ────────────────────────────────────────────────────────────────────
 
 export async function uploadAdminImage(file: File): Promise<string> {

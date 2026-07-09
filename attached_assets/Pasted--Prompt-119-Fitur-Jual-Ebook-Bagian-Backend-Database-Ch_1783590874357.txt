@@ -1,0 +1,243 @@
+# Prompt 119: Fitur Jual Ebook — Bagian Backend (Database, Checkout, Admin)
+
+## Konteks
+Bikin fitur jual ebook baru, terintegrasi ke sistem cart/checkout kelas
+yang SUDAH ADA (bukan alur terpisah) — supaya pelajar bisa checkout kelas
+dan ebook sekaligus dalam 1 keranjang. File ebook-nya link Google Drive
+biasa (admin paste link, TIDAK perlu upload file/storage bucket khusus),
+tapi link itu HANYA ditampilkan/bisa diakses oleh yang sudah beli (bukan
+link publik yang siapa saja bisa buka dari halaman katalog).
+
+Ini Prompt BAGIAN 1 dari 2 — fokus backend dulu (database + checkout +
+admin). Bagian frontend (katalog, halaman "Ebook Saya") ada di Prompt 120
+terpisah, dikerjakan SETELAH prompt ini selesai.
+
+## Bagian A — SQL Migrasi (Siapkan untuk Saya Jalankan Manual)
+
+```sql
+-- Tabel produk ebook
+CREATE TABLE IF NOT EXISTS ebooks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  author TEXT,
+  cover_image TEXT,
+  price INTEGER NOT NULL,
+  discount_price INTEGER,
+  gdrive_url TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'published')),
+  display_order INTEGER NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE ebooks ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "ebooks: publik bisa baca yang published"
+  ON ebooks FOR SELECT
+  USING (
+    status = 'published'
+    OR EXISTS (SELECT 1 FROM user_profiles WHERE user_profiles.user_id = auth.uid()::text AND user_profiles.is_admin = true)
+  );
+
+CREATE POLICY "ebooks: admin bisa insert"
+  ON ebooks FOR INSERT
+  WITH CHECK (EXISTS (SELECT 1 FROM user_profiles WHERE user_profiles.user_id = auth.uid()::text AND user_profiles.is_admin = true));
+
+CREATE POLICY "ebooks: admin bisa update"
+  ON ebooks FOR UPDATE
+  USING (EXISTS (SELECT 1 FROM user_profiles WHERE user_profiles.user_id = auth.uid()::text AND user_profiles.is_admin = true));
+
+CREATE POLICY "ebooks: admin bisa delete"
+  ON ebooks FOR DELETE
+  USING (EXISTS (SELECT 1 FROM user_profiles WHERE user_profiles.user_id = auth.uid()::text AND user_profiles.is_admin = true));
+
+-- PENTING: gdrive_url TIDAK boleh kebaca oleh yang belum beli, walau
+-- row-nya published. Solusinya: bikin VIEW khusus katalog yang TIDAK
+-- expose gdrive_url, sementara akses ke gdrive_url yang sebenarnya
+-- hanya lewat query terpisah yang divalidasi kepemilikan di lib/db.ts
+-- (lihat Bagian C). RLS di atas tetap perlu supaya admin bisa CRUD,
+-- tapi query publik untuk katalog HARUS explicit SELECT kolom tanpa
+-- gdrive_url (jangan SELECT *).
+
+-- Tabel kepemilikan ebook (mirip enrollments untuk kelas)
+CREATE TABLE IF NOT EXISTS ebook_purchases (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id TEXT NOT NULL,
+  ebook_id UUID NOT NULL REFERENCES ebooks(id) ON DELETE CASCADE,
+  purchased_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (user_id, ebook_id)
+);
+
+ALTER TABLE ebook_purchases ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "ebook_purchases: user lihat milik sendiri"
+  ON ebook_purchases FOR SELECT
+  USING (auth.uid()::text = user_id);
+
+-- Tambah kolom ebook_id ke cart_items & invoice_items (mengikuti pola
+-- class_id/bundle_id yang sudah ada)
+ALTER TABLE cart_items ADD COLUMN IF NOT EXISTS ebook_id UUID REFERENCES ebooks(id) ON DELETE CASCADE;
+ALTER TABLE invoice_items ADD COLUMN IF NOT EXISTS ebook_id UUID REFERENCES ebooks(id) ON DELETE CASCADE;
+
+-- Update constraint cart_items: sekarang harus TEPAT SATU dari
+-- class_id / bundle_id / ebook_id yang terisi (drop constraint lama,
+-- buat yang baru)
+ALTER TABLE cart_items DROP CONSTRAINT IF EXISTS cart_items_class_or_bundle_check;
+ALTER TABLE cart_items ADD CONSTRAINT cart_items_one_item_type_check
+  CHECK (
+    (class_id IS NOT NULL AND bundle_id IS NULL AND ebook_id IS NULL) OR
+    (class_id IS NULL AND bundle_id IS NOT NULL AND ebook_id IS NULL) OR
+    (class_id IS NULL AND bundle_id IS NULL AND ebook_id IS NOT NULL)
+  );
+```
+
+## Bagian B — Edge Function `checkout`: Tambah Dukungan Ebook
+
+Edit `supabase/functions/checkout/index.ts`:
+1. Query cart items sekarang perlu ikut select `ebook_id` dan join ke
+   `ebooks(id, title, price, discount_price)` (pola sama seperti join ke
+   `classes`/`bundles` yang sudah ada).
+2. Untuk item dengan `ebook_id` terisi, hitung harga dari
+   `ebooks.discount_price ?? ebooks.price`, masukkan ke
+   `invoiceItemsToInsert` dan `invoiceItemsForResponse` dengan
+   `ebook_id` diisi (mirip pola `class_id` biasa, BUKAN pola bundle yang
+   di-split ke banyak baris — 1 ebook = 1 baris invoice_items).
+3. Total invoice (`totalAmount`) otomatis ikut menjumlahkan harga ebook
+   karena pakai logic penjumlahan yang sama dengan item lain.
+
+## Bagian C — Edge Function `mayar-webhook` & `simulate-success`: Buat `ebook_purchases`
+
+Di KEDUA file (`supabase/functions/mayar-webhook/index.ts` dan
+`supabase/functions/simulate-success/index.ts`), di bagian yang sudah
+ada "Buat enrollments untuk tiap kelas" (sekitar baris 94-102 di
+mayar-webhook, 103-111 di simulate-success), TAMBAHKAN logic serupa
+untuk ebook, PERSIS SETELAH logic enrollments yang sudah ada:
+
+```ts
+// Buat ebook_purchases untuk tiap ebook di invoice
+const ebookItems = invoice.invoice_items.filter((item: any) => item.ebook_id);
+if (ebookItems.length > 0) {
+  const ebookPurchases = ebookItems.map((item: any) => ({
+    user_id: user.id,
+    ebook_id: item.ebook_id,
+  }));
+  const { error: ebookPurchaseError } = await supabaseAdmin
+    .from('ebook_purchases')
+    .upsert(ebookPurchases, { onConflict: 'user_id,ebook_id', ignoreDuplicates: true });
+  if (ebookPurchaseError) throw ebookPurchaseError;
+}
+```
+
+## Bagian D — Function di `lib/db.ts`
+
+```ts
+export type EbookCatalogItem = {
+  id: string;
+  title: string;
+  description: string;
+  author: string | null;
+  coverImage: string | null;
+  price: number;
+  discountPrice: number | null;
+  // TIDAK ADA gdriveUrl di sini — sengaja, ini untuk katalog publik
+};
+
+export async function listEbooksCatalog(): Promise<EbookCatalogItem[]> {
+  const { data, error } = await supabase
+    .from('ebooks')
+    .select('id, title, description, author, cover_image, price, discount_price')
+    .eq('status', 'published')
+    .order('display_order');
+  if (error) throw error;
+  return (data ?? []).map((e: any) => ({
+    id: e.id,
+    title: e.title,
+    description: e.description,
+    author: e.author,
+    coverImage: e.cover_image,
+    price: e.price,
+    discountPrice: e.discount_price,
+  }));
+}
+
+// Hanya berhasil mengembalikan URL kalau user memang sudah beli
+// (dijaga RLS ebook_purchases, bukan cuma dijaga di frontend)
+export async function getEbookDownloadUrl(ebookId: string): Promise<string> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Harus login.');
+
+  const { data: purchase } = await supabase
+    .from('ebook_purchases')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('ebook_id', ebookId)
+    .maybeSingle();
+
+  if (!purchase) throw new Error('Kamu belum membeli ebook ini.');
+
+  const { data: ebook, error } = await supabase
+    .from('ebooks')
+    .select('gdrive_url')
+    .eq('id', ebookId)
+    .single();
+  if (error) throw error;
+  return ebook.gdrive_url as string;
+}
+
+export async function listMyEbooks(userId: string): Promise<EbookCatalogItem[]> {
+  const { data, error } = await supabase
+    .from('ebook_purchases')
+    .select('ebooks(id, title, description, author, cover_image, price, discount_price)')
+    .eq('user_id', userId);
+  if (error) throw error;
+  return (data ?? [])
+    .map((row: any) => row.ebooks)
+    .filter(Boolean)
+    .map((e: any) => ({
+      id: e.id, title: e.title, description: e.description, author: e.author,
+      coverImage: e.cover_image, price: e.price, discountPrice: e.discount_price,
+    }));
+}
+```
+
+Tambahkan juga function CRUD admin (`listAllEbooksForAdmin`,
+`createEbook`, `updateEbook`, `deleteEbook`) mengikuti pola PERSIS yang
+sudah dipakai di `lib/db.ts` untuk `bundles`/`class_vouchers` (lihat
+pola di function-function admin lain di file ini untuk konsistensi gaya
+kode).
+
+## Bagian E — `context/CartContext.tsx`: Dukung Tambah Ebook ke Cart
+
+Tambahkan function `addEbookToCart(ebookId: string)` dengan pola PERSIS
+sama seperti `addToCart`/`addBundleToCart` yang sudah ada, panggil
+`addCartItem` dengan payload `{ ebookId }` (perlu extend juga type
+parameter `addCartItem` di `lib/db.ts` untuk terima `{ ebookId: string
+}` sebagai varian baru, insert ke `cart_items` dengan kolom `ebook_id`).
+
+## Bagian F — Halaman Admin `AdminEbooksPage.tsx`
+
+Buat `artifacts/markaz-fiqh/src/pages/admin/AdminEbooksPage.tsx`, pola
+UI konsisten dengan `AdminBundlesPage.tsx` (dari Prompt 115): table
+daftar ebook (cover, judul, harga, status), tombol tambah/edit/hapus
+lewat Dialog form (judul, deskripsi, penulis, cover URL, harga normal,
+harga diskon, **Link Google Drive** file ebook, status). Tambahkan route
+`/admin/ebooks` di `App.tsx` + menu "Kelola Ebook" (icon `BookOpen`) di
+`AdminLayout.tsx`.
+
+## Yang Tidak Boleh Berubah
+- Alur checkout untuk kelas & bundle yang sudah ada TIDAK berubah
+  perilakunya, cuma DITAMBAH dukungan ebook di sampingnya.
+- `enrollments` TIDAK dipakai untuk ebook — pakai tabel terpisah
+  `ebook_purchases`, supaya tidak campur aduk logic "kelas dimiliki" vs
+  "ebook dimiliki".
+
+## Setelah Selesai
+1. Jelaskan bahwa Bagian A (SQL) HARUS saya jalankan dulu sebelum
+   lanjut ke mana pun.
+2. Konfirmasi admin bisa CRUD ebook lewat `/admin/ebooks`.
+3. Jalankan `pnpm run typecheck`, harus 0 error.
+
+## Deploy yang Perlu Dilakukan Manual
+- Edge function `checkout`, `mayar-webhook`, DAN `simulate-success`
+  SEMUA perlu di-deploy ulang manual setelah prompt ini (3 function
+  sekaligus, jangan sampai ada yang kelewat).

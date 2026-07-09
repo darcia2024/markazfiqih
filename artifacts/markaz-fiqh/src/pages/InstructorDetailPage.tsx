@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowLeft, BookOpen } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
-import { getInstructorWithClasses } from '@/lib/db';
+import { getInstructorWithClasses, getInstructorOverallRating } from '@/lib/db';
+import { StarRating } from '@/components/StarRating';
 
 function DetailSkeleton() {
   return (
@@ -39,6 +40,12 @@ function InstructorDetailContent({ id }: { id: string }) {
   const { data: instructor, isLoading, isError } = useQuery({
     queryKey: ['instructor-detail', id],
     queryFn: () => getInstructorWithClasses(id),
+    enabled: !!id,
+  });
+
+  const { data: overallRating = { average: 0, count: 0 } } = useQuery({
+    queryKey: ['instructor-overall-rating', id],
+    queryFn: () => getInstructorOverallRating(id),
     enabled: !!id,
   });
 
@@ -79,6 +86,14 @@ function InstructorDetailContent({ id }: { id: string }) {
                 <div className="flex items-center justify-center sm:justify-start gap-1.5 text-sm text-muted-foreground">
                   <BookOpen className="w-4 h-4" />
                   <span>{instructor.classes.length} kelas diajarkan</span>
+                </div>
+                <div className="flex items-center justify-center sm:justify-start gap-1.5 mt-1">
+                  <StarRating rating={overallRating.average} size="sm" />
+                  <span className="text-xs text-muted-foreground">
+                    {overallRating.average > 0
+                      ? `${overallRating.average} (${overallRating.count} rating)`
+                      : 'Belum ada rating'}
+                  </span>
                 </div>
                 {instructor.bio && (
                   <p className="text-sm text-muted-foreground leading-relaxed max-w-xl">
