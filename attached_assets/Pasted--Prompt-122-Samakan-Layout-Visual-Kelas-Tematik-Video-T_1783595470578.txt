@@ -1,0 +1,120 @@
+# Prompt 122: Samakan Layout Visual Kelas Tematik (Video Tunggal) dengan Kelas Kitab (Modul/Bab)
+
+## Konteks
+`LearnPage.tsx` punya 2 mode tampilan berdasarkan struktur data kelas:
+- **Mode Modul/Bab** (kelas Fiqih Kitab, misal Safinah an-Naja): sidebar
+  KIRI berisi header (link kembali, judul kelas, progress bar "Progress
+  belajar X%", "X dari Y pelajaran selesai"), lalu daftar Bab yang bisa
+  expand/collapse berisi sub-pelajaran, dengan icon play/centang/lingkaran
+  kosong per item.
+- **Mode Video Playlist** (kelas Fiqih Tematik, misal Fiqih Umrah):
+  video di atas, "Daftar Materi" (list "Pertemuan ke-N") ada DI BAWAH
+  video sebagai section terpisah, TIDAK ada sidebar kiri, TIDAK ada
+  progress bar bergaya sama.
+
+**TIDAK MENGUBAH STRUKTUR DATA** — kelas Tematik tetap pakai video
+playlist tunggal (videoIds dari YouTube), kelas Kitab tetap pakai
+modul/dars. Prompt ini MURNI menyamakan GAYA VISUAL mode Video Playlist
+supaya terasa satu keluarga desain dengan mode Modul/Bab — dipindah jadi
+sidebar kiri dengan struktur & styling yang konsisten.
+
+## Referensi Style yang HARUS Diikuti Persis
+Cari component sidebar mode Modul/Bab di `LearnPage.tsx` (sekitar baris
+732-855, function yang me-render `<aside className="w-full lg:w-80
+xl:w-96 shrink-0 border-r bg-card ...">`). Struktur & class Tailwind di
+situ jadi REFERENSI WAJIB untuk restyle sidebar mode Video Playlist:
+- Header: link "Kelas Saya" dengan `ArrowLeft`, judul kelas
+  (`font-serif text-sm font-bold`), progress bar (`h-2 bg-muted
+  rounded-full overflow-hidden` + `motion.div` animasi width), teks "X
+  dari Y ... selesai".
+- List item: `PlayCircle` (aktif), `CheckCircle2` warna `text-success`
+  (selesai), `Circle` warna `text-muted-foreground/40` (belum), dengan
+  border kiri `border-l-2 border-primary` saat aktif.
+
+## Perubahan di Mode Video Playlist
+
+1. **Pindahkan "Daftar Materi" jadi sidebar kiri**, layout keseluruhan
+   halaman untuk mode ini diubah dari (video besar di atas, materi di
+   bawah) jadi (sidebar kiri + konten kanan berisi video), SAMA PERSIS
+   pola layout mode Modul/Bab (`<aside>` di kiri, konten utama di kanan
+   dengan `flex` container pembungkus keduanya).
+
+2. **Header sidebar** untuk mode ini:
+   - Link kembali "Kelas Saya" (sama seperti mode Modul/Bab).
+   - Judul kelas.
+   - Progress bar: gunakan data dari Prompt 107 (`video_completions`)
+     kalau sudah dikerjakan — `completedIndexes.size / videoIds.length
+     * 100`. Kalau Prompt 107 belum dikerjakan, progress bar ini
+     TAMPILKAN 100% jika `enrollment.isCompleted`, atau 0% jika belum
+     (fallback sederhana, tetap pakai visual style yang sama).
+   - Teks "X dari Y pertemuan selesai" (ganti kata "pelajaran" jadi
+     "pertemuan" khusus mode ini, supaya sesuai istilah yang sudah
+     dipakai — "Pertemuan ke-N" bukan "Pelajaran ke-N").
+
+3. **List "Pertemuan ke-N"** di sidebar, styling SAMA PERSIS seperti
+   list dars di mode Modul/Bab (icon PlayCircle/CheckCircle2/Circle,
+   border kiri saat aktif) — ini kemungkinan besar SUDAH ADA dari
+   Prompt 107 (kalau sudah dikerjakan), TINGGAL DIPINDAH POSISINYA ke
+   dalam `<aside>` sidebar kiri dan disesuaikan class Tailwind-nya
+   supaya identik dengan versi Modul/Bab (bukan lagi list yang nempel
+   di bawah video).
+
+4. **Konten kanan** (setelah sidebar dipindah ke kiri): video di atas,
+   lalu breadcrumb-style meta line ("PERTEMUAN KE-1 DARI 2" — TETAP
+   pakai istilah ini, JANGAN diubah jadi "Modul 1 · Pelajaran 1" karena
+   itu istilah khusus mode Modul/Bab), judul pertemuan, tombol "Tandai
+   Kelas Selesai" (untuk keseluruhan kelas, TETAP SAMA seperti sekarang,
+   bukan per-pertemuan), tombol Sebelumnya/Selanjutnya.
+
+5. **Card "Tentang Pengajar" dan "Fasilitas Kelas"** (`FacilitasCard`,
+   dari Prompt 103/114) yang sekarang ada di SIDEBAR KANAN (desktop)
+   TETAP di posisi sidebar kanan — TIDAK dipindah. Jadi layout akhir
+   mode Video Playlist jadi 3 kolom di desktop: sidebar kiri (navigasi
+   pertemuan, BARU), konten tengah (video+info), sidebar kanan (Tentang
+   Pengajar + Fasilitas Kelas, SUDAH ADA). Ini SAMA PERSIS pola 3 kolom
+   yang mestinya sudah konsisten dengan mode Modul/Bab kalau mode itu
+   juga punya sidebar kanan serupa — cek dulu apakah mode Modul/Bab
+   sekarang juga punya sidebar kanan "Tentang Pengajar"/Fasilitas, kalau
+   BELUM ADA, tambahkan juga di mode Modul/Bab supaya kedua mode
+   benar-benar konsisten dari sisi elemen yang ditampilkan (bukan cuma
+   mode Video Playlist saja yang punya).
+
+6. **Versi mobile**: sidebar kiri mode Modul/Bab kemungkinan collapse
+   jadi accordion/drawer di mobile (cek pola yang sudah ada). Terapkan
+   pola collapse yang SAMA untuk mode Video Playlist di mobile, jangan
+   biarkan sidebar baru ini merusak layout mobile yang sudah OK
+   sekarang.
+
+## Yang Tidak Boleh Berubah
+- Data source TETAP terpisah: mode Video Playlist tetap pakai
+  `videoIds`/`currentIndex` dari YouTube playlist, mode Modul/Bab tetap
+  pakai `modules`/`dars`/`activeDarsId`. TIDAK ADA migrasi data,
+  TIDAK ADA perubahan skema database untuk prompt ini.
+- Istilah "Pertemuan ke-N" untuk mode Video Playlist TETAP dipakai
+  (BUKAN diganti "Pelajaran"/"Modul" yang istilah khusus mode satunya).
+- Fungsi tombol "Tandai Kelas Selesai" (whole-class, mode Video
+  Playlist) TIDAK berubah perilakunya.
+- Navigasi Sebelumnya/Selanjutnya dua-duanya mode TETAP berfungsi
+  seperti sekarang, cuma tampilannya yang diselaraskan.
+
+## Setelah Selesai
+1. Buka kelas Fiqih Tematik (misal Fiqih Umrah), konfirmasi sidebar kiri
+   sekarang muncul dengan gaya visual SAMA PERSIS seperti kelas Fiqih
+   Kitab (Safinah an-Naja) — header progress bar, list item dengan icon
+   yang sama, border aktif yang sama.
+2. Konfirmasi istilah tetap benar: "Pertemuan ke-N" di mode Tematik,
+   "Modul X · Pelajaran Y" di mode Kitab — TIDAK ketuker.
+3. Buka kelas Fiqih Kitab, konfirmasi TIDAK ADA regresi — tampilan mode
+   ini tetap seperti semula (atau malah ikut dapat sidebar kanan kalau
+   sebelumnya belum ada, sesuai poin 5).
+4. Test di mobile, konfirmasi kedua mode tetap rapi/tidak rusak
+   layoutnya.
+5. Jalankan `pnpm run typecheck`, harus 0 error.
+
+## Catatan
+Prompt ini akan lebih rapi hasilnya kalau Prompt 107 (checklist otomatis
+per pertemuan) sudah dikerjakan duluan, supaya progress bar & centang di
+sidebar kiri mode Tematik punya data yang benar-benar akurat (bukan
+cuma fallback 0%/100% dari status whole-class). Kalau Prompt 107 belum
+dikerjakan, prompt ini tetap bisa jalan dengan fallback sederhana yang
+sudah dijelaskan di atas.

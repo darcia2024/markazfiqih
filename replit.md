@@ -12,6 +12,10 @@ An online learning platform for Shafi'i fiqh, built and taught by Indonesian stu
 
 ## How to run
 
+Requires Node.js 22+ (the `nodejs-22` Replit module). Node 20 will not boot the
+backend — `@supabase/supabase-js`'s realtime client requires native `WebSocket`,
+which only exists from Node 22 onward.
+
 Install dependencies from the repo root first (only needed once after clone):
 
 ```bash
@@ -22,8 +26,8 @@ Two workflows run in parallel:
 
 | Workflow | Command | Port |
 |---|---|---|
-| `artifacts/markaz-fiqh: web` | `pnpm --filter @workspace/markaz-fiqh run dev` | webview |
-| `artifacts/api-server: API Server` | `pnpm --filter @workspace/api-server run dev` | 8080 |
+| `Start application` | `cd artifacts/markaz-fiqh && PORT=5000 BASE_PATH=/ pnpm run dev` | webview (5000) |
+| `Backend API` | `cd artifacts/api-server && PORT=8080 pnpm run dev` | 8080 |
 
 The frontend proxies `/api/*` requests to the backend at `http://localhost:8080`.
 

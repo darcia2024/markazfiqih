@@ -14,4 +14,7 @@ detects Node runtime and requires the native implementation instead of a ws poly
 **How to apply:** Any Replit project using `@supabase/supabase-js` (frontend or
 backend) needs the `nodejs-22` module (or later), not `nodejs-20`. If a backend
 using supabase-js fails to boot with this WebSocket error, check/upgrade the
-Node module first before debugging supabase config.
+Node module first before debugging supabase config. Use `installProgrammingLanguage({language:"nodejs-22"})`
+(package-management skill), which swaps `.replit`'s `modules` entry automatically —
+don't hand-edit `.replit`. Also add `"engines": {"node": ">=22"}` to package.json
+to prevent accidental downgrades.
