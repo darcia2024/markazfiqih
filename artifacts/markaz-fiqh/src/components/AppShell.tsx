@@ -4,6 +4,7 @@ import { Link, useLocation } from 'wouter';
 import {
   LayoutGrid,
   BookMarked,
+  BookOpen,
   Settings,
   LayoutDashboard,
   LogOut,
@@ -25,6 +26,7 @@ const NAV_ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: '/paket-bundle', label: 'Paket Bundle', icon: Package },
   { href: '/pengajar', label: 'Pengajar', icon: GraduationCap },
   { href: '/my-classes', label: 'Kelas Saya', icon: BookMarked },
+  { href: '/ebook-saya', label: 'Ebook Saya', icon: BookOpen },
   { href: '/tentang-kami', label: 'Tentang Kami', icon: Info },
 ];
 

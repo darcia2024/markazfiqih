@@ -33,6 +33,8 @@ import InstructorsPage from '@/pages/InstructorsPage';
 import InstructorDetailPage from '@/pages/InstructorDetailPage';
 import BundlesPage from '@/pages/BundlesPage';
 import AboutUsPage from '@/pages/AboutUsPage';
+import MyEbooksPage from '@/pages/MyEbooksPage';
+import EbookDetailPage from '@/pages/EbookDetailPage';
 
 const queryClient = new QueryClient();
 
@@ -52,6 +54,8 @@ function Router() {
       <Route path="/pengajar" component={InstructorsPage} />
       <Route path="/pengajar/:id" component={InstructorDetailPage} />
       <Route path="/learn/:classId" component={LearnPage} />
+      <Route path="/ebook-saya" component={MyEbooksPage} />
+      <Route path="/ebook/:id" component={EbookDetailPage} />
       <Route path="/admin">
         {() => <RequireAdminRoute><AdminDashboardPage /></RequireAdminRoute>}
       </Route>

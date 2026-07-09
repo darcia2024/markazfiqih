@@ -10,12 +10,15 @@ import {
   Check,
   ArrowRight,
   CheckCircle2,
+  BookOpen,
+  Download,
 } from 'lucide-react';
 
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import { useQuery } from '@tanstack/react-query';
-import { listClasses, listInstructors, listEnrollments, listClassRatings, getSettings } from '@/lib/db';
+import { listClasses, listInstructors, listEnrollments, listClassRatings, getSettings, listEbooksCatalog, listMyEbooks } from '@/lib/db';
+import type { EbookCatalogItem } from '@/lib/db';
 import { StarRating } from '@/components/StarRating';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -445,7 +448,155 @@ const CATALOG_CATEGORY_FILTERS = [
   { label: 'Fiqih Tematik', value: 'Fiqih Tematik' },
   { label: 'Fiqih Kitab', value: 'Fiqih Kitab' },
   { label: 'Akademi', value: 'Akademi' },
+  { label: 'Ebook', value: 'ebook' },
 ];
+
+// ── Ebook card ────────────────────────────────────────────────────────────────
+function EbookCard({
+  ebook,
+  index,
+  ownedEbookIds,
+}: {
+  ebook: EbookCatalogItem;
+  index: number;
+  ownedEbookIds: Set<string>;
+}) {
+  const { user } = useAuth();
+  const { ebookIdsInCart, addEbookToCart, isAdding } = useCart();
+  const [, setLocation] = useLocation();
+  const inCart = ebookIdsInCart.has(ebook.id);
+  const isOwned = ownedEbookIds.has(ebook.id);
+  const hasDiscount = ebook.discountPrice != null;
+
+  const handleCartAction = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) {
+      setLocation(`/login?redirect=${encodeURIComponent('/katalog')}`);
+      return;
+    }
+    if (isOwned) {
+      setLocation('/ebook-saya');
+      return;
+    }
+    if (inCart) {
+      setLocation('/keranjang');
+      return;
+    }
+    try {
+      await addEbookToCart(ebook.id);
+      toast.success('Ebook berhasil ditambahkan ke keranjang');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Gagal menambahkan ke keranjang.');
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      exit={{ opacity: 0, scale: 0.97 }}
+      whileHover={{ y: -4 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ duration: 0.2, delay: Math.min(index * 0.05, 0.3) }}
+      layout
+      className="h-full"
+    >
+      <div className="group h-full flex flex-col rounded-lg border border-border bg-card overflow-hidden shadow-sm hover:shadow-lg transition-friendly">
+        {/* Clickable area — navigasi ke detail ebook */}
+        <Link href={`/ebook/${ebook.id}`} className="flex flex-col flex-1">
+          {/* Cover */}
+          <div className="relative aspect-video overflow-hidden bg-muted">
+            {ebook.coverImage ? (
+              <img
+                src={ebook.coverImage}
+                alt={ebook.title}
+                loading="lazy"
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <BookOpen className="h-10 w-10 text-muted-foreground/40" />
+              </div>
+            )}
+            {isOwned && (
+              <div className="absolute top-3 right-3">
+                <Badge className="bg-[hsl(var(--accent))] text-white text-[11px] flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3" />
+                  Dimiliki
+                </Badge>
+              </div>
+            )}
+          </div>
+
+          {/* Content */}
+          <div className="flex flex-col flex-1 px-4 pt-4 pb-3 gap-2">
+            <h4 className="text-base font-semibold text-foreground leading-snug line-clamp-2 min-h-[2.75rem] group-hover:text-primary transition-colors">
+              {ebook.title}
+            </h4>
+
+            <div className="border-t border-border" />
+
+            {/* Author row — menggantikan info level/durasi pada kelas */}
+            <div className="flex items-center gap-2 text-sm text-foreground/80">
+              <span className="flex h-4 w-4 items-center justify-center rounded-full bg-primary/10 text-primary shrink-0">
+                <BookOpen className="h-2.5 w-2.5" />
+              </span>
+              <span className="truncate">{ebook.author ?? 'Markaz Fiqih'}</span>
+            </div>
+
+            {/* Price */}
+            <div className="mt-auto pt-2">
+              {hasDiscount ? (
+                <>
+                  <span className="text-[13px] text-text-tertiary line-through leading-tight block">
+                    {formatPrice(ebook.price)}
+                  </span>
+                  <span className="text-lg font-bold text-primary leading-tight">
+                    {formatPrice(ebook.discountPrice!)}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="text-[13px] leading-tight invisible select-none block">&nbsp;</span>
+                  <span className="text-lg font-bold text-foreground leading-tight">
+                    {formatPrice(ebook.price)}
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+        </Link>
+
+        {/* Footer button */}
+        {isOwned ? (
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.15 }}>
+            <button
+              onClick={handleCartAction}
+              className="w-full py-3 px-4 bg-[hsl(var(--accent))] text-white text-sm font-semibold flex items-center justify-center gap-2 hover:bg-[hsl(var(--brand-gold-hover))] transition-colors"
+            >
+              <Download className="h-4 w-4 shrink-0" />
+              Baca / Download
+            </button>
+          </motion.div>
+        ) : (
+          <motion.button
+            onClick={handleCartAction}
+            disabled={isAdding}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ duration: 0.15 }}
+            className="w-full py-3 px-4 bg-gradient-to-r from-primary to-[hsl(var(--brand-red-hover))] text-white text-sm font-semibold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity disabled:opacity-60"
+          >
+            {inCart ? 'Lihat di Keranjang' : 'Tambah ke Keranjang'}
+            <ArrowRight className="h-4 w-4 shrink-0" />
+          </motion.button>
+        )}
+      </div>
+    </motion.div>
+  );
+}
 
 // ── Section per Kategori (Grouping saat "Semua Kategori" aktif) ────────────
 function CategorySection({
@@ -486,6 +637,29 @@ function CatalogContent() {
   const [selectedInstructorId, setSelectedInstructorId] = useState<string | null>(null);
 
   const { user } = useAuth();
+
+  const isEbookTab = category === 'ebook';
+
+  // ── Ebook queries (hanya aktif saat tab Ebook dipilih) ──────────────────
+  const ebooksQuery = useQuery({
+    queryKey: ['ebooks-catalog', search],
+    queryFn: listEbooksCatalog,
+    enabled: isEbookTab,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const myEbooksQuery = useQuery({
+    queryKey: ['my-ebooks', user?.id],
+    queryFn: () => listMyEbooks(user!.id),
+    enabled: isEbookTab && !!user?.id,
+  });
+
+  const ownedEbookIds = new Set((myEbooksQuery.data ?? []).map((e) => e.id));
+
+  // Filter ebook by search (client-side, data kecil)
+  const ebookList = (ebooksQuery.data ?? []).filter((e) =>
+    search.trim() ? e.title.toLowerCase().includes(search.toLowerCase()) : true,
+  );
 
   const settingsQuery = useQuery({ queryKey: ['settings'], queryFn: getSettings });
   const CATEGORY_ORDER = settingsQuery.data?.catalogCategoryOrder?.length
@@ -599,29 +773,34 @@ function CatalogContent() {
           </div>
 
           <div className="flex gap-2 flex-wrap">
-            <Select value={level} onValueChange={(v) => setLevel(v as typeof level)}>
-              <SelectTrigger className="h-9 w-auto min-w-[110px] rounded-full px-4 text-[13px] border-secondary-border bg-secondary">
-                <SelectValue placeholder="Level" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua Level</SelectItem>
-                <SelectItem value="pemula">Pemula</SelectItem>
-                <SelectItem value="menengah">Menengah</SelectItem>
-                <SelectItem value="lanjutan">Lanjutan</SelectItem>
-              </SelectContent>
-            </Select>
+            {/* Filter Level disembunyikan saat tab Ebook aktif — ebook tidak punya level */}
+            {!isEbookTab && (
+              <Select value={level} onValueChange={(v) => setLevel(v as typeof level)}>
+                <SelectTrigger className="h-9 w-auto min-w-[110px] rounded-full px-4 text-[13px] border-secondary-border bg-secondary">
+                  <SelectValue placeholder="Level" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Level</SelectItem>
+                  <SelectItem value="pemula">Pemula</SelectItem>
+                  <SelectItem value="menengah">Menengah</SelectItem>
+                  <SelectItem value="lanjutan">Lanjutan</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
 
-            <Select value={sort} onValueChange={(v) => setSort(v as typeof sort)}>
-              <SelectTrigger className="h-9 w-auto min-w-[110px] rounded-full px-4 text-[13px] border-secondary-border bg-secondary">
-                <SelectValue placeholder="Urutkan" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="newest">Terbaru</SelectItem>
-                <SelectItem value="price_asc">Terhemat</SelectItem>
-                <SelectItem value="price_desc">Termahal</SelectItem>
-                <SelectItem value="popular">Terpopuler</SelectItem>
-              </SelectContent>
-            </Select>
+            {!isEbookTab && (
+              <Select value={sort} onValueChange={(v) => setSort(v as typeof sort)}>
+                <SelectTrigger className="h-9 w-auto min-w-[110px] rounded-full px-4 text-[13px] border-secondary-border bg-secondary">
+                  <SelectValue placeholder="Urutkan" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="newest">Terbaru</SelectItem>
+                  <SelectItem value="price_asc">Terhemat</SelectItem>
+                  <SelectItem value="price_desc">Termahal</SelectItem>
+                  <SelectItem value="popular">Terpopuler</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
           </div>
         </div>
 
@@ -641,13 +820,57 @@ function CatalogContent() {
           ))}
         </div>
 
-        <InstructorSection
-          instructors={instructors}
-          isLoading={instructorsQuery.isLoading}
-          selectedInstructorId={selectedInstructorId}
-          onSelect={setSelectedInstructorId}
-        />
+        {/* Instruktur hanya ditampilkan saat tab kelas aktif */}
+        {!isEbookTab && (
+          <InstructorSection
+            instructors={instructors}
+            isLoading={instructorsQuery.isLoading}
+            selectedInstructorId={selectedInstructorId}
+            onSelect={setSelectedInstructorId}
+          />
+        )}
 
+        {/* ── Ebook grid (tab Ebook aktif) ─────────────────────────────── */}
+        {isEbookTab && (
+          <motion.section
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-50px' }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+          >
+            <h2 className="text-xl font-semibold text-foreground mb-4">Semua Ebook</h2>
+            {ebooksQuery.isLoading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                {Array.from({ length: 4 }).map((_, i) => <ClassCardSkeleton key={i} />)}
+              </div>
+            ) : ebookList.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex flex-col items-center justify-center py-20 text-center"
+              >
+                <BookOpen className="w-12 h-12 text-muted-foreground/50 mx-auto mb-4" />
+                <p className="text-base text-muted-foreground max-w-sm">
+                  {search ? 'Tidak ada ebook yang cocok dengan pencarianmu' : 'Belum ada ebook yang tersedia'}
+                </p>
+                {search && (
+                  <Button variant="ghost" size="sm" onClick={() => setSearch('')} className="mt-4">
+                    Reset Pencarian
+                  </Button>
+                )}
+              </motion.div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                {ebookList.map((ebook, idx) => (
+                  <EbookCard key={ebook.id} ebook={ebook} index={idx} ownedEbookIds={ownedEbookIds} />
+                ))}
+              </div>
+            )}
+          </motion.section>
+        )}
+
+        {/* ── Class grid (tab kelas aktif) ──────────────────────────────── */}
+        {!isEbookTab && (
         <motion.section
           initial={{ opacity: 0, y: 24 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -696,6 +919,7 @@ function CatalogContent() {
             </>
           )}
         </motion.section>
+        )}
       </main>
     </AppShell>
   );
