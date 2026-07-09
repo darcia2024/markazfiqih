@@ -549,7 +549,9 @@ function PlaylistMode({
     </div>
   );
 
-  const RightSidebarCards = () => (
+  // ── Prompt 128: "Tentang Pengajar" + Fasilitas SAJA (tanpa "Kelas Lainnya",
+  //    yang sekarang jadi section full-width terpisah di bawah grid 3 kolom) ──
+  const InstructorAndFacilitasCards = () => (
     <>
       <InstructorCard />
       {(gdriveMateriUrl || waGroupUrl || soalLatihanUrl || ebookUrl || testimoniFormUrl) && (
@@ -563,42 +565,50 @@ function PlaylistMode({
           />
         </div>
       )}
-      {classCategory && relatedClasses.length > 0 && (
-        <div className="bg-card rounded-2xl border p-5 space-y-4">
-          <p className="text-sm font-semibold text-foreground">
-            Kelas Lainnya{classCategory ? `: ${classCategory}` : ''}
-          </p>
-          <div className="space-y-3">
-            {relatedClasses.map((cls) => (
-              <Link key={cls.id} href={`/class/${cls.id}`} className="flex items-start gap-3 group">
-                <img
-                  src={cls.coverImage}
-                  alt={cls.title}
-                  className="w-16 h-11 rounded-lg object-cover shrink-0"
-                />
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-foreground line-clamp-2 group-hover:text-primary transition-colors leading-snug">
-                    {cls.title}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {formatPrice(cls.discountPrice ?? cls.basePrice)}
-                  </p>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      )}
     </>
   );
 
+  const KelasLainnyaSection = () =>
+    classCategory && relatedClasses.length > 0 ? (
+      <div className="bg-card rounded-2xl border p-5 space-y-4">
+        <p className="text-sm font-semibold text-foreground">
+          Kelas Lainnya{classCategory ? `: ${classCategory}` : ''}
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {relatedClasses.map((cls) => (
+            <Link key={cls.id} href={`/class/${cls.id}`} className="flex items-start gap-3 group">
+              <img
+                src={cls.coverImage}
+                alt={cls.title}
+                className="w-16 h-11 rounded-lg object-cover shrink-0"
+              />
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-foreground line-clamp-2 group-hover:text-primary transition-colors leading-snug">
+                  {cls.title}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {formatPrice(cls.discountPrice ?? cls.basePrice)}
+                </p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
+    ) : null;
+
   return (
     <AppShell>
-      <div className="flex-1 flex flex-col lg:flex-row">
+      <div className="flex-1 flex flex-col">
+        {/* ── Prompt 128: grid 3 kolom — Daftar Materi (kiri) | Video (tengah,
+            paling lebar) | Tentang Pengajar (kanan). Di mobile, urutan tumpuk:
+            video dulu, lalu Daftar Materi, lalu Tentang Pengajar. Breadcrumb,
+            deskripsi kelas, tombol selesai, dan "Kelas Lainnya" dipindah jadi
+            section full-width TERPISAH di bawah grid ini (lihat setelah </div> ini). ── */}
+        <div className="flex flex-col lg:flex-row">
 
-        {/* ── Sidebar kiri: navigasi pertemuan ─────────────────────────────────
+        {/* ── Kolom kiri: navigasi pertemuan (Daftar Materi) ───────────────────
             Di desktop: sticky di kiri, sama persis gaya Sidebar mode Modul/Bab.
-            Di mobile: muncul di BAWAH konten (order-2). */}
+            Di mobile: muncul SETELAH video (order-2). */}
         <div className="order-2 lg:order-1 w-full lg:w-auto">
           <aside className="w-full lg:w-80 xl:w-96 shrink-0 border-r bg-card flex flex-col lg:h-[calc(100vh-4rem)] lg:sticky lg:top-16 overflow-hidden">
             {/* Header */}
@@ -688,8 +698,9 @@ function PlaylistMode({
           </aside>
         </div>
 
-        {/* ── Konten tengah: video + info pertemuan ────────────────────────────
-            Di desktop: di tengah (order-2). Di mobile: di ATAS (order-1). */}
+        {/* ── Kolom tengah: video SAJA — kolom paling lebar (flex-1) ──────────
+            Di desktop: di tengah (order-2). Di mobile: PALING ATAS (order-1),
+            karena video paling penting dilihat duluan. */}
         <main className="order-1 lg:order-2 flex-1 min-w-0 flex flex-col gap-6 px-4 lg:px-8 py-6">
           {/* Video
               CATATAN: YT IFrame API dipakai supaya bisa baca/tulis posisi playback.
@@ -708,7 +719,22 @@ function PlaylistMode({
           </div>
           {/* Player tersembunyi, dipakai sekali membaca daftar video lewat getPlaylist() */}
           <div id="yt-meta-container" className="sr-only" aria-hidden="true" />
+        </main>
 
+        {/* ── Kolom kanan: Tentang Pengajar + Fasilitas SAJA ────────────────────
+            Tampil di mobile JUGA (bukan hidden), tapi urutannya SETELAH Daftar
+            Materi (order-3). "Kelas Lainnya" TIDAK di sini lagi (Prompt 128). */}
+        <aside className="order-3 flex flex-col gap-4 w-full lg:w-[320px] shrink-0 p-4 py-6">
+          <InstructorAndFacilitasCards />
+        </aside>
+        </div>
+
+        {/* ── Prompt 128: section FULL-WIDTH di bawah grid 3 kolom ─────────────
+            Breadcrumb pertemuan + deskripsi kelas + tombol "Tandai Kelas
+            Selesai" + "Kelas Lainnya" — semua jadi 1 section full-width,
+            bukan lagi bagian dari salah satu kolom sempit. Tampil PALING
+            BAWAH di mobile juga. */}
+        <div className="w-full px-4 lg:px-8 py-6 max-w-5xl mx-auto lg:mx-0 flex flex-col gap-6">
           {/* Breadcrumb pertemuan + tombol navigasi */}
           {videoIds && videoIds.length > 0 && currentIndex !== null && (
             <div className="bg-card rounded-2xl border p-6">
@@ -815,16 +841,9 @@ function PlaylistMode({
             )}
           </div>
 
-          {/* Mobile: kartu pengajar + fasilitas + kelas lain (di desktop tampil di sidebar kanan) */}
-          <div className="flex flex-col gap-4 lg:hidden">
-            <RightSidebarCards />
-          </div>
-        </main>
-
-        {/* ── Sidebar kanan (desktop only): Tentang Pengajar + Fasilitas ─────── */}
-        <aside className="hidden lg:flex flex-col gap-4 w-[320px] shrink-0 p-4 py-6">
-          <RightSidebarCards />
-        </aside>
+          {/* "Kelas Lainnya" — full-width, di paling bawah */}
+          <KelasLainnyaSection />
+        </div>
       </div>
     </AppShell>
   );
