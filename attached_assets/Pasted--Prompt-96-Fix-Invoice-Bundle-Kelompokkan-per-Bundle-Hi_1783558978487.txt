@@ -1,0 +1,176 @@
+# Prompt 96: Fix Invoice Bundle — Kelompokkan per Bundle, Hilangkan Harga per Kelas
+
+## Konteks — 2 Masalah
+1. **Bug**: Di `supabase/functions/checkout/index.ts`, saat membangun
+   `invoiceItemsForResponse` (data yang dikirim balik ke frontend untuk
+   ditampilkan langsung di halaman "Simulasi Pembayaran"), field
+   `bundle_id` TIDAK ikut disertakan — padahal untuk `invoiceItemsToInsert`
+   (yang disimpan ke database) field ini sudah benar ada. Akibatnya
+   frontend (`CartPage.tsx`) yang sebenarnya sudah punya logic
+   `item.bundleId ? '-' : formatPrice(item.price)` tidak pernah kebaca
+   `bundleId`-nya (selalu `undefined`), jadi harga per-kelas tetap
+   muncul.
+2. **Permintaan tambahan dari klien**: bukan cuma diganti `-`, tapi
+   kelas-kelas yang berasal dari bundle dikelompokkan di bawah judul
+   nama bundle-nya (misal "Paket Bundle: Seluruh Rekaman"), dengan daftar
+   kelas di bawahnya TANPA keterangan harga sama sekali per kelas — harga
+   cukup muncul sekali di level bundle (total gabungan harga kelas-kelas
+   dalam bundle itu).
+
+## Fix 1 — Edge Function `checkout/index.ts`
+
+Cari bagian pembuatan `invoiceItemsForResponse` untuk item bundle
+(sekitar baris 207-217, di dalam blok `if (item.bundle_id && item.bundles)`).
+Tambahkan `bundleId` dan `bundleName` ke setiap object yang di-push:
+
+```ts
+bundleClasses.forEach((cls: any, idx: number) => {
+  const price = idx === 0 ? pricePerClass + remainder : pricePerClass;
+  invoiceItemsToInsert.push({
+    invoice_id: invoice.id,
+    class_id: cls.id,
+    bundle_id: item.bundle_id,
+    price,
+  });
+  invoiceItemsForResponse.push({
+    id: `${item.id}-${cls.id}`,
+    classId: cls.id,
+    bundleId: item.bundle_id,        // ← TAMBAHAN
+    bundleName: bundle.title ?? '',  // ← TAMBAHAN
+    title: cls.title ?? '',
+    price,
+    coverImage: cls.cover_image ?? '',
+  });
+});
+```
+
+## Fix 2 — Type & `getInvoice` di `lib/db.ts`
+
+1. Tambahkan `bundleName?: string;` ke type `LocalInvoiceItem` (sekitar
+   baris 603-609).
+
+2. Edit function `getInvoice` (sekitar baris 996) supaya saat fetch ulang
+   invoice yang sudah dibuat (misal setelah redirect balik dari halaman
+   pembayaran), `bundleName` juga ikut ke-load lewat join ke tabel
+   `bundles`:
+
+```ts
+export async function getInvoice(invoiceId: string): Promise<LocalInvoice> {
+  const { data, error } = await supabase
+    .from('invoices')
+    .select(`
+      id, total_amount, status, mayar_invoice_id, paid_at,
+      invoice_items (
+        id, class_id, bundle_id, price,
+        classes ( id, title, cover_image ),
+        bundles ( title )
+      )
+    `)
+    .eq('id', invoiceId)
+    .single();
+  if (error) throw error;
+  return {
+    id: data.id as string,
+    totalAmount: data.total_amount as number,
+    status: data.status as string,
+    paymentUrl: null,
+    items: ((data.invoice_items as any[]) ?? []).map((item: any) => ({
+      id: item.id as string,
+      classId: item.class_id as string,
+      bundleId: item.bundle_id as string | undefined,
+      bundleName: item.bundles?.title as string | undefined,
+      title: item.classes?.title ?? '',
+      price: item.price as number,
+      coverImage: item.classes?.cover_image ?? '',
+    })),
+  };
+}
+```
+(Sesuaikan field lain yang sudah ada di return object ini, jangan hapus
+apapun yang sudah ada — contoh di atas fokus ke bagian yang berubah saja.)
+
+## Fix 3 — Kelompokkan Tampilan di `CartPage.tsx`
+
+Cari bagian render "Ringkasan Invoice" di halaman Simulasi Pembayaran
+(sekitar baris 582-591, `{invoice.items.map((item) => ...)}`). Ganti
+dengan logic pengelompokan:
+
+```tsx
+{(() => {
+  // Kelompokkan items: per bundleId, dan item non-bundle berdiri sendiri
+  const bundleGroups = new Map<string, { bundleName: string; items: typeof invoice.items; total: number }>();
+  const standaloneItems: typeof invoice.items = [];
+
+  invoice.items.forEach((item) => {
+    if (item.bundleId) {
+      const key = item.bundleId;
+      if (!bundleGroups.has(key)) {
+        bundleGroups.set(key, { bundleName: item.bundleName ?? 'Paket Bundle', items: [], total: 0 });
+      }
+      const group = bundleGroups.get(key)!;
+      group.items.push(item);
+      group.total += item.price;
+    } else {
+      standaloneItems.push(item);
+    }
+  });
+
+  return (
+    <>
+      {Array.from(bundleGroups.values()).map((group) => (
+        <div key={group.bundleName} className="space-y-1.5">
+          <div className="flex items-center justify-between text-sm font-medium">
+            <span className="text-foreground">Paket Bundle: {group.bundleName}</span>
+            <span className="text-muted-foreground shrink-0 ml-3">{formatPrice(group.total)}</span>
+          </div>
+          <ul className="pl-4 space-y-1">
+            {group.items.map((item) => (
+              <li key={item.id} className="text-xs text-muted-foreground list-disc">
+                {item.title}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+      {standaloneItems.map((item) => (
+        <div key={item.id} className="flex items-center justify-between text-sm">
+          <span className="text-foreground line-clamp-1 flex-1">{item.title}</span>
+          <span className="text-muted-foreground shrink-0 ml-3">{formatPrice(item.price)}</span>
+        </div>
+      ))}
+    </>
+  );
+})()}
+```
+
+Terapkan pola grouping yang SAMA PERSIS di `CartSuccessView` (sekitar
+baris 132-156, komponen yang tampil setelah pembayaran sukses) — cari
+`{invoice.items.map((item) => ...)}` di situ juga, karena tampilan
+ringkasan setelah bayar sukses punya masalah yang identik.
+
+## Yang Tidak Boleh Berubah
+- Perhitungan `pricePerClass`/pembagian harga bundle ke tiap kelas di
+  backend TIDAK berubah — itu tetap perlu untuk breakdown internal &
+  data di `invoice_items`, hanya cara TAMPILANNYA yang berubah.
+- Total invoice (`invoice.totalAmount`) tetap dihitung seperti sekarang.
+- Class individual (bukan dari bundle) tetap tampil apa adanya dengan
+  harga masing-masing, tidak ikut dikelompokkan.
+
+## Setelah Selesai
+1. Test checkout dengan keranjang berisi 1 bundle + 1 kelas individual —
+   konfirmasi tampilan "Simulasi Pembayaran" menunjukkan bundle
+   dikelompokkan dengan judul + total harga bundle, daftar kelas di
+   bawahnya tanpa harga, dan kelas individual tetap tampil normal dengan
+   harganya.
+2. Test dengan 2 bundle berbeda dalam satu keranjang — konfirmasi
+   masing-masing bundle punya grup terpisah dengan judul masing-masing.
+3. Konfirmasi tampilan setelah "Simulasi Lunas" (CartSuccessView) juga
+   ikut ter-fix dengan pola yang sama.
+4. Jalankan `pnpm run typecheck`, harus 0 error.
+
+## SQL/Deploy yang Perlu Dijalankan Manual
+- **Edge function `checkout` perlu di-deploy ulang manual** setelah
+  perubahan `index.ts` (edge function tidak auto-deploy dari perubahan
+  kode repo). Ingatkan saya untuk deploy lewat Supabase Dashboard/CLI
+  setelah Agent selesai.
+- Tidak ada SQL/migrasi database untuk prompt ini.

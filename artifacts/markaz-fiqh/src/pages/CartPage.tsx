@@ -142,14 +142,47 @@ function CartSuccessView({ invoice, onBackToCatalog }: { invoice: LocalInvoice; 
         Kamu telah berhasil mendaftar ke {invoice.items.length} kelas. Selamat belajar!
       </p>
       <div className="rounded-xl border bg-card p-5 text-left space-y-3 mb-8">
-        {invoice.items.map((item) => (
-          <div key={item.id} className="flex items-center gap-3">
-            <div className="w-12 h-9 rounded-md overflow-hidden bg-muted shrink-0">
-              <img src={item.coverImage} alt={item.title} className="w-full h-full object-cover" />
-            </div>
-            <p className="text-sm font-medium text-foreground line-clamp-1">{item.title}</p>
-          </div>
-        ))}
+        {(() => {
+          const bundleGroups = new Map<string, { bundleName: string; items: typeof invoice.items }>();
+          const standaloneItems: typeof invoice.items = [];
+          invoice.items.forEach((item) => {
+            if (item.bundleId) {
+              if (!bundleGroups.has(item.bundleId)) {
+                bundleGroups.set(item.bundleId, { bundleName: item.bundleName ?? 'Paket Bundle', items: [] });
+              }
+              bundleGroups.get(item.bundleId)!.items.push(item);
+            } else {
+              standaloneItems.push(item);
+            }
+          });
+          return (
+            <>
+              {Array.from(bundleGroups.values()).map((group) => (
+                <div key={group.bundleName} className="space-y-1.5">
+                  <p className="text-sm font-semibold text-foreground">Paket Bundle: {group.bundleName}</p>
+                  <ul className="pl-4 space-y-1">
+                    {group.items.map((item) => (
+                      <li key={item.id} className="flex items-center gap-2">
+                        <div className="w-10 h-7 rounded overflow-hidden bg-muted shrink-0">
+                          <img src={item.coverImage} alt={item.title} className="w-full h-full object-cover" />
+                        </div>
+                        <p className="text-xs text-muted-foreground line-clamp-1">{item.title}</p>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+              {standaloneItems.map((item) => (
+                <div key={item.id} className="flex items-center gap-3">
+                  <div className="w-12 h-9 rounded-md overflow-hidden bg-muted shrink-0">
+                    <img src={item.coverImage} alt={item.title} className="w-full h-full object-cover" />
+                  </div>
+                  <p className="text-sm font-medium text-foreground line-clamp-1">{item.title}</p>
+                </div>
+              ))}
+            </>
+          );
+        })()}
         <Separator />
         <div className="flex justify-between text-sm font-bold">
           <span>Total Dibayar</span>
@@ -580,14 +613,47 @@ function CartContent() {
               Ringkasan Invoice
             </p>
             <div className="space-y-3">
-              {invoice.items.map((item) => (
-                <div key={item.id} className="flex items-center justify-between text-sm">
-                  <span className="text-foreground line-clamp-1 flex-1">{item.title}</span>
-                  <span className="text-muted-foreground shrink-0 ml-3">
-                    {item.bundleId ? '-' : formatPrice(item.price)}
-                  </span>
-                </div>
-              ))}
+              {(() => {
+                const bundleGroups = new Map<string, { bundleName: string; items: typeof invoice.items; total: number }>();
+                const standaloneItems: typeof invoice.items = [];
+                invoice.items.forEach((item) => {
+                  if (item.bundleId) {
+                    if (!bundleGroups.has(item.bundleId)) {
+                      bundleGroups.set(item.bundleId, { bundleName: item.bundleName ?? 'Paket Bundle', items: [], total: 0 });
+                    }
+                    const group = bundleGroups.get(item.bundleId)!;
+                    group.items.push(item);
+                    group.total += item.price;
+                  } else {
+                    standaloneItems.push(item);
+                  }
+                });
+                return (
+                  <>
+                    {Array.from(bundleGroups.values()).map((group) => (
+                      <div key={group.bundleName} className="space-y-1.5">
+                        <div className="flex items-center justify-between text-sm font-medium">
+                          <span className="text-foreground">Paket Bundle: {group.bundleName}</span>
+                          <span className="text-muted-foreground shrink-0 ml-3">{formatPrice(group.total)}</span>
+                        </div>
+                        <ul className="pl-4 space-y-1">
+                          {group.items.map((item) => (
+                            <li key={item.id} className="text-xs text-muted-foreground list-disc">
+                              {item.title}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                    {standaloneItems.map((item) => (
+                      <div key={item.id} className="flex items-center justify-between text-sm">
+                        <span className="text-foreground line-clamp-1 flex-1">{item.title}</span>
+                        <span className="text-muted-foreground shrink-0 ml-3">{formatPrice(item.price)}</span>
+                      </div>
+                    ))}
+                  </>
+                );
+              })()}
             </div>
             <Separator />
             <div className="flex justify-between font-bold text-base">

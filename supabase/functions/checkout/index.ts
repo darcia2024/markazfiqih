@@ -216,6 +216,8 @@ Deno.serve(async (req) => {
           invoiceItemsForResponse.push({
             id: `${item.id}-${cls.id}`,
             classId: cls.id,
+            bundleId: item.bundle_id,
+            bundleName: bundle.title ?? '',
             title: cls.title ?? '',
             price,
             coverImage: cls.cover_image ?? '',

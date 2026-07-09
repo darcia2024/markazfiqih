@@ -613,6 +613,7 @@ export type LocalInvoiceItem = {
   id: string;
   classId: string;
   bundleId?: string;
+  bundleName?: string;
   title: string;
   price: number;
   coverImage: string;
@@ -1007,7 +1008,7 @@ export async function getInvoice(invoiceId: string): Promise<LocalInvoice> {
     .from('invoices')
     .select(`
       id, total_amount, status, mayar_invoice_id, paid_at,
-      invoice_items ( id, class_id, bundle_id, price, classes ( id, title, cover_image ) )
+      invoice_items ( id, class_id, bundle_id, price, classes ( id, title, cover_image ), bundles ( title ) )
     `)
     .eq('id', invoiceId)
     .single();
@@ -1021,6 +1022,7 @@ export async function getInvoice(invoiceId: string): Promise<LocalInvoice> {
       id: item.id as string,
       classId: item.class_id as string,
       bundleId: item.bundle_id as string | undefined,
+      bundleName: item.bundles?.title as string | undefined,
       title: item.classes?.title ?? '',
       price: item.price as number,
       coverImage: item.classes?.cover_image ?? '',
