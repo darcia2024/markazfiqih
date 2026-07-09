@@ -54,12 +54,13 @@ Deno.serve(async (req) => {
     const { data: cartItems, error: cartError } = await supabaseAdmin
       .from('cart_items')
       .select(`
-        id, class_id, bundle_id,
+        id, class_id, bundle_id, ebook_id,
         classes ( id, title, cover_image, base_price, discount_price ),
         bundles (
           id, title, bundle_price,
           bundle_classes ( class_id, classes ( id, title, cover_image ) )
-        )
+        ),
+        ebooks ( id, title, price, discount_price )
       `)
       .eq('user_id', user.id);
 
@@ -184,6 +185,32 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ── Cegah checkout ebook yang SUDAH DIMILIKI ────────────────────────────────
+    const allEbookIdsInCart = (cartItems as any[])
+      .map((item) => item.ebook_id)
+      .filter((id): id is string => !!id);
+
+    if (allEbookIdsInCart.length > 0) {
+      const { data: existingEbookPurchases, error: ebookCheckError } = await supabaseAdmin
+        .from('ebook_purchases')
+        .select('ebook_id, ebooks(title)')
+        .eq('user_id', user.id)
+        .in('ebook_id', allEbookIdsInCart);
+      if (ebookCheckError) throw ebookCheckError;
+
+      if (existingEbookPurchases && existingEbookPurchases.length > 0) {
+        const titles = existingEbookPurchases
+          .map((e: any) => e.ebooks?.title ?? e.ebook_id)
+          .join(', ');
+        return new Response(
+          JSON.stringify({
+            error: `Kamu sudah memiliki ebook berikut, hapus dari keranjang sebelum checkout: ${titles}.`,
+          }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
     // ── Hitung total ──────────────────────────────────────────────────────────
     let totalAmount = 0;
     for (const item of cartItems as any[]) {
@@ -197,6 +224,9 @@ Deno.serve(async (req) => {
         } else {
           totalAmount += item.classes.discount_price ?? item.classes.base_price ?? 0;
         }
+      } else if (item.ebook_id && item.ebooks) {
+        // Item ebook
+        totalAmount += item.ebooks.discount_price ?? item.ebooks.price ?? 0;
       }
     }
 
@@ -272,6 +302,21 @@ Deno.serve(async (req) => {
           title: item.classes.title ?? '',
           price,
           coverImage: item.classes.cover_image ?? '',
+        });
+      } else if (item.ebook_id && item.ebooks) {
+        // Item ebook — 1 baris invoice_items per ebook (bukan pola split seperti bundle)
+        const price = item.ebooks.discount_price ?? item.ebooks.price ?? 0;
+
+        invoiceItemsToInsert.push({
+          invoice_id: invoice.id,
+          ebook_id: item.ebook_id,
+          price,
+        });
+        invoiceItemsForResponse.push({
+          id: item.id,
+          ebookId: item.ebook_id,
+          title: item.ebooks.title ?? '',
+          price,
         });
       }
     }

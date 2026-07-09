@@ -26,7 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
-import type { CartClassItem, CartBundleItem } from '@/context/CartContext';
+import type { CartClassItem, CartBundleItem, CartEbookItem } from '@/context/CartContext';
 import { formatPrice } from '@/pages/CatalogPage';
 import { createCheckout, simulateSuccess, getInvoice, validateVoucher, listClasses } from '@/lib/db';
 import type { LocalInvoice } from '@/lib/db';
@@ -335,6 +335,85 @@ function ClassCartItem({
   );
 }
 
+// ── Cart item: ebook ──────────────────────────────────────────────────────────
+
+function EbookCartItem({
+  item,
+  onRemove,
+  isRemoving,
+}: {
+  item: CartEbookItem;
+  onRemove: (id: string) => void;
+  isRemoving: boolean;
+}) {
+  const hasDiscount = item.ebook.discountPrice != null;
+  const displayPrice = item.ebook.discountPrice ?? item.ebook.price;
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: 100, height: 0, marginBottom: 0, paddingTop: 0, paddingBottom: 0 }}
+      transition={{ duration: 0.25, ease: 'easeInOut' }}
+      className="flex gap-4 rounded-lg border bg-card p-4 shadow-sm"
+    >
+      <div className="shrink-0 w-20 h-16 sm:w-28 sm:h-20 rounded-md overflow-hidden bg-muted">
+        {item.ebook.coverImage ? (
+          <img
+            src={item.ebook.coverImage}
+            alt={item.ebook.title}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <BookOpen className="h-6 w-6 text-muted-foreground/50" />
+          </div>
+        )}
+      </div>
+      <div className="flex-1 min-w-0 flex flex-col">
+        <div className="flex items-center gap-2 flex-wrap">
+          <h3 className="text-sm font-semibold text-foreground line-clamp-2">
+            {item.ebook.title}
+          </h3>
+          <Badge
+            variant="outline"
+            className="text-[10px] border-primary/30 text-primary bg-primary/5 shrink-0 px-1.5 py-0"
+          >
+            Ebook
+          </Badge>
+        </div>
+        {item.ebook.author && (
+          <p className="text-xs text-muted-foreground mt-1">{item.ebook.author}</p>
+        )}
+        <div className="mt-auto pt-2 flex items-center justify-between">
+          <div className="flex items-baseline gap-2">
+            {hasDiscount && (
+              <span className="text-xs text-text-tertiary line-through">
+                {formatPrice(item.ebook.price)}
+              </span>
+            )}
+            <span className="text-sm font-bold text-primary">
+              {formatPrice(displayPrice)}
+            </span>
+          </div>
+          <motion.button
+            onClick={() => onRemove(item.id)}
+            disabled={isRemoving}
+            className="text-muted-foreground hover:text-destructive transition-colors p-1.5 rounded-md hover:bg-destructive/10"
+            aria-label="Hapus dari keranjang"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            transition={{ duration: 0.15 }}
+          >
+            <Trash2 className="w-4 h-4" />
+          </motion.button>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 // ── Cart item: bundle ─────────────────────────────────────────────────────────
 
 function BundleCartItem({
@@ -454,6 +533,9 @@ function CartContent() {
     if (item.type === 'bundle') {
       return sum + item.bundle.bundlePrice;
     }
+    if (item.type === 'ebook') {
+      return sum + (item.ebook.discountPrice ?? item.ebook.price);
+    }
     // kelas biasa
     if (appliedVoucher && item.class.id === appliedVoucher.classId) {
       return sum + appliedVoucher.discountPrice;
@@ -463,6 +545,7 @@ function CartContent() {
 
   const classItemCount = items.filter((i) => i.type === 'class').length;
   const bundleItemCount = items.filter((i) => i.type === 'bundle').length;
+  const ebookItemCount = items.filter((i) => i.type === 'ebook').length;
 
   const handleRemove = (id: string) => {
     void handleRemoveAndRefreshRecommended(id);
@@ -729,6 +812,16 @@ function CartContent() {
                       />
                     );
                   }
+                  if (item.type === 'ebook') {
+                    return (
+                      <EbookCartItem
+                        key={item.id}
+                        item={item}
+                        onRemove={handleRemove}
+                        isRemoving={isRemoving}
+                      />
+                    );
+                  }
                   return (
                     <ClassCartItem
                       key={item.id}
@@ -757,6 +850,12 @@ function CartContent() {
                       <div className="flex justify-between">
                         <span>Paket Bundle</span>
                         <span>{bundleItemCount}</span>
+                      </div>
+                    )}
+                    {ebookItemCount > 0 && (
+                      <div className="flex justify-between">
+                        <span>Ebook</span>
+                        <span>{ebookItemCount}</span>
                       </div>
                     )}
                   </div>

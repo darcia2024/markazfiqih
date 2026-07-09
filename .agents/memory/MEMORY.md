@@ -8,3 +8,4 @@
 - [Mayar integration status](mayar-integration.md) — webhook skeleton exists but always returns 501 until Mayar API docs are received; 3 Mayar env vars needed.
 - [Supabase JS Node version requirement](supabase-js-node-version.md) — supabase-js needs Node 22+ (native WebSocket) even if realtime is unused; Node 20 fails at client creation.
 - [LearnPage Playlist Mode patterns](learnpage-playlist-mode.md) — reading video IDs from a YT playlist w/o extra API key, server-truth completion badges, key={routeParam} for stateful route components.
+- [Supabase RLS embeds and secret columns](supabase-rls-embeds-secrets.md) — RLS is row-level not column-level; a table holding a secret column must not be publicly SELECT-able at all, and any query embedding that table from a non-admin/non-service-role client silently returns null once you lock it down.

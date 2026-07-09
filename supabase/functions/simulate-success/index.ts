@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
     // Ambil invoice + items, pastikan milik user ini
     const { data: invoice } = await supabaseAdmin
       .from('invoices')
-      .select('id, user_id, status, voucher_id, invoice_items(class_id)')
+      .select('id, user_id, status, voucher_id, invoice_items(class_id, ebook_id)')
       .eq('id', invoiceId)
       .eq('user_id', user.id)
       .single();
@@ -101,16 +101,33 @@ Deno.serve(async (req) => {
     }
 
     // Buat enrollments untuk tiap kelas
-    const enrollments = invoice.invoice_items.map((item: any) => ({
-      user_id: user.id,
-      class_id: item.class_id,
-    }));
+    const enrollments = invoice.invoice_items
+      .filter((item: any) => item.class_id)
+      .map((item: any) => ({
+        user_id: user.id,
+        class_id: item.class_id,
+      }));
 
-    const { error: enrollError } = await supabaseAdmin
-      .from('enrollments')
-      .upsert(enrollments, { onConflict: 'user_id,class_id', ignoreDuplicates: true });
+    if (enrollments.length > 0) {
+      const { error: enrollError } = await supabaseAdmin
+        .from('enrollments')
+        .upsert(enrollments, { onConflict: 'user_id,class_id', ignoreDuplicates: true });
 
-    if (enrollError) throw enrollError;
+      if (enrollError) throw enrollError;
+    }
+
+    // Buat ebook_purchases untuk tiap ebook di invoice
+    const ebookItems = invoice.invoice_items.filter((item: any) => item.ebook_id);
+    if (ebookItems.length > 0) {
+      const ebookPurchases = ebookItems.map((item: any) => ({
+        user_id: user.id,
+        ebook_id: item.ebook_id,
+      }));
+      const { error: ebookPurchaseError } = await supabaseAdmin
+        .from('ebook_purchases')
+        .upsert(ebookPurchases, { onConflict: 'user_id,ebook_id', ignoreDuplicates: true });
+      if (ebookPurchaseError) throw ebookPurchaseError;
+    }
 
     // Kosongkan cart
     await supabaseAdmin

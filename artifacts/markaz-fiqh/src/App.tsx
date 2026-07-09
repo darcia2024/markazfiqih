@@ -28,6 +28,7 @@ import AdminVouchersPage from '@/pages/admin/AdminVouchersPage';
 import AdminUsersPage from '@/pages/admin/AdminUsersPage';
 import AdminCatalogLayoutPage from '@/pages/admin/AdminCatalogLayoutPage';
 import AdminBundlesPage from '@/pages/admin/AdminBundlesPage';
+import AdminEbooksPage from '@/pages/admin/AdminEbooksPage';
 import InstructorsPage from '@/pages/InstructorsPage';
 import InstructorDetailPage from '@/pages/InstructorDetailPage';
 import BundlesPage from '@/pages/BundlesPage';
@@ -86,6 +87,9 @@ function Router() {
       </Route>
       <Route path="/admin/bundles">
         {() => <RequireAdminRoute><AdminBundlesPage /></RequireAdminRoute>}
+      </Route>
+      <Route path="/admin/ebooks">
+        {() => <RequireAdminRoute><AdminEbooksPage /></RequireAdminRoute>}
       </Route>
       <Route component={NotFound} />
     </Switch>

@@ -2,10 +2,10 @@ import React, { createContext, useContext } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { listCartItems, addCartItem, removeCartItem } from '@/lib/db';
-import type { CartItem, CartClassItem, CartBundleItem } from '@/lib/db';
+import type { CartItem, CartClassItem, CartBundleItem, CartEbookItem } from '@/lib/db';
 import { useAuth } from '@/context/AuthContext';
 
-export type { CartItem, CartClassItem, CartBundleItem };
+export type { CartItem, CartClassItem, CartBundleItem, CartEbookItem };
 
 type CartContextType = {
   items: CartItem[];
@@ -14,8 +14,10 @@ type CartContextType = {
   isLoading: boolean;
   classIdsInCart: Set<string>;
   bundleIdsInCart: Set<string>;
+  ebookIdsInCart: Set<string>;
   addToCart: (classId: string) => Promise<void>;
   addBundleToCart: (bundleId: string) => Promise<void>;
+  addEbookToCart: (ebookId: string) => Promise<void>;
   isAdding: boolean;
   removeFromCart: (itemId: string) => Promise<void>;
   isRemoving: boolean;
@@ -34,7 +36,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   });
 
   const addMutation = useMutation({
-    mutationFn: (item: { classId: string } | { bundleId: string }) =>
+    mutationFn: (item: { classId: string } | { bundleId: string } | { ebookId: string }) =>
       addCartItem(user!.id, item),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['cart', user?.id] });
@@ -62,6 +64,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     if (item.type === 'bundle') {
       return sum + item.bundle.bundlePrice;
     }
+    if (item.type === 'ebook') {
+      return sum + (item.ebook.discountPrice ?? item.ebook.price);
+    }
     return sum + (item.class.discountPrice ?? item.class.basePrice);
   }, 0);
 
@@ -70,6 +75,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   );
   const bundleIdsInCart = new Set(
     items.filter((i): i is CartBundleItem => i.type === 'bundle').map((i) => i.bundleId),
+  );
+  const ebookIdsInCart = new Set(
+    items.filter((i): i is CartEbookItem => i.type === 'ebook').map((i) => i.ebookId),
   );
 
   const addToCart = async (classId: string) => {
@@ -80,6 +88,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const addBundleToCart = async (bundleId: string) => {
     if (!user) return;
     await addMutation.mutateAsync({ bundleId });
+  };
+
+  const addEbookToCart = async (ebookId: string) => {
+    if (!user) return;
+    await addMutation.mutateAsync({ ebookId });
   };
 
   const removeFromCart = async (itemId: string) => {
@@ -95,8 +108,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         isLoading: cartQuery.isLoading,
         classIdsInCart,
         bundleIdsInCart,
+        ebookIdsInCart,
         addToCart,
         addBundleToCart,
+        addEbookToCart,
         isAdding: addMutation.isPending,
         removeFromCart,
         isRemoving: removeMutation.isPending,

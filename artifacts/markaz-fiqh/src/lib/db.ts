@@ -60,7 +60,15 @@ export type CartBundleItem = {
   bundle: BundleItem;
 };
 
-export type CartItem = CartClassItem | CartBundleItem;
+export type CartEbookItem = {
+  id: string;
+  type: 'ebook';
+  ebookId: string;
+  addedAt: string;
+  ebook: EbookCatalogItem;
+};
+
+export type CartItem = CartClassItem | CartBundleItem | CartEbookItem;
 
 // ─── CLASSES ─────────────────────────────────────────────────────────────────
 
@@ -456,7 +464,7 @@ export async function listCartItems(userId: string): Promise<CartItem[]> {
   const { data, error } = await supabase
     .from('cart_items')
     .select(`
-      id, class_id, bundle_id, added_at,
+      id, class_id, bundle_id, ebook_id, added_at,
       classes (
         id, title, cover_image, base_price, discount_price,
         instructors ( id, name, photo_url ),
@@ -472,6 +480,33 @@ export async function listCartItems(userId: string): Promise<CartItem[]> {
     `)
     .eq('user_id', userId);
   if (error) throw error;
+
+  // Ebook diambil terpisah dari VIEW `ebooks_catalog`, BUKAN lewat embed
+  // relasi ke tabel `ebooks` — tabel `ebooks` sekarang hanya bisa di-SELECT
+  // oleh admin (lihat migrasi), jadi embed langsung akan selalu kosong untuk
+  // user biasa. View publik ini tidak punya gdrive_url sama sekali.
+  const ebookIds = (data ?? [])
+    .map((item: any) => item.ebook_id)
+    .filter((id: string | null): id is string => !!id);
+  const ebookMap = new Map<string, EbookCatalogItem>();
+  if (ebookIds.length > 0) {
+    const { data: ebookRows, error: ebookError } = await supabase
+      .from('ebooks_catalog')
+      .select('id, title, description, author, cover_image, price, discount_price')
+      .in('id', ebookIds);
+    if (ebookError) throw ebookError;
+    for (const e of ebookRows ?? []) {
+      ebookMap.set(e.id, {
+        id: e.id,
+        title: e.title,
+        description: e.description,
+        author: e.author,
+        coverImage: e.cover_image,
+        price: e.price,
+        discountPrice: e.discount_price,
+      });
+    }
+  }
 
   return (data ?? [])
     .map((item: any): CartItem | null => {
@@ -499,6 +534,17 @@ export async function listCartItems(userId: string): Promise<CartItem[]> {
                 coverImage: cls.cover_image as string,
               })),
           },
+        };
+      }
+
+      // Item ebook
+      if (item.ebook_id && ebookMap.has(item.ebook_id)) {
+        return {
+          id: item.id as string,
+          type: 'ebook',
+          ebookId: item.ebook_id as string,
+          addedAt: item.added_at as string,
+          ebook: ebookMap.get(item.ebook_id)!,
         };
       }
 
@@ -537,12 +583,17 @@ export async function listCartItems(userId: string): Promise<CartItem[]> {
 
 export async function addCartItem(
   userId: string,
-  item: { classId: string } | { bundleId: string },
+  item: { classId: string } | { bundleId: string } | { ebookId: string },
 ) {
   if ('bundleId' in item) {
     const { error } = await supabase
       .from('cart_items')
       .insert({ user_id: userId, bundle_id: item.bundleId });
+    if (error) throw error;
+  } else if ('ebookId' in item) {
+    const { error } = await supabase
+      .from('cart_items')
+      .insert({ user_id: userId, ebook_id: item.ebookId });
     if (error) throw error;
   } else {
     const { error } = await supabase
@@ -657,9 +708,10 @@ export async function checkEnrollment(userId: string, classId: string): Promise<
 
 export type LocalInvoiceItem = {
   id: string;
-  classId: string;
+  classId?: string;
   bundleId?: string;
   bundleName?: string;
+  ebookId?: string;
   title: string;
   price: number;
   coverImage: string;
@@ -1082,22 +1134,42 @@ export async function getInvoice(invoiceId: string): Promise<LocalInvoice> {
     .from('invoices')
     .select(`
       id, total_amount, status, mayar_invoice_id, paid_at,
-      invoice_items ( id, class_id, bundle_id, price, classes ( id, title, cover_image ), bundles ( title ) )
+      invoice_items ( id, class_id, bundle_id, ebook_id, price, classes ( id, title, cover_image ), bundles ( title ) )
     `)
     .eq('id', invoiceId)
     .single();
   if (error) throw error;
+
+  const items = (data.invoice_items as any[]) ?? [];
+
+  // Judul ebook diambil terpisah dari VIEW `ebooks_catalog` — tabel `ebooks`
+  // langsung hanya bisa dibaca admin, jadi embed relasi biasa tidak bisa
+  // dipakai di sini (lihat catatan yang sama di listCartItems).
+  const ebookIds = items
+    .map((item: any) => item.ebook_id)
+    .filter((id: string | null): id is string => !!id);
+  const ebookTitleMap = new Map<string, string>();
+  if (ebookIds.length > 0) {
+    const { data: ebookRows, error: ebookError } = await supabase
+      .from('ebooks_catalog')
+      .select('id, title')
+      .in('id', ebookIds);
+    if (ebookError) throw ebookError;
+    for (const e of ebookRows ?? []) ebookTitleMap.set(e.id, e.title);
+  }
+
   return {
     id: data.id as string,
     totalAmount: data.total_amount as number,
     status: data.status as string,
     paymentUrl: null,
-    items: ((data.invoice_items as any[]) ?? []).map((item: any) => ({
+    items: items.map((item: any) => ({
       id: item.id as string,
-      classId: item.class_id as string,
+      classId: (item.class_id as string | null) ?? undefined,
       bundleId: item.bundle_id as string | undefined,
       bundleName: item.bundles?.title as string | undefined,
-      title: item.classes?.title ?? '',
+      ebookId: (item.ebook_id as string | null) ?? undefined,
+      title: item.ebook_id ? (ebookTitleMap.get(item.ebook_id) ?? '') : (item.classes?.title ?? ''),
       price: item.price as number,
       coverImage: item.classes?.cover_image ?? '',
     })),
@@ -1417,6 +1489,182 @@ export async function getInstructorOverallRating(instructorId: string): Promise<
   const average =
     rows.length > 0 ? Math.round((rows.reduce((s, r) => s + r.rating, 0) / rows.length) * 10) / 10 : 0;
   return { average, count: rows.length };
+}
+
+// ── Ebooks (Prompt 119 — jual ebook via cart/checkout yang sudah ada) ─────────
+
+export type EbookCatalogItem = {
+  id: string;
+  title: string;
+  description: string;
+  author: string | null;
+  coverImage: string | null;
+  price: number;
+  discountPrice: number | null;
+  // TIDAK ADA gdriveUrl di sini — sengaja, ini untuk katalog publik
+};
+
+// Baca dari VIEW `ebooks_catalog`, bukan tabel `ebooks` langsung — view ini
+// sengaja TIDAK punya kolom gdrive_url sama sekali (lihat migrasi), jadi
+// walau kode di sini salah ketik SELECT *, link download tidak akan pernah
+// ikut kebawa ke katalog publik.
+export async function listEbooksCatalog(): Promise<EbookCatalogItem[]> {
+  const { data, error } = await supabase
+    .from('ebooks_catalog')
+    .select('id, title, description, author, cover_image, price, discount_price')
+    .order('display_order');
+  if (error) throw error;
+  return (data ?? []).map((e: any) => ({
+    id: e.id,
+    title: e.title,
+    description: e.description,
+    author: e.author,
+    coverImage: e.cover_image,
+    price: e.price,
+    discountPrice: e.discount_price,
+  }));
+}
+
+// Panggil function Postgres SECURITY DEFINER `get_ebook_download_url` —
+// validasi kepemilikan dilakukan DI DATABASE (bukan cuma di frontend), jadi
+// tidak bisa dilewati walau seseorang memanggil Supabase langsung dari luar.
+export async function getEbookDownloadUrl(ebookId: string): Promise<string> {
+  const { data, error } = await supabase.rpc('get_ebook_download_url', {
+    p_ebook_id: ebookId,
+  });
+  if (error) throw new Error(error.message || 'Kamu belum membeli ebook ini.');
+  return data as string;
+}
+
+export async function listMyEbooks(userId: string): Promise<EbookCatalogItem[]> {
+  // Tidak embed tabel `ebooks` langsung — sama seperti listCartItems/getInvoice,
+  // tabel dasar `ebooks` hanya bisa di-SELECT admin. Ambil id yang sudah dibeli
+  // dulu, lalu baca detailnya dari VIEW publik `ebooks_catalog`.
+  const { data: purchases, error } = await supabase
+    .from('ebook_purchases')
+    .select('ebook_id')
+    .eq('user_id', userId);
+  if (error) throw error;
+
+  const ebookIds = (purchases ?? []).map((p: any) => p.ebook_id as string);
+  if (ebookIds.length === 0) return [];
+
+  const { data: ebookRows, error: ebookError } = await supabase
+    .from('ebooks_catalog')
+    .select('id, title, description, author, cover_image, price, discount_price')
+    .in('id', ebookIds);
+  if (ebookError) throw ebookError;
+
+  return (ebookRows ?? []).map((e: any) => ({
+    id: e.id,
+    title: e.title,
+    description: e.description,
+    author: e.author,
+    coverImage: e.cover_image,
+    price: e.price,
+    discountPrice: e.discount_price,
+  }));
+}
+
+// ── Admin CRUD Ebook (pola sama seperti admin CRUD bundle) ────────────────────
+
+export type AdminEbook = {
+  id: string;
+  title: string;
+  description: string;
+  author: string | null;
+  coverImage: string;
+  price: number;
+  discountPrice: number | null;
+  gdriveUrl: string;
+  status: 'draft' | 'published';
+  displayOrder: number;
+};
+
+export async function listAllEbooksForAdmin(): Promise<AdminEbook[]> {
+  const { data, error } = await supabase
+    .from('ebooks')
+    .select('id, title, description, author, cover_image, price, discount_price, gdrive_url, status, display_order')
+    .order('display_order');
+  if (error) throw error;
+  return (data ?? []).map((e: any) => ({
+    id: e.id,
+    title: e.title,
+    description: e.description ?? '',
+    author: e.author,
+    coverImage: e.cover_image ?? '',
+    price: e.price,
+    discountPrice: e.discount_price,
+    gdriveUrl: e.gdrive_url,
+    status: e.status,
+    displayOrder: e.display_order,
+  }));
+}
+
+export async function createEbook(payload: {
+  title: string;
+  description: string;
+  author: string;
+  coverImage: string;
+  price: number;
+  discountPrice: number | null;
+  gdriveUrl: string;
+  status: 'draft' | 'published';
+}): Promise<void> {
+  const { error } = await supabase.from('ebooks').insert({
+    title: payload.title,
+    description: payload.description,
+    author: payload.author || null,
+    cover_image: payload.coverImage || null,
+    price: payload.price,
+    discount_price: payload.discountPrice,
+    gdrive_url: payload.gdriveUrl,
+    status: payload.status,
+  });
+  if (error) throw error;
+}
+
+export async function updateEbook(
+  id: string,
+  payload: {
+    title: string;
+    description: string;
+    author: string;
+    coverImage: string;
+    price: number;
+    discountPrice: number | null;
+    gdriveUrl: string;
+    status: 'draft' | 'published';
+  },
+): Promise<void> {
+  const { error } = await supabase
+    .from('ebooks')
+    .update({
+      title: payload.title,
+      description: payload.description,
+      author: payload.author || null,
+      cover_image: payload.coverImage || null,
+      price: payload.price,
+      discount_price: payload.discountPrice,
+      gdrive_url: payload.gdriveUrl,
+      status: payload.status,
+    })
+    .eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteEbook(id: string): Promise<void> {
+  const { error } = await supabase.from('ebooks').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function getEbookPurchaseCount(ebookId: string): Promise<number> {
+  const { count, error } = await supabase
+    .from('invoice_items')
+    .select('id', { count: 'exact', head: true })
+    .eq('ebook_id', ebookId);
+  if (error) throw error;
+  return count ?? 0;
 }
 
 // ── Storage ────────────────────────────────────────────────────────────────────
