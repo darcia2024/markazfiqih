@@ -20,6 +20,8 @@ export const classesTable = pgTable("classes", {
   gdriveMateriUrl: text("gdrive_materi_url"),
   waGroupUrl: text("wa_group_url"),
   meetingCount: integer("meeting_count"),
+  soalLatihanUrl: text("soal_latihan_url"),
+  ebookUrl: text("ebook_url"),
   displayOrder: integer("display_order").notNull().default(0),
   instructorId: uuid("instructor_id")
     .notNull()

@@ -124,7 +124,7 @@ export async function getClassById(id: string) {
     .from('classes')
     .select(`
       id, title, description, cover_image, base_price, discount_price,
-      status, level, category, youtube_playlist_id, gdrive_materi_url, wa_group_url, meeting_count, display_order,
+      status, level, category, youtube_playlist_id, gdrive_materi_url, wa_group_url, soal_latihan_url, ebook_url, meeting_count, display_order,
       instructors ( id, name, photo_url, bio ),
       modules (
         id, title, order_index,
@@ -186,6 +186,8 @@ export async function getClassById(id: string) {
     youtubePlaylistId: data.youtube_playlist_id as string | null,
     gdriveMateriUrl: data.gdrive_materi_url as string | null,
     waGroupUrl: data.wa_group_url as string | null,
+    soalLatihanUrl: data.soal_latihan_url as string | null,
+    ebookUrl: data.ebook_url as string | null,
     displayOrder: (data.display_order ?? 0) as number,
     instructor: inst
       ? { id: inst.id, name: inst.name, photoUrl: inst.photo_url, bio: inst.bio ?? '', classCount: instructorClassCount }
@@ -857,7 +859,8 @@ export async function createClass(data: {
   status: 'draft' | 'published'; level?: string | null;
   category?: string | null; instructorId: string;
   youtubePlaylistId?: string | null; gdriveMateriUrl?: string | null;
-  waGroupUrl?: string | null; meetingCount?: number | null;
+  waGroupUrl?: string | null; soalLatihanUrl?: string | null;
+  ebookUrl?: string | null; meetingCount?: number | null;
   displayOrder?: number | null;
 }) {
   const { data: created, error } = await supabase
@@ -871,6 +874,8 @@ export async function createClass(data: {
       youtube_playlist_id: data.youtubePlaylistId ?? null,
       gdrive_materi_url: data.gdriveMateriUrl ?? null,
       wa_group_url: data.waGroupUrl ?? null,
+      soal_latihan_url: data.soalLatihanUrl ?? null,
+      ebook_url: data.ebookUrl ?? null,
       meeting_count: data.meetingCount ?? null,
       display_order: data.displayOrder ?? 0,
     })
@@ -887,7 +892,8 @@ export async function updateClass(
     status: 'draft' | 'published'; level: string | null;
     category: string | null; instructorId: string;
     youtubePlaylistId: string | null; gdriveMateriUrl: string | null;
-    waGroupUrl: string | null; meetingCount: number | null;
+    waGroupUrl: string | null; soalLatihanUrl: string | null;
+    ebookUrl: string | null; meetingCount: number | null;
     displayOrder: number;
   }>,
 ) {
@@ -904,6 +910,8 @@ export async function updateClass(
   if ('youtubePlaylistId' in data) patch.youtube_playlist_id = data.youtubePlaylistId;
   if ('gdriveMateriUrl' in data) patch.gdrive_materi_url = data.gdriveMateriUrl;
   if ('waGroupUrl' in data) patch.wa_group_url = data.waGroupUrl;
+  if ('soalLatihanUrl' in data) patch.soal_latihan_url = data.soalLatihanUrl;
+  if ('ebookUrl' in data) patch.ebook_url = data.ebookUrl;
   if ('meetingCount' in data) patch.meeting_count = data.meetingCount;
   if (data.displayOrder !== undefined) patch.display_order = data.displayOrder;
   const { error } = await supabase.from('classes').update(patch).eq('id', id);

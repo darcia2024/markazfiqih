@@ -605,12 +605,14 @@ export default function ClassDetailPage() {
                       </motion.div>
                     </div>
 
-                    {(cls.gdriveMateriUrl || cls.waGroupUrl) && (
+                    {(cls.gdriveMateriUrl || cls.waGroupUrl || cls.soalLatihanUrl || cls.ebookUrl) && (
                       <>
                         <Separator />
                         <FacilitasCard
                           gdriveMateriUrl={cls.gdriveMateriUrl}
                           waGroupUrl={cls.waGroupUrl}
+                          soalLatihanUrl={cls.soalLatihanUrl}
+                          ebookUrl={cls.ebookUrl}
                         />
                       </>
                     )}

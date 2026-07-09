@@ -1,13 +1,15 @@
-import { FileText, MessageCircle } from 'lucide-react';
+import { BookOpen, ClipboardList, FileText, MessageCircle } from 'lucide-react';
 
 interface FacilitasCardProps {
   gdriveMateriUrl?: string | null;
   waGroupUrl?: string | null;
+  soalLatihanUrl?: string | null;
+  ebookUrl?: string | null;
 }
 
-/** Render hanya jika minimal satu dari dua link terisi. */
-export function FacilitasCard({ gdriveMateriUrl, waGroupUrl }: FacilitasCardProps) {
-  if (!gdriveMateriUrl && !waGroupUrl) return null;
+/** Render hanya jika minimal satu dari empat link terisi. */
+export function FacilitasCard({ gdriveMateriUrl, waGroupUrl, soalLatihanUrl, ebookUrl }: FacilitasCardProps) {
+  if (!gdriveMateriUrl && !waGroupUrl && !soalLatihanUrl && !ebookUrl) return null;
 
   return (
     <div className="p-6 space-y-3">
@@ -33,6 +35,28 @@ export function FacilitasCard({ gdriveMateriUrl, waGroupUrl }: FacilitasCardProp
           >
             <MessageCircle className="w-4 h-4 text-primary shrink-0" />
             Gabung Grup WhatsApp
+          </a>
+        )}
+        {soalLatihanUrl && (
+          <a
+            href={soalLatihanUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 p-3 rounded-lg border border-border hover:border-primary hover:bg-[hsl(var(--brand-red-tint))] transition-colors w-full text-sm text-foreground"
+          >
+            <ClipboardList className="w-4 h-4 text-primary shrink-0" />
+            Soal Latihan
+          </a>
+        )}
+        {ebookUrl && (
+          <a
+            href={ebookUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 p-3 rounded-lg border border-border hover:border-primary hover:bg-[hsl(var(--brand-red-tint))] transition-colors w-full text-sm text-foreground"
+          >
+            <BookOpen className="w-4 h-4 text-primary shrink-0" />
+            Ebook
           </a>
         )}
       </div>

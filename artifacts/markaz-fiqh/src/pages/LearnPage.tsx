@@ -124,6 +124,8 @@ function PlaylistMode({
   userId,
   gdriveMateriUrl,
   waGroupUrl,
+  soalLatihanUrl,
+  ebookUrl,
 }: {
   classId: string;
   classTitle: string;
@@ -139,6 +141,8 @@ function PlaylistMode({
   userId: string;
   gdriveMateriUrl?: string | null;
   waGroupUrl?: string | null;
+  soalLatihanUrl?: string | null;
+  ebookUrl?: string | null;
 }) {
   const queryClient = useQueryClient();
 
@@ -632,9 +636,9 @@ function PlaylistMode({
               </div>
 
               {/* Fasilitas Kelas */}
-              {(gdriveMateriUrl || waGroupUrl) && (
+              {(gdriveMateriUrl || waGroupUrl || soalLatihanUrl || ebookUrl) && (
                 <div className="bg-card rounded-2xl border overflow-hidden">
-                  <FacilitasCard gdriveMateriUrl={gdriveMateriUrl} waGroupUrl={waGroupUrl} />
+                  <FacilitasCard gdriveMateriUrl={gdriveMateriUrl} waGroupUrl={waGroupUrl} soalLatihanUrl={soalLatihanUrl} ebookUrl={ebookUrl} />
                 </div>
               )}
 
@@ -699,9 +703,9 @@ function PlaylistMode({
             </div>
 
             {/* Card: Fasilitas Kelas */}
-            {(gdriveMateriUrl || waGroupUrl) && (
+            {(gdriveMateriUrl || waGroupUrl || soalLatihanUrl || ebookUrl) && (
               <div className="bg-card rounded-2xl border overflow-hidden">
-                <FacilitasCard gdriveMateriUrl={gdriveMateriUrl} waGroupUrl={waGroupUrl} />
+                <FacilitasCard gdriveMateriUrl={gdriveMateriUrl} waGroupUrl={waGroupUrl} soalLatihanUrl={soalLatihanUrl} ebookUrl={ebookUrl} />
               </div>
             )}
 
@@ -1044,6 +1048,8 @@ function LearnContent() {
         userId={user?.id ?? ''}
         gdriveMateriUrl={classDetail.gdriveMateriUrl}
         waGroupUrl={classDetail.waGroupUrl}
+        soalLatihanUrl={classDetail.soalLatihanUrl}
+        ebookUrl={classDetail.ebookUrl}
       />
     );
   }
@@ -1237,11 +1243,13 @@ function LearnContent() {
             </div>
 
             {/* Fasilitas Kelas */}
-            {(classDetail.gdriveMateriUrl || classDetail.waGroupUrl) && (
+            {(classDetail.gdriveMateriUrl || classDetail.waGroupUrl || classDetail.soalLatihanUrl || classDetail.ebookUrl) && (
               <div className="pt-4 border-t">
                 <FacilitasCard
                   gdriveMateriUrl={classDetail.gdriveMateriUrl}
                   waGroupUrl={classDetail.waGroupUrl}
+                  soalLatihanUrl={classDetail.soalLatihanUrl}
+                  ebookUrl={classDetail.ebookUrl}
                 />
               </div>
             )}

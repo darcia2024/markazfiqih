@@ -67,6 +67,8 @@ type ClassFormState = {
   youtubePlaylistId: string;
   gdriveMateriUrl: string;
   waGroupUrl: string;
+  soalLatihanUrl: string;
+  ebookUrl: string;
   meetingCount: string;
   displayOrder: string;
 };
@@ -84,6 +86,8 @@ const EMPTY_FORM: ClassFormState = {
   youtubePlaylistId: '',
   gdriveMateriUrl: '',
   waGroupUrl: '',
+  soalLatihanUrl: '',
+  ebookUrl: '',
   meetingCount: '',
   displayOrder: '0',
 };
@@ -102,6 +106,8 @@ function classToForm(cls: ClassDetail): ClassFormState {
     youtubePlaylistId: cls.youtubePlaylistId ?? '',
     gdriveMateriUrl: cls.gdriveMateriUrl ?? '',
     waGroupUrl: cls.waGroupUrl ?? '',
+    soalLatihanUrl: cls.soalLatihanUrl ?? '',
+    ebookUrl: cls.ebookUrl ?? '',
     meetingCount: cls.meetingCount != null ? String(cls.meetingCount) : '',
     displayOrder: String(cls.displayOrder ?? 0),
   };
@@ -214,6 +220,8 @@ export default function AdminClassesPage() {
       youtubePlaylistId: cls.youtubePlaylistId ?? '',
       gdriveMateriUrl: '',
       waGroupUrl: '',
+      soalLatihanUrl: '',
+      ebookUrl: '',
       meetingCount: '',
       displayOrder: String(cls.displayOrder ?? 0),
     });
@@ -241,6 +249,8 @@ export default function AdminClassesPage() {
       youtubePlaylistId: form.youtubePlaylistId.trim() || null,
       gdriveMateriUrl: form.gdriveMateriUrl.trim() || null,
       waGroupUrl: form.waGroupUrl.trim() || null,
+      soalLatihanUrl: form.soalLatihanUrl.trim() || null,
+      ebookUrl: form.ebookUrl.trim() || null,
       meetingCount: form.meetingCount ? parseInt(form.meetingCount, 10) : null,
       displayOrder: form.displayOrder ? parseInt(form.displayOrder, 10) : 0,
     };
@@ -587,6 +597,28 @@ export default function AdminClassesPage() {
                   value={form.waGroupUrl}
                   onChange={(e) => setForm((p) => ({ ...p, waGroupUrl: e.target.value }))}
                   data-testid="input-class-wa-group"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="class-soal-latihan">Link Soal Latihan</Label>
+                <Input
+                  id="class-soal-latihan"
+                  type="url"
+                  placeholder="https://forms.gle/... atau link lainnya"
+                  value={form.soalLatihanUrl}
+                  onChange={(e) => setForm((p) => ({ ...p, soalLatihanUrl: e.target.value }))}
+                  data-testid="input-class-soal-latihan"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="class-ebook">Link Ebook</Label>
+                <Input
+                  id="class-ebook"
+                  type="url"
+                  placeholder="https://drive.google.com/... atau link PDF"
+                  value={form.ebookUrl}
+                  onChange={(e) => setForm((p) => ({ ...p, ebookUrl: e.target.value }))}
+                  data-testid="input-class-ebook"
                 />
               </div>
             </div>
