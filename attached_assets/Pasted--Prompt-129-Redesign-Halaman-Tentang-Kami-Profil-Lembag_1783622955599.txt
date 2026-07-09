@@ -1,0 +1,167 @@
+# Prompt 129: Redesign Halaman "Tentang Kami" — Profil Lembaga Lengkap
+
+## Konteks
+Halaman "Tentang Kami" (`AboutUsPage.tsx`) sekarang cuma 1 card polos
+berisi teks bebas dari `site_settings.about_us_content`. Klien kasih
+dokumen profil resmi lengkap (visi, misi, nilai dasar, metode keilmuan,
+karakteristik, bidang kegiatan, sasaran, cita-cita) — redesign halaman
+ini jadi beberapa section yang terstruktur dan menarik, BUKAN 1 blok
+teks panjang lagi.
+
+Konten di bawah ini SUDAH disesuaikan dengan standar diksi yang dipakai
+di web (Fikih→Fiqih, mazhab→madzhab) — pakai PERSIS teks yang sudah
+disiapkan ini, jangan improvisasi ulang.
+
+## Ganti Total Isi `pages/AboutUsPage.tsx`
+
+Struktur baru terdiri dari section-section berikut secara berurutan,
+semua di dalam `<AppShell><ProtectedRoute>` yang sudah ada (pola import
+dan wrapper TIDAK berubah):
+
+### 1. Hero singkat (ganti header yang sudah ada)
+Judul besar "Tentang Markaz Fiqih" + slogan sebagai sub-judul bergaya
+kutipan:
+```tsx
+<p className="text-xs font-semibold uppercase tracking-wider text-[hsl(var(--accent))] mb-2">Tentang Kami</p>
+<h1 className="font-serif text-3xl lg:text-4xl font-bold text-foreground">Tentang Markaz Fiqih</h1>
+<p className="font-serif text-lg italic text-primary mt-3">
+  &ldquo;Membumikan fiqih dalam tiap lini masyarakat.&rdquo;
+</p>
+```
+
+### 2. Card "Profil Lembaga" (identitas, grid 2 kolom di desktop)
+```
+Nama Lembaga: Markaz Fiqih
+Jenis Lembaga: Lembaga Keilmuan
+Bidang Fokus: Fiqih dan ilmu-ilmu pendukungnya
+Ruang Lingkup Kegiatan: Pendidikan, Publikasi, Kaderisasi, dan Pengembangan Keilmuan
+Sifat Kegiatan: Online dan Offline
+Kedudukan: Indonesia
+```
+Tampilkan sebagai grid label-value (`text-xs text-muted-foreground` untuk label, `font-medium text-foreground` untuk value), di dalam card `bg-card border rounded-2xl p-6`. Tambahkan catatan kecil di bawah grid:
+"Markaz Fiqih bukan organisasi massa, bukan lembaga fatwa resmi, dan bukan lembaga amal sosial — merupakan lembaga keilmuan independen yang berfokus pada pendidikan, publikasi, kaderisasi, dan pengembangan kajian fiqih."
+
+### 3. Section "Latar Belakang" (paragraf naratif)
+```
+Fiqih merupakan salah satu disiplin ilmu terpenting dalam Islam yang mengatur berbagai aspek kehidupan seorang muslim. Namun, kebutuhan masyarakat terhadap pembelajaran fiqih yang sistematis, mudah diakses, dan sesuai kebutuhan zaman masih sangat besar.
+
+Markaz Fiqih didirikan sebagai pusat keilmuan yang berupaya menjembatani kebutuhan tersebut melalui pendidikan, publikasi, kaderisasi, dan pengembangan sumber daya manusia yang memiliki kompetensi di bidang fiqih.
+```
+
+### 4. Card "Visi" (highlight, background tint gold)
+```tsx
+<div className="rounded-2xl p-8 text-center" style={{ background: 'hsl(var(--brand-gold-pale))' }}>
+  <p className="text-xs font-semibold uppercase tracking-wider text-[hsl(var(--accent))] mb-3">Visi</p>
+  <p className="font-serif text-xl sm:text-2xl font-bold text-foreground leading-snug max-w-2xl mx-auto">
+    Menjadi pusat rujukan fiqih berbasis turats berdasarkan madzhab Syafi'i yang menghadirkan pendidikan, publikasi, dan kaderisasi secara sistematis bagi masyarakat Indonesia.
+  </p>
+</div>
+```
+
+### 5. Grid "Misi" (5 item, numbered card, pola sama seperti 4-card "Urutan Rujukan" di landing page)
+```
+01 — Menyebarkan ilmu fiqih yang shahih dan mudah dipahami.
+02 — Menyediakan sarana belajar fiqih yang terstruktur dan berkelanjutan.
+03 — Melahirkan pengajar dan kader fiqih yang kompeten.
+04 — Mengembangkan media edukasi fiqih berbasis teknologi.
+05 — Menjadi pusat rujukan fiqih yang terpercaya.
+```
+Grid `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6`, tiap card format nomor besar pudar di background (`text-5xl font-bold opacity-10`) + teks misi di atasnya, mengikuti pola visual card `METHOD_REFERENCES` di `LandingPage.tsx` (comot pola styling-nya persis, JANGAN import dari situ, duplikat style-nya secukupnya di file ini).
+
+### 6. Grid "Nilai Dasar" (6 item, icon + label, TANPA nomor urut karena ini bukan sequence)
+```
+Keilmuan
+Amanah
+Profesionalisme
+Kolaborasi
+Keberlanjutan
+Pelayan Umat
+```
+Grid `grid-cols-2 sm:grid-cols-3 gap-4`, tiap item card kecil dengan icon dari lucide-react yang relevan (contoh: `BookOpen` untuk Keilmuan, `ShieldCheck` untuk Amanah, `Award` untuk Profesionalisme, `Users` untuk Kolaborasi, `Infinity` atau `Repeat` untuk Keberlanjutan, `HandHeart` untuk Pelayan Umat — sesuaikan icon yang tersedia di lucide-react versi project ini) + label di bawahnya, style netral (`bg-card border rounded-xl p-4 text-center`).
+
+### 7. Section "Metode Keilmuan" (versi lebih lengkap dari yang di landing page)
+```
+Berbasis fiqih madzhab Syafi'i yang solutif, dengan tetap memberikan ruang keterbukaan terhadap pendapat madzhab lain selama termasuk pendapat yang mu'tabar.
+
+Mengusung prinsip bahwa fiqih Islam adalah syariat yang mudah, aplikatif, dan relevan dengan kebutuhan masyarakat. Penyampaian materi dilakukan secara edukatif, namun tetap kritis terhadap informasi, praktik, atau pemahaman yang tidak sesuai dengan kaidah keilmuan.
+
+Dalam berfatwa dan memberikan bimbingan, prioritas diberikan kepada pendapat mu'tamad madzhab Syafi'i selama telah mencukupi untuk menjawab kebutuhan. Apabila diperlukan, dibuka ruang untuk memanfaatkan pendapat mu'tabar dari madzhab lain.
+
+Fokus utama bukan melakukan tarjih antarpendapat, melainkan memberikan arahan dan solusi fiqih yang dapat dipertanggungjawabkan secara ilmiah.
+```
+Di bawah paragraf ini, tampilkan ulang 4 card "Urutan Rujukan" (boleh reuse konten yang SAMA PERSIS dengan `METHOD_REFERENCES` di landing page, styling sama).
+
+### 8. Grid "Karakteristik Markaz Fiqih" (6 item, checklist style)
+```
+Referentif: berbasis turats dan literatur klasik.
+Edukatif dan kritis.
+Disajikan secara sistematis dan mudah dipahami.
+Memanfaatkan teknologi digital.
+Berorientasi pada kaderisasi.
+Mengintegrasikan pendidikan, publikasi, dan pengembangan SDM.
+```
+List vertikal dengan icon `CheckCircle2` warna primary di depan tiap item, `space-y-3`.
+
+### 9. Section "Bidang Kegiatan" (5 kategori, tiap kategori punya sub-daftar)
+```
+Pendidikan: Kelas Fiqih Tematik, Kelas Kitab, Webinar, Akademi Markaz Fiqih, Ma'had Markaz Fiqih
+Publikasi: Artikel, Buku, Modul, Ebook
+Media Platform: Website, Media sosial (Instagram, Facebook, TikTok, YouTube)
+Kaderisasi: Akademi Markaz Fiqih, Ma'had Markaz Fiqih
+Riset dan Pengembangan: Penyusunan kurikulum sekolah, Penelitian fiqih, Kajian isu kontemporer
+```
+Grid `grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6`, tiap card judul kategori (`font-serif font-bold`) + list sub-item kecil di bawahnya (bullet biasa, `text-sm text-muted-foreground`).
+
+### 10. Grid "Sasaran" (4 item, badge/pill style sederhana)
+```
+Masyarakat
+Pelajar dan Mahasiswa
+Guru dan Pengajar
+Da'i
+```
+Tampilkan sebagai 4 pill/badge sejajar horizontal (`flex flex-wrap gap-3`), style `rounded-full border px-5 py-2 text-sm font-medium`.
+
+### 11. Section "Cita-cita" + Roadmap 5 Fase (timeline horizontal di desktop, vertikal di mobile)
+Teks pembuka:
+```
+Menjadi pusat keilmuan fiqih berskala nasional yang memiliki sistem pendidikan, kaderisasi, publikasi, dan jaringan pengajar di berbagai daerah Indonesia.
+
+Dalam jangka panjang, Markaz Fiqih diarahkan untuk mengembangkan:
+1. Akademi Markaz Fiqih
+2. Ma'had Markaz Fiqih
+3. Pusat kajian fiqih
+4. Program spesialisasi fiqih
+5. Penerbitan karya ilmiah dan buku
+```
+Lalu timeline 5 fase (INI ADALAH sequence asli/urutan tahapan, jadi numbering DI SINI relevan dipakai, beda dari section Misi/Nilai Dasar):
+```
+Fase 1 — Media edukasi dan Kelas online
+Fase 2 — Akademi Markaz Fiqih
+Fase 3 — Penerbitan dan Publikasi Ilmiah
+Fase 4 — Ma'had Markaz Fiqih
+Fase 5 — Pusat Kajian dan Jaringan Nasional
+```
+Desain timeline: garis horizontal (desktop)/vertikal (mobile) menghubungkan 5 titik, tiap titik lingkaran kecil warna primary dengan nomor fase, label di bawah/samping tiap titik. Fase yang sudah berjalan (Fase 1, karena kelas online sudah ada) boleh dibedakan visualnya (misal solid/filled) dari fase yang belum (outline saja) — kalau ini terlalu kompleks untuk state management, versi statis semua fase dengan style sama juga cukup, prioritaskan kerapian di atas kompleksitas interaktif.
+
+## Yang Tidak Boleh Berubah
+- Wrapper `AppShell`/`ProtectedRoute` dan routing `/tentang-kami` TIDAK
+  berubah.
+- Field `site_settings.about_us_content` di database TIDAK dihapus
+  (biarkan tetap ada kolomnya walau tidak lagi jadi sumber utama konten
+  halaman ini) — untuk kemungkinan dipakai kembali di masa depan.
+- Footer di bagian bawah halaman TETAP ADA.
+
+## Setelah Selesai
+1. Buka halaman "Tentang Kami", konfirmasi semua 11 section tampil rapi
+   dan terstruktur, bukan lagi 1 blok teks panjang.
+2. Cek responsive di mobile, pastikan grid-grid yang ada collapse jadi
+   1 kolom dengan rapi.
+3. Konfirmasi visual (warna, font, spacing) terasa satu keluarga dengan
+   section "Metode Keilmuan" yang sudah ada di landing page — bukan
+   gaya baru yang berbeda sendiri.
+4. Jalankan `pnpm run typecheck`, harus 0 error.
+
+## Catatan
+Tidak ada SQL untuk prompt ini — murni redesign konten & tampilan di
+frontend, konten sudah final di atas, tidak perlu diedit admin lagi
+via textarea seperti sebelumnya.
