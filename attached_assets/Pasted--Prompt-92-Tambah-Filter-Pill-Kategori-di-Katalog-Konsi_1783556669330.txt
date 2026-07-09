@@ -1,0 +1,101 @@
+# Prompt 92: Tambah Filter Pill Kategori di Katalog (Konsisten dengan Kelas Saya)
+
+## Konteks
+Klien membandingkan halaman "Kelas Saya" (`MyClassesPage.tsx`) yang sudah
+punya filter kategori berbentuk pill/chip (tombol bulat: "Semua", "Fiqih
+Tematik", "Fiqih Kitab", "Akademi") dengan halaman Katalog
+(`CatalogPage.tsx`) yang kategorinya masih berbentuk dropdown `<Select>`
+("Semua Kategori" yang diklik lalu opsinya turun ke bawah). Klien secara
+eksplisit minta Katalog juga punya filter pill yang sama, BUKAN untuk
+menggantikan dropdown Level dan Urutkan (yang tetap boleh dropdown),
+HANYA untuk kategori.
+
+## Referensi Pola yang Sudah Ada
+Buka `artifacts/markaz-fiqh/src/pages/MyClassesPage.tsx`, cari bagian
+"Filter chips" (sekitar baris 287-300). Pola yang dipakai di sana:
+
+```tsx
+const CLASS_FILTERS = ['Semua', 'Fiqih Tematik', 'Fiqih Kitab', 'Akademi'];
+...
+<div className="flex flex-wrap gap-2 mb-8">
+  {CLASS_FILTERS.map((filter) => (
+    <motion.div key={filter} className="inline-block" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.15 }}>
+      <Button
+        size="sm"
+        variant={activeFilter === filter ? 'default' : 'outline'}
+        className="rounded-full"
+        onClick={() => setActiveFilter(filter)}
+      >
+        {filter}
+      </Button>
+    </motion.div>
+  ))}
+</div>
+```
+
+Terapkan pola visual yang SAMA PERSIS (ukuran, rounded-full, animasi
+hover/tap) di Katalog, hanya beda sumber data & target state.
+
+## Yang Perlu Diubah di `CatalogPage.tsx`
+
+1. Cari state kategori yang sudah ada (sekitar baris 462):
+   `const [category, setCategory] = useState<'all' | string>(initialCategory);`
+   JANGAN diganti nama/tipe state ini — filter pill baru harus
+   menggunakan state yang sama supaya query `['classes', search, level,
+   category, ...]` dan logic `groupedByCategory` yang sudah ada tetap
+   jalan tanpa perlu diubah.
+
+2. Tambahkan array konstan kategori (samakan persis dengan
+   `CLASS_FILTERS` di MyClassesPage, tapi mapping value "Semua" ke
+   `'all'` karena state `category` di CatalogPage pakai `'all'` bukan
+   `'Semua'`):
+   ```tsx
+   const CATALOG_CATEGORY_FILTERS = [
+     { label: 'Semua', value: 'all' },
+     { label: 'Fiqih Tematik', value: 'Fiqih Tematik' },
+     { label: 'Fiqih Kitab', value: 'Fiqih Kitab' },
+     { label: 'Akademi', value: 'Akademi' },
+   ];
+   ```
+
+3. Render pill filter kategori ini sebagai baris terpisah, DI ATAS baris
+   filter yang sudah ada (baris sekitar 568, yang berisi Select Level +
+   Select Kategori + Select Urutkan). Style mengikuti pola persis dari
+   MyClassesPage (`flex flex-wrap gap-2`, `Button` dengan
+   `variant={category === f.value ? 'default' : 'outline'}` dan
+   `className="rounded-full"`, dibungkus `motion.div` untuk animasi
+   hover/tap).
+
+4. **HAPUS** `<Select>` kategori yang lama (baris 581-590, yang berisi
+   `SelectItem` "Semua Kategori", "Fiqih Tematik", "Fiqih Kitab",
+   "Akademi") — sudah digantikan oleh pill filter baru. `<Select>` untuk
+   Level dan Urutkan TETAP ADA, tidak diubah.
+
+5. Pastikan saat pill kategori diklik, `setCategory(value)` dipanggil
+   dan otomatis:
+   - Query classes ke-refetch dengan kategori baru (mekanisme ini sudah
+     ada, tidak perlu diubah, karena masih pakai state `category` yang
+     sama)
+   - `groupedByCategory` (grouping per kategori saat "Semua" aktif,
+     sudah ada dari Prompt 90) tetap berfungsi normal
+
+6. Pastikan responsif di mobile: pill yang banyak (4 kategori) harus
+   bisa wrap ke baris berikutnya (`flex-wrap`) tanpa merusak layout,
+   sama seperti di MyClassesPage.
+
+## Yang Tidak Boleh Berubah
+- Dropdown Level dan Urutkan TETAP dropdown, tidak diubah jadi pill.
+- Logic filtering, sorting, dan grouping kategori yang sudah ada di
+  Katalog TIDAK diubah, hanya UI kontrolnya yang berubah dari dropdown
+  ke pill.
+- State `category` tetap bertipe `'all' | string`, tidak diganti nama
+  atau tipe.
+- Halaman `MyClassesPage.tsx` tidak disentuh sama sekali (hanya
+  dijadikan referensi pola).
+
+## Setelah Selesai
+1. Konfirmasi filter pill kategori sudah tampil di Katalog dengan style
+   yang identik dengan MyClassesPage.
+2. Konfirmasi dropdown Level dan Urutkan masih berfungsi normal,
+   berdampingan dengan pill kategori baru.
+3. Jalankan `pnpm run typecheck`, harus 0 error.

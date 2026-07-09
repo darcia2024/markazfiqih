@@ -428,6 +428,13 @@ function EmptyState({ onReset }: { onReset: () => void }) {
 
 const CATEGORY_ORDER = ['Fiqih Tematik', 'Fiqih Kitab', 'Akademi'];
 
+const CATALOG_CATEGORY_FILTERS = [
+  { label: 'Semua', value: 'all' },
+  { label: 'Fiqih Tematik', value: 'Fiqih Tematik' },
+  { label: 'Fiqih Kitab', value: 'Fiqih Kitab' },
+  { label: 'Akademi', value: 'Akademi' },
+];
+
 // ── Section per Kategori (Grouping saat "Semua Kategori" aktif) ────────────
 function CategorySection({
   category,
@@ -553,7 +560,7 @@ function CatalogContent() {
       <main className="px-4 lg:px-10 py-6 lg:py-8 max-w-[1400px]">
 
         {/* Search + filters */}
-        <div className="flex flex-col md:flex-row gap-3 mb-8">
+        <div className="flex flex-col md:flex-row gap-3 mb-4">
           <div className="relative flex-1">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
@@ -578,18 +585,6 @@ function CatalogContent() {
               </SelectContent>
             </Select>
 
-            <Select value={category} onValueChange={(v) => setCategory(v)}>
-              <SelectTrigger className="h-9 w-auto min-w-[130px] rounded-full px-4 text-[13px] border-secondary-border bg-secondary">
-                <SelectValue placeholder="Kategori" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua Kategori</SelectItem>
-                <SelectItem value="Fiqih Tematik">Fiqih Tematik</SelectItem>
-                <SelectItem value="Fiqih Kitab">Fiqih Kitab</SelectItem>
-                <SelectItem value="Akademi">Akademi</SelectItem>
-              </SelectContent>
-            </Select>
-
             <Select value={sort} onValueChange={(v) => setSort(v as typeof sort)}>
               <SelectTrigger className="h-9 w-auto min-w-[110px] rounded-full px-4 text-[13px] border-secondary-border bg-secondary">
                 <SelectValue placeholder="Urutkan" />
@@ -602,6 +597,22 @@ function CatalogContent() {
               </SelectContent>
             </Select>
           </div>
+        </div>
+
+        {/* Category pill filters */}
+        <div className="flex flex-wrap gap-2 mb-8">
+          {CATALOG_CATEGORY_FILTERS.map((f) => (
+            <motion.div key={f.value} className="inline-block" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.15 }}>
+              <Button
+                size="sm"
+                variant={category === f.value ? 'default' : 'outline'}
+                className="rounded-full"
+                onClick={() => setCategory(f.value)}
+              >
+                {f.label}
+              </Button>
+            </motion.div>
+          ))}
         </div>
 
         <InstructorSection
