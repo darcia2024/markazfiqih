@@ -21,7 +21,7 @@ import { AppShell } from '@/components/AppShell';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { listEnrollments, listActiveDashboardMessages, type EnrollmentItem } from '@/lib/db';
@@ -37,12 +37,21 @@ function getGreeting(): string {
 
 const MOTIVASI_FALLBACK = 'Semoga ilmu yang dipelajari hari ini berkah.';
 
-function formatTanggal(): string {
-  return new Date().toLocaleDateString('id-ID', {
+function formatTanggal(d: Date): string {
+  return d.toLocaleDateString('id-ID', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
     year: 'numeric',
+  });
+}
+
+function formatJam(d: Date): string {
+  return d.toLocaleTimeString('id-ID', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
   });
 }
 
@@ -336,6 +345,12 @@ function ProgressSidebar({ enrollments }: { enrollments: EnrollmentItem[] }) {
 function DashboardContent() {
   const { user } = useAuth();
 
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
   const { data: enrollments = [], isLoading } = useQuery({
     queryKey: ['enrollments', user?.id],
     queryFn: () => listEnrollments(user!.id),
@@ -387,9 +402,10 @@ function DashboardContent() {
             </h1>
             <p className="text-muted-foreground mt-2 text-sm">{motivasi}</p>
           </div>
-          <p className="hidden sm:block text-sm text-muted-foreground shrink-0 pt-1">
-            {formatTanggal()}
-          </p>
+          <div className="hidden sm:flex flex-col items-end gap-1 shrink-0 pt-1">
+            <p className="text-sm text-muted-foreground">{formatTanggal(now)}</p>
+            <p className="text-xl font-semibold tabular-nums text-foreground">{formatJam(now)}</p>
+          </div>
         </motion.div>
       </div>
       <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl py-8 lg:py-10">
