@@ -36,6 +36,8 @@ import { getClassById, listClassReviews, submitClassReview, listEnrollments } fr
 import { FacilitasCard } from '@/components/FacilitasCard';
 import { StarRating } from '@/components/StarRating';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
@@ -123,8 +125,10 @@ const PLACEHOLDER_DARS_PER_MODULE = 3;
 
 // ── Review Section ─────────────────────────────────────────────────────────────
 function ReviewSection({ classId, currentUserId }: { classId: string; currentUserId: string | undefined }) {
+  const { user: authUser } = useAuth();
   const [formRating, setFormRating] = useState(0);
   const [formComment, setFormComment] = useState('');
+  const [reviewerName, setReviewerName] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -146,9 +150,13 @@ function ReviewSection({ classId, currentUserId }: { classId: string; currentUse
     if (myReview) {
       setFormRating(myReview.rating);
       setFormComment(myReview.comment);
+      // Gunakan reviewer_name yang sudah tersimpan di DB kalau ada,
+      // fallback ke nickname akun kalau belum pernah diisi (review lama).
+      setReviewerName(myReview.reviewerNameRaw ?? authUser?.nickname ?? '');
     } else {
       setFormRating(0);
       setFormComment('');
+      setReviewerName(authUser?.nickname ?? '');
     }
     setIsEditing(true);
   };
@@ -160,7 +168,7 @@ function ReviewSection({ classId, currentUserId }: { classId: string; currentUse
     }
     setIsSubmitting(true);
     try {
-      await submitClassReview({ classId, rating: formRating, comment: formComment });
+      await submitClassReview({ classId, rating: formRating, comment: formComment, reviewerName: reviewerName.trim() || (authUser?.nickname ?? '') });
       await refetch();
       setIsEditing(false);
       toast.success('Review berhasil disimpan!');
@@ -227,13 +235,26 @@ function ReviewSection({ classId, currentUserId }: { classId: string; currentUse
                     onChange={setFormRating}
                   />
                 </div>
-                <Textarea
-                  placeholder="Ceritakan pengalamanmu belajar di kelas ini (opsional)..."
-                  value={formComment}
-                  onChange={(e) => setFormComment(e.target.value)}
-                  rows={3}
-                  className="resize-none"
-                />
+                <div className="space-y-1.5">
+                  <Label htmlFor="review-name">Nama</Label>
+                  <Input
+                    id="review-name"
+                    value={reviewerName}
+                    onChange={(e) => setReviewerName(e.target.value)}
+                    placeholder="Nama kamu"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="review-comment">Ulasan</Label>
+                  <Textarea
+                    id="review-comment"
+                    placeholder="Ceritakan pengalamanmu belajar di kelas ini (opsional)..."
+                    value={formComment}
+                    onChange={(e) => setFormComment(e.target.value)}
+                    rows={3}
+                    className="resize-none"
+                  />
+                </div>
                 <div className="flex items-center gap-2">
                   <Button
                     size="sm"
@@ -291,12 +312,12 @@ function ReviewSection({ classId, currentUserId }: { classId: string; currentUse
             {reviews.map((r) => (
               <div key={r.id} className="flex gap-4">
                 <div className="h-9 w-9 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold shrink-0">
-                  {(r.userNickname ?? 'A').charAt(0).toUpperCase()}
+                  {r.userDisplayName.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="text-sm font-semibold text-foreground">
-                      {r.userNickname ?? 'Pelajar'}
+                      {r.userDisplayName}
                     </p>
                     <StarRating rating={r.rating} size="sm" />
                     <span className="text-xs text-muted-foreground">

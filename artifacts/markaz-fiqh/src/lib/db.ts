@@ -1289,6 +1289,10 @@ export type ClassReview = {
   id: string;
   userId: string;
   userNickname: string | null;
+  /** Nilai mentah kolom reviewer_name di DB — null berarti belum pernah diisi. */
+  reviewerNameRaw: string | null;
+  /** Nama yang ditampilkan: reviewer_name → nickname → 'Pelajar'. */
+  userDisplayName: string;
   rating: number;
   comment: string;
   createdAt: string;
@@ -1303,7 +1307,7 @@ export type ClassReviewSummary = {
 export async function listClassReviews(classId: string): Promise<ClassReviewSummary> {
   const { data, error } = await supabase
     .from('class_reviews')
-    .select('id, user_id, rating, comment, created_at, user_profiles(nickname)')
+    .select('id, user_id, rating, comment, reviewer_name, created_at, user_profiles(nickname)')
     .eq('class_id', classId)
     .order('created_at', { ascending: false });
   if (error) throw error;
@@ -1312,6 +1316,8 @@ export async function listClassReviews(classId: string): Promise<ClassReviewSumm
     id: r.id,
     userId: r.user_id,
     userNickname: r.user_profiles?.nickname ?? null,
+    reviewerNameRaw: (r.reviewer_name as string | null) ?? null,
+    userDisplayName: (r.reviewer_name as string | null) || (r.user_profiles?.nickname as string | null) || 'Pelajar',
     rating: r.rating,
     comment: r.comment,
     createdAt: r.created_at,
@@ -1329,13 +1335,20 @@ export async function submitClassReview(params: {
   classId: string;
   rating: number;
   comment: string;
+  reviewerName: string;
 }): Promise<void> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Harus login untuk memberi review.');
   const { error } = await supabase
     .from('class_reviews')
     .upsert(
-      { class_id: params.classId, user_id: user.id, rating: params.rating, comment: params.comment },
+      {
+        class_id: params.classId,
+        user_id: user.id,
+        rating: params.rating,
+        comment: params.comment,
+        reviewer_name: params.reviewerName,
+      },
       { onConflict: 'class_id,user_id' },
     );
   if (error) throw error;
