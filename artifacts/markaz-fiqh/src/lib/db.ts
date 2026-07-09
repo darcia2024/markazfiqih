@@ -1675,9 +1675,13 @@ export async function uploadAdminImage(file: File): Promise<string> {
   const { error } = await supabase.storage
     .from('admin-uploads')
     .upload(fileName, file, { cacheControl: '3600', upsert: false });
-  if (error) throw error;
+  if (error) {
+    console.error('[uploadAdminImage] Supabase Storage error:', error);
+    throw new Error(`Gagal upload ke storage: ${error.message}`);
+  }
 
   const { data } = supabase.storage.from('admin-uploads').getPublicUrl(fileName);
+  console.log('[uploadAdminImage] Public URL didapat:', data.publicUrl);
   return data.publicUrl;
 }
 

@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Upload, Loader2 } from 'lucide-react';
 import { uploadAdminImage } from '@/lib/db';
-import { useToast } from '@/hooks/use-toast';
 
 interface ImageUploadFieldProps {
   value: string;
@@ -13,34 +12,34 @@ interface ImageUploadFieldProps {
 }
 
 export function ImageUploadField({ value, onChange, previewClassName }: ImageUploadFieldProps) {
-  const { toast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
+    console.log('[ImageUpload] File dipilih:', file?.name, file?.size, file?.type);
     if (!file) return;
 
+    setErrorMsg(null);
+
     if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: 'Ukuran file terlalu besar',
-        description: 'Maksimal 5 MB per file.',
-        variant: 'destructive',
-      });
+      console.error('[ImageUpload] File terlalu besar:', file.size);
+      setErrorMsg('Ukuran file maksimal 5MB.');
       return;
     }
 
     setIsUploading(true);
     try {
+      console.log('[ImageUpload] Mulai upload ke Supabase Storage...');
       const url = await uploadAdminImage(file);
+      console.log('[ImageUpload] Upload SUKSES, URL:', url);
       onChange(url);
-      toast({ title: 'Foto berhasil diupload' });
     } catch (error) {
-      toast({
-        title: 'Gagal upload foto',
-        description: (error as Error).message,
-        variant: 'destructive',
-      });
+      console.error('[ImageUpload] Upload GAGAL:', error);
+      setErrorMsg(
+        error instanceof Error ? error.message : 'Upload gagal, tidak diketahui penyebabnya.',
+      );
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -55,6 +54,7 @@ export function ImageUploadField({ value, onChange, previewClassName }: ImageUpl
             src={value}
             alt=""
             className={previewClassName ?? 'w-16 h-16 rounded-full object-cover border'}
+            onError={() => console.error('[ImageUpload] Preview gagal load URL:', value)}
           />
         ) : (
           <div
@@ -88,6 +88,9 @@ export function ImageUploadField({ value, onChange, previewClassName }: ImageUpl
             )}
             {isUploading ? 'Mengupload...' : 'Upload dari Device'}
           </Button>
+          {errorMsg && (
+            <p className="text-xs text-destructive font-medium">⚠ {errorMsg}</p>
+          )}
         </div>
       </div>
       <div className="space-y-1">

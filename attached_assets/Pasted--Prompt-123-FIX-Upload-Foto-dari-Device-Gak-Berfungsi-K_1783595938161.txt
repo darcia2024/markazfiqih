@@ -1,0 +1,174 @@
+# Prompt 123: FIX — Upload Foto dari Device Gak Berfungsi
+
+## Konteks
+Fitur upload foto (Prompt 117) sudah di-deploy, bucket Storage
+`admin-uploads` sudah dikonfirmasi ADA dengan policy RLS yang benar
+(sudah dicek langsung via SQL). Tapi saat dicoba upload foto pengajar
+dari Admin Panel, TIDAK ADA PERUBAHAN sama sekali di preview maupun
+setelah disimpan — kemungkinan besar upload GAGAL SECARA DIAM-DIAM
+(error tertelan, tidak ada feedback ke user).
+
+## Langkah 1 — WAJIB: Audit Kode yang Ada Sekarang
+
+Sebelum mengubah apapun, BUKA dan BACA isi file
+`artifacts/markaz-fiqh/src/components/ImageUploadField.tsx` dan fungsi
+`uploadAdminImage` di `lib/db.ts` yang ada SEKARANG. Laporkan ke saya
+(sebagai output text biasa, bukan cuma edit file) apa isi lengkap kedua
+bagian itu SAAT INI, supaya ketahuan apakah implementasinya sudah sesuai
+spesifikasi Prompt 117 atau ada yang salah/hilang/berbeda saat
+diimplementasikan sebelumnya (misalnya: import `toast` yang salah path
+sehingga component crash silent, atau logic upload yang tidak lengkap).
+
+## Langkah 2 — Ganti dengan Versi yang Lebih Defensif
+
+Ganti isi `ImageUploadField.tsx` dengan versi berikut — versi ini SENGAJA
+menambahkan `console.log`/`console.error` di SETIAP tahap proses upload,
+supaya kalau masih gagal, gampang dilacak dari browser Console:
+
+```tsx
+import { useState, useRef } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Upload, Loader2 } from 'lucide-react';
+import { uploadAdminImage } from '@/lib/db';
+
+interface ImageUploadFieldProps {
+  value: string;
+  onChange: (url: string) => void;
+  previewClassName?: string;
+}
+
+export function ImageUploadField({ value, onChange, previewClassName }: ImageUploadFieldProps) {
+  const [isUploading, setIsUploading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    console.log('[ImageUpload] File dipilih:', file?.name, file?.size, file?.type);
+    if (!file) return;
+
+    setErrorMsg(null);
+
+    if (file.size > 5 * 1024 * 1024) {
+      console.error('[ImageUpload] File terlalu besar:', file.size);
+      setErrorMsg('Ukuran file maksimal 5MB.');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      console.log('[ImageUpload] Mulai upload ke Supabase Storage...');
+      const url = await uploadAdminImage(file);
+      console.log('[ImageUpload] Upload SUKSES, URL:', url);
+      onChange(url);
+    } catch (error) {
+      console.error('[ImageUpload] Upload GAGAL:', error);
+      setErrorMsg(
+        error instanceof Error ? error.message : 'Upload gagal, tidak diketahui penyebabnya.',
+      );
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-3">
+        {value ? (
+          <img
+            src={value}
+            alt=""
+            className={previewClassName ?? 'w-16 h-16 rounded-full object-cover border'}
+            onError={() => console.error('[ImageUpload] Preview gagal load URL:', value)}
+          />
+        ) : (
+          <div className={previewClassName ?? 'w-16 h-16 rounded-full bg-muted flex items-center justify-center text-muted-foreground text-xs'}>
+            No image
+          </div>
+        )}
+        <div className="flex-1 space-y-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={isUploading}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {isUploading ? (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <Upload className="w-4 h-4 mr-2" />
+            )}
+            {isUploading ? 'Mengupload...' : 'Upload dari Device'}
+          </Button>
+          {errorMsg && (
+            <p className="text-xs text-destructive font-medium">⚠ {errorMsg}</p>
+          )}
+        </div>
+      </div>
+      <div className="space-y-1">
+        <p className="text-xs text-muted-foreground">atau tempel URL manual</p>
+        <Input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="https://example.com/foto.jpg"
+        />
+      </div>
+    </div>
+  );
+}
+```
+
+**Perubahan penting dari versi sebelumnya**:
+1. TIDAK bergantung pada import `toast` sama sekali (kemungkinan besar
+   ini penyebab gagal-diam-diam: kalau path import `toast` salah,
+   seluruh component bisa gagal render atau error handler-nya tidak
+   pernah jalan) — sekarang pakai `errorMsg` state biasa yang
+   ditampilkan LANGSUNG di UI (teks merah di bawah tombol), dijamin
+   selalu terlihat kalau ada masalah.
+2. `console.log`/`console.error` di setiap tahap — kalau masih gagal
+   setelah ini, buka Console browser, akan ketemu jejak jelas di
+   step mana gagalnya.
+3. `onError` di tag `<img>` — kalau URL berhasil didapat tapi gambar
+   tidak bisa ditampilkan (misal masalah CORS/permission bucket),
+   sekarang akan ke-log jelas juga.
+
+## Langkah 3 — Cek Function `uploadAdminImage` di `lib/db.ts`
+
+Pastikan isinya PERSIS seperti ini (kalau ada perbedaan dari versi yang
+sudah ada sekarang, laporkan perbedaannya sebelum menimpa):
+
+```ts
+export async function uploadAdminImage(file: File): Promise<string> {
+  const ext = file.name.split('.').pop();
+  const fileName = `${crypto.randomUUID()}.${ext}`;
+  const { error } = await supabase.storage
+    .from('admin-uploads')
+    .upload(fileName, file, { cacheControl: '3600', upsert: false });
+  if (error) {
+    console.error('[uploadAdminImage] Supabase Storage error:', error);
+    throw new Error(`Gagal upload ke storage: ${error.message}`);
+  }
+
+  const { data } = supabase.storage.from('admin-uploads').getPublicUrl(fileName);
+  console.log('[uploadAdminImage] Public URL didapat:', data.publicUrl);
+  return data.publicUrl;
+}
+```
+
+## Setelah Selesai
+1. WAJIB laporkan dulu isi kode LAMA (Langkah 1) sebelum menimpa apapun.
+2. Setelah diganti, minta saya coba upload lagi, buka Console browser
+   (F12 → tab Console), dan kirim SCREENSHOT PENUH tab Console tersebut
+   setelah mencoba upload — sekarang dijamin ada jejak log yang jelas
+   di sana, entah sukses atau gagal di titik mana.
+3. Jalankan `pnpm run typecheck`, harus 0 error.
