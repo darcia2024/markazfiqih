@@ -87,8 +87,13 @@ export default function AdminInstructorsPage() {
   });
   const instructors = instructorsQuery.data ?? [];
 
-  const invalidateList = () =>
+  const invalidateList = () => {
     queryClient.invalidateQueries({ queryKey: ['instructors', 'admin'] });
+    queryClient.invalidateQueries({ queryKey: ['instructors'] });
+    queryClient.invalidateQueries({ queryKey: ['active-instructors'] });
+    queryClient.invalidateQueries({ queryKey: ['instructor-detail'] }); // tanpa id spesifik = invalidate semua varian id
+    queryClient.invalidateQueries({ queryKey: ['class'] }); // karena data instructor ikut ter-embed di query kelas (card "Tentang Pengajar")
+  };
 
   const createMutation = useMutation({
     mutationFn: (payload: { name: string; bio?: string; detailedBio?: string; photoUrl?: string }) =>

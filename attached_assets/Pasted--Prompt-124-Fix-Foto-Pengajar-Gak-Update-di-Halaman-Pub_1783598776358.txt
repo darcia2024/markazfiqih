@@ -1,0 +1,57 @@
+# Prompt 124: Fix Foto Pengajar Gak Update di Halaman Publik Setelah Diedit
+
+## Konteks — Bug Dikonfirmasi
+Edit data pengajar (termasuk foto) di Admin Panel BERHASIL tersimpan ke
+database, tapi halaman publik yang menampilkan data pengajar TIDAK ikut
+ter-update tanpa reload penuh — karena masing-masing halaman pakai
+React Query cache key yang BEDA-BEDA, dan Admin Panel cuma
+invalidate cache miliknya sendiri.
+
+Ditemukan 4 query key berbeda untuk data instructor di seluruh app:
+- `['instructors']` — dipakai `CatalogPage.tsx` dan `LandingPage.tsx`
+- `['active-instructors']` — dipakai `InstructorsPage.tsx`
+- `['instructor-detail', id]` — dipakai `InstructorDetailPage.tsx`
+- `['class', classId]` — dipakai `LearnPage.tsx` (foto pengajar di card
+  "Tentang Pengajar" ikut nempel di query ini, karena instructor
+  di-join sebagai bagian dari data kelas)
+- `['instructors', 'admin']` — dipakai Admin Panel sendiri (INI YANG
+  SUDAH di-invalidate, sisanya belum)
+
+## Fix — `pages/admin/AdminInstructorsPage.tsx`
+
+Cari function `invalidateList` (sekitar baris 90-91), ganti supaya
+invalidate SEMUA query key terkait instructor, bukan cuma punya admin
+sendiri:
+
+```ts
+const invalidateList = () => {
+  queryClient.invalidateQueries({ queryKey: ['instructors', 'admin'] });
+  queryClient.invalidateQueries({ queryKey: ['instructors'] });
+  queryClient.invalidateQueries({ queryKey: ['active-instructors'] });
+  queryClient.invalidateQueries({ queryKey: ['instructor-detail'] }); // tanpa id spesifik = invalidate semua varian id
+  queryClient.invalidateQueries({ queryKey: ['class'] }); // karena data instructor ikut ter-embed di query kelas (card "Tentang Pengajar")
+};
+```
+
+Pastikan `invalidateList` ini tetap dipanggil di SEMUA tempat yang
+sudah ada sekarang (`createMutation.onSuccess`, `updateMutation.onSuccess`,
+`deleteMutation.onSuccess`) — TIDAK perlu diubah pemanggilannya, cukup
+isi function-nya yang diperluas.
+
+## Yang Tidak Boleh Berubah
+- Query key yang sudah ada di masing-masing halaman TIDAK diubah
+  namanya — cukup DITAMBAH cakupan invalidation dari sisi admin.
+- Behavior lain di Admin Panel (toast sukses, tutup dialog) tetap sama.
+
+## Setelah Selesai
+1. Edit foto/data pengajar di Admin Panel, simpan.
+2. TANPA reload manual, buka tab/halaman lain: Katalog (lihat section
+   "Pengajar"), halaman `/pengajar`, halaman detail pengajar
+   (`/pengajar/:id`), dan halaman belajar salah satu kelasnya (card
+   "Tentang Pengajar") — konfirmasi SEMUA sudah menampilkan foto/data
+   yang baru, tidak ada yang nyangkut versi lama.
+3. Jalankan `pnpm run typecheck`, harus 0 error.
+
+## Catatan
+Tidak ada SQL untuk prompt ini — murni perbaikan cache invalidation di
+frontend, langsung kepake begitu di-deploy.
