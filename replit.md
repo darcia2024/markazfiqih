@@ -76,7 +76,7 @@ attached_assets/   Course images and design docs
 
 ## Replit setup notes
 
-- Dependencies installed via `pnpm install` from repo root (all 9 workspace packages)
+- Re-imported and re-verified on 2026-07-09: dependencies reinstalled via `pnpm install`, missing secrets (`SUPABASE_DATABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`) re-collected, workflows recreated.
 - Secrets configured in Replit Secrets: `SUPABASE_DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
 - Two workflows configured and verified running:
   - **Backend API**: `cd artifacts/api-server && PORT=8080 pnpm run dev` → port 8080
