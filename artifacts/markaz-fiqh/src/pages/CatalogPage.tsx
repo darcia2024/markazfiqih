@@ -15,7 +15,8 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import { useQuery } from '@tanstack/react-query';
-import { listClasses, listInstructors, listEnrollments } from '@/lib/db';
+import { listClasses, listInstructors, listEnrollments, listClassRatings } from '@/lib/db';
+import { StarRating } from '@/components/StarRating';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -203,7 +204,8 @@ function CheckItem({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function ClassCard({ cls, index, enrolledClassIds = new Set<string>() }: { cls: ClassSummary; index: number; enrolledClassIds?: Set<string> }) {
+export function ClassCard({ cls, index, enrolledClassIds = new Set<string>(), ratingsMap = {} }: { cls: ClassSummary; index: number; enrolledClassIds?: Set<string>; ratingsMap?: Record<string, { averageRating: number; totalReviews: number }> }) {
+  const classRating = ratingsMap[cls.id];
   const hasDiscount = cls.discountPrice != null;
   const durationLabel = formatDuration(cls.totalDurationMinutes);
   const { user } = useAuth();
@@ -277,6 +279,16 @@ export function ClassCard({ cls, index, enrolledClassIds = new Set<string>() }: 
             <h4 className="text-base font-semibold text-foreground leading-snug line-clamp-2 min-h-[2.75rem] group-hover:text-primary transition-colors">
               {cls.title}
             </h4>
+
+            {/* Rating */}
+            {classRating && classRating.totalReviews > 0 && (
+              <div className="flex items-center gap-1.5">
+                <StarRating rating={classRating.averageRating} size="sm" />
+                <span className="text-xs text-muted-foreground font-medium">
+                  {classRating.averageRating} ({classRating.totalReviews})
+                </span>
+              </div>
+            )}
 
             {/* Separator */}
             <div className="border-t border-border" />
@@ -440,17 +452,19 @@ function CategorySection({
   category,
   classes,
   enrolledClassIds,
+  ratingsMap,
 }: {
   category: string;
   classes: ClassSummary[];
   enrolledClassIds: Set<string>;
+  ratingsMap: Record<string, { averageRating: number; totalReviews: number }>;
 }) {
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-semibold text-foreground">{category}</h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {classes.map((cls, idx) => (
-          <ClassCard key={cls.id} cls={cls} index={idx} enrolledClassIds={enrolledClassIds} />
+          <ClassCard key={cls.id} cls={cls} index={idx} enrolledClassIds={enrolledClassIds} ratingsMap={ratingsMap} />
         ))}
       </div>
     </div>
@@ -496,6 +510,13 @@ function CatalogContent() {
     queryKey: ['instructors'],
     queryFn: listInstructors,
   });
+
+  const ratingsQuery = useQuery({
+    queryKey: ['class-ratings'],
+    queryFn: listClassRatings,
+    staleTime: 5 * 60 * 1000,
+  });
+  const ratingsMap = ratingsQuery.data ?? {};
 
   const classes = (classesQuery.data ?? []) as ClassSummary[];
   const rawInstructors = instructorsQuery.data ?? [];
@@ -650,6 +671,7 @@ function CatalogContent() {
                   category={cat}
                   classes={catClasses}
                   enrolledClassIds={enrolledClassIds}
+                  ratingsMap={ratingsMap}
                 />
               ))}
             </div>
@@ -662,7 +684,7 @@ function CatalogContent() {
                   className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5"
                 >
                   {sortedClasses.map((cls, idx) => (
-                    <ClassCard key={cls.id} cls={cls} index={idx} enrolledClassIds={enrolledClassIds} />
+                    <ClassCard key={cls.id} cls={cls} index={idx} enrolledClassIds={enrolledClassIds} ratingsMap={ratingsMap} />
                   ))}
                 </motion.div>
               </AnimatePresence>

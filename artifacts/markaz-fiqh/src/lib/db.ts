@@ -1207,6 +1207,87 @@ export async function getInstructorWithClasses(id: string): Promise<InstructorWi
   };
 }
 
+// ── Reviews ───────────────────────────────────────────────────────────────────
+
+export type ClassReview = {
+  id: string;
+  userId: string;
+  userNickname: string | null;
+  rating: number;
+  comment: string;
+  createdAt: string;
+};
+
+export type ClassReviewSummary = {
+  averageRating: number;
+  totalReviews: number;
+  reviews: ClassReview[];
+};
+
+export async function listClassReviews(classId: string): Promise<ClassReviewSummary> {
+  const { data, error } = await supabase
+    .from('class_reviews')
+    .select('id, user_id, rating, comment, created_at, user_profiles(nickname)')
+    .eq('class_id', classId)
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+
+  const reviews = (data ?? []).map((r: any) => ({
+    id: r.id,
+    userId: r.user_id,
+    userNickname: r.user_profiles?.nickname ?? null,
+    rating: r.rating,
+    comment: r.comment,
+    createdAt: r.created_at,
+  }));
+
+  const averageRating =
+    reviews.length > 0
+      ? Math.round((reviews.reduce((s, r) => s + r.rating, 0) / reviews.length) * 10) / 10
+      : 0;
+
+  return { averageRating, totalReviews: reviews.length, reviews };
+}
+
+export async function submitClassReview(params: {
+  classId: string;
+  rating: number;
+  comment: string;
+}): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Harus login untuk memberi review.');
+  const { error } = await supabase
+    .from('class_reviews')
+    .upsert(
+      { class_id: params.classId, user_id: user.id, rating: params.rating, comment: params.comment },
+      { onConflict: 'class_id,user_id' },
+    );
+  if (error) throw error;
+}
+
+/** Bulk rating summary untuk Katalog — 1 query untuk semua kelas */
+export async function listClassRatings(): Promise<Record<string, { averageRating: number; totalReviews: number }>> {
+  const { data, error } = await supabase
+    .from('class_reviews')
+    .select('class_id, rating');
+  if (error) throw error;
+
+  const grouped: Record<string, number[]> = {};
+  for (const r of (data ?? []) as { class_id: string; rating: number }[]) {
+    if (!grouped[r.class_id]) grouped[r.class_id] = [];
+    grouped[r.class_id].push(r.rating);
+  }
+
+  const result: Record<string, { averageRating: number; totalReviews: number }> = {};
+  for (const [classId, ratings] of Object.entries(grouped)) {
+    result[classId] = {
+      averageRating: Math.round((ratings.reduce((s, r) => s + r, 0) / ratings.length) * 10) / 10,
+      totalReviews: ratings.length,
+    };
+  }
+  return result;
+}
+
 // ── Admin: List All Users ─────────────────────────────────────────────────────
 
 export type AdminUserRow = {

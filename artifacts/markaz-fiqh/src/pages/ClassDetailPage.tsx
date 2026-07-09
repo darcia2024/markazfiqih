@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams, Link, useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -9,6 +10,8 @@ import {
   Infinity,
   Loader2,
   Lock,
+  MessageSquare,
+  Pencil,
   PlayCircle,
   PlaySquare,
   ShieldCheck,
@@ -29,8 +32,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { formatPrice } from '@/data/mockClasses';
 import { useQuery } from '@tanstack/react-query';
-import { getClassById } from '@/lib/db';
+import { getClassById, listClassReviews, submitClassReview, listEnrollments } from '@/lib/db';
 import { FacilitasCard } from '@/components/FacilitasCard';
+import { StarRating } from '@/components/StarRating';
+import { Textarea } from '@/components/ui/textarea';
+import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
@@ -114,6 +120,203 @@ function CircularProgress({ percent }: { percent: number }) {
 // ── Placeholder daftar dars per modul (data dars asli belum tersedia dari API) ─
 // TODO: ganti dengan data dars asli dari backend setelah endpoint tersedia.
 const PLACEHOLDER_DARS_PER_MODULE = 3;
+
+// ── Review Section ─────────────────────────────────────────────────────────────
+function ReviewSection({ classId, currentUserId }: { classId: string; currentUserId: string | undefined }) {
+  const [formRating, setFormRating] = useState(0);
+  const [formComment, setFormComment] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const { data: reviewData, isLoading: reviewsLoading, refetch } = useQuery({
+    queryKey: ['class-reviews', classId],
+    queryFn: () => listClassReviews(classId),
+  });
+
+  const { data: enrollments = [] } = useQuery({
+    queryKey: ['enrollments', currentUserId],
+    queryFn: () => listEnrollments(currentUserId!),
+    enabled: !!currentUserId,
+  });
+
+  const isEnrolled = enrollments.some((e) => e.class.id === classId);
+  const myReview = reviewData?.reviews.find((r) => r.userId === currentUserId);
+
+  const startEdit = () => {
+    if (myReview) {
+      setFormRating(myReview.rating);
+      setFormComment(myReview.comment);
+    } else {
+      setFormRating(0);
+      setFormComment('');
+    }
+    setIsEditing(true);
+  };
+
+  const handleSubmit = async () => {
+    if (formRating === 0) {
+      toast.error('Pilih bintang rating terlebih dahulu.');
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      await submitClassReview({ classId, rating: formRating, comment: formComment });
+      await refetch();
+      setIsEditing(false);
+      toast.success('Review berhasil disimpan!');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Gagal menyimpan review.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const { averageRating = 0, totalReviews = 0, reviews = [] } = reviewData ?? {};
+
+  return (
+    <div className="border-t bg-muted/20">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl py-10 space-y-8">
+        {/* Heading + aggregate */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <div className="flex items-center gap-2">
+            <MessageSquare className="w-5 h-5 text-muted-foreground" />
+            <h2 className="font-serif text-xl font-bold text-foreground">Review &amp; Ulasan</h2>
+          </div>
+          {totalReviews > 0 && (
+            <div className="flex items-center gap-2 sm:ml-4">
+              <StarRating rating={averageRating} size="md" />
+              <span className="font-bold text-foreground">{averageRating}</span>
+              <span className="text-sm text-muted-foreground">({totalReviews} ulasan)</span>
+            </div>
+          )}
+        </div>
+
+        {/* Form area — hanya untuk user yang sudah enroll */}
+        {currentUserId && isEnrolled && (
+          <div className="rounded-xl border bg-card p-5 space-y-4">
+            {myReview && !isEditing ? (
+              /* Tampilkan review milik sendiri + tombol edit */
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold text-foreground">Review kamu</p>
+                  <button
+                    onClick={startEdit}
+                    className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline"
+                  >
+                    <Pencil className="w-3 h-3" />
+                    Edit
+                  </button>
+                </div>
+                <StarRating rating={myReview.rating} size="md" />
+                {myReview.comment && (
+                  <p className="text-sm text-muted-foreground leading-relaxed">{myReview.comment}</p>
+                )}
+              </div>
+            ) : isEditing ? (
+              /* Form edit/tambah */
+              <div className="space-y-3">
+                <p className="text-sm font-semibold text-foreground">
+                  {myReview ? 'Edit review kamu' : 'Berikan penilaianmu'}
+                </p>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">Klik bintang untuk memberi rating</p>
+                  <StarRating
+                    rating={formRating}
+                    size="lg"
+                    interactive
+                    onChange={setFormRating}
+                  />
+                </div>
+                <Textarea
+                  placeholder="Ceritakan pengalamanmu belajar di kelas ini (opsional)..."
+                  value={formComment}
+                  onChange={(e) => setFormComment(e.target.value)}
+                  rows={3}
+                  className="resize-none"
+                />
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    onClick={handleSubmit}
+                    disabled={isSubmitting || formRating === 0}
+                  >
+                    {isSubmitting ? (
+                      <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />Menyimpan...</>
+                    ) : (
+                      'Simpan Review'
+                    )}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setIsEditing(false)}
+                    disabled={isSubmitting}
+                  >
+                    Batal
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              /* Belum punya review, belum klik tulis */
+              <button
+                onClick={startEdit}
+                className="w-full flex flex-col items-center gap-2 py-4 rounded-lg border-2 border-dashed border-border hover:border-primary/50 hover:bg-muted/50 transition-colors group"
+              >
+                <StarRating rating={0} size="lg" />
+                <p className="text-sm text-muted-foreground group-hover:text-primary transition-colors">
+                  Klik untuk memberi review kelas ini
+                </p>
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* List semua review */}
+        {reviewsLoading ? (
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="space-y-2">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-12 w-full" />
+              </div>
+            ))}
+          </div>
+        ) : reviews.length === 0 ? (
+          <div className="text-center py-10 text-sm text-muted-foreground">
+            Belum ada ulasan. Jadilah yang pertama memberi review!
+          </div>
+        ) : (
+          <div className="space-y-5">
+            {reviews.map((r) => (
+              <div key={r.id} className="flex gap-4">
+                <div className="h-9 w-9 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold shrink-0">
+                  {(r.userNickname ?? 'A').charAt(0).toUpperCase()}
+                </div>
+                <div className="flex-1 space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-semibold text-foreground">
+                      {r.userNickname ?? 'Pelajar'}
+                    </p>
+                    <StarRating rating={r.rating} size="sm" />
+                    <span className="text-xs text-muted-foreground">
+                      {new Date(r.createdAt).toLocaleDateString('id-ID', {
+                        day: 'numeric', month: 'long', year: 'numeric',
+                      })}
+                    </span>
+                  </div>
+                  {r.comment && (
+                    <p className="text-sm text-muted-foreground leading-relaxed">{r.comment}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 // ── Detail Page ────────────────────────────────────────────────────────────
 export default function ClassDetailPage() {
@@ -536,6 +739,9 @@ export default function ClassDetailPage() {
             </div>
           </div>
         </div>
+
+        {/* Review & Ulasan */}
+        <ReviewSection classId={cls.id} currentUserId={user?.id} />
       </main>
 
       {/* Footer — pb-20 lg:pb-0 memberi ruang dari sticky buy bar di mobile */}
