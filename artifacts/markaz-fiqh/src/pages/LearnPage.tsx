@@ -17,6 +17,7 @@ declare global {
         },
       ) => {
         getCurrentTime: () => number;
+        getDuration?: () => number;
         getPlaylist: () => string[] | undefined;
         cueVideoById: (videoId: string, startSeconds?: number) => void;
         seekTo: (seconds: number, allowSeekAhead: boolean) => void;
@@ -147,6 +148,7 @@ function PlaylistMode({
   const metaPlayerRef = useRef<any>(null);
   const saveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const currentIndexRef = useRef(0);
+  const [watchedPercent, setWatchedPercent] = useState(0);
   const skipNextNavRef = useRef(false);
 
   // ── Daftar video individual dalam playlist — didapat sekali lewat getPlaylist() ──
@@ -273,12 +275,32 @@ function PlaylistMode({
     };
   }, [playlistId, ytApiReady, videoIds]);
 
-  // ── Helper: flush current position to DB ──
+  // ── Helper: hitung & tampilkan persentase TANPA menulis ke DB ──
+  // Dipanggil saat buffering/seek agar indikator update real-time
+  // tanpa membebani database dengan write berlebih.
+  const refreshPercent = useCallback(() => {
+    const p = playerRef.current;
+    if (!p) return;
+    try {
+      const seconds = Math.floor(p.getCurrentTime());
+      const duration = p.getDuration?.() ?? 0;
+      if (duration > 0) {
+        setWatchedPercent(Math.min(100, Math.round((seconds / duration) * 100)));
+      }
+    } catch (_) { /* player may already be destroyed */ }
+  }, []);
+
+  // ── Helper: flush current position to DB + hitung persentase tonton ──
+  // Dipanggil tiap 15 detik (interval) dan saat user pause.
   const flushProgress = useCallback(() => {
     const p = playerRef.current;
     if (!p || !userId || !classId) return;
     try {
       const seconds = Math.floor(p.getCurrentTime());
+      const duration = p.getDuration?.() ?? 0;
+      if (duration > 0) {
+        setWatchedPercent(Math.min(100, Math.round((seconds / duration) * 100)));
+      }
       if (seconds > 0) {
         saveVideoWatchProgress({
           userId,
@@ -328,6 +350,16 @@ function PlaylistMode({
             toast.info(getResumeLabel(resumeSeconds), { duration: 4000 });
           }
         },
+        onStateChange: (event: { target: any; data: number }) => {
+          if (event.data === 2) {
+            // PAUSED: flush ke DB sekaligus update persentase
+            flushProgress();
+          } else if (event.data === 3) {
+            // BUFFERING (termasuk saat user seek): update persentase saja,
+            // TIDAK menulis ke DB agar tidak membebani dengan write berlebih
+            refreshPercent();
+          }
+        },
       },
     });
 
@@ -359,6 +391,7 @@ function PlaylistMode({
     if (!videoId) return;
 
     flushProgress(); // simpan posisi video sebelumnya sebelum berpindah
+    setWatchedPercent(0); // reset indikator agar tidak nyangkut di video sebelumnya
     try {
       playerRef.current.cueVideoById(videoId, 0);
     } catch (_) { /* noop */ }
@@ -516,6 +549,20 @@ function PlaylistMode({
                   {classTitle}
                 </h1>
                 <p className="text-sm text-muted-foreground">{instructorName}</p>
+                {watchedPercent > 0 && (
+                  <div className="space-y-1.5 pt-1">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>Progres menonton</span>
+                      <span className="font-medium">{watchedPercent}%</span>
+                    </div>
+                    <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-primary transition-all duration-500"
+                        style={{ width: `${watchedPercent}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
                 {classDescription && (
                   <p className="text-sm text-muted-foreground leading-relaxed pt-1">
                     {classDescription}

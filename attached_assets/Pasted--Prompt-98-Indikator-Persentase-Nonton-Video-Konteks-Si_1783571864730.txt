@@ -1,0 +1,107 @@
+# Prompt 98: Indikator Persentase Nonton Video
+
+## Konteks
+Sistem sudah menyimpan posisi tonton video per user (`saveVideoWatchProgress`,
+di-flush tiap 15 detik ke tabel `video_watch_progress`) — tapi ini murni
+untuk fitur RESUME (lanjut nonton dari posisi terakhir), TIDAK ada
+indikator visual yang menunjukkan ke user "kamu sudah nonton berapa
+persen dari video ini". Klien melaporkan: nonton sampai menit ke-10 pun
+tidak ada indikator persentase yang muncul, di video manapun.
+
+Tambahkan indikator visual sederhana yang menunjukkan progres nonton
+video saat ini secara real-time (bukan riwayat, cukup untuk video yang
+sedang aktif diputar).
+
+## Perubahan di `artifacts/markaz-fiqh/src/pages/LearnPage.tsx`
+
+### 1. Tambah state untuk persentase tonton
+Dekat deklarasi `saveIntervalRef` (sekitar baris 148), tambahkan:
+```ts
+const [watchedPercent, setWatchedPercent] = useState(0);
+```
+
+### 2. Hitung persentase di dalam `flushProgress`
+Edit function `flushProgress` (sekitar baris 277-289) supaya selain
+nyimpen posisi, juga hitung & update persentase dari `getCurrentTime()`
+dan `getDuration()` player:
+
+```ts
+const flushProgress = useCallback(() => {
+  const p = playerRef.current;
+  if (!p || !userId || !classId) return;
+  try {
+    const seconds = Math.floor(p.getCurrentTime());
+    const duration = p.getDuration?.() ?? 0;
+    if (duration > 0) {
+      setWatchedPercent(Math.min(100, Math.round((seconds / duration) * 100)));
+    }
+    if (seconds > 0) {
+      saveVideoWatchProgress({
+        userId,
+        classId,
+        videoIndex: currentIndexRef.current,
+        positionSeconds: seconds,
+      });
+    }
+  } catch (_) { /* player may already be destroyed */ }
+}, [userId, classId]);
+```
+
+Interval yang sudah ada (`setInterval(flushProgress, 15_000)`) otomatis
+bikin persentase ke-update tiap 15 detik selama video diputar — tidak
+perlu interval terpisah. Supaya user gak nunggu 15 detik pertama buat
+lihat indikator sama sekali, tambahkan SATU update lebih cepat lewat
+`onStateChange` player: cari handler `onStateChange` di setup player
+(dekat baris di mana `player = new window.YT.Player(...)` dibuat),
+tambahkan pemanggilan `flushProgress()` juga saat event `PAUSED` (data
+`2`) dan tiap kali video di-`SEEK`/lompat posisi, supaya persentase ikut
+update instan saat user pause atau geser timeline, bukan cuma nunggu
+interval 15 detik.
+
+### 3. Reset persentase saat pindah video
+Di tempat `currentIndex` berubah (navigasi Sebelumnya/Selanjutnya,
+sekitar baris 361), reset `setWatchedPercent(0)` sebelum video baru
+dimuat, supaya persentase gak nyangkut dari video sebelumnya sesaat
+sebelum video baru mulai terbaca durasinya.
+
+### 4. Render indikator di UI
+Di "Info panel" (sekitar baris 511-521, tepat di bawah judul kelas dan
+nama pengajar, SEBELUM blok `classDescription` atau setelahnya — taruh
+di antara nama pengajar dan deskripsi), tambahkan progress bar kecil:
+
+```tsx
+{watchedPercent > 0 && (
+  <div className="space-y-1.5">
+    <div className="flex items-center justify-between text-xs text-muted-foreground">
+      <span>Progres menonton</span>
+      <span className="font-medium">{watchedPercent}%</span>
+    </div>
+    <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+      <div
+        className="h-full rounded-full bg-primary transition-all duration-500"
+        style={{ width: `${watchedPercent}%` }}
+      />
+    </div>
+  </div>
+)}
+```
+
+## Yang Tidak Boleh Berubah
+- Fungsi `saveVideoWatchProgress` dan mekanisme resume posisi video TIDAK
+  diubah — fitur ini murni tambahan tampilan, tidak menyentuh cara data
+  disimpan ke database.
+- Interval flush 15 detik yang sudah ada tetap dipertahankan (jangan
+  diperpendek jadi terlalu sering, supaya tidak membebani database
+  dengan write yang berlebihan) — persentase live cukup dihitung dari
+  `getCurrentTime()`/`getDuration()` di momen yang sama saat flush
+  terjadi, tidak perlu request tambahan ke server.
+- Tidak ada perubahan skema tabel `video_watch_progress`.
+- Tidak ada SQL untuk prompt ini.
+
+## Setelah Selesai
+1. Buka kelas, putar video, konfirmasi indikator persentase muncul dan
+   ter-update berkala saat video diputar (tunggu beberapa puluh detik
+   atau pause/seek untuk lihat update instan).
+2. Pindah ke video/pertemuan lain (tombol Selanjutnya), konfirmasi
+   persentase reset ke 0 dulu sebelum durasi video baru terbaca.
+3. Jalankan `pnpm run typecheck`, harus 0 error.
