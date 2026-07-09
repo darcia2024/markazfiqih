@@ -3,8 +3,8 @@ SELECT policyname FROM pg_policies WHERE tablename = 'class_vouchers';
 
 -- Jika ada policy SELECT lama (biasanya bernama seperti "Enable read access for all users"
 -- atau sejenisnya), drop dulu sebelum buat yang baru:
--- DROP POLICY IF EXISTS "nama_policy_lama" ON class_vouchers;
-
+-- DROPche POLICY IF EXISTS "nama_policy_lama" ON class_vouchers;
+che
 -- Policy SELECT baru: publik bisa baca voucher aktif, admin bisa baca semua
 CREATE POLICY "class_vouchers: admin bisa baca semua"
   ON class_vouchers FOR SELECT
