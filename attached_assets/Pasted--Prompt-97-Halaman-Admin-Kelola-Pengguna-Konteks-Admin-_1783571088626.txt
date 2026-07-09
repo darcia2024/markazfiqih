@@ -1,0 +1,195 @@
+# Prompt 97: Halaman Admin "Kelola Pengguna"
+
+## Konteks
+Admin Panel sekarang cuma punya "Kelola Admin" (khusus undang/promote
+admin baru), belum ada halaman untuk melihat daftar SEMUA user terdaftar
+(pelajar biasa) — nama, email, tanggal daftar, jumlah kelas dimiliki,
+dan role (Admin/Pelajar).
+
+Email user TIDAK bisa dibaca langsung dari client (tabel `auth.users`
+milik Supabase Auth, hanya bisa diakses lewat service role), jadi perlu
+edge function baru khusus untuk ini, mengikuti pola yang sudah ada di
+`check-admin-invite`.
+
+## Bagian A — Edge Function Baru `list-users`
+
+Buat `supabase/functions/list-users/index.ts`:
+
+```ts
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  try {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } },
+    );
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    );
+
+    // Pastikan pemanggil beneran admin sebelum kasih data semua user
+    const { data: callerProfile } = await supabaseAdmin
+      .from('user_profiles')
+      .select('is_admin')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (!callerProfile?.is_admin) {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Ambil semua auth users (email, created_at) — paginated, batasi 1000 dulu
+    const { data: authUsersData, error: authUsersError } =
+      await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
+    if (authUsersError) throw authUsersError;
+
+    const userIds = authUsersData.users.map((u) => u.id);
+
+    const { data: profiles, error: profilesError } = await supabaseAdmin
+      .from('user_profiles')
+      .select('user_id, nickname, is_admin')
+      .in('user_id', userIds);
+    if (profilesError) throw profilesError;
+
+    const { data: enrollmentCounts, error: enrollError } = await supabaseAdmin
+      .from('enrollments')
+      .select('user_id')
+      .in('user_id', userIds);
+    if (enrollError) throw enrollError;
+
+    const profileMap = new Map(profiles?.map((p) => [p.user_id, p]) ?? []);
+    const enrollCountMap = new Map<string, number>();
+    (enrollmentCounts ?? []).forEach((e: any) => {
+      enrollCountMap.set(e.user_id, (enrollCountMap.get(e.user_id) ?? 0) + 1);
+    });
+
+    const result = authUsersData.users.map((u) => {
+      const profile = profileMap.get(u.id);
+      return {
+        userId: u.id,
+        email: u.email ?? '',
+        nickname: profile?.nickname ?? null,
+        isAdmin: profile?.is_admin ?? false,
+        createdAt: u.created_at,
+        enrollmentCount: enrollCountMap.get(u.id) ?? 0,
+      };
+    });
+
+    return new Response(JSON.stringify({ users: result }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  } catch (error) {
+    return new Response(JSON.stringify({ error: (error as Error).message }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+});
+```
+
+## Bagian B — Function di `lib/db.ts`
+
+```ts
+export type AdminUserRow = {
+  userId: string;
+  email: string;
+  nickname: string | null;
+  isAdmin: boolean;
+  createdAt: string;
+  enrollmentCount: number;
+};
+
+export async function listAllUsersForAdmin(): Promise<AdminUserRow[]> {
+  const { data: { session } } = await supabase.auth.getSession();
+  const { data, error } = await supabase.functions.invoke('list-users', {
+    headers: session ? { Authorization: `Bearer ${session.access_token}` } : undefined,
+  });
+  if (error) throw error;
+  return data.users as AdminUserRow[];
+}
+```
+(Sesuaikan cara invoke edge function dengan pola yang sudah dipakai di
+`createCheckout` — cek bagaimana Authorization header dikirim di sana
+supaya konsisten.)
+
+## Bagian C — Halaman `AdminUsersPage.tsx`
+
+Buat `artifacts/markaz-fiqh/src/pages/admin/AdminUsersPage.tsx`, pola UI
+konsisten dengan `AdminManageAdminsPage.tsx`:
+
+- Search bar di atas (cari by nama atau email).
+- Table kolom: Nama (nickname, tampilkan "Belum diisi" kalau null),
+  Email, Tanggal Daftar (format tanggal Indonesia), Jumlah Kelas
+  Dimiliki, Role (Badge "Admin" warna gold kalau `isAdmin`, "Pelajar"
+  netral kalau bukan).
+- Urutkan default: tanggal daftar terbaru dulu.
+- Halaman ini READ-ONLY untuk role — kalau admin mau promote user jadi
+  admin, arahkan ke halaman "Kelola Admin" yang sudah ada (jangan
+  duplikat fitur promote di sini, cukup kasih link/tombol "Kelola Admin"
+  di header halaman ini untuk kemudahan).
+- Loading state & empty state mengikuti pola yang sudah ada di halaman
+  admin lain.
+
+## Bagian D — Routing & Sidebar
+
+1. Di `App.tsx`, tambahkan route `/admin/users` → `AdminUsersPage`,
+   dibungkus `RequireAdminRoute` (pola sama seperti route admin lain).
+2. Di `components/admin/AdminLayout.tsx`, tambahkan item menu "Kelola
+   Pengguna" (icon `Users` dari lucide-react), posisi SEBELUM "Kelola
+   Admin" di array menu (urutan: Dashboard, Kelola Kelas, ..., Kelola
+   Pengguna, Kelola Admin, ...).
+
+## Yang Tidak Boleh Berubah
+- Halaman `AdminManageAdminsPage.tsx` tidak diedit — fitur promote admin
+  tetap di situ, halaman baru ini murni untuk melihat daftar user.
+- Function `check-admin-invite` tidak disentuh, hanya dijadikan
+  referensi pola untuk edge function baru.
+- Tidak ada perubahan skema tabel `user_profiles` atau `enrollments`.
+
+## Setelah Selesai
+1. Konfirmasi halaman "Kelola Pengguna" bisa diakses dari sidebar,
+   menampilkan semua user terdaftar dengan email, nama, tanggal daftar,
+   dan jumlah kelas dimiliki.
+2. Test search by nama dan email.
+3. Konfirmasi user dengan `is_admin = true` menampilkan badge "Admin".
+4. Jalankan `pnpm run typecheck`, harus 0 error.
+
+## Deploy yang Perlu Dilakukan Manual
+- **Edge function `list-users` yang baru dibuat harus di-deploy manual**
+  lewat Supabase Dashboard/CLI setelah Agent selesai — edge function baru
+  tidak otomatis live hanya dengan push kode. Ingatkan saya untuk deploy
+  ini.
+- Tidak ada SQL/migrasi database untuk prompt ini (tabel yang dipakai
+  semua sudah ada).

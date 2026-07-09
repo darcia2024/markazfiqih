@@ -1141,3 +1141,26 @@ export async function deleteDashboardMessage(id: string) {
   const { error } = await supabase.from('dashboard_messages').delete().eq('id', id);
   if (error) throw error;
 }
+
+// ── Admin: List All Users ─────────────────────────────────────────────────────
+
+export type AdminUserRow = {
+  userId: string;
+  email: string;
+  nickname: string | null;
+  isAdmin: boolean;
+  createdAt: string;
+  enrollmentCount: number;
+};
+
+export async function listAllUsersForAdmin(): Promise<AdminUserRow[]> {
+  const { data: { session } } = await supabase.auth.getSession();
+  const { data, error } = await supabase.functions.invoke('list-users', {
+    headers: session ? { Authorization: `Bearer ${session.access_token}` } : undefined,
+  });
+  if (error) throw error;
+  if (!data?.users || !Array.isArray(data.users)) {
+    throw new Error('Respons tidak valid dari server');
+  }
+  return data.users as AdminUserRow[];
+}
