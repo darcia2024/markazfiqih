@@ -22,7 +22,7 @@ import { listEnrollments, type EnrollmentItem } from '@/lib/db';
 
 const NAV_ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/katalog', label: 'Katalog Kelas', icon: LayoutGrid },
+  { href: '/katalog', label: 'Katalog', icon: LayoutGrid },
   { href: '/paket-bundle', label: 'Paket Bundle', icon: Package },
   { href: '/pengajar', label: 'Pengajar', icon: GraduationCap },
   { href: '/my-classes', label: 'Kelas Saya', icon: BookMarked },
