@@ -65,6 +65,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   listClasses,
   listAllInstructorsForAdmin,
+  listAllEbooksForAdmin,
   getClassById,
   createClass,
   updateClass,
@@ -93,6 +94,7 @@ type ClassFormState = {
   waGroupUrl: string;
   soalLatihanUrl: string;
   ebookUrl: string;
+  relatedEbookId: string | null;
   testimoniFormUrl: string;
   meetingCount: string;
   displayOrder: string;
@@ -114,6 +116,7 @@ const EMPTY_FORM: ClassFormState = {
   waGroupUrl: '',
   soalLatihanUrl: '',
   ebookUrl: '',
+  relatedEbookId: null,
   testimoniFormUrl: '',
   meetingCount: '',
   displayOrder: '0',
@@ -136,6 +139,7 @@ function classToForm(cls: ClassDetail): ClassFormState {
     waGroupUrl: cls.waGroupUrl ?? '',
     soalLatihanUrl: cls.soalLatihanUrl ?? '',
     ebookUrl: cls.ebookUrl ?? '',
+    relatedEbookId: cls.relatedEbook?.id ?? null,
     testimoniFormUrl: cls.testimoniFormUrl ?? '',
     meetingCount: cls.meetingCount != null ? String(cls.meetingCount) : '',
     displayOrder: String(cls.displayOrder ?? 0),
@@ -160,6 +164,10 @@ export default function AdminClassesPage() {
   const instructorsQuery = useQuery({
     queryKey: ['instructors', 'admin'],
     queryFn: listAllInstructorsForAdmin,
+  });
+  const ebooksQuery = useQuery({
+    queryKey: ['ebooks', 'admin'],
+    queryFn: listAllEbooksForAdmin,
   });
   const classes = classesQuery.data ?? [];
   const instructors = instructorsQuery.data ?? [];
@@ -315,6 +323,7 @@ export default function AdminClassesPage() {
       waGroupUrl: '',
       soalLatihanUrl: '',
       ebookUrl: '',
+      relatedEbookId: null,
       testimoniFormUrl: '',
       meetingCount: '',
       displayOrder: String(cls.displayOrder ?? 0),
@@ -344,6 +353,7 @@ export default function AdminClassesPage() {
       youtubePlaylistId: form.youtubePlaylistId.trim()
         ? extractPlaylistId(form.youtubePlaylistId)
         : null,
+      relatedEbookId: form.relatedEbookId,
       gdriveMateriUrl: form.gdriveMateriUrl.trim() || null,
       waGroupUrl: form.waGroupUrl.trim() || null,
       soalLatihanUrl: form.soalLatihanUrl.trim() || null,
@@ -789,16 +799,26 @@ export default function AdminClassesPage() {
                   data-testid="input-class-soal-latihan"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="class-ebook">Link Ebook</Label>
-                <Input
-                  id="class-ebook"
-                  type="url"
-                  placeholder="https://drive.google.com/... atau link PDF"
-                  value={form.ebookUrl}
-                  onChange={(e) => setForm((p) => ({ ...p, ebookUrl: e.target.value }))}
-                  data-testid="input-class-ebook"
-                />
+              <div className="space-y-1.5">
+                <Label htmlFor="class-related-ebook">Ebook Terkait (opsional)</Label>
+                <Select
+                  value={form.relatedEbookId ?? 'none'}
+                  onValueChange={(v) => setForm((p) => ({ ...p, relatedEbookId: v === 'none' ? null : v }))}
+                >
+                  <SelectTrigger id="class-related-ebook" data-testid="select-class-related-ebook">
+                    <SelectValue placeholder="Pilih ebook dari katalog" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Tidak ada</SelectItem>
+                    {ebooksQuery.data?.map((eb) => (
+                      <SelectItem key={eb.id} value={eb.id}>{eb.title}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Pelajar akan diarahkan ke halaman ebook ini di Katalog Ebook, bukan
+                  link eksternal langsung.
+                </p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="class-testimoni">Link Testimoni (Google Form)</Label>

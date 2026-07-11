@@ -1,16 +1,17 @@
+import { Link } from 'wouter';
 import { BookOpen, ClipboardList, FileText, MessageCircle, MessageSquareQuote } from 'lucide-react';
 
 interface FacilitasCardProps {
   gdriveMateriUrl?: string | null;
   waGroupUrl?: string | null;
   soalLatihanUrl?: string | null;
-  ebookUrl?: string | null;
+  relatedEbook?: { id: string; title: string } | null;
   testimoniFormUrl?: string | null;
 }
 
-/** Render hanya jika minimal satu dari lima link terisi. */
-export function FacilitasCard({ gdriveMateriUrl, waGroupUrl, soalLatihanUrl, ebookUrl, testimoniFormUrl }: FacilitasCardProps) {
-  if (!gdriveMateriUrl && !waGroupUrl && !soalLatihanUrl && !ebookUrl && !testimoniFormUrl) return null;
+/** Render hanya jika minimal satu dari lima item terisi. */
+export function FacilitasCard({ gdriveMateriUrl, waGroupUrl, soalLatihanUrl, relatedEbook, testimoniFormUrl }: FacilitasCardProps) {
+  if (!gdriveMateriUrl && !waGroupUrl && !soalLatihanUrl && !relatedEbook && !testimoniFormUrl) return null;
 
   return (
     <div className="p-6 space-y-3">
@@ -49,16 +50,14 @@ export function FacilitasCard({ gdriveMateriUrl, waGroupUrl, soalLatihanUrl, ebo
             Soal Latihan
           </a>
         )}
-        {ebookUrl && (
-          <a
-            href={ebookUrl}
-            target="_blank"
-            rel="noopener noreferrer"
+        {relatedEbook && (
+          <Link
+            href={`/ebook/${relatedEbook.id}`}
             className="flex items-center gap-2 p-3 rounded-lg border border-border hover:border-primary hover:bg-[hsl(var(--brand-red-tint))] transition-colors w-full text-sm text-foreground"
           >
             <BookOpen className="w-4 h-4 text-primary shrink-0" />
-            Ebook
-          </a>
+            Lihat Ebook: {relatedEbook.title}
+          </Link>
         )}
         {testimoniFormUrl && (
           <a

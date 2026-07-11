@@ -1,0 +1,117 @@
+# Prompt 136: Ganti "Link Ebook" jadi Pilih dari Ebook Catalog
+
+## Konteks
+Field "Link Ebook" di form Kelola Kelas sekarang isinya paste link bebas
+(`ebook_url`). Sejak ada sistem Ebook Catalog beneran (Prompt 119/120 —
+ebook jadi produk yang bisa dibeli terpisah, ada halaman detail, harga,
+proteksi download), field bebas ini jadi kurang pas — GANTI supaya
+admin milih ebook dari Ebook Catalog yang sudah ada (dropdown), bukan
+paste link manual lagi. Fasilitas "Ebook" di halaman kelas nanti
+mengarahkan ke halaman detail ebook itu di Katalog (`/ebook/:id`), BUKAN
+lagi link eksternal.
+
+## Bagian A — SQL Migrasi (Siapkan untuk Saya Jalankan Manual)
+
+```sql
+ALTER TABLE classes ADD COLUMN IF NOT EXISTS related_ebook_id UUID REFERENCES ebooks(id) ON DELETE SET NULL;
+
+-- Kolom lama ebook_url TETAP ADA (tidak dihapus, untuk jaga-jaga data
+-- lama), tapi TIDAK DIPAKAI LAGI di form/tampilan baru mulai sekarang.
+```
+
+## Bagian B — Update `lib/db.ts`
+
+1. Di `getClassById` (dan function lain yang select detail kelas untuk
+   `LearnPage.tsx`/`ClassDetailPage.tsx`), tambahkan `related_ebook_id`
+   ke kolom yang di-select, DAN join info dasar ebook-nya:
+   ```ts
+   // Query select classes tambahkan:
+   related_ebook_id, ebooks:related_ebook_id ( id, title, cover_image )
+   ```
+   Map ke field baru:
+   ```ts
+   relatedEbook: data.ebooks ? { id: data.ebooks.id, title: data.ebooks.title, coverImage: data.ebooks.cover_image } : null,
+   ```
+2. Di function admin save kelas, tambahkan `relatedEbookId` ke payload
+   insert/update (map ke kolom `related_ebook_id`), pola sama seperti
+   field lain yang sudah ada.
+
+## Bagian C — Form Admin (`AdminClassesPage.tsx`)
+
+Ganti input teks "Link Ebook" (yang sekarang minta paste URL) jadi
+dropdown Select:
+```tsx
+<div className="space-y-1.5">
+  <Label htmlFor="class-related-ebook">Ebook Terkait (opsional)</Label>
+  <Select
+    value={form.relatedEbookId ?? 'none'}
+    onValueChange={(v) => setForm({ ...form, relatedEbookId: v === 'none' ? null : v })}
+  >
+    <SelectTrigger id="class-related-ebook">
+      <SelectValue placeholder="Pilih ebook dari katalog" />
+    </SelectTrigger>
+    <SelectContent>
+      <SelectItem value="none">Tidak ada</SelectItem>
+      {ebooksQuery.data?.map((eb) => (
+        <SelectItem key={eb.id} value={eb.id}>{eb.title}</SelectItem>
+      ))}
+    </SelectContent>
+  </Select>
+  <p className="text-xs text-muted-foreground">
+    Pelajar akan diarahkan ke halaman ebook ini di Katalog Ebook, bukan
+    link eksternal langsung.
+  </p>
+</div>
+```
+Fetch daftar ebook untuk dropdown ini pakai `listAllEbooksForAdmin()`
+(dari Prompt 119, `useQuery` biasa). HAPUS input teks "Link Ebook" lama
+yang pakai `ebook_url` dari form ini sepenuhnya (field database
+`ebook_url` tetap ada di DB tapi tidak lagi tampil/diisi dari form).
+
+## Bagian D — `FacilitasCard.tsx`
+
+Ganti prop `ebookUrl?: string | null` jadi:
+```tsx
+relatedEbook?: { id: string; title: string } | null;
+```
+Item "Ebook" di card sekarang jadi internal link (pakai `<Link>` dari
+wouter, BUKAN `<a href target="_blank">` seperti item eksternal
+lainnya), mengarah ke halaman detail ebook:
+```tsx
+{relatedEbook && (
+  <Link href={`/ebook/${relatedEbook.id}`}
+     className="flex items-center gap-2 p-3 rounded-lg border border-border hover:border-primary hover:bg-[hsl(var(--brand-red-tint))] transition-colors w-full text-sm text-foreground">
+    <BookOpen className="w-4 h-4 text-primary shrink-0" />
+    Lihat Ebook: {relatedEbook.title}
+  </Link>
+)}
+```
+Update kondisi render awal component (cek `!relatedEbook` sebagai
+pengganti `!ebookUrl` di kondisi gabungan semua item fasilitas).
+
+## Bagian E — Teruskan Prop di Pemanggil
+
+Cari SEMUA pemanggilan `<FacilitasCard` di `LearnPage.tsx` dan
+`ClassDetailPage.tsx`, ganti `ebookUrl={...}` jadi
+`relatedEbook={classDetail.relatedEbook}` (sesuaikan nama variable
+sumber datanya dengan yang benar di scope masing-masing).
+
+## Yang Tidak Boleh Berubah
+- Sistem Ebook Catalog (Prompt 119/120) itu sendiri TIDAK disentuh —
+  prompt ini cuma nyambungin kelas ke ebook yang SUDAH ADA di catalog,
+  bukan bikin ulang sistemnya.
+- 4 item fasilitas lain (Materi PDF, Grup WA, Soal Latihan, Testimoni)
+  TETAP eksternal link seperti sekarang, TIDAK diubah.
+- Kolom `ebook_url` lama TIDAK dihapus dari database (data historis
+  tetap aman), cuma tidak dipakai di form/tampilan baru.
+
+## Setelah Selesai
+1. Buka form edit kelas, pilih salah satu ebook dari dropdown "Ebook
+   Terkait", simpan.
+2. Buka halaman belajar kelas itu, konfirmasi item "Ebook" di Fasilitas
+   Kelas mengarah ke halaman detail ebook yang benar di Katalog Ebook
+   (bukan link eksternal lagi).
+3. Kelas yang belum punya ebook terkait, konfirmasi item "Ebook" tidak
+   muncul (tidak error).
+4. Jalankan `pnpm run typecheck`, harus 0 error.
+5. Tegaskan SQL Bagian A perlu saya jalankan manual dulu.

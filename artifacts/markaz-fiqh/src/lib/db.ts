@@ -134,6 +134,7 @@ export async function getClassById(id: string) {
     .select(`
       id, title, description, cover_image, base_price, discount_price,
       status, level, category, youtube_playlist_id, gdrive_materi_url, wa_group_url, soal_latihan_url, ebook_url, testimoni_form_url, meeting_count, display_order, reverse_video_order,
+      related_ebook_id, ebooks:related_ebook_id ( id, title, cover_image ),
       instructors ( id, name, photo_url, bio ),
       modules (
         id, title, order_index,
@@ -197,6 +198,13 @@ export async function getClassById(id: string) {
     waGroupUrl: data.wa_group_url as string | null,
     soalLatihanUrl: data.soal_latihan_url as string | null,
     ebookUrl: data.ebook_url as string | null,
+    relatedEbook: data.ebooks
+      ? {
+          id: (data.ebooks as any).id as string,
+          title: (data.ebooks as any).title as string,
+          coverImage: (data.ebooks as any).cover_image as string | null,
+        }
+      : null,
     testimoniFormUrl: data.testimoni_form_url as string | null,
     displayOrder: (data.display_order ?? 0) as number,
     reverseVideoOrder: (data.reverse_video_order ?? false) as boolean,
@@ -974,7 +982,7 @@ export async function createClass(data: {
   category?: string | null; instructorId: string;
   youtubePlaylistId?: string | null; gdriveMateriUrl?: string | null;
   waGroupUrl?: string | null; soalLatihanUrl?: string | null;
-  ebookUrl?: string | null; testimoniFormUrl?: string | null; meetingCount?: number | null;
+  ebookUrl?: string | null; relatedEbookId?: string | null; testimoniFormUrl?: string | null; meetingCount?: number | null;
   displayOrder?: number | null; reverseVideoOrder?: boolean;
 }) {
   const { data: created, error } = await supabase
@@ -990,6 +998,7 @@ export async function createClass(data: {
       wa_group_url: data.waGroupUrl ?? null,
       soal_latihan_url: data.soalLatihanUrl ?? null,
       ebook_url: data.ebookUrl ?? null,
+      related_ebook_id: data.relatedEbookId ?? null,
       testimoni_form_url: data.testimoniFormUrl ?? null,
       meeting_count: data.meetingCount ?? null,
       display_order: data.displayOrder ?? 0,
@@ -1009,7 +1018,7 @@ export async function updateClass(
     category: string | null; instructorId: string;
     youtubePlaylistId: string | null; gdriveMateriUrl: string | null;
     waGroupUrl: string | null; soalLatihanUrl: string | null;
-    ebookUrl: string | null; testimoniFormUrl: string | null; meetingCount: number | null;
+    ebookUrl: string | null; relatedEbookId: string | null; testimoniFormUrl: string | null; meetingCount: number | null;
     displayOrder: number; reverseVideoOrder: boolean;
   }>,
 ) {
@@ -1028,6 +1037,7 @@ export async function updateClass(
   if ('waGroupUrl' in data) patch.wa_group_url = data.waGroupUrl;
   if ('soalLatihanUrl' in data) patch.soal_latihan_url = data.soalLatihanUrl;
   if ('ebookUrl' in data) patch.ebook_url = data.ebookUrl;
+  if ('relatedEbookId' in data) patch.related_ebook_id = data.relatedEbookId;
   if ('testimoniFormUrl' in data) patch.testimoni_form_url = data.testimoniFormUrl;
   if ('meetingCount' in data) patch.meeting_count = data.meetingCount;
   if (data.displayOrder !== undefined) patch.display_order = data.displayOrder;

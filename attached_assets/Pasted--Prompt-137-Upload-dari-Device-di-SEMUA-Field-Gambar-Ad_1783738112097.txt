@@ -1,0 +1,84 @@
+# Prompt 137: Upload dari Device di SEMUA Field Gambar Admin Panel
+
+## Konteks
+Komponen `ImageUploadField` (Prompt 117/123, upload dari device ke
+Supabase Storage bucket `admin-uploads`) baru dipasang di 2 tempat
+(`AdminClassesPage.tsx` cover kelas, `AdminInstructorsPage.tsx` foto
+pengajar). Masih ada 4 form admin lain yang pakai input teks URL manual
+biasa — ganti SEMUANYA jadi `ImageUploadField`, konsisten di seluruh
+Admin Panel.
+
+## 4 Tempat yang Perlu Diganti
+
+### 1. `AdminBundlesPage.tsx` — Cover Bundle
+Cari input "URL Gambar Cover" (field `coverImage`), ganti:
+```tsx
+<div className="space-y-1.5">
+  <Label>Cover Bundle</Label>
+  <ImageUploadField
+    value={form.coverImage}
+    onChange={(url) => setForm({ ...form, coverImage: url })}
+    previewClassName="w-16 h-20 rounded object-cover border"
+  />
+</div>
+```
+
+### 2. `AdminEbooksPage.tsx` — Cover Ebook
+Cari input URL cover ebook (field `coverImage`), ganti dengan pola yang
+sama persis seperti di atas.
+
+### 3. `AdminSettingsPage.tsx` — Logo Situs
+Cari input "URL Logo" (field `logoUrl`, sekitar baris 184-188), ganti:
+```tsx
+<div className="space-y-1.5">
+  <Label>Logo Situs</Label>
+  <ImageUploadField
+    value={form.logoUrl}
+    onChange={(url) => updateField('logoUrl', url)}
+    previewClassName="w-16 h-16 rounded object-contain border bg-white p-1"
+  />
+</div>
+```
+(Preview logo pakai `object-contain` bukan `object-cover`, dan kasih
+background putih + padding tipis — supaya logo dengan background
+transparan tetap kelihatan jelas previewnya, beda dari preview foto
+orang/cover yang pakai `object-cover`.)
+
+### 4. `AdminTestimonialsPage.tsx` — Foto Testimoni
+Cari input "URL Foto (opsional)" (field `photoUrl`, sekitar baris
+71/157), ganti dengan pola yang sama seperti foto pengajar
+(`AdminInstructorsPage.tsx` — comot polanya persis dari situ karena
+kasusnya identik: foto orang, bulat).
+
+## Import yang Diperlukan
+Di keempat file, tambahkan:
+```ts
+import { ImageUploadField } from '@/components/ImageUploadField';
+```
+(Kalau belum ada — cek dulu tiap file, jangan duplikat import kalau
+ternyata sudah ada.)
+
+## Yang Tidak Boleh Berubah
+- Komponen `ImageUploadField` itu sendiri TIDAK diubah/dibuat ulang —
+  reuse persis yang sudah ada dan sudah confirmed berfungsi dari Prompt
+  117/123/124.
+- Field database (`cover_image`, `logo_url`, `photo_url`) TETAP
+  bertipe string URL biasa — cuma cara ADMIN MENGISINYA yang berubah,
+  data lama (masih URL eksternal) tetap tampil normal.
+- Bucket Storage `admin-uploads` yang sudah ada dipakai bersama untuk
+  SEMUA jenis gambar ini (bundle, ebook, logo, testimoni) — tidak perlu
+  bucket terpisah per jenis.
+
+## Setelah Selesai
+1. Cek satu-satu keempat form: Bundle, Ebook, Pengaturan Situs (Logo),
+   Testimoni — konfirmasi semuanya sekarang punya tombol "Upload dari
+   Device" + opsi "atau tempel URL manual" di bawahnya (BUKAN lagi
+   cuma input teks polos).
+2. Coba upload 1 gambar contoh di salah satu form (misal cover bundle),
+   simpan, konfirmasi preview & data tersimpan dengan benar (mengacu ke
+   cara kerja yang sudah terbukti jalan di form Kelola Pengajar).
+3. Jalankan `pnpm run typecheck`, harus 0 error.
+
+## Catatan
+Tidak ada SQL baru untuk prompt ini — bucket Storage dan RLS-nya sudah
+ada dari Prompt 117, cukup dipakai ulang di form-form ini.
