@@ -56,7 +56,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Search, Pencil, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Loader2, Wand2 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { ImageUploadField } from '@/components/ImageUploadField';
@@ -72,10 +72,312 @@ import {
   deleteClass,
   getClassMeetingTitles,
   upsertClassMeetingTitle,
+  bulkUpdateDarsVideos,
 } from '@/lib/db';
 
 type ClassSummary = Awaited<ReturnType<typeof listClasses>>[0];
 type ClassDetail = Awaited<ReturnType<typeof getClassById>>;
+
+// ─── Auto-Match Playlist Dialog ───────────────────────────────────────────────
+type DarsForMatch = { id: string; title: string; moduleTitle: string };
+type MatchRow = { videoId: string; videoTitle: string; assignedDarsId: string };
+
+async function ensureYtApi(): Promise<void> {
+  if ((window as any).YT?.Player) return;
+  return new Promise<void>((resolve) => {
+    const prev = (window as any).onYouTubeIframeAPIReady;
+    (window as any).onYouTubeIframeAPIReady = () => { if (prev) prev(); resolve(); };
+    if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
+      const s = document.createElement('script');
+      s.src = 'https://www.youtube.com/iframe_api';
+      document.head.appendChild(s);
+    }
+  });
+}
+
+async function fetchOEmbedTitle(videoId: string): Promise<string> {
+  try {
+    const res = await fetch(
+      `https://www.youtube.com/oembed?url=https://youtube.com/watch?v=${videoId}&format=json`,
+    );
+    if (!res.ok) return videoId;
+    const data = await res.json();
+    return (data.title as string | undefined) ?? videoId;
+  } catch {
+    return videoId;
+  }
+}
+
+function AutoMatchPlaylistDialog({
+  open,
+  onClose,
+  darsList,
+  onApplied,
+}: {
+  open: boolean;
+  onClose: () => void;
+  darsList: DarsForMatch[];
+  onApplied: () => void;
+}) {
+  const [playlistInput, setPlaylistInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [matchRows, setMatchRows] = useState<MatchRow[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (!open) {
+      setPlaylistInput('');
+      setError(null);
+      setMatchRows([]);
+      setIsLoading(false);
+      setIsSaving(false);
+    }
+  }, [open]);
+
+  function matchDars(videoTitle: string): string {
+    const norm = (s: string) => s.trim().toLowerCase();
+    const vt = norm(videoTitle);
+    const exact = darsList.find((d) => norm(d.title) === vt);
+    if (exact) return exact.id;
+    const partial = darsList.find(
+      (d) => vt.includes(norm(d.title)) || norm(d.title).includes(vt),
+    );
+    return partial?.id ?? '';
+  }
+
+  async function fetchAndMatch() {
+    const playlistId = extractPlaylistId(playlistInput.trim());
+    if (!playlistId) {
+      setError('Masukkan link atau ID playlist YouTube yang valid.');
+      return;
+    }
+    setIsLoading(true);
+    setError(null);
+    setMatchRows([]);
+
+    try {
+      // Step 1: load YT API if not already loaded
+      await ensureYtApi();
+
+      // Step 2: baca daftar video ID dari playlist lewat hidden YT player
+      const videoIds = await new Promise<string[]>((resolve, reject) => {
+        const container = document.getElementById('admin-yt-meta-container');
+        if (!container) { reject(new Error('Container player tidak ditemukan.')); return; }
+
+        let done = false;
+        let retried = false;
+
+        const tryRead = (target: any): boolean => {
+          try {
+            const ids: string[] = target.getPlaylist() ?? [];
+            if (ids.length > 0) {
+              done = true;
+              try { target.destroy(); } catch (_) {}
+              resolve(ids);
+              return true;
+            }
+          } catch (_) {}
+          return false;
+        };
+
+        (window as any).YT.Player('admin-yt-meta-container', {
+          playerVars: { listType: 'playlist', list: playlistId, autoplay: 0, mute: 1 },
+          events: {
+            onReady: (event: any) => {
+              if (tryRead(event.target)) return;
+              if (!retried) {
+                retried = true;
+                setTimeout(() => {
+                  if (done) return;
+                  if (!tryRead(event.target)) {
+                    done = true;
+                    try { event.target.destroy(); } catch (_) {}
+                    reject(new Error('Tidak bisa membaca daftar video. Pastikan playlist bersifat publik.'));
+                  }
+                }, 1200);
+              }
+            },
+            onError: (event: any) => {
+              if (!done) {
+                done = true;
+                try { event.target.destroy(); } catch (_) {}
+                reject(new Error('Gagal memuat playlist. Pastikan playlist bersifat publik dan ID-nya benar.'));
+              }
+            },
+          },
+        });
+      });
+
+      // Step 3: ambil judul tiap video via oEmbed (batch 5 paralel)
+      const BATCH = 5;
+      const titled: { id: string; title: string }[] = [];
+      for (let i = 0; i < videoIds.length; i += BATCH) {
+        const batch = videoIds.slice(i, i + BATCH);
+        const results = await Promise.all(
+          batch.map(async (id) => ({ id, title: await fetchOEmbedTitle(id) })),
+        );
+        titled.push(...results);
+      }
+
+      // Step 4: auto-match ke dars
+      const rows: MatchRow[] = titled.map(({ id, title }) => ({
+        videoId: id,
+        videoTitle: title,
+        assignedDarsId: matchDars(title),
+      }));
+
+      setMatchRows(rows);
+      if (rows.length === 0) setError('Playlist tidak mengandung video.');
+    } catch (err: any) {
+      setError(err?.message ?? 'Terjadi kesalahan. Coba lagi.');
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function applyMatches() {
+    const updates = matchRows
+      .filter((r) => r.assignedDarsId)
+      .map((r) => ({ darsId: r.assignedDarsId, youtubeVideoId: r.videoId }));
+
+    if (updates.length === 0) {
+      toast({ title: 'Tidak ada pasangan yang dipilih', variant: 'destructive' });
+      return;
+    }
+    setIsSaving(true);
+    try {
+      await bulkUpdateDarsVideos(updates);
+      toast({ title: `${updates.length} dars berhasil di-assign video` });
+      onApplied();
+      onClose();
+    } catch (err: any) {
+      toast({ title: 'Gagal menyimpan', description: err?.message, variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  const matchedCount = matchRows.filter((r) => r.assignedDarsId).length;
+
+  return (
+    <>
+      {/* Hidden container untuk YT player — selalu ada di DOM saat komponen ini mounted */}
+      <div
+        id="admin-yt-meta-container"
+        style={{ position: 'fixed', left: -9999, top: -9999, width: 1, height: 1, overflow: 'hidden' }}
+        aria-hidden="true"
+      />
+      <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+        <DialogContent className="max-w-3xl max-h-[88vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Auto-Match Video dari Playlist YouTube</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              Masukkan link playlist YouTube. Sistem akan mengambil semua video beserta judulnya,
+              lalu mencocokkannya otomatis ke dars yang sudah ada berdasarkan kemiripan judul.
+            </p>
+            <div className="flex gap-2">
+              <Input
+                placeholder="https://youtube.com/playlist?list=PL... atau ID playlist"
+                value={playlistInput}
+                onChange={(e) => setPlaylistInput(e.target.value)}
+                disabled={isLoading}
+                className="flex-1"
+              />
+              <Button type="button" onClick={fetchAndMatch} disabled={isLoading || !playlistInput.trim()}>
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Wand2 className="h-4 w-4 mr-2" />}
+                {isLoading ? 'Memuat...' : 'Ambil & Cocokkan'}
+              </Button>
+            </div>
+
+            {error && (
+              <p className="text-sm text-destructive bg-destructive/10 rounded-md px-3 py-2">{error}</p>
+            )}
+
+            {matchRows.length > 0 && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">
+                    Hasil: {matchedCount} dari {matchRows.length} video berhasil dicocokkan
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Sesuaikan via dropdown jika ada yang salah, atau kosongkan untuk melewati video tersebut.
+                  </p>
+                </div>
+                <div className="rounded-md border overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-[45%]">Judul Video (dari YouTube)</TableHead>
+                        <TableHead>Dars yang Cocok</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {matchRows.map((row, i) => (
+                        <TableRow key={row.videoId}>
+                          <TableCell className="text-sm py-2 align-top">
+                            <a
+                              href={`https://youtube.com/watch?v=${row.videoId}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline line-clamp-2 text-xs"
+                            >
+                              {row.videoTitle}
+                            </a>
+                          </TableCell>
+                          <TableCell className="py-2">
+                            <Select
+                              value={row.assignedDarsId || '__none__'}
+                              onValueChange={(v) =>
+                                setMatchRows((prev) =>
+                                  prev.map((r, j) =>
+                                    j === i ? { ...r, assignedDarsId: v === '__none__' ? '' : v } : r,
+                                  ),
+                                )
+                              }
+                            >
+                              <SelectTrigger className="h-8 text-xs">
+                                <SelectValue placeholder="Pilih dars..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__none__">
+                                  <span className="text-muted-foreground">— Lewati video ini —</span>
+                                </SelectItem>
+                                {darsList.map((d) => (
+                                  <SelectItem key={d.id} value={d.id}>
+                                    {d.moduleTitle} › {d.title}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
+              Batal
+            </Button>
+            {matchRows.length > 0 && (
+              <Button type="button" onClick={applyMatches} disabled={isSaving || matchedCount === 0}>
+                {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Terapkan ({matchedCount} dars)
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
 
 type MeetingTitleRow = { videoIndex: number; title: string; description: string };
 
@@ -154,6 +456,7 @@ export default function AdminClassesPage() {
   const [form, setForm] = useState<ClassFormState>(EMPTY_FORM);
   const [deleteTarget, setDeleteTarget] = useState<ClassSummary | null>(null);
   const [meetingTitleRows, setMeetingTitleRows] = useState<MeetingTitleRow[]>([]);
+  const [autoMatchOpen, setAutoMatchOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -527,7 +830,7 @@ export default function AdminClassesPage() {
         </Card>
       </div>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={(v) => { setDialogOpen(v); if (!v) setAutoMatchOpen(false); }}>
         <DialogContent>
           <form onSubmit={handleSubmit}>
             <DialogHeader>
@@ -831,6 +1134,26 @@ export default function AdminClassesPage() {
                   data-testid="input-class-testimoni"
                 />
               </div>
+
+              {/* Tool Auto-Match — khusus kelas yang punya modul/dars */}
+              {editingClass && editingClassDetail && editingClassDetail.modules.length > 0 && (
+                <div className="rounded-lg border border-dashed p-4 space-y-2">
+                  <Label>Auto-Match Video dari Playlist YouTube</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Cocokkan video di sebuah playlist YouTube ke dars yang sudah ada secara otomatis berdasarkan kemiripan judul.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setAutoMatchOpen(true)}
+                    data-testid="button-open-auto-match"
+                  >
+                    <Wand2 className="h-4 w-4 mr-2" />
+                    Buka Tool Auto-Match
+                  </Button>
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
@@ -866,6 +1189,20 @@ export default function AdminClassesPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Auto-Match Dialog — hanya di-render kalau kelas yang sedang diedit punya modul */}
+      {editingClass && editingClassDetail && editingClassDetail.modules.length > 0 && (
+        <AutoMatchPlaylistDialog
+          open={autoMatchOpen}
+          onClose={() => setAutoMatchOpen(false)}
+          darsList={editingClassDetail.modules.flatMap((m) =>
+            m.dars.map((d: { id: string; title: string }) => ({ id: d.id, title: d.title, moduleTitle: m.title })),
+          )}
+          onApplied={() => {
+            queryClient.invalidateQueries({ queryKey: ['class', editingClass.id] });
+          }}
+        />
+      )}
     </AdminLayout>
   );
 }

@@ -1,0 +1,132 @@
+# Prompt 142: Video per-Dars + Auto-Match dari Judul Playlist YouTube
+
+## Konteks — Temuan Penting
+Kelas model Modul/Bab (Fiqih Kitab, contoh: Safinah an-Naja) TIDAK
+PERNAH punya field untuk menyimpan video per pelajaran (`dars`). Type
+`DarsItem` di `LearnPage.tsx` cuma punya `id, title, durationMinutes,
+orderIndex` — TIDAK ADA referensi video sama sekali. Komponen
+`VideoPlaceholder` selalu tampil PERMANEN untuk mode ini, terlepas dari
+apapun yang di-setting di `classes.youtube_playlist_id` (field itu cuma
+dipakai mode Video Playlist/Fiqih Tematik, TIDAK PERNAH dibaca sama
+sekali oleh mode Modul/Bab).
+
+Prompt ini membangun 2 hal:
+1. Kemampuan dasar: tiap `dars` bisa punya video sendiri.
+2. Tool admin "Auto-Match dari Playlist": admin paste link/ID playlist
+   YouTube untuk 1 kelas, sistem ambil semua judul video di playlist
+   itu, cocokkan otomatis ke judul `dars` yang sudah ada di kelas itu
+   (exact match dulu, fallback partial match), admin review hasil
+   pencocokan sebelum di-confirm, baru video-id-nya disimpan ke
+   masing-masing `dars`.
+
+## Bagian A — SQL Migrasi (Siapkan untuk Saya Jalankan Manual)
+
+```sql
+ALTER TABLE dars ADD COLUMN IF NOT EXISTS youtube_video_id TEXT;
+```
+
+## Bagian B — Function di `lib/db.ts`
+
+```ts
+export async function updateDarsVideo(darsId: string, youtubeVideoId: string | null): Promise<void> {
+  const { error } = await supabase.from('dars').update({ youtube_video_id: youtubeVideoId }).eq('id', darsId);
+  if (error) throw error;
+}
+
+export async function bulkUpdateDarsVideos(updates: { darsId: string; youtubeVideoId: string }[]): Promise<void> {
+  const results = await Promise.all(
+    updates.map((u) => supabase.from('dars').update({ youtube_video_id: u.youtubeVideoId }).eq('id', u.darsId)),
+  );
+  const firstError = results.find((r) => r.error)?.error;
+  if (firstError) throw firstError;
+}
+```
+
+Update `getClassById` (dan function lain yang select detail modul/dars
+untuk `LearnPage.tsx`) supaya ikut select `youtube_video_id` di setiap
+dars, map ke field `youtubeVideoId: string | null` di type `DarsItem`.
+
+## Bagian C — Tampilkan Video Asli di Mode Modul/Bab (`LearnPage.tsx`)
+
+Cari tempat `<VideoPlaceholder title={...} />` dirender di mode
+Modul/Bab. Ubah jadi kondisional:
+```tsx
+{activeDars?.youtubeVideoId ? (
+  <div id="dars-video-player" className="w-full aspect-video bg-black" />
+  // Setup player YouTube IFrame API di sini dengan videoId =
+  // activeDars.youtubeVideoId, ikuti pola setup player yang SUDAH ADA
+  // di mode Video Playlist (reuse logic-nya: onReady, resume position,
+  // dst — JANGAN bikin ulang dari nol, adaptasi yang sudah ada di file
+  // ini untuk pakai single videoId alih-alih array videoIds)
+) : (
+  <VideoPlaceholder title={activeDars?.title ?? ''} />
+)}
+```
+(Ini bagian paling teknis — pelajari dulu setup YouTube IFrame API yang
+SUDAH BERFUNGSI di mode Video Playlist dalam file yang sama, termasuk
+resume progress dari `video_watch_progress` dan auto-mark selesai dari
+Prompt 107/`video_completions` — terapkan pola yang SAMA untuk player
+di mode Modul/Bab ini, supaya kedua mode punya fitur resume & tracking
+yang konsisten. Kalau field `class_id` dibutuhkan untuk tabel
+`video_watch_progress`/`video_completions` yang sekarang keyed dengan
+`video_index` (bukan `dars_id`), sesuaikan penyimpanan untuk mode ini
+pakai `dars_id` sebagai pengganti index — cek struktur tabel `progress`
+yang SUDAH ADA untuk dars completion, kemungkinan besar sudah cukup
+dan tidak perlu tabel baru untuk tracking mode ini.)
+
+## Bagian D — Tool Admin "Auto-Match dari Playlist"
+
+Di form edit kelas (`AdminClassesPage.tsx`) ATAU sebagai dialog
+terpisah yang dibuka dari situ, KHUSUS muncul untuk kelas yang punya
+struktur modul/dars (bukan video playlist tunggal):
+
+1. Input: "Link/ID Playlist YouTube untuk Auto-Match" (field sementara,
+   TIDAK disimpan ke `classes.youtube_playlist_id` — cuma dipakai
+   sekali untuk proses matching ini).
+2. Tombol "Ambil & Cocokkan Video" — saat diklik:
+   - Extract playlist ID dari input (reuse function `extractPlaylistId`
+     dari Prompt 135 kalau sudah ada, atau buat versi sederhana serupa).
+   - Fetch daftar video di playlist itu BESERTA JUDULNYA. Gunakan
+     YouTube IFrame API (`player.getPlaylist()` untuk id video, DAN
+     untuk judul, load tiap video sebentar untuk baca
+     `player.getVideoData().title` — ATAU cara lebih simpel: gunakan
+     YouTube oEmbed endpoint publik `https://www.youtube.com/oembed?url=https://youtube.com/watch?v={videoId}&format=json`
+     yang bisa di-fetch langsung dari browser tanpa API key, response-nya
+     punya field `title` per video — PAKAI PENDEKATAN INI, lebih
+     sederhana daripada muter tiap video secara diam-diam).
+   - Untuk setiap video (ID + judul dari oEmbed), cocokkan ke daftar
+     `dars` kelas ini: cari `dars.title` yang PERSIS SAMA dulu (case
+     insensitive, trim spasi), kalau tidak ketemu coba PARTIAL MATCH
+     (judul video MENGANDUNG judul dars, atau sebaliknya).
+   - Tampilkan hasil sebagai tabel preview: kolom "Judul Video (dari
+     YouTube)" — "Dars yang Cocok" (bisa diedit manual pakai dropdown
+     kalau hasil auto-match salah/tidak ketemu, ATAU dikosongkan kalau
+     video ini memang tidak ada dars yang sesuai).
+3. Tombol "Terapkan" — panggil `bulkUpdateDarsVideos` dengan hasil
+   akhir mapping (setelah admin review/koreksi manual di preview).
+
+## Yang Tidak Boleh Berubah
+- `classes.youtube_playlist_id` dan mode Video Playlist (Fiqih Tematik)
+  TIDAK disentuh sama sekali — perubahan ini KHUSUS mode Modul/Bab.
+- Struktur tabel `modules`/`dars` yang sudah ada TIDAK diubah selain
+  tambah 1 kolom `youtube_video_id`.
+
+## Setelah Selesai
+1. Di form edit kelas Safinah an-Naja, buka tool "Auto-Match dari
+   Playlist", masukkan link `https://youtube.com/playlist?list=PLJlCAKF_6AgI`,
+   klik "Ambil & Cocokkan Video".
+2. Konfirmasi muncul preview tabel dengan judul video dari YouTube dan
+   dars yang berhasil di-match otomatis (misal "Matan Bab Thaharah"
+   ketemu videonya).
+3. Klik "Terapkan", konfirmasi tersimpan.
+4. Buka halaman belajar Safinah an-Naja, konfirmasi video BENERAN
+   muncul dan bisa diputar untuk dars yang sudah di-assign video-nya
+   (bukan lagi placeholder "Video akan segera tersedia").
+5. Jalankan `pnpm run typecheck`, harus 0 error.
+6. Tegaskan SQL Bagian A perlu saya jalankan manual dulu.
+
+## Catatan
+Ini prompt yang cukup besar dan teknis (terutama Bagian C, adaptasi
+player YouTube ke mode baru). Kalau Replit Agent kesulitan/hasil
+kurang pas di percobaan pertama, wajar — laporkan balik detail apa
+yang error/tidak sesuai, supaya bisa di-iterasi.

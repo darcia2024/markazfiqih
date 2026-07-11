@@ -80,7 +80,7 @@ import {
 import { StarRating } from '@/components/StarRating';
 
 // ── Local types (sesuai return getClassById dari db.ts) ───────────────────────
-type DarsItem = { id: string; title: string; durationMinutes: number | null; orderIndex: number };
+type DarsItem = { id: string; title: string; durationMinutes: number | null; orderIndex: number; youtubeVideoId: string | null };
 type ClassDarsModule = { id: string; title: string; orderIndex: number; durationMinutes: number; dars: DarsItem[] };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -109,6 +109,118 @@ function VideoPlaceholder({ title }: { title: string }) {
           <p className="text-sm font-medium opacity-60">{title}</p>
           <p className="text-xs opacity-40">Video akan segera tersedia</p>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Dars Video Player — YouTube player untuk mode Modul/Bab ───────────────────
+// Gunakan key={darsId} dari parent agar component remount saat pindah dars,
+// sehingga player lama di-destroy dan player baru dibuat dari nol.
+function DarsVideoPlayer({
+  youtubeVideoId,
+  darsIndex,
+  classId,
+  userId,
+  onVideoEnded,
+}: {
+  youtubeVideoId: string;
+  darsIndex: number;
+  classId: string;
+  userId: string;
+  onVideoEnded: () => void;
+}) {
+  const [ytApiReady, setYtApiReady] = useState(false);
+  const playerRef = useRef<any>(null);
+  const saveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Ambil posisi terakhir yang tersimpan — gunakan videoIndex=darsIndex sebagai kunci
+  const { data: savedProgress, isLoading: isProgressLoading } = useQuery({
+    queryKey: ['videoWatchProgress', userId, classId],
+    queryFn: () => getVideoWatchProgress(userId, classId),
+    enabled: !!userId && !!classId,
+    staleTime: Infinity,
+  });
+
+  // Load YouTube IFrame API script sekali, global
+  useEffect(() => {
+    if (window.YT?.Player) { setYtApiReady(true); return; }
+    const prev = window.onYouTubeIframeAPIReady;
+    window.onYouTubeIframeAPIReady = () => { prev?.(); setYtApiReady(true); };
+    if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
+      const s = document.createElement('script');
+      s.src = 'https://www.youtube.com/iframe_api';
+      document.head.appendChild(s);
+    }
+  }, []);
+
+  const flushProgress = useCallback(() => {
+    const p = playerRef.current;
+    if (!p || !userId || !classId) return;
+    try {
+      const seconds = Math.floor(p.getCurrentTime());
+      if (seconds > 0) {
+        saveVideoWatchProgress({ userId, classId, videoIndex: darsIndex, positionSeconds: seconds });
+      }
+    } catch (_) { /* player may already be destroyed */ }
+  }, [userId, classId, darsIndex]);
+
+  // Buat player saat API siap & progress sudah dimuat
+  useEffect(() => {
+    if (!ytApiReady || isProgressLoading || playerRef.current) return;
+
+    // Resume hanya kalau videoIndex yang tersimpan cocok dengan dars ini
+    const resume =
+      savedProgress && savedProgress.videoIndex === darsIndex
+        ? savedProgress.positionSeconds
+        : 0;
+
+    const player = new window.YT.Player('dars-video-player', {
+      videoId: youtubeVideoId,
+      playerVars: {
+        autoplay: 0,
+        rel: 0,
+        modestbranding: 1,
+        iv_load_policy: 3,
+        fs: 1,
+        playsinline: 1,
+        ...(resume > 0 ? { start: resume } : {}),
+      },
+      events: {
+        onReady: () => {
+          if (resume > 0) {
+            toast.info(getResumeLabel(resume), { duration: 4000 });
+          }
+        },
+        onStateChange: (event: { target: any; data: number }) => {
+          if (event.data === 0) {
+            // ENDED: tandai dars selesai & pindah ke dars berikutnya
+            onVideoEnded();
+          } else if (event.data === 2) {
+            // PAUSED: flush posisi ke DB
+            flushProgress();
+          } else if (event.data === 3) {
+            // BUFFERING/SEEK: tidak write ke DB
+          }
+        },
+      },
+    });
+
+    playerRef.current = player;
+    saveIntervalRef.current = setInterval(flushProgress, 15_000);
+
+    return () => {
+      flushProgress();
+      if (saveIntervalRef.current) clearInterval(saveIntervalRef.current);
+      try { player.destroy(); } catch (_) { /* noop */ }
+      playerRef.current = null;
+    };
+  }, [ytApiReady, isProgressLoading, savedProgress, darsIndex, youtubeVideoId, onVideoEnded, flushProgress]);
+
+  return (
+    <div className="w-full bg-black">
+      <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+        <div id="dars-video-player" className="absolute inset-0 w-full h-full" />
       </div>
     </div>
   );
@@ -1331,8 +1443,21 @@ function LearnContent() {
 
         {/* Main: Player + Info */}
         <main className="order-1 lg:order-2 flex-1 min-w-0 flex flex-col">
-          {/* Video Placeholder */}
-          {activeEntry && <VideoPlaceholder title={activeEntry.dars.title} />}
+          {/* Video Player atau Placeholder */}
+          {activeEntry && (
+            activeEntry.dars.youtubeVideoId ? (
+              <DarsVideoPlayer
+                key={resolvedActiveDarsId}
+                youtubeVideoId={activeEntry.dars.youtubeVideoId}
+                darsIndex={activeIndex}
+                classId={classId!}
+                userId={user?.id ?? ''}
+                onVideoEnded={handleMarkDone}
+              />
+            ) : (
+              <VideoPlaceholder title={activeEntry.dars.title} />
+            )
+          )}
 
           {/* Info & Controls */}
           <div className="flex-1 p-6 lg:p-8 max-w-3xl space-y-5">

@@ -138,7 +138,7 @@ export async function getClassById(id: string) {
       instructors ( id, name, photo_url, bio ),
       modules (
         id, title, order_index,
-        dars ( id, title, duration_minutes, order_index )
+        dars ( id, title, duration_minutes, order_index, youtube_video_id )
       )
     `)
     .eq('id', id)
@@ -179,6 +179,7 @@ export async function getClassById(id: string) {
           title: d.title as string,
           durationMinutes: d.duration_minutes as number | null,
           orderIndex: d.order_index as number,
+          youtubeVideoId: (d.youtube_video_id as string | null) ?? null,
         })),
       };
     });
@@ -1137,6 +1138,19 @@ export async function saveVideoWatchProgress(params: {
       { onConflict: 'user_id,class_id' },
     );
   if (error) throw error;
+}
+
+export async function updateDarsVideo(darsId: string, youtubeVideoId: string | null): Promise<void> {
+  const { error } = await supabase.from('dars').update({ youtube_video_id: youtubeVideoId }).eq('id', darsId);
+  if (error) throw error;
+}
+
+export async function bulkUpdateDarsVideos(updates: { darsId: string; youtubeVideoId: string }[]): Promise<void> {
+  const results = await Promise.all(
+    updates.map((u) => supabase.from('dars').update({ youtube_video_id: u.youtubeVideoId }).eq('id', u.darsId)),
+  );
+  const firstError = results.find((r) => r.error)?.error;
+  if (firstError) throw firstError;
 }
 
 export async function getInvoice(invoiceId: string): Promise<LocalInvoice> {
