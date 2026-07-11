@@ -1,0 +1,90 @@
+# Prompt 135 (Revisi): Field "Link Playlist YouTube" Terima URL Lengkap, Auto-Extract ID
+
+## Konteks
+Field "Link Playlist YouTube" di form Kelola Kelas sekarang minta admin
+paste ID mentah doang (`PLYEq3Vp52B3g`), bikin ribet karena admin harus
+manual motong URL dari YouTube. Ubah supaya admin bisa PASTE URL LENGKAP
+apa adanya (`https://youtube.com/playlist?list=PLYEq3Vp52B3g&si=...`),
+sistem otomatis EKSTRAK ID-nya sendiri sebelum disimpan ke database.
+
+**PENTING**: Kolom `youtube_playlist_id` di database TETAP menyimpan ID
+MENTAH SAJA (bukan URL lengkap) — semua kode pemutar video
+(`LearnPage.tsx`, YouTube IFrame API) sudah dibangun mengasumsikan
+format ID mentah untuk 20+ kelas yang sudah ada. JANGAN ubah format
+penyimpanan di database, cukup ubah CARA INPUT-nya di form supaya lebih
+fleksibel (terima ID mentah ATAU URL lengkap, dua-duanya sama-sama
+valid saat di-paste).
+
+## Fix — `pages/admin/AdminClassesPage.tsx`
+
+1. Field ini (sekitar baris 568-575) tetap `type="text"` (BUKAN
+   `type="url"` — supaya tidak ada validasi browser yang menghalangi
+   kalau admin paste ID mentah langsung tanpa URL).
+
+2. Tambahkan function helper untuk extract ID dari berbagai format
+   input yang mungkin di-paste (URL lengkap dengan/tanpa parameter
+   tambahan seperti `&si=`, atau ID mentah langsung):
+   ```ts
+   function extractPlaylistId(input: string): string {
+     const trimmed = input.trim();
+     // Kalau bukan URL (tidak ada "youtube.com" atau "youtu.be"),
+     // anggap sudah ID mentah, kembalikan apa adanya
+     if (!trimmed.includes('youtube.com') && !trimmed.includes('youtu.be')) {
+       return trimmed;
+     }
+     try {
+       const url = new URL(trimmed);
+       const listParam = url.searchParams.get('list');
+       return listParam ?? trimmed;
+     } catch {
+       // URL tidak valid/gagal di-parse, kembalikan input asli supaya
+       // tidak silently menghilangkan data yang diketik admin
+       return trimmed;
+     }
+   }
+   ```
+
+3. Terapkan extract ini SAAT SUBMIT FORM (bukan saat mengetik per
+   karakter, supaya admin bisa lihat apa yang dia paste dulu sebelum
+   otomatis dibersihkan) — cari `handleSubmit` di file ini, sebelum
+   payload dikirim ke `createClass`/`updateClass`:
+   ```ts
+   const payload = {
+     // ...field lain yang sudah ada...
+     youtubePlaylistId: extractPlaylistId(form.youtubePlaylistId),
+   };
+   ```
+
+4. Update teks bantuan di bawah field:
+   ```tsx
+   <p className="text-xs text-muted-foreground mt-1">
+     Bisa paste link lengkap dari YouTube (contoh: https://youtube.com/playlist?list=PLxxxxx)
+     atau ID playlist saja — sistem otomatis mengambil ID-nya.
+   </p>
+   ```
+
+## Yang Tidak Boleh Berubah
+- Kolom `youtube_playlist_id` di database TETAP format ID mentah saja
+  — TIDAK ADA migrasi/perubahan pada 20+ data kelas yang sudah ada.
+- Kode pemutar video (`LearnPage.tsx`) TIDAK disentuh — dia tetap
+  terima ID mentah seperti sekarang, tidak perlu tahu soal parsing URL
+  sama sekali (semua parsing terjadi di sisi form admin, sebelum data
+  masuk ke database).
+- 5 field link lainnya (Materi PDF, Grup WA, dll) tetap `type="url"`,
+  tidak terpengaruh perubahan ini.
+
+## Setelah Selesai
+1. Buka form edit kelas, paste URL lengkap dari YouTube (dengan
+   parameter `&si=...` segala) ke field "Link Playlist YouTube",
+   submit form.
+2. Cek database (atau buka form edit lagi), konfirmasi yang tersimpan
+   HANYA ID-nya saja (`PLxxxxx`), bukan URL lengkap.
+3. Coba juga paste ID mentah langsung (tanpa URL), konfirmasi tetap
+   tersimpan dengan benar apa adanya.
+4. Buka halaman belajar kelas yang barusan diedit, konfirmasi video
+   tetap bisa diputar normal (tidak rusak karena perubahan cara input).
+5. Jalankan `pnpm run typecheck`, harus 0 error.
+
+## Catatan
+Tidak ada SQL untuk prompt ini — murni perbaikan logic parsing di form
+admin, format data di database tidak berubah.

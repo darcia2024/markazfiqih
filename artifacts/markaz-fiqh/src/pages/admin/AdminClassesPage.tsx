@@ -1,4 +1,22 @@
 import { useEffect, useState } from 'react';
+
+function extractPlaylistId(input: string): string {
+  const trimmed = input.trim();
+  // Kalau bukan URL (tidak ada "youtube.com" atau "youtu.be"),
+  // anggap sudah ID mentah, kembalikan apa adanya
+  if (!trimmed.includes('youtube.com') && !trimmed.includes('youtu.be')) {
+    return trimmed;
+  }
+  try {
+    const url = new URL(trimmed);
+    const listParam = url.searchParams.get('list');
+    return listParam ?? trimmed;
+  } catch {
+    // URL tidak valid/gagal di-parse, kembalikan input asli supaya
+    // tidak silently menghilangkan data yang diketik admin
+    return trimmed;
+  }
+}
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -323,7 +341,9 @@ export default function AdminClassesPage() {
       level: form.level || null,
       category: form.category || null,
       instructorId: form.instructorId,
-      youtubePlaylistId: form.youtubePlaylistId.trim() || null,
+      youtubePlaylistId: form.youtubePlaylistId.trim()
+        ? extractPlaylistId(form.youtubePlaylistId)
+        : null,
       gdriveMateriUrl: form.gdriveMateriUrl.trim() || null,
       waGroupUrl: form.waGroupUrl.trim() || null,
       soalLatihanUrl: form.soalLatihanUrl.trim() || null,
@@ -635,12 +655,16 @@ export default function AdminClassesPage() {
                 <Label htmlFor="class-youtube-playlist">Link Playlist YouTube</Label>
                 <Input
                   id="class-youtube-playlist"
-                  type="url"
+                  type="text"
                   placeholder="https://www.youtube.com/playlist?list=..."
                   value={form.youtubePlaylistId}
                   onChange={(e) => setForm((p) => ({ ...p, youtubePlaylistId: e.target.value }))}
                   data-testid="input-class-youtube-playlist"
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Bisa paste link lengkap dari YouTube (contoh: https://youtube.com/playlist?list=PLxxxxx)
+                  atau ID playlist saja — sistem otomatis mengambil ID-nya.
+                </p>
               </div>
               <div className="flex items-start gap-3 rounded-lg border p-4">
                 <Switch
