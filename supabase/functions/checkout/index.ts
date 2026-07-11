@@ -329,40 +329,74 @@ Deno.serve(async (req) => {
     }
 
     // --- MAYAR INTEGRATION ---
-    // Uncomment ini setelah MAYAR_API_KEY tersedia:
-    //
-    // const mayarApiKey = Deno.env.get('MAYAR_API_KEY');
-    // if (mayarApiKey) {
-    //   const mayarResponse = await fetch('https://api.mayar.id/hl/v1/payment/create', {
-    //     method: 'POST',
-    //     headers: {
-    //       'Authorization': `Bearer ${mayarApiKey}`,
-    //       'Content-Type': 'application/json',
-    //     },
-    //     body: JSON.stringify({
-    //       name: `Pembelian Kelas Markaz Fiqih`,
-    //       amount: totalAmount,
-    //       email: user.email,
-    //       redirectUrl: `${Deno.env.get('FRONTEND_URL')}/keranjang?invoice=${invoice.id}`,
-    //     }),
-    //   });
-    //   const mayarData = await mayarResponse.json();
-    //   if (mayarData.data?.id) {
-    //     await supabaseAdmin
-    //       .from('invoices')
-    //       .update({ mayar_invoice_id: mayarData.data.id })
-    //       .eq('id', invoice.id);
-    //   }
-    //   return new Response(JSON.stringify({
-    //     id: invoice.id,
-    //     paymentUrl: mayarData.data?.link,
-    //     voucherApplied,
-    //   }), {
-    //     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    //   });
-    // }
+    const mayarApiKey = Deno.env.get('MAYAR_API_KEY');
+    if (mayarApiKey) {
+      // Ambil nomor HP user dari user_profiles
+      const { data: profile } = await supabaseAdmin
+        .from('user_profiles')
+        .select('phone, nickname')
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-    // Development fallback (sebelum Mayar aktif):
+      if (!profile?.phone) {
+        return new Response(
+          JSON.stringify({ error: 'Nomor HP belum diisi. Lengkapi profil sebelum checkout.' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+
+      const expiredAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 jam dari sekarang
+
+      const mayarResponse = await fetch('https://api.mayar.id/hl/v1/invoice/create', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${mayarApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: (profile as any).nickname || user.email?.split('@')[0] || 'Pelajar Markaz Fiqih',
+          email: user.email,
+          mobile: (profile as any).phone,
+          redirectUrl: `${Deno.env.get('FRONTEND_URL')}/keranjang?invoice=${invoice.id}`,
+          description: `Pembelian di Markaz Fiqih — Invoice #${invoice.id}`,
+          expiredAt,
+          items: invoiceItemsForResponse.map((item: any) => ({
+            quantity: 1,
+            rate: item.price,
+            description: item.title,
+          })),
+          extraData: {
+            noCustomer: user.id,
+            idProd: invoice.id,
+          },
+        }),
+      });
+
+      const mayarData = await mayarResponse.json();
+
+      if (mayarData.statusCode !== 200 || !mayarData.data?.id) {
+        console.error('Mayar create invoice gagal:', mayarData);
+        return new Response(
+          JSON.stringify({ error: 'Gagal membuat invoice pembayaran. Coba lagi.' }),
+          { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+
+      await supabaseAdmin
+        .from('invoices')
+        .update({ mayar_invoice_id: mayarData.data.id })
+        .eq('id', invoice.id);
+
+      return new Response(JSON.stringify({
+        id: invoice.id,
+        paymentUrl: mayarData.data.link,
+        voucherApplied,
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Development fallback (kalau MAYAR_API_KEY belum diisi):
     return new Response(
       JSON.stringify({
         id: invoice.id,

@@ -2378,3 +2378,27 @@ export async function listAllCertificatesForAdmin(): Promise<CertificateRequest[
     score: c.score, issuedAt: c.issued_at,
   }));
 }
+
+// ─── USER PHONE ───────────────────────────────────────────────────────────────
+
+/** Ambil nomor HP user dari user_profiles. Null jika belum pernah diisi. */
+export async function getUserPhone(userId: string): Promise<string | null> {
+  const { data, error } = await supabase
+    .from('user_profiles')
+    .select('phone')
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as any)?.phone ?? null;
+}
+
+/** Simpan/update nomor HP user (upsert ke user_profiles). */
+export async function updateUserPhone(userId: string, phone: string): Promise<void> {
+  const { error } = await supabase
+    .from('user_profiles')
+    .upsert(
+      { user_id: userId, phone, updated_at: new Date().toISOString() },
+      { onConflict: 'user_id' },
+    );
+  if (error) throw error;
+}

@@ -28,7 +28,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import type { CartClassItem, CartBundleItem, CartEbookItem } from '@/context/CartContext';
 import { formatPrice } from '@/pages/CatalogPage';
-import { createCheckout, simulateSuccess, getInvoice, validateVoucher, listClasses } from '@/lib/db';
+import { createCheckout, simulateSuccess, getInvoice, validateVoucher, listClasses, getUserPhone, updateUserPhone } from '@/lib/db';
 import type { LocalInvoice } from '@/lib/db';
 
 function formatDuration(totalMinutes: number | null): string | null {
@@ -503,6 +503,39 @@ function CartContent() {
   );
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // ── Nomor HP (wajib sebelum checkout ke Mayar) ─────────────────────────────
+  const [savedPhone, setSavedPhone] = useState<string | null | undefined>(undefined); // undefined = belum dimuat
+  const [phoneInput, setPhoneInput] = useState('');
+  const [isSavingPhone, setIsSavingPhone] = useState(false);
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    getUserPhone(user.id)
+      .then((phone) => {
+        setSavedPhone(phone);
+        if (phone) setPhoneInput(phone);
+      })
+      .catch(() => setSavedPhone(null));
+  }, [user]);
+
+  const handleSavePhone = async () => {
+    const cleaned = phoneInput.trim().replace(/\s/g, '');
+    if (!cleaned) { setPhoneError('Nomor HP tidak boleh kosong.'); return; }
+    if (!/^\+?\d{8,15}$/.test(cleaned)) { setPhoneError('Format nomor tidak valid. Contoh: 08123456789'); return; }
+    setPhoneError(null);
+    setIsSavingPhone(true);
+    try {
+      await updateUserPhone(user!.id, cleaned);
+      setSavedPhone(cleaned);
+      toast.success('Nomor HP berhasil disimpan.');
+    } catch {
+      setPhoneError('Gagal menyimpan nomor HP. Coba lagi.');
+    } finally {
+      setIsSavingPhone(false);
+    }
+  };
+
   // ── Voucher (hanya untuk kelas individual) ─────────────────────────────────
   const [voucherInputCode, setVoucherInputCode] = useState('');
   const [appliedVoucher, setAppliedVoucher] = useState<{ classId: string; discountPrice: number } | null>(null);
@@ -919,6 +952,47 @@ function CartContent() {
                           klik disini
                         </a>.
                       </p>
+                    </div>
+                  )}
+
+                  {/* ── Nomor HP — wajib sebelum checkout ── */}
+                  {savedPhone === undefined ? null : savedPhone ? (
+                    <div className="rounded-lg bg-muted/50 border px-3 py-2.5 flex items-center justify-between gap-2">
+                      <div>
+                        <p className="text-xs font-medium text-foreground">Nomor WhatsApp/HP</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{savedPhone}</p>
+                      </div>
+                      <motion.button
+                        className="text-xs text-primary underline underline-offset-2 shrink-0"
+                        onClick={() => setSavedPhone(null)}
+                        whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} transition={{ duration: 0.15 }}
+                      >
+                        Ubah
+                      </motion.button>
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-foreground">
+                        Nomor WhatsApp/HP <span className="text-destructive">*</span>
+                      </label>
+                      <p className="text-xs text-muted-foreground">Diperlukan untuk konfirmasi pembayaran.</p>
+                      <div className="flex gap-2">
+                        <Input
+                          type="tel"
+                          placeholder="08123456789"
+                          value={phoneInput}
+                          onChange={(e) => { setPhoneInput(e.target.value); setPhoneError(null); }}
+                          className="h-9 text-sm"
+                          disabled={isSavingPhone}
+                          onKeyDown={(e) => { if (e.key === 'Enter') void handleSavePhone(); }}
+                        />
+                        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.15 }} className="shrink-0">
+                          <Button variant="outline" size="sm" className="h-9" onClick={handleSavePhone} disabled={isSavingPhone || !phoneInput.trim()}>
+                            {isSavingPhone ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Simpan'}
+                          </Button>
+                        </motion.div>
+                      </div>
+                      {phoneError && <p className="text-xs text-destructive">{phoneError}</p>}
                     </div>
                   )}
 

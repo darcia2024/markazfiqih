@@ -1,0 +1,274 @@
+# Prompt 146: Integrasi Mayar Beneran (Sesuai Dokumentasi Terkini)
+
+## Konteks — Temuan Penting Sebelum Mulai
+Kode yang sudah ada (`checkout/index.ts`, `mayar-webhook/index.ts`)
+disiapkan berdasarkan ASUMSI API Mayar versi lama/berbeda. Setelah dicek
+ke dokumentasi resmi Mayar terbaru (docs.mayar.id), ada 3 perbedaan
+penting yang HARUS diperbaiki:
+
+1. **Endpoint create invoice yang benar**: `https://api.mayar.id/hl/v1/invoice/create`
+   (BUKAN `/payment/create` seperti di kode lama).
+2. **Field body request beda total** — Mayar sekarang butuh: `name`,
+   `email`, `mobile` (WAJIB, nomor HP — sistem kita SAAT INI TIDAK
+   PERNAH mengumpulkan nomor HP user sama sekali, perlu ditambahkan),
+   `redirectUrl`, `description`, `expiredAt` (ISO 8601), dan `items`
+   (array of `{quantity, rate, description}` — BUKAN `amount` langsung).
+3. **Webhook Mayar TIDAK mendukung signature verification (HMAC)** —
+   dokumentasi resmi webhook Mayar (docs.mayar.id/integration/webhook)
+   TIDAK menyebutkan mekanisme signature/HMAC sama sekali, cuma:
+   set URL webhook di dashboard, method POST, body JSON. Kode lama yang
+   mengasumsikan header `x-mayar-signature` HARUS diganti — pakai
+   pendekatan **token rahasia di URL webhook** sebagai gantinya (lebih
+   aman daripada tidak ada verifikasi sama sekali).
+
+## Bagian A — SQL Migrasi (Siapkan untuk Saya Jalankan Manual)
+
+```sql
+ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS phone TEXT;
+```
+
+## Bagian B — Kumpulkan Nomor HP Saat Checkout
+
+Di `pages/CartPage.tsx`, SEBELUM tombol "Lanjutkan ke Pembayaran" bisa
+diklik, cek dulu apakah `user_profiles.phone` sudah terisi:
+- Kalau BELUM ada, tampilkan input "Nomor WhatsApp/HP" (wajib diisi,
+  validasi minimal format angka) di halaman ini SEBELUM checkout bisa
+  dilanjutkan — simpan ke `user_profiles.phone` via function baru
+  `updateUserPhone(phone: string)` di `lib/db.ts` (upsert sederhana ke
+  `user_profiles`).
+- Kalau SUDAH ada, tidak perlu tanya lagi, langsung pakai nilai yang
+  tersimpan.
+
+## Bagian C — Perbaiki `supabase/functions/checkout/index.ts`
+
+Ganti seluruh section "MAYAR INTEGRATION" yang sekarang di-comment,
+dengan versi AKTIF sesuai dokumentasi resmi:
+
+```ts
+const mayarApiKey = Deno.env.get('MAYAR_API_KEY');
+if (mayarApiKey) {
+  // Ambil nomor HP user dari user_profiles
+  const { data: profile } = await supabaseAdmin
+    .from('user_profiles')
+    .select('phone, nickname')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (!profile?.phone) {
+    return new Response(
+      JSON.stringify({ error: 'Nomor HP belum diisi. Lengkapi profil sebelum checkout.' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  const expiredAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 jam dari sekarang
+
+  const mayarResponse = await fetch('https://api.mayar.id/hl/v1/invoice/create', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${mayarApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      name: profile.nickname || user.email?.split('@')[0] || 'Pelajar Markaz Fiqih',
+      email: user.email,
+      mobile: profile.phone,
+      redirectUrl: `${Deno.env.get('FRONTEND_URL')}/keranjang?invoice=${invoice.id}`,
+      description: `Pembelian di Markaz Fiqih — Invoice #${invoice.id}`,
+      expiredAt,
+      items: invoiceItemsForResponse.map((item: any) => ({
+        quantity: 1,
+        rate: item.price,
+        description: item.title,
+      })),
+      extraData: {
+        noCustomer: user.id,
+        idProd: invoice.id,
+      },
+    }),
+  });
+
+  const mayarData = await mayarResponse.json();
+
+  if (mayarData.statusCode !== 200 || !mayarData.data?.id) {
+    console.error('Mayar create invoice gagal:', mayarData);
+    return new Response(
+      JSON.stringify({ error: 'Gagal membuat invoice pembayaran. Coba lagi.' }),
+      { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
+  await supabaseAdmin
+    .from('invoices')
+    .update({ mayar_invoice_id: mayarData.data.id })
+    .eq('id', invoice.id);
+
+  return new Response(JSON.stringify({
+    id: invoice.id,
+    paymentUrl: mayarData.data.link,
+    voucherApplied,
+  }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+// Development fallback (kalau MAYAR_API_KEY belum diisi):
+return new Response(
+  JSON.stringify({
+    id: invoice.id,
+    userId: invoice.user_id,
+    totalAmount: invoice.total_amount,
+    status: invoice.status,
+    mayarInvoiceId: null,
+    paymentUrl: null,
+    voucherApplied,
+    items: invoiceItemsForResponse,
+  }),
+  { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+);
+```
+(Bagian development fallback TETAP ADA seperti sekarang — supaya kalau
+`MAYAR_API_KEY` belum diisi/testing, "Simulasi Lunas" masih bisa dipakai.)
+
+## Bagian D — Perbaiki `supabase/functions/mayar-webhook/index.ts`
+
+GANTI TOTAL mekanisme verifikasi dari signature-header jadi
+**token rahasia di URL webhook** (karena Mayar tidak mendukung
+signature verification):
+
+```ts
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', {
+      headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'content-type' },
+    });
+  }
+
+  try {
+    // Verifikasi token rahasia dari query parameter URL
+    // (URL webhook di dashboard Mayar akan diset dengan token ini, contoh:
+    // https://xxx.supabase.co/functions/v1/mayar-webhook?token=RAHASIA_PANJANG_ACAK)
+    const url = new URL(req.url);
+    const token = url.searchParams.get('token');
+    const expectedToken = Deno.env.get('MAYAR_WEBHOOK_TOKEN');
+
+    if (!expectedToken || expectedToken === 'PLACEHOLDER_ISI_NANTI' || token !== expectedToken) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const payload = await req.json();
+
+    // Sesuai dokumentasi resmi Mayar: field event & data.status (boolean)
+    if (payload.event !== 'payment.received' || payload.data?.status !== true) {
+      return new Response(JSON.stringify({ received: true, skipped: true }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const mayarInvoiceId = payload.data.id;
+    const extraData = payload.data.extraData ?? {};
+    const invoiceId = extraData.idProd; // ini id invoice internal kita, dikirim balik oleh Mayar
+
+    if (!invoiceId) {
+      console.error('Webhook Mayar tidak punya idProd/extraData:', payload);
+      return new Response(JSON.stringify({ error: 'Missing invoice reference' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    );
+
+    const { data: invoice, error: invoiceError } = await supabaseAdmin
+      .from('invoices')
+      .select('id, user_id, status, invoice_items(class_id, bundle_id, ebook_id)')
+      .eq('id', invoiceId)
+      .single();
+    if (invoiceError || !invoice) throw invoiceError ?? new Error('Invoice tidak ditemukan');
+
+    if (invoice.status === 'paid') {
+      // Sudah diproses sebelumnya (webhook Mayar bisa terkirim berkali-kali), aman diabaikan
+      return new Response(JSON.stringify({ received: true, already_paid: true }), {
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    await supabaseAdmin
+      .from('invoices')
+      .update({ status: 'paid', mayar_invoice_id: mayarInvoiceId, paid_at: new Date().toISOString() })
+      .eq('id', invoiceId);
+
+    // Buat enrollments untuk tiap kelas (ikuti pola yang SUDAH ADA
+    // sebelumnya di file ini untuk bagian ini — TIDAK diubah logicnya,
+    // cuma dipindah ke sini karena struktur function-nya berubah total)
+    const classItems = (invoice.invoice_items as any[]).filter((i) => i.class_id);
+    if (classItems.length > 0) {
+      const enrollments = classItems.map((item: any) => ({ user_id: invoice.user_id, class_id: item.class_id }));
+      await supabaseAdmin.from('enrollments').upsert(enrollments, { onConflict: 'user_id,class_id', ignoreDuplicates: true });
+    }
+
+    // Buat ebook_purchases untuk tiap ebook (dari Prompt 119, JANGAN dihapus)
+    const ebookItems = (invoice.invoice_items as any[]).filter((i) => i.ebook_id);
+    if (ebookItems.length > 0) {
+      const ebookPurchases = ebookItems.map((item: any) => ({ user_id: invoice.user_id, ebook_id: item.ebook_id }));
+      await supabaseAdmin.from('ebook_purchases').upsert(ebookPurchases, { onConflict: 'user_id,ebook_id', ignoreDuplicates: true });
+    }
+
+    return new Response(JSON.stringify({ received: true }), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (error) {
+    console.error('mayar-webhook error:', error);
+    return new Response(JSON.stringify({ error: (error as Error).message }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+});
+```
+
+**PENTING**: sebelum menimpa logic pembuatan `enrollments`/`ebook_purchases`
+di atas, BUKA DULU isi `mayar-webhook/index.ts` yang SEKARANG ADA dan
+PASTIKAN semua logic pembuatan enrollment/ebook_purchase yang sudah
+dibangun sebelumnya (termasuk dari Prompt 106 soal cegah duplikat, kalau
+ada bagian terkait) tetap terbawa/tidak hilang — function di atas cuma
+CONTOH STRUKTUR, sesuaikan dengan detail yang sudah teruji sebelumnya.
+
+## Bagian E — Halaman "Lengkapi Profil" untuk Nomor HP
+
+Kalau belum ada, tambahkan cara sederhana untuk user isi/edit nomor HP
+mereka SETELAH checkout pertama kali (bukan cuma dipaksa saat checkout)
+— bisa di halaman Dashboard atau pengaturan akun sederhana, field
+"Nomor WhatsApp/HP" dengan `updateUserPhone`.
+
+## Yang Tidak Boleh Berubah
+- Development fallback (mode "Simulasi Lunas") TETAP ADA untuk testing
+  tanpa Mayar aktif.
+- Logic pembuatan invoice, invoice_items, dan validasi cart yang sudah
+  ada SEBELUM bagian Mayar TIDAK berubah.
+- `simulate-success` edge function TIDAK disentuh (tetap untuk testing).
+
+## Setelah Selesai
+1. Jelaskan bahwa fitur ini BELUM BISA DITES END-TO-END sampai:
+   - `MAYAR_API_KEY` diisi (dari akun Mayar asli, lihat tutorial di
+     bawah).
+   - `MAYAR_WEBHOOK_TOKEN` diisi (token acak yang saya buat sendiri).
+   - `FRONTEND_URL` diisi (domain produksi Markaz Fiqih).
+   - Webhook URL didaftarkan di dashboard Mayar (lihat tutorial).
+2. Jalankan `pnpm run typecheck`, harus 0 error.
+3. Tegaskan SQL Bagian A perlu saya jalankan manual dulu.
+
+## Deploy yang Perlu Dilakukan Manual
+- Edge function `checkout` dan `mayar-webhook` PERLU di-deploy ulang
+  manual setelah prompt ini.
+- Environment variable baru perlu di-set di Supabase Dashboard → Edge
+  Functions → Secrets: `MAYAR_API_KEY`, `MAYAR_WEBHOOK_TOKEN`,
+  `FRONTEND_URL` (lihat tutorial lengkap di bawah).
