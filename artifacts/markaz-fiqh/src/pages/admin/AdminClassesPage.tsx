@@ -574,7 +574,7 @@ export default function AdminClassesPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="class-discount-price">Harga Diskon (Rp)</Label>
+                  <Label htmlFor="class-discount-price">Harga Coret (opsional)</Label>
                   <Input
                     id="class-discount-price"
                     type="number"

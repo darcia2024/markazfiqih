@@ -232,7 +232,7 @@ export default function AdminVouchersPage() {
                 <TableRow>
                   <TableHead>Kelas</TableHead>
                   <TableHead>Kode</TableHead>
-                  <TableHead>Harga Diskon</TableHead>
+                  <TableHead>Harga Coret (opsional)</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Pemakaian</TableHead>
                   <TableHead className="text-right">Aksi</TableHead>
@@ -351,7 +351,7 @@ export default function AdminVouchersPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label>Harga Diskon (Rp)</Label>
+              <Label>Harga Coret (opsional)</Label>
               <Input
                 type="number"
                 min={0}

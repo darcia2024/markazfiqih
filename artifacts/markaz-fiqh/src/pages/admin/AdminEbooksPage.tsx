@@ -435,7 +435,7 @@ export default function AdminEbooksPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="ebook-discount-price">Harga Diskon (Rp, opsional)</Label>
+                  <Label htmlFor="ebook-discount-price">Harga Coret (opsional)</Label>
                   <Input
                     id="ebook-discount-price"
                     type="number"
