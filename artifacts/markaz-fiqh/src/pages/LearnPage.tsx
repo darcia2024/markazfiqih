@@ -649,7 +649,7 @@ function PlaylistMode({
         <p className="text-sm font-semibold text-foreground">
           Kelas Lainnya{classCategory ? `: ${classCategory}` : ''}
         </p>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="space-y-3">
           {relatedClasses.map((cls) => (
             <Link key={cls.id} href={`/class/${cls.id}`} className="flex items-start gap-3 group">
               <img
