@@ -908,6 +908,17 @@ function CartContent() {
                       {voucherError && (
                         <p className="text-xs text-destructive">{voucherError}</p>
                       )}
+                      <p className="text-xs text-muted-foreground mt-2">
+                        Pembayaran selain Rupiah?{' '}
+                        <a
+                          href="https://docs.google.com/forms/d/e/1FAIpQLScmvdS21cixu6h261rDcKM0YscOm7z44upzZSO4leuOWY-dKg/viewform"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary underline underline-offset-2 hover:text-primary/80"
+                        >
+                          klik disini
+                        </a>.
+                      </p>
                     </div>
                   )}
 

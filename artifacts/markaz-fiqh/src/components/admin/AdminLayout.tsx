@@ -19,6 +19,7 @@ import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthContext';
 import { BookOpen, LayoutDashboard, GraduationCap, Receipt, Users, ExternalLink, MessageSquareQuote, MessageSquareText, Settings, UserCog, ShieldPlus, StickyNote, Ticket, LayoutGrid, Package, Bell } from 'lucide-react';
+import { AdminActivityBell } from '@/components/admin/AdminActivityBell';
 
 const NAV_ITEMS = [
   { title: 'Dashboard', url: '/admin', icon: LayoutDashboard },
@@ -104,11 +105,12 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         <header className="sticky top-0 z-40 flex h-14 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <SidebarTrigger data-testid="button-sidebar-toggle" />
           <Separator orientation="vertical" className="h-5" />
-          <h1 className="font-serif text-lg font-semibold text-foreground">
+          <h1 className="font-serif text-lg font-semibold text-foreground flex-1">
             {NAV_ITEMS.find((item) =>
               item.url === '/admin' ? location === '/admin' : location.startsWith(item.url)
             )?.title ?? 'Panel Admin'}
           </h1>
+          <AdminActivityBell />
         </header>
         <main className="flex-1 p-4 md:p-6 bg-muted/30 min-h-[calc(100vh-3.5rem)]">{children}</main>
       </SidebarInset>

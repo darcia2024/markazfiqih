@@ -2177,3 +2177,24 @@ export async function deleteDashboardBoard(id: string): Promise<void> {
   const { error } = await supabase.from('dashboard_board').delete().eq('id', id);
   if (error) throw error;
 }
+
+// ── Admin Activity Log ─────────────────────────────────────────────────────────
+export type AdminActivity = {
+  id: string;
+  type: 'payment' | 'review';
+  title: string;
+  detail: string | null;
+  createdAt: string;
+};
+
+export async function listAdminActivity(): Promise<AdminActivity[]> {
+  const { data, error } = await supabase
+    .from('admin_activity_log')
+    .select('id, type, title, detail, created_at')
+    .order('created_at', { ascending: false })
+    .limit(30);
+  if (error) throw error;
+  return (data ?? []).map((a: any) => ({
+    id: a.id, type: a.type, title: a.title, detail: a.detail, createdAt: a.created_at,
+  }));
+}
