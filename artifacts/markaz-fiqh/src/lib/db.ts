@@ -1389,7 +1389,7 @@ export type ClassReviewSummary = {
 export async function listClassReviews(classId: string): Promise<ClassReviewSummary> {
   const { data, error } = await supabase
     .from('class_reviews')
-    .select('id, user_id, rating, comment, reviewer_name, created_at, user_profiles(nickname)')
+    .select('id, user_id, rating, comment, reviewer_name, created_at')
     .eq('class_id', classId)
     .order('created_at', { ascending: false });
   if (error) throw error;
@@ -1397,9 +1397,9 @@ export async function listClassReviews(classId: string): Promise<ClassReviewSumm
   const reviews = (data ?? []).map((r: any) => ({
     id: r.id,
     userId: r.user_id,
-    userNickname: r.user_profiles?.nickname ?? null,
+    userNickname: null,
     reviewerNameRaw: (r.reviewer_name as string | null) ?? null,
-    userDisplayName: (r.reviewer_name as string | null) || (r.user_profiles?.nickname as string | null) || 'Pelajar',
+    userDisplayName: (r.reviewer_name as string | null) || 'Pelajar',
     rating: r.rating,
     comment: r.comment,
     createdAt: r.created_at,
