@@ -386,7 +386,7 @@ export async function getSettings() {
         const parsed = JSON.parse(data.catalog_category_order ?? '[]');
         return Array.isArray(parsed) ? (parsed as string[]) : [];
       } catch {
-        return ['Fiqih Tematik', 'Fiqih Kitab', 'Akademi'];
+        return ['Fiqih Kitab', 'Fiqih Tematik', 'Akademi'];
       }
     })(),
   };

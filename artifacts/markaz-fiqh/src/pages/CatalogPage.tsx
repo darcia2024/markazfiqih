@@ -442,12 +442,12 @@ function EmptyState({ onReset }: { onReset: () => void }) {
   );
 }
 
-const DEFAULT_CATEGORY_ORDER = ['Fiqih Tematik', 'Fiqih Kitab', 'Akademi'];
+const DEFAULT_CATEGORY_ORDER = ['Fiqih Kitab', 'Fiqih Tematik', 'Akademi'];
 
 const CATALOG_CATEGORY_FILTERS = [
   { label: 'Semua', value: 'all' },
-  { label: 'Fiqih Tematik', value: 'Fiqih Tematik' },
   { label: 'Fiqih Kitab', value: 'Fiqih Kitab' },
+  { label: 'Fiqih Tematik', value: 'Fiqih Tematik' },
   { label: 'Akademi', value: 'Akademi' },
   { label: 'Ebook', value: 'ebook' },
 ];

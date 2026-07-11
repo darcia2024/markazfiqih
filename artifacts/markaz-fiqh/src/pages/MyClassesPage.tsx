@@ -204,7 +204,7 @@ function EmptyState() {
   );
 }
 
-const CLASS_FILTERS = ['Semua', 'Fiqih Tematik', 'Fiqih Kitab', 'Akademi'];
+const CLASS_FILTERS = ['Semua', 'Fiqih Kitab', 'Fiqih Tematik', 'Akademi'];
 const CATEGORY_ORDER = CLASS_FILTERS.filter((f) => f !== 'Semua');
 
 // ── Section per Kategori (Grouping) ────────────────────────────────────────────

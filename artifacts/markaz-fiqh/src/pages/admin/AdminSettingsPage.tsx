@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { getSettings, updateSettings, listDistinctCategories } from '@/lib/db';
 
-const DEFAULT_CATEGORY_ORDER = ['Fiqih Tematik', 'Fiqih Kitab', 'Akademi'];
+const DEFAULT_CATEGORY_ORDER = ['Fiqih Kitab', 'Fiqih Tematik', 'Akademi'];
 
 type SettingsFormState = {
   siteName: string;
