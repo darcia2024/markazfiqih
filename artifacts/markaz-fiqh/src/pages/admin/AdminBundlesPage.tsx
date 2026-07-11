@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { ImageUploadField } from '@/components/ImageUploadField';
 import {
   Table,
   TableBody,
@@ -420,15 +421,13 @@ export default function AdminBundlesPage() {
                 />
               </div>
 
-              {/* URL Cover */}
-              <div className="space-y-2">
-                <Label htmlFor="bundle-cover">URL Gambar Cover</Label>
-                <Input
-                  id="bundle-cover"
-                  type="url"
-                  placeholder="https://... atau /covers/nama-file.png"
+              {/* Cover Bundle */}
+              <div className="space-y-1.5">
+                <Label>Cover Bundle</Label>
+                <ImageUploadField
                   value={form.coverImage}
-                  onChange={(e) => setForm((p) => ({ ...p, coverImage: e.target.value }))}
+                  onChange={(url) => setForm((p) => ({ ...p, coverImage: url }))}
+                  previewClassName="w-16 h-20 rounded object-cover border"
                 />
               </div>
 

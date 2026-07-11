@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
+import { ImageUploadField } from '@/components/ImageUploadField';
 import {
   Table,
   TableBody,
@@ -324,12 +325,11 @@ export default function AdminTestimonialsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="testimonial-photo">URL Foto</Label>
-                <Input
-                  id="testimonial-photo"
+                <Label>Foto (opsional)</Label>
+                <ImageUploadField
                   value={form.photoUrl}
-                  onChange={(e) => setForm((p) => ({ ...p, photoUrl: e.target.value }))}
-                  data-testid="input-testimonial-photo"
+                  onChange={(url) => setForm((p) => ({ ...p, photoUrl: url }))}
+                  previewClassName="w-16 h-16 rounded-full object-cover border"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4 items-end">

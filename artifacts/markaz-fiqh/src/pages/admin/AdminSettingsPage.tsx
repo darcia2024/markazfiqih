@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { ImageUploadField } from '@/components/ImageUploadField';
 import { Loader2, ChevronUp, ChevronDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -180,13 +181,12 @@ export default function AdminSettingsPage() {
                 />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="site-logo">URL Logo</Label>
-              <Input
-                id="site-logo"
+            <div className="space-y-1.5">
+              <Label>Logo Situs</Label>
+              <ImageUploadField
                 value={form.logoUrl}
-                onChange={(e) => updateField('logoUrl', e.target.value)}
-                data-testid="input-site-logo"
+                onChange={(url) => updateField('logoUrl', url)}
+                previewClassName="w-16 h-16 rounded object-contain border bg-white p-1"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">

@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { ImageUploadField } from '@/components/ImageUploadField';
 import {
   Table,
   TableBody,
@@ -395,15 +396,13 @@ export default function AdminEbooksPage() {
                 />
               </div>
 
-              {/* URL Cover */}
-              <div className="space-y-2">
-                <Label htmlFor="ebook-cover">URL Gambar Cover</Label>
-                <Input
-                  id="ebook-cover"
-                  type="url"
-                  placeholder="https://... atau /covers/nama-file.png"
+              {/* Cover Ebook */}
+              <div className="space-y-1.5">
+                <Label>Cover Ebook</Label>
+                <ImageUploadField
                   value={form.coverImage}
-                  onChange={(e) => setForm((p) => ({ ...p, coverImage: e.target.value }))}
+                  onChange={(url) => setForm((p) => ({ ...p, coverImage: url }))}
+                  previewClassName="w-16 h-20 rounded object-cover border"
                 />
               </div>
 

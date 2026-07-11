@@ -1,0 +1,187 @@
+# Prompt 138: Kelola Pengguna Jadi Bisa Diedit — Tambah/Kurangi Kelas, Grant Manual
+
+## Konteks
+Halaman "Kelola Pengguna" (Prompt 97) sekarang READ-ONLY, cuma nampilin
+list. Klien butuh bisa:
+1. Klik user yang SUDAH TERDAFTAR → tambah/hapus kelas yang dia miliki
+   (buat kasus: dia bayar manual/offline, atau ada laporan "saya sudah
+   beli tapi kelasnya nggak ada").
+2. Input EMAIL user yang BELUM PERNAH LOGIN ke web sama sekali + pilih
+   kelas apa saja yang mau diberikan — begitu orang itu login pertama
+   kali nanti, kelasnya OTOMATIS langsung ada di akunnya (pola yang
+   SAMA PERSIS seperti sistem undang-admin `admin_invites`, cuma untuk
+   grant kelas alih-alih promote admin).
+
+## Bagian A — SQL Migrasi (Siapkan untuk Saya Jalankan Manual)
+
+```sql
+-- Cek dulu policy RLS enrollments yang sudah ada sebelum nambah baru
+SELECT policyname, cmd FROM pg_policies WHERE tablename = 'enrollments';
+```
+
+Tambahkan (kalau belum ada) policy admin untuk kelola enrollment siapa saja:
+```sql
+CREATE POLICY "enrollments: admin bisa insert siapa saja"
+  ON enrollments FOR INSERT
+  WITH CHECK (
+    EXISTS (SELECT 1 FROM user_profiles WHERE user_profiles.user_id = auth.uid()::text AND user_profiles.is_admin = true)
+  );
+
+CREATE POLICY "enrollments: admin bisa delete siapa saja"
+  ON enrollments FOR DELETE
+  USING (
+    EXISTS (SELECT 1 FROM user_profiles WHERE user_profiles.user_id = auth.uid()::text AND user_profiles.is_admin = true)
+  );
+```
+(Policy user biasa yang insert/delete enrollment MILIK SENDIRI — dari
+proses checkout normal — TETAP ADA, tidak dihapus, policy baru ini
+cuma nambah cakupan untuk admin.)
+
+Tabel baru untuk grant kelas ke email yang belum pernah login (pola
+sama seperti `admin_invites`):
+```sql
+CREATE TABLE IF NOT EXISTS class_grants (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email TEXT NOT NULL,
+  class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+  granted_by TEXT,
+  granted_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  redeemed_at TIMESTAMPTZ,
+  UNIQUE (email, class_id)
+);
+
+ALTER TABLE class_grants ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "class_grants: admin bisa kelola"
+  ON class_grants FOR ALL
+  USING (
+    EXISTS (SELECT 1 FROM user_profiles WHERE user_profiles.user_id = auth.uid()::text AND user_profiles.is_admin = true)
+  )
+  WITH CHECK (
+    EXISTS (SELECT 1 FROM user_profiles WHERE user_profiles.user_id = auth.uid()::text AND user_profiles.is_admin = true)
+  );
+```
+
+## Bagian B — Edge Function `check-admin-invite`: Sekalian Redeem `class_grants`
+
+Edit `supabase/functions/check-admin-invite/index.ts` (function ini
+SUDAH jalan tiap kali user login, tinggal ditambah logic baru di
+dalamnya, JANGAN bikin edge function terpisah supaya tidak perlu
+trigger baru):
+
+Setelah bagian existing yang cek `admin_invites`, TAMBAHKAN logic baru:
+```ts
+// Cek juga apakah ada class_grants untuk email ini yang belum diredeem
+const { data: grants } = await supabaseAdmin
+  .from('class_grants')
+  .select('id, class_id')
+  .eq('email', normalizedEmail)
+  .is('redeemed_at', null);
+
+if (grants && grants.length > 0) {
+  const enrollments = grants.map((g: any) => ({ user_id: user.id, class_id: g.class_id }));
+  await supabaseAdmin
+    .from('enrollments')
+    .upsert(enrollments, { onConflict: 'user_id,class_id', ignoreDuplicates: true });
+
+  await supabaseAdmin
+    .from('class_grants')
+    .update({ redeemed_at: new Date().toISOString() })
+    .in('id', grants.map((g: any) => g.id));
+}
+```
+(Pastikan variable `normalizedEmail`/`user` yang dipakai konsisten
+dengan yang sudah ada di function ini untuk bagian admin_invites —
+reuse, jangan deklarasi ulang.)
+
+## Bagian C — Function di `lib/db.ts`
+
+```ts
+export async function listUserEnrollments(userId: string): Promise<{ classId: string; classTitle: string }[]> {
+  const { data, error } = await supabase
+    .from('enrollments')
+    .select('class_id, classes(title)')
+    .eq('user_id', userId);
+  if (error) throw error;
+  return (data ?? []).map((e: any) => ({ classId: e.class_id, classTitle: e.classes?.title ?? '(kelas terhapus)' }));
+}
+
+export async function adminAddEnrollment(userId: string, classId: string): Promise<void> {
+  const { error } = await supabase.from('enrollments').insert({ user_id: userId, class_id: classId });
+  if (error) throw error;
+}
+
+export async function adminRemoveEnrollment(userId: string, classId: string): Promise<void> {
+  const { error } = await supabase.from('enrollments').delete().eq('user_id', userId).eq('class_id', classId);
+  if (error) throw error;
+}
+
+export async function createClassGrant(email: string, classIds: string[]): Promise<void> {
+  const { error } = await supabase
+    .from('class_grants')
+    .insert(classIds.map((classId) => ({ email: email.toLowerCase().trim(), class_id: classId })));
+  if (error) throw error;
+}
+
+export async function listPendingGrantsForEmail(email: string): Promise<{ classId: string; classTitle: string }[]> {
+  const { data, error } = await supabase
+    .from('class_grants')
+    .select('class_id, classes(title)')
+    .eq('email', email.toLowerCase().trim())
+    .is('redeemed_at', null);
+  if (error) throw error;
+  return (data ?? []).map((g: any) => ({ classId: g.class_id, classTitle: g.classes?.title ?? '' }));
+}
+```
+
+## Bagian D — UI di `AdminUsersPage.tsx`
+
+1. **Klik baris user yang sudah terdaftar** → buka Dialog/Sheet "Kelola
+   Kelas [nama user]":
+   - List kelas yang dia miliki sekarang (dari `listUserEnrollments`),
+     tiap baris ada tombol "Hapus" (dengan konfirmasi AlertDialog).
+   - Select/combobox cari kelas untuk DITAMBAHKAN (dari
+     `listClasses({ includeAll: true })`, filter yang belum dia miliki),
+     tombol "Tambahkan".
+
+2. **Tombol baru "Grant Kelas via Email"** di atas tabel (untuk user
+   yang belum pernah login sama sekali):
+   - Dialog form: input Email, checklist multi-select kelas (grid per
+     kategori, mirip pola checklist di form Bundle).
+   - Submit → panggil `createClassGrant(email, classIds)`.
+   - Info di dialog: "Kelas akan otomatis muncul di akun begitu email
+     ini login pertama kali ke web."
+
+3. Tambahkan indikator kecil di list user (opsional tapi membantu):
+   kalau email user itu PERNAH di-grant lewat cara manual dan SUDAH
+   diredeem, tidak perlu indikator khusus (sudah tercermin di jumlah
+   "Kelas Dimiliki" yang sudah ada). Tidak perlu section terpisah untuk
+   menampilkan grant yang masih pending (belum login) di versi ini,
+   cukup fitur create grant-nya saja — kalau nanti dibutuhkan tracking
+   pending grant, bisa jadi permintaan lanjutan terpisah.
+
+## Yang Tidak Boleh Berubah
+- `listAllUsersForAdmin`/edge function `list-users` (Prompt 97) TIDAK
+  diubah, tetap dipakai untuk list utama.
+- Sistem checkout normal (user beli sendiri via web) TIDAK terpengaruh
+  sama sekali — fitur ini murni tambahan untuk kasus manual/darurat.
+- `check-admin-invite` bagian admin_invites yang sudah ada (dari Prompt
+  108) TIDAK diubah logicnya, cuma DITAMBAH logic baru untuk
+  `class_grants` di function yang sama.
+
+## Setelah Selesai
+1. Klik salah satu user di list, tambahkan 1 kelas baru ke akunnya,
+   konfirmasi tersimpan dan user itu sekarang bisa akses kelas itu
+   (cek dari sisi user kalau memungkinkan, atau minimal cek jumlah
+   "Kelas Dimiliki" bertambah di list admin).
+2. Hapus 1 kelas dari user yang sama, konfirmasi hilang.
+3. Test "Grant Kelas via Email" dengan email yang BELUM PERNAH login,
+   pilih 1-2 kelas, submit. Login pakai email itu (kalau memungkinkan
+   untuk ditest), konfirmasi kelas yang di-grant otomatis muncul di
+   akun begitu selesai login pertama kali.
+4. Jalankan `pnpm run typecheck`, harus 0 error.
+5. Tegaskan SQL Bagian A perlu saya jalankan manual dulu.
+
+## Deploy yang Perlu Dilakukan Manual
+- Edge function `check-admin-invite` perlu di-deploy ulang manual
+  setelah perubahan Bagian B.
