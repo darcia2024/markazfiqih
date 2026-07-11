@@ -1,0 +1,123 @@
+# Prompt 140: Link Pembayaran Non-Rupiah + Notifikasi Aktivitas ke Admin
+
+## Bagian 1 — Link "Pembayaran selain Rupiah" di Checkout
+
+Di `pages/CartPage.tsx`, cari input "Kode voucher" (sekitar baris 868),
+tambahkan teks kecil TEPAT DI BAWAHNYA:
+
+```tsx
+<p className="text-xs text-muted-foreground mt-2">
+  Pembayaran selain Rupiah?{' '}
+  <a
+    href="https://docs.google.com/forms/d/e/1FAIpQLScmvdS21cixu6h261rDcKM0YscOm7z44upzZSO4leuOWY-dKg/viewform"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="text-primary underline underline-offset-2 hover:text-primary/80"
+  >
+    klik disini
+  </a>.
+</p>
+```
+
+## Bagian 2 — Notifikasi Aktivitas untuk Admin
+
+**Ini BEDA dari sistem Notifikasi Prompt 132** (itu admin KIRIM pesan ke
+pelajar). Ini KEBALIKANNYA: sistem OTOMATIS kasih tau admin setiap ada
+"Pembayaran terbaru" dan "Review terbaru" masuk — tanpa admin perlu
+kirim apapun, murni notifikasi otomatis dari aktivitas sistem.
+
+### SQL Migrasi (Siapkan untuk Saya Jalankan Manual)
+```sql
+CREATE TABLE IF NOT EXISTS admin_activity_log (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  type TEXT NOT NULL CHECK (type IN ('payment', 'review')),
+  title TEXT NOT NULL,
+  detail TEXT,
+  related_id UUID,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE admin_activity_log ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "admin_activity_log: admin bisa baca"
+  ON admin_activity_log FOR SELECT
+  USING (
+    EXISTS (SELECT 1 FROM user_profiles WHERE user_profiles.user_id = auth.uid()::text AND user_profiles.is_admin = true)
+  );
+
+-- Trigger otomatis catat log setiap ada invoice status jadi 'paid'
+CREATE OR REPLACE FUNCTION log_payment_activity() RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.status = 'paid' AND (OLD.status IS DISTINCT FROM 'paid') THEN
+    INSERT INTO admin_activity_log (type, title, detail, related_id)
+    VALUES ('payment', 'Pembayaran baru diterima', 'Total: Rp ' || NEW.total_amount, NEW.id);
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trg_log_payment_activity ON invoices;
+CREATE TRIGGER trg_log_payment_activity
+  AFTER UPDATE ON invoices
+  FOR EACH ROW EXECUTE FUNCTION log_payment_activity();
+
+-- Trigger otomatis catat log setiap ada review baru
+CREATE OR REPLACE FUNCTION log_review_activity() RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO admin_activity_log (type, title, detail, related_id)
+  VALUES ('review', 'Review baru masuk', 'Rating: ' || NEW.rating || ' bintang', NEW.id);
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trg_log_review_activity ON class_reviews;
+CREATE TRIGGER trg_log_review_activity
+  AFTER INSERT ON class_reviews
+  FOR EACH ROW EXECUTE FUNCTION log_review_activity();
+```
+(Trigger database dipilih supaya log tercatat OTOMATIS dari mana pun
+perubahan data terjadi — webhook Mayar, simulate-success, atau insert
+review manapun — tanpa perlu ubah kode edge function yang sudah ada.)
+
+### Function di `lib/db.ts`
+```ts
+export type AdminActivity = {
+  id: string;
+  type: 'payment' | 'review';
+  title: string;
+  detail: string | null;
+  createdAt: string;
+};
+
+export async function listAdminActivity(): Promise<AdminActivity[]> {
+  const { data, error } = await supabase
+    .from('admin_activity_log')
+    .select('id, type, title, detail, created_at')
+    .order('created_at', { ascending: false })
+    .limit(30);
+  if (error) throw error;
+  return (data ?? []).map((a: any) => ({
+    id: a.id, type: a.type, title: a.title, detail: a.detail, createdAt: a.created_at,
+  }));
+}
+```
+
+### Tampilkan di Admin Panel
+Tambahkan `NotificationBell` versi ADMIN (reuse pola dari Prompt 132,
+tapi sumber data beda — pakai `listAdminActivity` bukan `listNotifications`)
+di `components/admin/AdminLayout.tsx`, posisi di header admin panel.
+Boleh dibuat komponen baru `AdminActivityBell.tsx` dengan struktur mirip
+`NotificationBell.tsx`, cukup ganti sumber query dan tidak perlu logic
+read/unread per-user (activity log ini cuma dilihat admin, cukup badge
+jumlah aktivitas dalam 24 jam terakhir sebagai indikator).
+
+## Setelah Selesai
+1. Buka Katalog/keranjang, konfirmasi teks "Pembayaran selain Rupiah?
+   klik disini" muncul di bawah kolom kode voucher, link mengarah ke
+   Google Form yang benar.
+2. Lakukan "Simulasi Lunas" checkout, konfirmasi muncul log baru di
+   activity bell Admin Panel ("Pembayaran baru diterima").
+3. Submit 1 review baru, konfirmasi muncul log baru juga ("Review baru
+   masuk").
+4. Jalankan `pnpm run typecheck`, harus 0 error.
+5. Tegaskan SQL perlu saya jalankan manual dulu.

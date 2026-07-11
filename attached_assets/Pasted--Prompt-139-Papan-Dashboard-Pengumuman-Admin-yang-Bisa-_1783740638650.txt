@@ -1,0 +1,167 @@
+# Prompt 139: Papan Dashboard — Pengumuman Admin yang Bisa Diatur
+
+## Konteks
+Tambah section baru di Dashboard, posisinya di antara header salam
+("Assalamu'alaikum, ...") dan kartu statistik (Kelas Dimiliki/Kelas
+Tuntas/dst) — sebuah "Papan Dashboard" yang isinya bisa diatur admin,
+lebih menonjol dan fleksibel dari "Pesan Dashboard" yang sudah ada
+(Prompt 91, itu teks salam kecil yang random muncul, TIDAK diubah/
+digantikan oleh fitur ini). Papan ini untuk pengumuman yang lebih
+penting: info update, promo/iklan, penghargaan, dll — konten teks bebas
+(boleh beberapa baris), ditampilkan sebagai 1 card menonjol.
+
+Isi pertama kali (default, diisi lewat SQL seed): "Selamat Datang di
+Kelas Markaz Fiqih".
+
+## Bagian A — SQL Migrasi (Siapkan untuk Saya Jalankan Manual)
+
+```sql
+CREATE TABLE IF NOT EXISTS dashboard_board (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  content TEXT NOT NULL DEFAULT '',
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE dashboard_board ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "dashboard_board: semua user login bisa baca yang aktif"
+  ON dashboard_board FOR SELECT
+  USING (is_active = true OR EXISTS (
+    SELECT 1 FROM user_profiles WHERE user_profiles.user_id = auth.uid()::text AND user_profiles.is_admin = true
+  ));
+
+CREATE POLICY "dashboard_board: admin bisa kelola"
+  ON dashboard_board FOR ALL
+  USING (
+    EXISTS (SELECT 1 FROM user_profiles WHERE user_profiles.user_id = auth.uid()::text AND user_profiles.is_admin = true)
+  )
+  WITH CHECK (
+    EXISTS (SELECT 1 FROM user_profiles WHERE user_profiles.user_id = auth.uid()::text AND user_profiles.is_admin = true)
+  );
+
+-- Seed 1 papan default
+INSERT INTO dashboard_board (title, content, is_active)
+VALUES ('Selamat Datang di Kelas Markaz Fiqih', '', true);
+```
+(Hanya 1 papan yang `is_active = true` pada satu waktu yang akan
+ditampilkan — kalau admin bikin papan baru, sebaiknya nonaktifkan dulu
+yang lama, dijelaskan lagi di Bagian C.)
+
+## Bagian B — Function di `lib/db.ts`
+
+```ts
+export type DashboardBoard = {
+  id: string;
+  title: string;
+  content: string;
+};
+
+export async function getActiveDashboardBoard(): Promise<DashboardBoard | null> {
+  const { data, error } = await supabase
+    .from('dashboard_board')
+    .select('id, title, content')
+    .eq('is_active', true)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+// Admin
+export async function listAllDashboardBoards(): Promise<(DashboardBoard & { isActive: boolean; updatedAt: string })[]> {
+  const { data, error } = await supabase
+    .from('dashboard_board')
+    .select('id, title, content, is_active, updated_at')
+    .order('updated_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((b: any) => ({
+    id: b.id, title: b.title, content: b.content, isActive: b.is_active, updatedAt: b.updated_at,
+  }));
+}
+
+export async function createDashboardBoard(payload: { title: string; content: string }): Promise<void> {
+  await supabase.from('dashboard_board').update({ is_active: false }).eq('is_active', true);
+  const { error } = await supabase.from('dashboard_board').insert({ ...payload, is_active: true });
+  if (error) throw error;
+}
+
+export async function updateDashboardBoard(id: string, payload: { title: string; content: string }): Promise<void> {
+  const { error } = await supabase.from('dashboard_board').update(payload).eq('id', id);
+  if (error) throw error;
+}
+
+export async function setDashboardBoardActive(id: string): Promise<void> {
+  await supabase.from('dashboard_board').update({ is_active: false }).eq('is_active', true);
+  const { error } = await supabase.from('dashboard_board').update({ is_active: true }).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteDashboardBoard(id: string): Promise<void> {
+  const { error } = await supabase.from('dashboard_board').delete().eq('id', id);
+  if (error) throw error;
+}
+```
+
+## Bagian C — Tampilkan di `DashboardPage.tsx`
+
+Sisipkan komponen baru PERSIS SETELAH blok `motion.div` header salam
+selesai (setelah baris yang berisi `{formatJam(now)}` dan penutup
+`</motion.div>`), SEBELUM `<main>` dimulai — atau kalau secara visual
+lebih pas, di awal `<main>` sebelum stats cards (sesuaikan berdasarkan
+posisi hasil render, targetnya PERSIS di antara header salam dan kartu
+"Kelas Dimiliki" dkk seperti pada referensi):
+
+```tsx
+function DashboardBoardCard() {
+  const { data: board } = useQuery({
+    queryKey: ['dashboard-board'],
+    queryFn: getActiveDashboardBoard,
+  });
+
+  if (!board) return null;
+
+  return (
+    <div className="rounded-2xl border bg-card p-5 mb-6">
+      <p className="font-serif text-base font-bold text-foreground mb-1">{board.title}</p>
+      {board.content && (
+        <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">{board.content}</p>
+      )}
+    </div>
+  );
+}
+```
+Panggil `<DashboardBoardCard />` di posisi yang dimaksud. Kalau tidak
+ada papan aktif (`board === null`), tidak render apapun (tidak ada
+ruang kosong yang aneh).
+
+## Bagian D — Halaman Admin
+
+Bisa jadi halaman terpisah `AdminDashboardBoardPage.tsx` ATAU
+digabung sebagai section baru di `AdminDashboardMessagesPage.tsx` yang
+sudah ada (Prompt 91) — PILIH pendekatan gabung ke halaman yang sudah
+ada supaya tidak menambah menu sidebar baru lagi, dengan tab/section
+terpisah "Pesan Salam" (yang sudah ada) vs "Papan Dashboard" (baru),
+supaya jelas dua fitur ini beda tapi tetap 1 lokasi menu:
+- Form: input Judul, textarea Konten (multi-baris).
+- List papan yang pernah dibuat (riwayat), badge "Aktif" di papan yang
+  sedang tampil, tombol "Jadikan Aktif" di papan lain (radio-button
+  style, cuma 1 yang aktif), tombol hapus.
+
+## Yang Tidak Boleh Berubah
+- "Pesan Dashboard" (dashboard_messages, Prompt 91) TIDAK diubah/
+  dihapus — itu tetap teks salam kecil yang random muncul di posisi
+  yang sudah ada (`{motivasi}` di bawah judul salam), fitur ini murni
+  TAMBAHAN card baru terpisah.
+- Layout stats cards (Kelas Dimiliki dkk) di bawahnya TIDAK berubah.
+
+## Setelah Selesai
+1. Buka Dashboard, konfirmasi card "Selamat Datang di Kelas Markaz
+   Fiqih" muncul di antara header salam dan kartu statistik.
+2. Buat papan baru dari Admin Panel dengan judul/konten berbeda,
+   jadikan aktif, konfirmasi Dashboard langsung menampilkan papan baru
+   itu (papan lama otomatis nonaktif).
+3. Jalankan `pnpm run typecheck`, harus 0 error.
+4. Tegaskan SQL Bagian A perlu saya jalankan manual dulu.

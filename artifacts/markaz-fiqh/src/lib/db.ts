@@ -2124,3 +2124,56 @@ export async function deleteNotification(id: string): Promise<void> {
   const { error } = await supabase.from('notifications').delete().eq('id', id);
   if (error) throw error;
 }
+
+// ── Dashboard Board ────────────────────────────────────────────────────────────
+export type DashboardBoard = {
+  id: string;
+  title: string;
+  content: string;
+};
+
+export async function getActiveDashboardBoard(): Promise<DashboardBoard | null> {
+  const { data, error } = await supabase
+    .from('dashboard_board')
+    .select('id, title, content')
+    .eq('is_active', true)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data;
+}
+
+// Admin
+export async function listAllDashboardBoards(): Promise<(DashboardBoard & { isActive: boolean; updatedAt: string })[]> {
+  const { data, error } = await supabase
+    .from('dashboard_board')
+    .select('id, title, content, is_active, updated_at')
+    .order('updated_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((b: any) => ({
+    id: b.id, title: b.title, content: b.content, isActive: b.is_active, updatedAt: b.updated_at,
+  }));
+}
+
+export async function createDashboardBoard(payload: { title: string; content: string }): Promise<void> {
+  await supabase.from('dashboard_board').update({ is_active: false }).eq('is_active', true);
+  const { error } = await supabase.from('dashboard_board').insert({ ...payload, is_active: true });
+  if (error) throw error;
+}
+
+export async function updateDashboardBoard(id: string, payload: { title: string; content: string }): Promise<void> {
+  const { error } = await supabase.from('dashboard_board').update(payload).eq('id', id);
+  if (error) throw error;
+}
+
+export async function setDashboardBoardActive(id: string): Promise<void> {
+  await supabase.from('dashboard_board').update({ is_active: false }).eq('is_active', true);
+  const { error } = await supabase.from('dashboard_board').update({ is_active: true }).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteDashboardBoard(id: string): Promise<void> {
+  const { error } = await supabase.from('dashboard_board').delete().eq('id', id);
+  if (error) throw error;
+}

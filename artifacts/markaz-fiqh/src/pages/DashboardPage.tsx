@@ -24,7 +24,26 @@ import { Badge } from '@/components/ui/badge';
 import { useMemo, useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useQuery } from '@tanstack/react-query';
-import { listEnrollments, listActiveDashboardMessages, type EnrollmentItem } from '@/lib/db';
+import { listEnrollments, listActiveDashboardMessages, getActiveDashboardBoard, type EnrollmentItem } from '@/lib/db';
+
+// ── Dashboard Board Card ──────────────────────────────────────────────────────
+function DashboardBoardCard() {
+  const { data: board } = useQuery({
+    queryKey: ['dashboard-board'],
+    queryFn: getActiveDashboardBoard,
+  });
+
+  if (!board) return null;
+
+  return (
+    <div className="rounded-2xl border bg-card p-5 mb-6">
+      <p className="font-serif text-base font-bold text-foreground mb-1">{board.title}</p>
+      {board.content && (
+        <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">{board.content}</p>
+      )}
+    </div>
+  );
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function getGreeting(): string {
@@ -413,6 +432,7 @@ function DashboardContent() {
         </motion.div>
       </div>
       <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl py-8 lg:py-10">
+        <DashboardBoardCard />
 
         {isLoading ? (
           <div className="flex items-center justify-center py-32">
