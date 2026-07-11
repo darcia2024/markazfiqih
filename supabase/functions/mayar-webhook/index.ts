@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
     //   https://<project>.supabase.co/functions/v1/mayar-webhook?token=<MAYAR_WEBHOOK_TOKEN>
     const url = new URL(req.url);
     const token = url.searchParams.get('token');
-    const expectedToken = Deno.env.get('MAYAR_WEBHOOK_TOKEN');
+    const expectedToken = Deno.env.get('MAYAR_WEBHOOK_SECRET');
 
     if (!expectedToken || expectedToken === 'PLACEHOLDER_ISI_NANTI' || token !== expectedToken) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
