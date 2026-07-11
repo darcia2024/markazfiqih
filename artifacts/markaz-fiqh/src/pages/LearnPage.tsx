@@ -31,8 +31,11 @@ declare global {
 import { toast } from 'sonner';
 import { useParams, Link } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   ArrowLeft,
+  Award,
   BookOpen,
   Clock,
   PlayCircle,
@@ -71,6 +74,8 @@ import {
   getInstructorRatingForClass,
   submitInstructorRating,
   getClassMeetingTitles,
+  getMyCertificate,
+  requestCertificate,
 } from '@/lib/db';
 import { StarRating } from '@/components/StarRating';
 
@@ -105,6 +110,80 @@ function VideoPlaceholder({ title }: { title: string }) {
           <p className="text-xs opacity-40">Video akan segera tersedia</p>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── Certificate Section ────────────────────────────────────────────────────────
+function CertificateSection({ classId, classTitle }: { classId: string; classTitle: string }) {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [fullName, setFullName] = useState(user?.name ?? '');
+  const [score, setScore] = useState('');
+
+  const { data: myCert } = useQuery({
+    queryKey: ['my-certificate', user?.id, classId],
+    queryFn: () => getMyCertificate(user!.id, classId),
+    enabled: !!user?.id,
+  });
+
+  const requestMutation = useMutation({
+    mutationFn: () => requestCertificate({ classId, fullName, email: user?.email ?? '', score }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-certificate', user?.id, classId] });
+      setIsFormOpen(false);
+      toast.success('Sertifikat berhasil diterbitkan!');
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Gagal mengambil sertifikat.'),
+  });
+
+  if (myCert) {
+    return (
+      <div className="bg-card rounded-2xl border p-5 space-y-3">
+        <p className="text-sm font-semibold text-foreground">Sertifikat Kamu</p>
+        <p className="text-xs text-muted-foreground">No. {myCert.certificateNumber}</p>
+        <a
+          href={`/sertifikat/${myCert.id}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 text-sm text-primary font-medium hover:underline"
+        >
+          <Award className="w-4 h-4" /> Lihat &amp; Download Sertifikat
+        </a>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-card rounded-2xl border p-5 space-y-3">
+      <p className="text-sm font-semibold text-foreground">Ambil Sertifikat</p>
+      {!isFormOpen ? (
+        <Button size="sm" onClick={() => setIsFormOpen(true)}>
+          <Award className="w-4 h-4 mr-1.5" /> Ambil Sertifikat Kelas Ini
+        </Button>
+      ) : (
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <Label>Nama Lengkap</Label>
+            <Input value={fullName} onChange={(e) => setFullName(e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <Label>Nilai Soal Latihan (opsional)</Label>
+            <Input value={score} onChange={(e) => setScore(e.target.value)} placeholder="cth: 90" />
+          </div>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              onClick={() => requestMutation.mutate()}
+              disabled={!fullName.trim() || requestMutation.isPending}
+            >
+              {requestMutation.isPending ? 'Menerbitkan...' : 'Terbitkan Sertifikat'}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setIsFormOpen(false)}>Batal</Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -843,6 +922,10 @@ function PlaylistMode({
               </div>
             )}
 
+            <div className="order-4">
+              <CertificateSection classId={classId} classTitle={classTitle} />
+            </div>
+
             {/* "Kelas Lainnya" — paling bawah di mobile (order-5, bagian dari
                 stack tunggal kolom kiri). Di desktop disembunyikan di sini
                 (`lg:hidden`) karena sudah dirender ulang di kolom kanan
@@ -1398,6 +1481,11 @@ function LearnContent() {
               </div>
             )}
 
+            {/* Sertifikat — mobile only */}
+            <div className="lg:hidden">
+              <CertificateSection classId={classId} classTitle={classDetail.title} />
+            </div>
+
             {/* Mini nav — dars in current module */}
             {activeEntry && (
               <div className="pt-4 border-t">
@@ -1549,6 +1637,9 @@ function LearnContent() {
               />
             </div>
           )}
+
+          {/* Card: Sertifikat */}
+          <CertificateSection classId={classId} classTitle={classDetail.title} />
         </aside>
       </div>
     </AppShell>

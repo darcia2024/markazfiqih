@@ -2198,3 +2198,95 @@ export async function listAdminActivity(): Promise<AdminActivity[]> {
     id: a.id, type: a.type, title: a.title, detail: a.detail, createdAt: a.created_at,
   }));
 }
+
+// ── Certificate Requests ───────────────────────────────────────────────────────
+export type CertificateRequest = {
+  id: string;
+  certificateNumber: string;
+  classId: string;
+  classTitle: string;
+  fullName: string;
+  email: string;
+  score: string | null;
+  issuedAt: string;
+};
+
+function generateCertificateNumber(): string {
+  const year = new Date().getFullYear();
+  const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+  return `MF-${year}-${random}`;
+}
+
+export async function getMyCertificate(userId: string, classId: string): Promise<CertificateRequest | null> {
+  const { data, error } = await supabase
+    .from('certificate_requests')
+    .select('id, certificate_number, class_id, full_name, email, score, issued_at, classes(title)')
+    .eq('user_id', userId)
+    .eq('class_id', classId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  return {
+    id: data.id, certificateNumber: data.certificate_number, classId: data.class_id,
+    classTitle: (data as any).classes?.title ?? '', fullName: data.full_name, email: data.email,
+    score: data.score, issuedAt: data.issued_at,
+  };
+}
+
+export async function requestCertificate(params: {
+  classId: string;
+  fullName: string;
+  email: string;
+  score: string;
+}): Promise<CertificateRequest> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Harus login untuk mengambil sertifikat.');
+
+  const { data, error } = await supabase
+    .from('certificate_requests')
+    .insert({
+      certificate_number: generateCertificateNumber(),
+      user_id: user.id,
+      class_id: params.classId,
+      full_name: params.fullName,
+      email: params.email,
+      score: params.score || null,
+    })
+    .select('id, certificate_number, class_id, full_name, email, score, issued_at, classes(title)')
+    .single();
+  if (error) throw error;
+  return {
+    id: data.id, certificateNumber: data.certificate_number, classId: data.class_id,
+    classTitle: (data as any).classes?.title ?? '', fullName: data.full_name, email: data.email,
+    score: data.score, issuedAt: data.issued_at,
+  };
+}
+
+export async function getCertificateById(id: string): Promise<CertificateRequest | null> {
+  const { data, error } = await supabase
+    .from('certificate_requests')
+    .select('id, certificate_number, class_id, full_name, email, score, issued_at, classes(title)')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  return {
+    id: data.id, certificateNumber: data.certificate_number, classId: data.class_id,
+    classTitle: (data as any).classes?.title ?? '', fullName: data.full_name, email: data.email,
+    score: data.score, issuedAt: data.issued_at,
+  };
+}
+
+// Admin
+export async function listAllCertificatesForAdmin(): Promise<CertificateRequest[]> {
+  const { data, error } = await supabase
+    .from('certificate_requests')
+    .select('id, certificate_number, class_id, full_name, email, score, issued_at, classes(title)')
+    .order('issued_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((c: any) => ({
+    id: c.id, certificateNumber: c.certificate_number, classId: c.class_id,
+    classTitle: c.classes?.title ?? '', fullName: c.full_name, email: c.email,
+    score: c.score, issuedAt: c.issued_at,
+  }));
+}

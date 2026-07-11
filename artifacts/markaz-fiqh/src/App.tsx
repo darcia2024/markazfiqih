@@ -31,6 +31,8 @@ import AdminCatalogLayoutPage from '@/pages/admin/AdminCatalogLayoutPage';
 import AdminBundlesPage from '@/pages/admin/AdminBundlesPage';
 import AdminEbooksPage from '@/pages/admin/AdminEbooksPage';
 import AdminNotificationsPage from '@/pages/admin/AdminNotificationsPage';
+import AdminCertificatesPage from '@/pages/admin/AdminCertificatesPage';
+import CertificatePage from '@/pages/CertificatePage';
 import InstructorsPage from '@/pages/InstructorsPage';
 import InstructorDetailPage from '@/pages/InstructorDetailPage';
 import BundlesPage from '@/pages/BundlesPage';
@@ -58,6 +60,10 @@ function Router() {
       <Route path="/learn/:classId" component={LearnPage} />
       <Route path="/ebook-saya" component={MyEbooksPage} />
       <Route path="/ebook/:id" component={EbookDetailPage} />
+      <Route path="/sertifikat/:id" component={CertificatePage} />
+      <Route path="/admin/certificates">
+        {() => <RequireAdminRoute><AdminCertificatesPage /></RequireAdminRoute>}
+      </Route>
       <Route path="/admin">
         {() => <RequireAdminRoute><AdminDashboardPage /></RequireAdminRoute>}
       </Route>

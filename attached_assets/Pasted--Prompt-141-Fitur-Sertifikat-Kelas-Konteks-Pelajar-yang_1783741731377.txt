@@ -1,0 +1,277 @@
+# Prompt 141: Fitur Sertifikat Kelas
+
+## Konteks
+Pelajar yang sudah menyelesaikan kelas bisa ambil sertifikat: isi form
+(Nama, Email, Nilai Soal Latihan — self-report karena sistem Soal
+Latihan sekarang masih link Google Form eksternal, belum ada
+integrasi nilai otomatis), submit, sertifikat LANGSUNG terbit otomatis
+(tidak perlu approval admin manual), bisa dilihat/didownload sebagai
+halaman printable. Data tersimpan di database (BUKAN Google Form),
+terlihat juga di Admin Panel.
+
+**Untuk kelas kategori "Fiqih Kitab"**: sertifikat selalu bisa diambil
+begitu form diisi (tanpa syarat nilai minimum).
+**Untuk kelas kategori "Fiqih Tematik"**: sama, form diisi lalu
+otomatis terbit — nilai yang diisi ditampilkan di sertifikat sebagai
+informasi, TIDAK dijadikan syarat lulus/gagal di versi awal ini (karena
+belum ada sistem penilaian otomatis yang bisa memvalidasi angka yang
+diisi pelajar). Ini bisa disesuaikan lagi nanti kalau mau ditambah
+syarat minimum nilai.
+
+## Bagian A — SQL Migrasi (Siapkan untuk Saya Jalankan Manual)
+
+```sql
+CREATE TABLE IF NOT EXISTS certificate_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  certificate_number TEXT NOT NULL UNIQUE,
+  user_id TEXT NOT NULL,
+  class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+  full_name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  score TEXT,
+  issued_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (user_id, class_id)
+);
+
+ALTER TABLE certificate_requests ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "certificate_requests: publik bisa baca (untuk verifikasi)"
+  ON certificate_requests FOR SELECT
+  USING (true);
+
+CREATE POLICY "certificate_requests: hanya yang enroll bisa insert milik sendiri"
+  ON certificate_requests FOR INSERT
+  WITH CHECK (
+    auth.uid()::text = user_id
+    AND EXISTS (
+      SELECT 1 FROM enrollments e
+      WHERE e.class_id = certificate_requests.class_id
+      AND e.user_id = auth.uid()::text
+    )
+  );
+
+CREATE POLICY "certificate_requests: admin bisa kelola semua"
+  ON certificate_requests FOR ALL
+  USING (
+    EXISTS (SELECT 1 FROM user_profiles WHERE user_profiles.user_id = auth.uid()::text AND user_profiles.is_admin = true)
+  )
+  WITH CHECK (
+    EXISTS (SELECT 1 FROM user_profiles WHERE user_profiles.user_id = auth.uid()::text AND user_profiles.is_admin = true)
+  );
+```
+(Policy SELECT publik SENGAJA dibuat terbuka — supaya sertifikat bisa
+"diverifikasi" siapa saja lewat halaman `/sertifikat/:id`, mirip fitur
+cek keaslian sertifikat pada umumnya. Data yang bisa dibaca publik
+hanya field sertifikat, TIDAK exposed data sensitif lain.)
+
+## Bagian B — Function di `lib/db.ts`
+
+```ts
+export type CertificateRequest = {
+  id: string;
+  certificateNumber: string;
+  classId: string;
+  classTitle: string;
+  fullName: string;
+  email: string;
+  score: string | null;
+  issuedAt: string;
+};
+
+function generateCertificateNumber(): string {
+  const year = new Date().getFullYear();
+  const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+  return `MF-${year}-${random}`;
+}
+
+export async function getMyCertificate(userId: string, classId: string): Promise<CertificateRequest | null> {
+  const { data, error } = await supabase
+    .from('certificate_requests')
+    .select('id, certificate_number, class_id, full_name, email, score, issued_at, classes(title)')
+    .eq('user_id', userId)
+    .eq('class_id', classId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  return {
+    id: data.id, certificateNumber: data.certificate_number, classId: data.class_id,
+    classTitle: (data as any).classes?.title ?? '', fullName: data.full_name, email: data.email,
+    score: data.score, issuedAt: data.issued_at,
+  };
+}
+
+export async function requestCertificate(params: {
+  classId: string;
+  fullName: string;
+  email: string;
+  score: string;
+}): Promise<CertificateRequest> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Harus login untuk mengambil sertifikat.');
+
+  const { data, error } = await supabase
+    .from('certificate_requests')
+    .insert({
+      certificate_number: generateCertificateNumber(),
+      user_id: user.id,
+      class_id: params.classId,
+      full_name: params.fullName,
+      email: params.email,
+      score: params.score || null,
+    })
+    .select('id, certificate_number, class_id, full_name, email, score, issued_at, classes(title)')
+    .single();
+  if (error) throw error;
+  return {
+    id: data.id, certificateNumber: data.certificate_number, classId: data.class_id,
+    classTitle: (data as any).classes?.title ?? '', fullName: data.full_name, email: data.email,
+    score: data.score, issuedAt: data.issued_at,
+  };
+}
+
+export async function getCertificateById(id: string): Promise<CertificateRequest | null> {
+  const { data, error } = await supabase
+    .from('certificate_requests')
+    .select('id, certificate_number, class_id, full_name, email, score, issued_at, classes(title)')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  return {
+    id: data.id, certificateNumber: data.certificate_number, classId: data.class_id,
+    classTitle: (data as any).classes?.title ?? '', fullName: data.full_name, email: data.email,
+    score: data.score, issuedAt: data.issued_at,
+  };
+}
+
+// Admin
+export async function listAllCertificatesForAdmin(): Promise<CertificateRequest[]> {
+  const { data, error } = await supabase
+    .from('certificate_requests')
+    .select('id, certificate_number, class_id, full_name, email, score, issued_at, classes(title)')
+    .order('issued_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((c: any) => ({
+    id: c.id, certificateNumber: c.certificate_number, classId: c.class_id,
+    classTitle: c.classes?.title ?? '', fullName: c.full_name, email: c.email,
+    score: c.score, issuedAt: c.issued_at,
+  }));
+}
+```
+
+## Bagian C — UI di `LearnPage.tsx` / `ClassDetailPage.tsx` (Sisi Pelajar)
+
+Tambahkan section "Sertifikat" (card baru, mirip pola card lain yang
+sudah ada — Fasilitas Kelas dkk), tampil untuk user yang SUDAH enroll:
+
+```tsx
+function CertificateSection({ classId, classTitle }: { classId: string; classTitle: string }) {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [fullName, setFullName] = useState(user?.name ?? '');
+  const [score, setScore] = useState('');
+
+  const { data: myCert } = useQuery({
+    queryKey: ['my-certificate', user?.id, classId],
+    queryFn: () => getMyCertificate(user!.id, classId),
+    enabled: !!user?.id,
+  });
+
+  const requestMutation = useMutation({
+    mutationFn: () => requestCertificate({ classId, fullName, email: user?.email ?? '', score }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-certificate', user?.id, classId] });
+      setIsFormOpen(false);
+      toast.success('Sertifikat berhasil diterbitkan!');
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Gagal mengambil sertifikat.'),
+  });
+
+  if (myCert) {
+    return (
+      <div className="bg-card rounded-2xl border p-5 space-y-3">
+        <p className="text-sm font-semibold text-foreground">Sertifikat Kamu</p>
+        <p className="text-xs text-muted-foreground">No. {myCert.certificateNumber}</p>
+        <Link href={`/sertifikat/${myCert.id}`} target="_blank"
+          className="inline-flex items-center gap-2 text-sm text-primary font-medium hover:underline">
+          <Award className="w-4 h-4" /> Lihat & Download Sertifikat
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-card rounded-2xl border p-5 space-y-3">
+      <p className="text-sm font-semibold text-foreground">Ambil Sertifikat</p>
+      {!isFormOpen ? (
+        <Button size="sm" onClick={() => setIsFormOpen(true)}>
+          <Award className="w-4 h-4 mr-1.5" /> Ambil Sertifikat Kelas Ini
+        </Button>
+      ) : (
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <Label>Nama Lengkap</Label>
+            <Input value={fullName} onChange={(e) => setFullName(e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <Label>Nilai Soal Latihan (opsional)</Label>
+            <Input value={score} onChange={(e) => setScore(e.target.value)} placeholder="cth: 90" />
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" onClick={() => requestMutation.mutate()} disabled={!fullName.trim() || requestMutation.isPending}>
+              {requestMutation.isPending ? 'Menerbitkan...' : 'Terbitkan Sertifikat'}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setIsFormOpen(false)}>Batal</Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+```
+Panggil `<CertificateSection classId={classId} classTitle={classDetail.title} />`
+di posisi yang wajar (dekat Fasilitas Kelas), untuk KEDUA mode (Video
+Playlist maupun Modul/Bab) — komponen ini generic, tidak tergantung
+model kelasnya.
+
+## Bagian D — Halaman Publik `/sertifikat/:id` (Printable)
+
+Buat `artifacts/markaz-fiqh/src/pages/CertificatePage.tsx`:
+- Fetch via `getCertificateById(id)`.
+- Desain sertifikat: layout landscape, border dekoratif (pola
+  `hero-pattern.png` tipis di background), logo Markaz Fiqih, judul
+  besar "SERTIFIKAT", teks "Diberikan kepada" + nama pelajar (font
+  besar, serif), "atas keikutsertaan dalam kelas [Judul Kelas]", nomor
+  sertifikat, tanggal terbit, nilai (kalau diisi).
+- Tombol "Download / Print" yang memanggil `window.print()` — styling
+  `@media print` supaya saat print/save-as-PDF dari browser, hasil
+  bersih (sembunyikan navbar/sidebar, halaman jadi cuma sertifikatnya).
+- Route `/sertifikat/:id` di `App.tsx`, TIDAK perlu dibungkus
+  `ProtectedRoute` (publik, untuk verifikasi).
+
+## Bagian E — Halaman Admin `AdminCertificatesPage.tsx`
+
+- Table: nomor sertifikat, nama, email, kelas, nilai, tanggal terbit.
+- Search by nama/email/nomor sertifikat.
+- Klik baris → buka `/sertifikat/:id` di tab baru (lihat sertifikatnya).
+- Route `/admin/certificates`, menu "Sertifikat" (icon `Award`) di
+  `AdminLayout.tsx`.
+
+## Yang Tidak Boleh Berubah
+- Sistem Soal Latihan (link Google Form, Prompt 103) TIDAK diintegrasikan
+  otomatis — nilai di form sertifikat ini MURNI self-report pelajar.
+- Tidak ada validasi "harus selesai nonton dulu" untuk versi awal ini —
+  siapapun yang enroll bisa langsung minta sertifikat kapan saja
+  (bisa ditambah syarat completion nanti kalau diperlukan).
+
+## Setelah Selesai
+1. Buka kelas yang sudah di-enroll, isi form sertifikat, submit,
+   konfirmasi sertifikat langsung terbit dan bisa dilihat di
+   `/sertifikat/:id`.
+2. Konfirmasi tombol Print/Download menghasilkan tampilan bersih (tanpa
+   navbar/sidebar) saat print-preview.
+3. Cek Admin Panel, konfirmasi sertifikat yang baru dibuat muncul di
+   list.
+4. Jalankan `pnpm run typecheck`, harus 0 error.
+5. Tegaskan SQL Bagian A perlu saya jalankan manual dulu.
