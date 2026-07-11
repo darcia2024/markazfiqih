@@ -1,443 +1,415 @@
 import { motion } from 'framer-motion';
-import {
-  BookOpen,
-  ShieldCheck,
-  Award,
-  Users,
-  Infinity as InfinityIcon,
-  HandHeart,
-  CheckCircle2,
-} from 'lucide-react';
+import { Instagram, Facebook, Youtube } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 
 import { AppShell } from '@/components/AppShell';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { getSettings } from '@/lib/db';
 
-// ────────────────────────────────────────────────────────────────────────────
-// Data statis — Prompt 129: konten profil lembaga lengkap, sudah final,
-// dipakai PERSIS sesuai naskah yang disiapkan (jangan improvisasi ulang).
-// ────────────────────────────────────────────────────────────────────────────
+// ── Ikon TikTok (reused dari LandingPage) ────────────────────────────────────
+function TikTokIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      <path d="M16.6 5.82c-.9-.88-1.4-2.08-1.4-3.32h-3.13v13.44c0 1.6-1.3 2.9-2.9 2.9a2.9 2.9 0 0 1 0-5.8c.27 0 .53.03.78.1V9.98a6.03 6.03 0 0 0-.78-.05A6.03 6.03 0 0 0 3.15 16a6.03 6.03 0 0 0 6.02 6.02A6.03 6.03 0 0 0 15.19 16V8.66a8.16 8.16 0 0 0 4.76 1.52V7.05a4.85 4.85 0 0 1-3.35-1.23Z" />
+    </svg>
+  );
+}
 
-const PROFIL_LEMBAGA: { label: string; value: string }[] = [
-  { label: 'Nama Lembaga', value: 'Markaz Fiqih' },
-  { label: 'Jenis Lembaga', value: 'Lembaga Keilmuan' },
-  { label: 'Bidang Fokus', value: 'Fiqih dan ilmu-ilmu pendukungnya' },
-  {
-    label: 'Ruang Lingkup Kegiatan',
-    value: 'Pendidikan, Publikasi, Kaderisasi, dan Pengembangan Keilmuan',
-  },
-  { label: 'Sifat Kegiatan', value: 'Online dan Offline' },
-  { label: 'Kedudukan', value: 'Indonesia' },
-];
-
-const MISI = [
-  { number: '01', text: 'Menyebarkan ilmu fiqih yang shahih dan mudah dipahami.' },
-  { number: '02', text: 'Menyediakan sarana belajar fiqih yang terstruktur dan berkelanjutan.' },
-  { number: '03', text: 'Melahirkan pengajar dan kader fiqih yang kompeten.' },
-  { number: '04', text: 'Mengembangkan media edukasi fiqih berbasis teknologi.' },
-  { number: '05', text: 'Menjadi pusat rujukan fiqih yang terpercaya.' },
-];
-
-const NILAI_DASAR = [
-  { label: 'Keilmuan', icon: BookOpen },
-  { label: 'Amanah', icon: ShieldCheck },
-  { label: 'Profesionalisme', icon: Award },
-  { label: 'Kolaborasi', icon: Users },
-  { label: 'Keberlanjutan', icon: InfinityIcon },
-  { label: 'Pelayan Umat', icon: HandHeart },
-];
-
-// Sama persis dengan METHOD_REFERENCES di LandingPage.tsx (duplikat konten +
-// styling secukupnya di sini, bukan import, sesuai instruksi Prompt 129).
+// ── Data statis ───────────────────────────────────────────────────────────────
 const METHOD_REFERENCES = [
-  { number: '01', text: 'Pendapat mu\u2019tamad dalam madzhab Syafi\u2019i' },
-  { number: '02', text: 'Pendapat dha\u2019if dalam madzhab Syafi\u2019i' },
-  { number: '03', text: 'Ikhtiyar para ulama madzhab Syafi\u2019i' },
+  { number: '01', text: 'Pendapat mu\u2019tamad dalam madzhab Syafi\u2019i.' },
+  { number: '02', text: 'Pendapat dha\u2019if dalam madzhab Syafi\u2019i.' },
+  { number: '03', text: 'Ikhtiyar para ulama madzhab Syafi\u2019i.' },
   {
     number: '04',
-    text: 'Pendapat mu\u2019tabar dari madzhab-madzhab fiqih lainnya (khususnya empat madzhab)',
+    text: 'Pendapat mu\u2019tabar dari madzhab-madzhab fiqih lainnya, khususnya empat madzhab.',
   },
 ];
 
-const KARAKTERISTIK = [
-  'Referentif: berbasis turats dan literatur klasik.',
-  'Edukatif dan kritis.',
-  'Disajikan secara sistematis dan mudah dipahami.',
-  'Memanfaatkan teknologi digital.',
-  'Berorientasi pada kaderisasi.',
-  'Mengintegrasikan pendidikan, publikasi, dan pengembangan SDM.',
+const TEMATIK_CLASSES = [
+  'Fiqih Islam Itu Mudah',
+  'Fiqih Wudhu Mandi dan Tayamum',
+  'Fiqih Najis',
+  'Fiqih Alkohol',
+  'Fiqih Darah Wanita',
+  'Fiqih Shalat Jamaah',
+  'Fiqih Shalat dan Khutbah Jumat',
+  'Fiqih Shalat Ied',
+  'Fiqih Safar',
+  'Fiqih Zakat Fitri',
+  'Fiqih Puasa',
+  'Fiqih Puasa Syawwal',
+  'Fiqih Tarawih',
+  'Fiqih Haji Umrah',
+  'Fiqih Umrah',
+  'Fiqih Badal Haji Umrah',
+  'Fiqih Kurban',
+  'Fiqih Muamalah Kontemporer',
+  'Fiqih Nikah',
+  'Fiqih Talak',
+  'Fiqih Maulud',
 ];
 
-const BIDANG_KEGIATAN: { kategori: string; items: string[] }[] = [
-  {
-    kategori: 'Pendidikan',
-    items: ['Kelas Fiqih Tematik', 'Kelas Kitab', 'Webinar', 'Akademi Markaz Fiqih', "Ma'had Markaz Fiqih"],
-  },
-  {
-    kategori: 'Publikasi',
-    items: ['Artikel', 'Buku', 'Modul', 'Ebook'],
-  },
-  {
-    kategori: 'Media Platform',
-    items: ['Website', 'Media sosial (Instagram, Facebook, TikTok, YouTube)'],
-  },
-  {
-    kategori: 'Kaderisasi',
-    items: ['Akademi Markaz Fiqih', "Ma'had Markaz Fiqih"],
-  },
-  {
-    kategori: 'Riset dan Pengembangan',
-    items: ['Penyusunan kurikulum sekolah', 'Penelitian fiqih', 'Kajian isu kontemporer'],
-  },
-];
+// ── Halaman ───────────────────────────────────────────────────────────────────
+export function AboutUsPage() {
+  const { data: settings } = useQuery({
+    queryKey: ['settings'],
+    queryFn: getSettings,
+    staleTime: 5 * 60 * 1000,
+  });
 
-const SASARAN = ['Masyarakat', 'Pelajar dan Mahasiswa', 'Guru dan Pengajar', "Da'i"];
+  const socialLinks = [
+    {
+      label: 'Instagram',
+      icon: Instagram,
+      href: settings?.socialInstagram || 'https://www.instagram.com/markazfiqih',
+    },
+    {
+      label: 'Facebook',
+      icon: Facebook,
+      href: settings?.socialFacebook || 'https://facebook.com/markazfiqih',
+    },
+    {
+      label: 'TikTok',
+      icon: TikTokIcon,
+      href: settings?.socialTiktok || 'https://www.tiktok.com/@markazfiqih',
+    },
+    {
+      label: 'YouTube',
+      icon: Youtube,
+      href: settings?.socialYoutube || '',
+    },
+  ] as Array<{ label: string; icon: typeof Instagram | typeof TikTokIcon; href: string }>;
 
-const CITA_CITA_ARAH = [
-  'Akademi Markaz Fiqih',
-  "Ma'had Markaz Fiqih",
-  'Pusat kajian fiqih',
-  'Program spesialisasi fiqih',
-  'Penerbitan karya ilmiah dan buku',
-];
-
-const ROADMAP_FASE = [
-  { number: 1, label: 'Media edukasi dan Kelas online', done: true },
-  { number: 2, label: 'Akademi Markaz Fiqih', done: false },
-  { number: 3, label: 'Penerbitan dan Publikasi Ilmiah', done: false },
-  { number: 4, label: "Ma'had Markaz Fiqih", done: false },
-  { number: 5, label: 'Pusat Kajian dan Jaringan Nasional', done: false },
-];
-
-// ────────────────────────────────────────────────────────────────────────────
-// Helper kecil — section wrapper konsisten (spacing & fade-in seragam)
-// ────────────────────────────────────────────────────────────────────────────
-function Section({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return (
-    <motion.section
-      initial={{ opacity: 0, y: 16 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-40px' }}
-      transition={{ duration: 0.4, ease: 'easeOut' }}
-      className={className}
-    >
-      {children}
-    </motion.section>
-  );
-}
-
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p
-      className="text-xs font-semibold tracking-wider uppercase mb-3"
-      style={{ color: 'hsl(var(--accent))' }}
-    >
-      {children}
-    </p>
-  );
-}
-
-// ────────────────────────────────────────────────────────────────────────────
-// Konten utama halaman
-// ────────────────────────────────────────────────────────────────────────────
-function AboutUsContent() {
-  return (
-    <AppShell>
-      {/* 1. Hero singkat */}
-      <div className="px-4 sm:px-6 lg:px-8 pt-8 pb-2 shrink-0">
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
-          <p className="text-xs font-semibold uppercase tracking-wider text-[hsl(var(--accent))] mb-2">
-            Tentang Kami
-          </p>
-          <h1 className="font-serif text-3xl lg:text-4xl font-bold text-foreground">
-            Tentang Kami
-          </h1>
-          <p className="font-serif text-lg italic text-primary mt-3">
-            &ldquo;Membumikan fiqih dalam tiap lini masyarakat.&rdquo;
-          </p>
-        </motion.div>
-      </div>
-
-      <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl py-8 lg:py-10 space-y-14">
-        {/* 2. Profil Lembaga */}
-        <Section>
-          <div className="bg-card border rounded-2xl p-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              {PROFIL_LEMBAGA.map((row) => (
-                <div key={row.label}>
-                  <p className="text-xs text-muted-foreground">{row.label}</p>
-                  <p className="font-medium text-foreground mt-0.5">{row.value}</p>
-                </div>
-              ))}
-            </div>
-            <p className="text-sm text-muted-foreground leading-relaxed mt-6 pt-5 border-t">
-              Markaz Fiqih bukan organisasi massa, bukan lembaga fatwa resmi, dan bukan
-              lembaga amal sosial — merupakan lembaga keilmuan independen yang berfokus pada
-              pendidikan, publikasi, kaderisasi, dan pengembangan kajian fiqih.
-            </p>
-          </div>
-        </Section>
-
-        {/* 3. Latar Belakang */}
-        <Section>
-          <SectionLabel>Latar Belakang</SectionLabel>
-          <div className="space-y-4 text-foreground/90 text-base leading-relaxed">
-            <p>
-              Fiqih merupakan salah satu disiplin ilmu terpenting dalam Islam yang mengatur
-              berbagai aspek kehidupan seorang muslim. Namun, kebutuhan masyarakat terhadap
-              pembelajaran fiqih yang sistematis, mudah diakses, dan sesuai kebutuhan zaman
-              masih sangat besar.
-            </p>
-            <p>
-              Markaz Fiqih didirikan sebagai pusat keilmuan yang berupaya menjembatani
-              kebutuhan tersebut melalui pendidikan, publikasi, kaderisasi, dan pengembangan
-              sumber daya manusia yang memiliki kompetensi di bidang fiqih.
-            </p>
-          </div>
-        </Section>
-
-        {/* 4. Visi */}
-        <Section>
-          <div
-            className="rounded-2xl p-8 text-center"
-            style={{ background: 'hsl(var(--brand-gold-pale))' }}
-          >
-            <p className="text-xs font-semibold uppercase tracking-wider text-[hsl(var(--accent))] mb-3">
-              Visi
-            </p>
-            <p className="font-serif text-xl sm:text-2xl font-bold text-foreground leading-snug max-w-2xl mx-auto">
-              Menjadi pusat rujukan fiqih berbasis turats berdasarkan madzhab Syafi'i yang
-              menghadirkan pendidikan, publikasi, dan kaderisasi secara sistematis bagi
-              masyarakat Indonesia.
-            </p>
-          </div>
-        </Section>
-
-        {/* 5. Misi */}
-        <Section>
-          <SectionLabel>Misi</SectionLabel>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {MISI.map((item) => (
-              <div
-                key={item.number}
-                className="relative overflow-hidden bg-card border rounded-2xl p-6 flex flex-col"
-              >
-                <p
-                  className="font-serif text-5xl font-bold leading-none select-none"
-                  style={{ color: 'hsl(var(--primary) / 0.1)' }}
-                >
-                  {item.number}
-                </p>
-                <p className="text-sm text-foreground leading-relaxed mt-4">{item.text}</p>
-              </div>
-            ))}
-          </div>
-        </Section>
-
-        {/* 6. Nilai Dasar */}
-        <Section>
-          <SectionLabel>Nilai Dasar</SectionLabel>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            {NILAI_DASAR.map((item) => {
-              const Icon = item.icon;
-              return (
-                <div
-                  key={item.label}
-                  className="bg-card border rounded-xl p-4 text-center flex flex-col items-center gap-2"
-                >
-                  <Icon className="w-5 h-5 text-primary" />
-                  <p className="text-sm font-medium text-foreground">{item.label}</p>
-                </div>
-              );
-            })}
-          </div>
-        </Section>
-
-        {/* 7. Metode Keilmuan */}
-        <Section>
-          <SectionLabel>Metode Keilmuan</SectionLabel>
-          <div className="space-y-4 text-foreground/90 text-base leading-relaxed">
-            <p>
-              Berbasis fiqih madzhab Syafi'i yang solutif, dengan tetap memberikan ruang
-              keterbukaan terhadap pendapat madzhab lain selama termasuk pendapat yang
-              mu'tabar.
-            </p>
-            <p>
-              Mengusung prinsip bahwa fiqih Islam adalah syariat yang mudah, aplikatif, dan
-              relevan dengan kebutuhan masyarakat. Penyampaian materi dilakukan secara
-              edukatif, namun tetap kritis terhadap informasi, praktik, atau pemahaman yang
-              tidak sesuai dengan kaidah keilmuan.
-            </p>
-            <p>
-              Dalam berfatwa dan memberikan bimbingan, prioritas diberikan kepada pendapat
-              mu'tamad madzhab Syafi'i selama telah mencukupi untuk menjawab kebutuhan.
-              Apabila diperlukan, dibuka ruang untuk memanfaatkan pendapat mu'tabar dari
-              madzhab lain.
-            </p>
-            <p>
-              Fokus utama bukan melakukan tarjih antarpendapat, melainkan memberikan arahan
-              dan solusi fiqih yang dapat dipertanggungjawabkan secara ilmiah.
-            </p>
-          </div>
-
-          <p
-            className="text-[10px] font-bold uppercase tracking-[0.18em] mt-8"
-            style={{ color: 'hsl(var(--accent))' }}
-          >
-            Urutan Rujukan
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mt-6">
-            {METHOD_REFERENCES.map((ref, idx) => (
-              <div key={ref.number} className="flex flex-col">
-                <p
-                  className="font-serif text-6xl font-bold leading-none mb-5 select-none"
-                  style={{ color: 'hsl(var(--primary) / 0.12)' }}
-                >
-                  {ref.number}
-                </p>
-                <p
-                  className="text-[10px] font-bold uppercase tracking-[0.18em] mb-2"
-                  style={{ color: 'hsl(var(--accent))' }}
-                >
-                  Rujukan {idx + 1}
-                </p>
-                <p className="text-sm text-foreground leading-relaxed">{ref.text}</p>
-              </div>
-            ))}
-          </div>
-        </Section>
-
-        {/* 8. Karakteristik Markaz Fiqih */}
-        <Section>
-          <SectionLabel>Karakteristik Markaz Fiqih</SectionLabel>
-          <div className="space-y-3">
-            {KARAKTERISTIK.map((item) => (
-              <div key={item} className="flex items-start gap-3">
-                <CheckCircle2 className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-                <p className="text-sm text-foreground leading-relaxed">{item}</p>
-              </div>
-            ))}
-          </div>
-        </Section>
-
-        {/* 9. Bidang Kegiatan */}
-        <Section>
-          <SectionLabel>Bidang Kegiatan</SectionLabel>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {BIDANG_KEGIATAN.map((bidang) => (
-              <div key={bidang.kategori} className="bg-card border rounded-2xl p-6">
-                <p className="font-serif font-bold text-foreground mb-3">{bidang.kategori}</p>
-                <ul className="space-y-1.5">
-                  {bidang.items.map((item) => (
-                    <li key={item} className="text-sm text-muted-foreground flex gap-2">
-                      <span>&bull;</span>
-                      <span>{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </Section>
-
-        {/* 10. Sasaran */}
-        <Section>
-          <SectionLabel>Sasaran</SectionLabel>
-          <div className="flex flex-wrap gap-3">
-            {SASARAN.map((item) => (
-              <span
-                key={item}
-                className="rounded-full border px-5 py-2 text-sm font-medium text-foreground"
-              >
-                {item}
-              </span>
-            ))}
-          </div>
-        </Section>
-
-        {/* 11. Cita-cita + Roadmap */}
-        <Section>
-          <SectionLabel>Cita-cita</SectionLabel>
-          <div className="space-y-4 text-foreground/90 text-base leading-relaxed">
-            <p>
-              Menjadi pusat keilmuan fiqih berskala nasional yang memiliki sistem pendidikan,
-              kaderisasi, publikasi, dan jaringan pengajar di berbagai daerah Indonesia.
-            </p>
-            <p>Dalam jangka panjang, Markaz Fiqih diarahkan untuk mengembangkan:</p>
-            <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
-              {CITA_CITA_ARAH.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ol>
-          </div>
-
-          {/* Roadmap 5 fase — timeline horizontal (desktop) / vertikal (mobile) */}
-          <div className="mt-10">
-            <div className="hidden sm:flex items-start justify-between relative">
-              <div
-                className="absolute top-4 left-0 right-0 h-px bg-border"
-                style={{ zIndex: 0 }}
-              />
-              {ROADMAP_FASE.map((fase) => (
-                <div key={fase.number} className="relative z-10 flex flex-col items-center text-center px-2 flex-1">
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                      fase.done
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-card border-2 border-primary text-primary'
-                    }`}
-                  >
-                    {fase.number}
-                  </div>
-                  <p className="text-xs font-semibold text-foreground mt-3 leading-snug">
-                    Fase {fase.number}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-1 leading-snug max-w-[140px]">
-                    {fase.label}
-                  </p>
-                </div>
-              ))}
-            </div>
-
-            {/* Mobile: vertikal */}
-            <div className="flex sm:hidden flex-col gap-0 relative pl-4">
-              <div className="absolute top-2 bottom-2 left-[15px] w-px bg-border" style={{ zIndex: 0 }} />
-              {ROADMAP_FASE.map((fase) => (
-                <div key={fase.number} className="relative z-10 flex items-start gap-4 py-3">
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                      fase.done
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-card border-2 border-primary text-primary'
-                    }`}
-                  >
-                    {fase.number}
-                  </div>
-                  <div className="pt-1">
-                    <p className="text-sm font-semibold text-foreground leading-snug">
-                      Fase {fase.number}
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-0.5 leading-snug">
-                      {fase.label}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Section>
-      </main>
-
-      <footer className="border-t py-8 text-center text-sm text-muted-foreground">
-        © 2026 Markaz Fiqh. Semua Hak Dilindungi.
-      </footer>
-    </AppShell>
-  );
-}
-
-export default function AboutUsPage() {
   return (
     <ProtectedRoute>
-      <AboutUsContent />
+      <AppShell>
+        <main className="min-h-screen bg-background">
+          <div className="container mx-auto px-5 sm:px-8 lg:px-16 py-16 sm:py-20 max-w-[800px]">
+
+            {/* ── Hero ──────────────────────────────────────────────────── */}
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+              className="mb-10"
+            >
+              <p className="text-xs font-semibold uppercase tracking-wider text-[hsl(var(--accent))] mb-2">
+                Tentang Kami
+              </p>
+              <h1 className="font-serif text-3xl lg:text-4xl font-bold text-foreground">
+                Tentang Markaz Fiqih
+              </h1>
+              <p className="font-serif text-lg italic text-primary mt-3">
+                Pusat Rujukan Fiqih Berlandaskan Madzhab Syafi'i
+              </p>
+            </motion.div>
+
+            {/* ── Deskripsi Umum ────────────────────────────────────────── */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1, ease: 'easeOut' }}
+              className="space-y-4 text-muted-foreground leading-relaxed mb-12"
+            >
+              <p>
+                Markaz Fiqih adalah lembaga keilmuan yang berfokus pada edukasi, kaderisasi,
+                publikasi dan pengembangan kajian fiqih. Dirintis oleh alumni Universitas
+                Al-Azhar, Kairo, Markaz Fiqih hadir dengan cita-cita menjadi pusat rujukan
+                fiqih yang berlandaskan madzhab Syafi'i. Membawa visi: membumikan fiqih di
+                setiap lini kehidupan.
+              </p>
+              <p>
+                Markaz Fiqih terbuka bagi seluruh lapisan masyarakat, mulai dari masyarakat
+                umum, mahasiswa, santri, hingga para asatidz yang ingin memperdalam fiqih
+                secara sistematis.
+              </p>
+              <p>
+                Metode fiqih yang diusung oleh Markaz Fiqih adalah fiqih madzhab Syafi'i yang
+                bersifat solutif, artinya tetap terbuka terhadap pendapat madzhab lain selama
+                termasuk pendapat yang mu'tabar, diakui validitasnya berdasarkan kaidah
+                keilmuan Islam.
+              </p>
+              <p>
+                Dengan pendekatan ini, kami berupaya menghadirkan kajian fiqih yang ilmiah,
+                aplikatif, dan relevan dengan kebutuhan masyarakat. Sejalan dengan semangat
+                kami bahwa:{' '}
+                <em className="text-primary font-medium">Fiqih Islam Itu Mudah.</em>
+              </p>
+            </motion.div>
+
+            {/* ── Urutan Rujukan ────────────────────────────────────────── */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-50px' }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+              className="mb-12"
+            >
+              <p
+                className="text-[10px] font-bold uppercase tracking-[0.18em] mb-6"
+                style={{ color: 'hsl(var(--accent))' }}
+              >
+                Urutan Rujukan
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                {METHOD_REFERENCES.map((ref, idx) => (
+                  <motion.div
+                    key={ref.number}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.4, delay: Math.min(idx * 0.05, 0.2), ease: 'easeOut' }}
+                    className="flex flex-col"
+                  >
+                    <p
+                      className="font-serif text-6xl font-bold leading-none mb-4 select-none"
+                      style={{ color: 'hsl(var(--primary) / 0.12)' }}
+                    >
+                      {ref.number}
+                    </p>
+                    <p
+                      className="text-[10px] font-bold uppercase tracking-[0.18em] mb-1.5"
+                      style={{ color: 'hsl(var(--accent))' }}
+                    >
+                      Rujukan {idx + 1}
+                    </p>
+                    <p className="text-sm text-foreground leading-relaxed">{ref.text}</p>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+
+            {/* ── Paragraf Penutup Metodologi ───────────────────────────── */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-50px' }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+              className="space-y-4 text-muted-foreground leading-relaxed mb-12"
+            >
+              <p>
+                Pada prinsipnya, kami membatasi diri pada pendapat mu'tamad madzhab selama
+                telah memadai untuk menjawab permasalahan yang dihadapi. Adapun rujukan
+                selainnya hanya digunakan apabila terdapat kebutuhan, guna menjaga
+                keteraturan dalam amal.
+              </p>
+              <p>
+                Fokus utama Markaz Fiqih bukan melakukan tarjih antar pendapat, melainkan
+                memberikan arahan dan solusi fiqih yang dapat dipertanggungjawabkan secara
+                ilmiah.
+              </p>
+            </motion.div>
+
+            {/* ── Section Kelas Markaz Fiqih ────────────────────────────── */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-50px' }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+              className="border-t pt-10 mt-10"
+            >
+              <h2 className="font-serif text-2xl font-bold text-foreground">
+                Kelas Markaz Fiqih
+              </h2>
+              <p className="text-muted-foreground mt-2 leading-relaxed">
+                Kelas Markaz Fiqih dirancang untuk memenuhi kebutuhan belajar masyarakat,
+                mulai dari pemula hingga penuntut ilmu yang ingin mendalami fiqih secara
+                akademis. Program ini diadakan dengan harapan bisa menjadi tempat belajar
+                fiqih madzhab Syafi'i yang rapi dan terstruktur.
+              </p>
+              <p className="text-muted-foreground mt-2">Saat ini tersedia tiga program utama:</p>
+
+              {/* 3 Card Program — vertikal, space-y-6 */}
+              <div className="space-y-6 mt-6">
+
+                {/* Program 1 — Fiqih Tematik */}
+                <motion.div
+                  initial={{ opacity: 0, y: 16 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4, ease: 'easeOut' }}
+                  className="bg-card rounded-2xl border p-6 space-y-4"
+                >
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[hsl(var(--accent))]">
+                    Program 1
+                  </p>
+                  <h3 className="font-serif text-xl font-bold text-foreground">
+                    Kelas Fiqih Tematik
+                  </h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Kelas Fiqih Tematik merupakan program yang membahas tema-tema fiqih
+                    tertentu yang berkaitan erat dengan kehidupan sehari-hari, baik dalam
+                    bidang ibadah maupun muamalah. Program ini bertujuan memberikan pemahaman
+                    yang benar terhadap persoalan fiqih yang sering dihadapi masyarakat
+                    berdasarkan madzhab Syafi'i, disertai penyebutan solusi dari pendapat
+                    madzhab lain yang mu'tabar apabila diperlukan.
+                  </p>
+                  <p className="text-sm font-medium text-foreground">
+                    Hingga saat ini, telah tersedia kelas-kelas berikut:
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {TEMATIK_CLASSES.map((name) => (
+                      <span
+                        key={name}
+                        className="rounded-full border px-3 py-1 text-xs text-foreground"
+                      >
+                        {name}
+                      </span>
+                    ))}
+                  </div>
+                </motion.div>
+
+                {/* Program 2 — Fiqih Kitab */}
+                <motion.div
+                  initial={{ opacity: 0, y: 16 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4, delay: 0.05, ease: 'easeOut' }}
+                  className="bg-card rounded-2xl border p-6 space-y-4"
+                >
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[hsl(var(--accent))]">
+                    Program 2
+                  </p>
+                  <h3 className="font-serif text-xl font-bold text-foreground">
+                    Kelas Fiqih Kitab
+                  </h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Kelas Fiqih Kitab merupakan program pembelajaran berjenjang yang disusun
+                    untuk membawa peserta mempelajari fiqih madzhab Syafi'i secara sistematis,
+                    dimulai dari kitab-kitab dasar hingga kitab-kitab rujukan utama. Berbeda
+                    dengan Kelas Fiqih Tematik yang berorientasi pada penyelesaian persoalan
+                    fiqih tertentu, program ini bertujuan membangun malakah fiqhiyyah, yaitu
+                    kemampuan memahami, menganalisis, dan menguasai fiqih secara metodologis.
+                  </p>
+                  <p className="text-sm font-medium text-foreground">
+                    Kurikulum yang direncanakan meliputi:
+                  </p>
+                  <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+                    <li>Safinatu an-Naja</li>
+                    <li>Al-Mukhtashar al-Lathif</li>
+                    <li>Al-Muqaddimah al-Hadhramiyyah</li>
+                    <li>Al-Yaqut an-Nafis</li>
+                    <li>'Umdah as-Salik</li>
+                    <li>Minhaj at-Thalibin</li>
+                  </ol>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Setiap jenjang disusun untuk membangun kemampuan membaca kitab fiqih,
+                    memahami struktur pendapat dalam madzhab Syafi'i, serta melatih analisis
+                    permasalahan fiqih berdasarkan metodologi yang benar.
+                  </p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Selain kurikulum utama, Kelas Fiqih Kitab juga dilengkapi dengan
+                    kelas-kelas pendukung dalam dua bab fiqih yang seringkali dianggap sulit:
+                    Haid dan Mawarits. Serta materi-materi yang penting diketahui, seperti:
+                    Tarikh al-Madzhab as-Syafi'i, A'lam al-Madzhab, Kutub al-Madzhab,
+                    Manhajiyyah at-Tafaqquh, Manhajiyyat al-'Amal, Manhajiyyat al-Ifta',
+                    Manhajiyyah al-Bahts al-Fiqhi, Musthalah Fiqih Syafi'i, al-Qaul al-Qadim
+                    wa al-Jadid, Ikhtiyarat al-A'immah (al-Muzani, Ibnu al-Mundzir, ar-Ruyani,
+                    an-Nawawi, dll), Qawa'id Ushuliyyah, Qawa'id Fiqhiyyah dan lainnya.
+                  </p>
+                </motion.div>
+
+                {/* Program 3 — Akademi Markaz Fiqih */}
+                <motion.div
+                  initial={{ opacity: 0, y: 16 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.4, delay: 0.1, ease: 'easeOut' }}
+                  className="bg-card rounded-2xl border p-6 space-y-4"
+                >
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[hsl(var(--accent))]">
+                    Program 3
+                  </p>
+                  <h3 className="font-serif text-xl font-bold text-foreground">
+                    Akademi Markaz Fiqih
+                  </h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Akademi Markaz Fiqih merupakan program spesialisasi yang bertujuan mencetak
+                    kader-kader ahli pada bidang-bidang fiqih tertentu melalui pembelajaran
+                    yang lebih mendalam dan terarah. Akademi membawahi sejumlah program,
+                    diantaranya:
+                  </p>
+                  <ul className="text-sm text-muted-foreground space-y-1.5">
+                    <li>Sekolah Mutafaqqih</li>
+                    <li>
+                      Sekolah Fiqih Wanita{' '}
+                      <span className="text-xs italic text-[hsl(var(--accent))]">(coming soon)</span>
+                    </li>
+                    <li>
+                      Sekolah Fiqih Haji Umrah{' '}
+                      <span className="text-xs italic text-[hsl(var(--accent))]">(coming soon)</span>
+                    </li>
+                    <li>
+                      Sekolah Fiqih Muamalat{' '}
+                      <span className="text-xs italic text-[hsl(var(--accent))]">(coming soon)</span>
+                    </li>
+                    <li>
+                      Sekolah Fiqih Wakaf{' '}
+                      <span className="text-xs italic text-[hsl(var(--accent))]">(coming soon)</span>
+                    </li>
+                    <li>
+                      Sekolah Fiqih Waris{' '}
+                      <span className="text-xs italic text-[hsl(var(--accent))]">(coming soon)</span>
+                    </li>
+                    <li>
+                      Sekolah Fiqih Pernikahan{' '}
+                      <span className="text-xs italic text-[hsl(var(--accent))]">(coming soon)</span>
+                    </li>
+                  </ul>
+                </motion.div>
+              </div>
+            </motion.div>
+
+            {/* ── Paragraf Penutup ──────────────────────────────────────── */}
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-50px' }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+              className="text-muted-foreground leading-relaxed mt-10"
+            >
+              Markaz Fiqih berkomitmen untuk terus menghadirkan fiqih yang mudah dipahami,
+              ilmiah, dan berlandaskan kaidah keilmuan. Kami berharap dapat menjadi wasilah
+              lahirnya generasi mutafaqqih yang mampu menghadirkan solusi fiqih secara bijaksana
+              di tengah masyarakat, dengan cita-cita agar fiqih tidak hanya difahami dalam
+              bentuk teori, melainkan juga membumi, dengan diamalkan dan diterapkan dalam setiap
+              lini kehidupan.
+            </motion.p>
+
+            {/* ── Ikuti Kami ────────────────────────────────────────────── */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-50px' }}
+              transition={{ duration: 0.5, ease: 'easeOut' }}
+              className="border-t pt-8 mt-8 text-center"
+            >
+              <p className="font-serif text-lg font-bold text-foreground mb-4">Ikuti Kami</p>
+              <div className="flex justify-center gap-4">
+                {socialLinks.map(({ label, icon: Icon, href }) =>
+                  href ? (
+                    <a
+                      key={label}
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={label}
+                      className="flex items-center justify-center w-10 h-10 rounded-full border border-border text-muted-foreground hover:text-primary hover:border-primary transition-colors"
+                    >
+                      <Icon className="w-4 h-4" />
+                    </a>
+                  ) : null,
+                )}
+              </div>
+              <p className="font-serif text-sm italic text-primary mt-6">
+                Markaz Fiqih — Membumikan Fiqih di Setiap Lini Kehidupan.
+              </p>
+            </motion.div>
+
+          </div>
+        </main>
+      </AppShell>
     </ProtectedRoute>
   );
 }

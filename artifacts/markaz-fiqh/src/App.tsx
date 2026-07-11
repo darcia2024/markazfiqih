@@ -36,7 +36,7 @@ import CertificatePage from '@/pages/CertificatePage';
 import InstructorsPage from '@/pages/InstructorsPage';
 import InstructorDetailPage from '@/pages/InstructorDetailPage';
 import BundlesPage from '@/pages/BundlesPage';
-import AboutUsPage from '@/pages/AboutUsPage';
+import { AboutUsPage } from '@/pages/AboutUsPage';
 import MyEbooksPage from '@/pages/MyEbooksPage';
 import EbookDetailPage from '@/pages/EbookDetailPage';
 

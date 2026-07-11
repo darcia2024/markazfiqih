@@ -1,0 +1,180 @@
+# Prompt 143 (Menggantikan Prompt 129): Isi Final Halaman "Tentang Kami"
+
+## Konteks
+**Prompt ini MENGGANTIKAN Prompt 129 sepenuhnya.** Kalau Prompt 129
+sempat dikerjakan duluan, GANTI TOTAL isinya sesuai konten final di
+bawah ini (struktur baru, lebih fokus ke penjelasan 3 program kelas).
+Kalau Prompt 129 belum dikerjakan, langsung pakai prompt ini sebagai
+satu-satunya sumber konten.
+
+Style visual (warna, font, spacing, kartu) TETAP mengikuti brand yang
+sudah established di web (maroon primary, gold accent, serif untuk
+judul, pola card yang sudah dipakai di section "Metode Keilmuan"
+landing page) — SAMA seperti arahan di Prompt 129 sebelumnya, cuma
+kontennya yang diganti total.
+
+## Ganti Total Isi `pages/AboutUsPage.tsx`
+
+### 1. Hero
+```tsx
+<p className="text-xs font-semibold uppercase tracking-wider text-[hsl(var(--accent))] mb-2">Tentang Kami</p>
+<h1 className="font-serif text-3xl lg:text-4xl font-bold text-foreground">Tentang Markaz Fiqih</h1>
+<p className="font-serif text-lg italic text-primary mt-3">
+  Pusat Rujukan Fiqih Berlandaskan Madzhab Syafi'i
+</p>
+```
+
+### 2. Deskripsi Umum (paragraf, `space-y-4 text-muted-foreground leading-relaxed`)
+```
+Markaz Fiqih adalah lembaga keilmuan yang berfokus pada edukasi, kaderisasi, publikasi dan pengembangan kajian fiqih. Dirintis oleh alumni Universitas Al-Azhar, Kairo, Markaz Fiqih hadir dengan cita-cita menjadi pusat rujukan fiqih yang berlandaskan madzhab Syafi'i. Membawa visi: membumikan fiqih di setiap lini kehidupan.
+
+Markaz Fiqih terbuka bagi seluruh lapisan masyarakat, mulai dari masyarakat umum, mahasiswa, santri, hingga para asatidz yang ingin memperdalam fiqih secara sistematis.
+
+Metode fiqih yang diusung oleh Markaz Fiqih adalah fiqih madzhab Syafi'i yang bersifat solutif, artinya tetap terbuka terhadap pendapat madzhab lain selama termasuk pendapat yang mu'tabar, diakui validitasnya berdasarkan kaidah keilmuan Islam.
+
+Dengan pendekatan ini, kami berupaya menghadirkan kajian fiqih yang ilmiah, aplikatif, dan relevan dengan kebutuhan masyarakat. Sejalan dengan semangat kami bahwa: Fiqih Islam Itu Mudah.
+```
+(Kalimat terakhir "Fiqih Islam Itu Mudah" boleh ditulis dengan penekanan
+visual — italic atau warna primary — sesuai teks aslinya yang di-bold.)
+
+### 3. Card "Urutan Rujukan" (4 item)
+REUSE PERSIS komponen/pola 4-card "Urutan Rujukan" yang sudah ada di
+`LandingPage.tsx` (comot style-nya, boleh duplikat kode secukupnya di
+file ini) — kontennya:
+```
+01 — Pendapat mu'tamad dalam madzhab Syafi'i.
+02 — Pendapat dha'if dalam madzhab Syafi'i.
+03 — Ikhtiyar para ulama madzhab Syafi'i.
+04 — Pendapat mu'tabar dari madzhab-madzhab fiqih lainnya, khususnya empat madzhab.
+```
+
+### 4. Paragraf Penutup Metodologi
+```
+Pada prinsipnya, kami membatasi diri pada pendapat mu'tamad madzhab selama telah memadai untuk menjawab permasalahan yang dihadapi. Adapun rujukan selainnya hanya digunakan apabila terdapat kebutuhan, guna menjaga keteraturan dalam amal.
+
+Fokus utama Markaz Fiqih bukan melakukan tarjih antar pendapat, melainkan memberikan arahan dan solusi fiqih yang dapat dipertanggungjawabkan secara ilmiah.
+```
+
+### 5. Section "Kelas Markaz Fiqih" (heading baru, `border-t pt-10 mt-10` sebagai pemisah dari section di atasnya)
+```tsx
+<h2 className="font-serif text-2xl font-bold text-foreground">Kelas Markaz Fiqih</h2>
+<p className="text-muted-foreground mt-2">
+  Kelas Markaz Fiqih dirancang untuk memenuhi kebutuhan belajar masyarakat, mulai dari pemula hingga penuntut ilmu yang ingin mendalami fiqih secara akademis. Program ini diadakan dengan harapan bisa menjadi tempat belajar fiqih madzhab Syafi'i yang rapi dan terstruktur.
+</p>
+<p className="text-muted-foreground mt-2">Saat ini tersedia tiga program utama:</p>
+```
+
+### 6. Card Program 1 — Kelas Fiqih Tematik
+```tsx
+<div className="bg-card rounded-2xl border p-6 space-y-4">
+  <p className="text-xs font-semibold uppercase tracking-wide text-[hsl(var(--accent))]">Program 1</p>
+  <h3 className="font-serif text-xl font-bold text-foreground">Kelas Fiqih Tematik</h3>
+  <p className="text-sm text-muted-foreground leading-relaxed">
+    Kelas Fiqih Tematik merupakan program yang membahas tema-tema fiqih tertentu yang berkaitan erat dengan kehidupan sehari-hari, baik dalam bidang ibadah maupun muamalah. Program ini bertujuan memberikan pemahaman yang benar terhadap persoalan fiqih yang sering dihadapi masyarakat berdasarkan madzhab Syafi'i, disertai penyebutan solusi dari pendapat madzhab lain yang mu'tabar apabila diperlukan.
+  </p>
+  <p className="text-sm font-medium text-foreground">Hingga saat ini, telah tersedia kelas-kelas berikut:</p>
+  <div className="flex flex-wrap gap-2">
+    {TEMATIK_CLASSES.map((name) => (
+      <span key={name} className="rounded-full border px-3 py-1 text-xs text-foreground">{name}</span>
+    ))}
+  </div>
+</div>
+```
+Isi array `TEMATIK_CLASSES` (21 item, urutan sesuai daftar asli):
+```
+Fiqih Islam Itu Mudah, Fiqih Wudhu Mandi dan Tayamum, Fiqih Najis, Fiqih Alkohol, Fiqih Darah Wanita, Fiqih Shalat Jamaah, Fiqih Shalat dan Khutbah Jumat, Fiqih Shalat Ied, Fiqih Safar, Fiqih Zakat Fitri, Fiqih Puasa, Fiqih Puasa Syawwal, Fiqih Tarawih, Fiqih Haji Umrah, Fiqih Umrah, Fiqih Badal Haji Umrah, Fiqih Kurban, Fiqih Muamalah Kontemporer, Fiqih Nikah, Fiqih Talak, Fiqih Maulud
+```
+
+### 7. Card Program 2 — Kelas Fiqih Kitab
+```tsx
+<div className="bg-card rounded-2xl border p-6 space-y-4">
+  <p className="text-xs font-semibold uppercase tracking-wide text-[hsl(var(--accent))]">Program 2</p>
+  <h3 className="font-serif text-xl font-bold text-foreground">Kelas Fiqih Kitab</h3>
+  <p className="text-sm text-muted-foreground leading-relaxed">
+    Kelas Fiqih Kitab merupakan program pembelajaran berjenjang yang disusun untuk membawa peserta mempelajari fiqih madzhab Syafi'i secara sistematis, dimulai dari kitab-kitab dasar hingga kitab-kitab rujukan utama. Berbeda dengan Kelas Fiqih Tematik yang berorientasi pada penyelesaian persoalan fiqih tertentu, program ini bertujuan membangun malakah fiqhiyyah, yaitu kemampuan memahami, menganalisis, dan menguasai fiqih secara metodologis.
+  </p>
+  <p className="text-sm font-medium text-foreground">Kurikulum yang direncanakan meliputi:</p>
+  <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+    <li>Safinatu an-Naja</li>
+    <li>Al-Mukhtashar al-Lathif</li>
+    <li>Al-Muqaddimah al-Hadhramiyyah</li>
+    <li>Al-Yaqut an-Nafis</li>
+    <li>'Umdah as-Salik</li>
+    <li>Minhaj at-Thalibin</li>
+  </ol>
+  <p className="text-sm text-muted-foreground leading-relaxed">
+    Setiap jenjang disusun untuk membangun kemampuan membaca kitab fiqih, memahami struktur pendapat dalam madzhab Syafi'i, serta melatih analisis permasalahan fiqih berdasarkan metodologi yang benar.
+  </p>
+  <p className="text-sm text-muted-foreground leading-relaxed">
+    Selain kurikulum utama, Kelas Fiqih Kitab juga dilengkapi dengan kelas-kelas pendukung dalam dua bab fiqih yang seringkali dianggap sulit: Haid dan Mawarits. Serta materi-materi yang penting diketahui, seperti: Tarikh al-Madzhab as-Syafi'i, A'lam al-Madzhab, Kutub al-Madzhab, Manhajiyyah at-Tafaqquh, Manhajiyyat al-'Amal, Manhajiyyat al-Ifta', Manhajiyyah al-Bahts al-Fiqhi, Musthalah Fiqih Syafi'i, al-Qaul al-Qadim wa al-Jadid, Ikhtiyarat al-A'immah (al-Muzani, Ibnu al-Mundzir, ar-Ruyani, an-Nawawi, dll), Qawa'id Ushuliyyah, Qawa'id Fiqhiyyah dan lainnya.
+  </p>
+</div>
+```
+
+### 8. Card Program 3 — Akademi Markaz Fiqih
+```tsx
+<div className="bg-card rounded-2xl border p-6 space-y-4">
+  <p className="text-xs font-semibold uppercase tracking-wide text-[hsl(var(--accent))]">Program 3</p>
+  <h3 className="font-serif text-xl font-bold text-foreground">Akademi Markaz Fiqih</h3>
+  <p className="text-sm text-muted-foreground leading-relaxed">
+    Akademi Markaz Fiqih merupakan program spesialisasi yang bertujuan mencetak kader-kader ahli pada bidang-bidang fiqih tertentu melalui pembelajaran yang lebih mendalam dan terarah. Akademi membawahi sejumlah program, diantaranya:
+  </p>
+  <ul className="text-sm text-muted-foreground space-y-1.5">
+    <li>Sekolah Mutafaqqih</li>
+    <li>Sekolah Fiqih Wanita <span className="text-xs italic text-[hsl(var(--accent))]">(coming soon)</span></li>
+    <li>Sekolah Fiqih Haji Umrah <span className="text-xs italic text-[hsl(var(--accent))]">(coming soon)</span></li>
+    <li>Sekolah Fiqih Muamalat <span className="text-xs italic text-[hsl(var(--accent))]">(coming soon)</span></li>
+    <li>Sekolah Fiqih Wakaf <span className="text-xs italic text-[hsl(var(--accent))]">(coming soon)</span></li>
+    <li>Sekolah Fiqih Waris <span className="text-xs italic text-[hsl(var(--accent))]">(coming soon)</span></li>
+    <li>Sekolah Fiqih Pernikahan <span className="text-xs italic text-[hsl(var(--accent))]">(coming soon)</span></li>
+  </ul>
+</div>
+```
+(3 card program ini disusun vertikal berurutan, satu di bawah yang
+lain, `space-y-6` — BUKAN grid sejajar, karena isinya panjang-panjang
+dan perlu ruang baca yang nyaman.)
+
+### 9. Paragraf Penutup
+```
+Markaz Fiqih berkomitmen untuk terus menghadirkan fiqih yang mudah dipahami, ilmiah, dan berlandaskan kaidah keilmuan. Kami berharap dapat menjadi wasilah lahirnya generasi mutafaqqih yang mampu menghadirkan solusi fiqih secara bijaksana di tengah masyarakat, dengan cita-cita agar fiqih tidak hanya difahami dalam bentuk teori, melainkan juga membumi, dengan diamalkan dan diterapkan dalam setiap lini kehidupan.
+```
+
+### 10. Section "Ikuti Kami" (social links)
+```tsx
+<div className="border-t pt-8 mt-8 text-center">
+  <p className="font-serif text-lg font-bold text-foreground mb-4">Ikuti Kami</p>
+  <div className="flex justify-center gap-4">
+    {/* Icon Instagram, Facebook, TikTok, YouTube — reuse komponen icon sosmed
+        yang SUDAH ADA di footer LandingPage.tsx (termasuk TikTokIcon custom
+        yang sudah dibuat), JANGAN bikin ulang */}
+  </div>
+  <p className="font-serif text-sm italic text-primary mt-6">
+    Markaz Fiqih — Membumikan Fiqih di Setiap Lini Kehidupan.
+  </p>
+</div>
+```
+Link sosmed: Instagram `https://www.instagram.com/markazfiqih`,
+Facebook `https://facebook.com/markazfiqih`, TikTok
+`https://www.tiktok.com/@markazfiqih`, YouTube (cek dulu apakah link
+YouTube channel sudah tersedia di `site_settings`/footer yang sudah
+ada, reuse dari situ kalau ada).
+
+## Yang Tidak Boleh Berubah
+- Wrapper `AppShell`/`ProtectedRoute` dan routing `/tentang-kami` TIDAK
+  berubah.
+- Footer utama halaman (di luar section ini) TETAP ADA seperti biasa.
+
+## Setelah Selesai
+1. Buka halaman "Tentang Kami", konfirmasi seluruh konten baru ini
+   tampil rapi dan lengkap (deskripsi umum, urutan rujukan, 3 program
+   kelas dengan daftar lengkap, penutup, sosial media).
+2. Konfirmasi daftar 21 kelas Fiqih Tematik dan 6 kitab Fiqih Kitab
+   sesuai persis dengan teks yang diberikan (jangan ada yang typo/
+   kurang).
+3. Cek responsive mobile, pastikan card program dan chip daftar kelas
+   tetap rapi.
+4. Jalankan `pnpm run typecheck`, harus 0 error.
+
+## Catatan
+Tidak ada SQL untuk prompt ini — murni redesign konten frontend, sama
+seperti Prompt 129, konten TIDAK lagi diedit lewat textarea admin.
