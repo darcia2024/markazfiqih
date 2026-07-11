@@ -19,6 +19,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { listEnrollments, type EnrollmentItem } from '@/lib/db';
+import { NotificationBell } from '@/components/NotificationBell';
 
 const NAV_ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -193,17 +194,27 @@ export function AppShell({ children }: { children: ReactNode }) {
         <Link href="/" className="flex items-center">
           <img src="/logo.png" alt="Markaz Fiqih" className="h-8 w-auto brightness-0 invert" />
         </Link>
-        {/* Mobile hamburger: tombol dengan whileHover/whileTap */}
-        <motion.button
-          onClick={() => setMobileOpen(true)}
-          className="p-2 rounded-md text-white/80 hover:text-white hover:bg-white/10 transition-friendly"
-          aria-label="Buka menu navigasi"
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          transition={{ duration: 0.15 }}
-        >
-          <Menu className="h-6 w-6" />
-        </motion.button>
+        <div className="flex items-center gap-1">
+          <div className="[&_svg]:text-white/80 [&_svg]:hover:text-white [&_button]:hover:bg-white/10">
+            <NotificationBell />
+          </div>
+          {/* Mobile hamburger: tombol dengan whileHover/whileTap */}
+          <motion.button
+            onClick={() => setMobileOpen(true)}
+            className="p-2 rounded-md text-white/80 hover:text-white hover:bg-white/10 transition-friendly"
+            aria-label="Buka menu navigasi"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ duration: 0.15 }}
+          >
+            <Menu className="h-6 w-6" />
+          </motion.button>
+        </div>
+      </div>
+
+      {/* Desktop floating notification bell — top-right of main content, visible on all AppShell pages */}
+      <div className="hidden lg:flex fixed top-4 right-6 z-30">
+        <NotificationBell />
       </div>
 
       {/* Mobile drawer overlay + panel */}

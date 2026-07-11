@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 import {
   Search,
-  Bell,
   ShoppingCart,
   Check,
   ArrowRight,
@@ -13,6 +12,7 @@ import {
   BookOpen,
   Download,
 } from 'lucide-react';
+import { NotificationBell } from '@/components/NotificationBell';
 
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
@@ -88,14 +88,7 @@ function CatalogHeader() {
           </Link>
         )}
         <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.15 }}>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="rounded-full"
-            aria-label="Notifikasi"
-          >
-            <Bell className="h-5 w-5 text-muted-foreground" />
-          </Button>
+          <NotificationBell />
         </motion.div>
         <Avatar className="h-9 w-9 border border-border">
           {user ? (

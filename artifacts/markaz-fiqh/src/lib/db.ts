@@ -1978,3 +1978,87 @@ export async function bulkUpdateDisplayOrder(
   const firstError = results.find((r) => r.error)?.error;
   if (firstError) throw firstError;
 }
+
+// ─── NOTIFICATIONS ────────────────────────────────────────────────────────────
+
+export type AppNotification = {
+  id: string;
+  title: string;
+  message: string;
+  type: 'info' | 'promo' | 'kelas_baru';
+  createdAt: string;
+  isRead: boolean;
+};
+
+export async function listNotifications(userId: string): Promise<AppNotification[]> {
+  const { data: notifs, error } = await supabase
+    .from('notifications')
+    .select('id, title, message, type, created_at')
+    .order('created_at', { ascending: false })
+    .limit(50);
+  if (error) throw error;
+
+  const { data: reads, error: readsError } = await supabase
+    .from('notification_reads')
+    .select('notification_id')
+    .eq('user_id', userId);
+  if (readsError) throw readsError;
+
+  const readIds = new Set((reads ?? []).map((r: any) => r.notification_id));
+
+  return (notifs ?? []).map((n: any) => ({
+    id: n.id,
+    title: n.title,
+    message: n.message,
+    type: n.type,
+    createdAt: n.created_at,
+    isRead: readIds.has(n.id),
+  }));
+}
+
+export async function markNotificationRead(userId: string, notificationId: string): Promise<void> {
+  const { error } = await supabase
+    .from('notification_reads')
+    .upsert(
+      { user_id: userId, notification_id: notificationId },
+      { onConflict: 'user_id,notification_id', ignoreDuplicates: true },
+    );
+  if (error) throw error;
+}
+
+export async function markAllNotificationsRead(userId: string, notificationIds: string[]): Promise<void> {
+  if (notificationIds.length === 0) return;
+  const { error } = await supabase
+    .from('notification_reads')
+    .upsert(
+      notificationIds.map((id) => ({ user_id: userId, notification_id: id })),
+      { onConflict: 'user_id,notification_id', ignoreDuplicates: true },
+    );
+  if (error) throw error;
+}
+
+// Admin
+export async function createNotification(payload: {
+  title: string;
+  message: string;
+  type: 'info' | 'promo' | 'kelas_baru';
+}): Promise<void> {
+  const { error } = await supabase.from('notifications').insert(payload);
+  if (error) throw error;
+}
+
+export async function listAllNotificationsForAdmin(): Promise<AppNotification[]> {
+  const { data, error } = await supabase
+    .from('notifications')
+    .select('id, title, message, type, created_at')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((n: any) => ({
+    id: n.id, title: n.title, message: n.message, type: n.type, createdAt: n.created_at, isRead: false,
+  }));
+}
+
+export async function deleteNotification(id: string): Promise<void> {
+  const { error } = await supabase.from('notifications').delete().eq('id', id);
+  if (error) throw error;
+}

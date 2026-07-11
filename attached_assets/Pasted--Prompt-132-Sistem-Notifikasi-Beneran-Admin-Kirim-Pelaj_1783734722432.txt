@@ -1,0 +1,272 @@
+# Prompt 132: Sistem Notifikasi Beneran — Admin Kirim, Pelajar Terima
+
+## Konteks
+Icon lonceng notifikasi sekarang CUMA TAMPILAN (`<Bell>` tanpa fungsi
+apapun, cuma ada di header `CatalogPage.tsx`, tidak muncul di halaman
+lain). Bikin jadi sistem broadcast beneran: admin compose pesan
+("Kelas baru tersedia hari ini!", info promo, dll) dari Admin Panel,
+SEMUA pelajar otomatis dapat notifikasinya lewat icon lonceng di
+manapun mereka berada di web (bukan cuma di Katalog).
+
+## Bagian A — SQL Migrasi (Siapkan untuk Saya Jalankan Manual)
+
+```sql
+CREATE TABLE IF NOT EXISTS notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  type TEXT NOT NULL DEFAULT 'info' CHECK (type IN ('info', 'promo', 'kelas_baru')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "notifications: semua user login bisa baca"
+  ON notifications FOR SELECT
+  USING (auth.uid() IS NOT NULL);
+
+CREATE POLICY "notifications: admin bisa kelola"
+  ON notifications FOR ALL
+  USING (
+    EXISTS (SELECT 1 FROM user_profiles WHERE user_profiles.user_id = auth.uid()::text AND user_profiles.is_admin = true)
+  )
+  WITH CHECK (
+    EXISTS (SELECT 1 FROM user_profiles WHERE user_profiles.user_id = auth.uid()::text AND user_profiles.is_admin = true)
+  );
+
+-- Tabel status baca per user (broadcast ke semua, tapi status "sudah
+-- dibaca" itu personal per user)
+CREATE TABLE IF NOT EXISTS notification_reads (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id TEXT NOT NULL,
+  notification_id UUID NOT NULL REFERENCES notifications(id) ON DELETE CASCADE,
+  read_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (user_id, notification_id)
+);
+
+ALTER TABLE notification_reads ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "notification_reads: user kelola milik sendiri"
+  ON notification_reads FOR ALL
+  USING (auth.uid()::text = user_id)
+  WITH CHECK (auth.uid()::text = user_id);
+```
+
+## Bagian B — Function di `lib/db.ts`
+
+```ts
+export type AppNotification = {
+  id: string;
+  title: string;
+  message: string;
+  type: 'info' | 'promo' | 'kelas_baru';
+  createdAt: string;
+  isRead: boolean;
+};
+
+export async function listNotifications(userId: string): Promise<AppNotification[]> {
+  const { data: notifs, error } = await supabase
+    .from('notifications')
+    .select('id, title, message, type, created_at')
+    .order('created_at', { ascending: false })
+    .limit(50);
+  if (error) throw error;
+
+  const { data: reads, error: readsError } = await supabase
+    .from('notification_reads')
+    .select('notification_id')
+    .eq('user_id', userId);
+  if (readsError) throw readsError;
+
+  const readIds = new Set((reads ?? []).map((r: any) => r.notification_id));
+
+  return (notifs ?? []).map((n: any) => ({
+    id: n.id,
+    title: n.title,
+    message: n.message,
+    type: n.type,
+    createdAt: n.created_at,
+    isRead: readIds.has(n.id),
+  }));
+}
+
+export async function markNotificationRead(userId: string, notificationId: string): Promise<void> {
+  const { error } = await supabase
+    .from('notification_reads')
+    .upsert(
+      { user_id: userId, notification_id: notificationId },
+      { onConflict: 'user_id,notification_id', ignoreDuplicates: true },
+    );
+  if (error) throw error;
+}
+
+export async function markAllNotificationsRead(userId: string, notificationIds: string[]): Promise<void> {
+  if (notificationIds.length === 0) return;
+  const { error } = await supabase
+    .from('notification_reads')
+    .upsert(
+      notificationIds.map((id) => ({ user_id: userId, notification_id: id })),
+      { onConflict: 'user_id,notification_id', ignoreDuplicates: true },
+    );
+  if (error) throw error;
+}
+
+// Admin
+export async function createNotification(payload: {
+  title: string;
+  message: string;
+  type: 'info' | 'promo' | 'kelas_baru';
+}): Promise<void> {
+  const { error } = await supabase.from('notifications').insert(payload);
+  if (error) throw error;
+}
+
+export async function listAllNotificationsForAdmin(): Promise<AppNotification[]> {
+  const { data, error } = await supabase
+    .from('notifications')
+    .select('id, title, message, type, created_at')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((n: any) => ({
+    id: n.id, title: n.title, message: n.message, type: n.type, createdAt: n.created_at, isRead: false,
+  }));
+}
+
+export async function deleteNotification(id: string): Promise<void> {
+  const { error } = await supabase.from('notifications').delete().eq('id', id);
+  if (error) throw error;
+}
+```
+
+## Bagian C — Komponen `NotificationBell.tsx`
+
+Buat `artifacts/markaz-fiqh/src/components/NotificationBell.tsx`, komponen
+reusable (dipakai di banyak halaman, lihat Bagian D):
+
+```tsx
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Bell } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useAuth } from '@/context/AuthContext';
+import { listNotifications, markAllNotificationsRead } from '@/lib/db';
+
+const TYPE_LABEL: Record<string, string> = {
+  info: 'Info',
+  promo: 'Promo',
+  kelas_baru: 'Kelas Baru',
+};
+
+export function NotificationBell() {
+  const { user } = useAuth();
+  const [open, setOpen] = useState(false);
+  const queryClient = useQueryClient();
+
+  const { data: notifications = [] } = useQuery({
+    queryKey: ['notifications', user?.id],
+    queryFn: () => listNotifications(user!.id),
+    enabled: !!user?.id,
+    refetchInterval: 60_000, // polling ringan tiap 1 menit
+  });
+
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
+
+  const markAllMutation = useMutation({
+    mutationFn: () => markAllNotificationsRead(user!.id, notifications.filter((n) => !n.isRead).map((n) => n.id)),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications', user?.id] }),
+  });
+
+  function handleOpenChange(next: boolean) {
+    setOpen(next);
+    if (next && unreadCount > 0) markAllMutation.mutate();
+  }
+
+  if (!user) return null;
+
+  return (
+    <Popover open={open} onOpenChange={handleOpenChange}>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="icon" className="rounded-full relative" aria-label="Notifikasi">
+          <Bell className="h-5 w-5 text-muted-foreground" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 rounded-full bg-primary text-white text-[10px] font-semibold flex items-center justify-center">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-80 p-0 max-h-96 overflow-y-auto">
+        <div className="p-3 border-b">
+          <p className="text-sm font-semibold">Notifikasi</p>
+        </div>
+        {notifications.length === 0 ? (
+          <p className="p-4 text-sm text-muted-foreground text-center">Belum ada notifikasi.</p>
+        ) : (
+          <div className="divide-y">
+            {notifications.map((n) => (
+              <div key={n.id} className={`p-3 ${!n.isRead ? 'bg-[hsl(var(--brand-red-tint))]' : ''}`}>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-primary">
+                    {TYPE_LABEL[n.type] ?? n.type}
+                  </span>
+                </div>
+                <p className="text-sm font-medium text-foreground">{n.title}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{n.message}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
+```
+(Cek dulu apakah komponen `Popover` dari shadcn/ui sudah tersedia di
+project ini — `@/components/ui/popover` — kemungkinan besar sudah ada
+karena umum dipakai shadcn, kalau belum ada, install dulu.)
+
+## Bagian D — Pasang di Header, Global (Bukan Cuma Katalog)
+
+1. Di `pages/CatalogPage.tsx`, GANTI icon `<Bell>` statis yang sekarang
+   ada (cari komponen `CatalogHeader`) dengan `<NotificationBell />`.
+2. Supaya notifikasi muncul di SEMUA halaman (bukan cuma Katalog),
+   tambahkan `<NotificationBell />` juga ke `components/AppShell.tsx` —
+   cari area top bar mobile (biasanya ada header kecil di mobile dengan
+   hamburger menu) DAN idealnya juga tambahkan di top area desktop kalau
+   ada tempat yang masuk akal (misal pojok kanan atas konten utama). Kalau
+   `AppShell.tsx` tidak punya top bar yang jelas untuk desktop, taruh
+   `NotificationBell` di halaman-halaman utama yang sering dibuka:
+   `DashboardPage.tsx` dan `MyClassesPage.tsx` header, mengikuti pola
+   yang sudah ada di `CatalogPage.tsx`.
+
+## Bagian E — Halaman Admin `AdminNotificationsPage.tsx`
+
+Buat `artifacts/markaz-fiqh/src/pages/admin/AdminNotificationsPage.tsx`:
+- Form compose: input Judul, textarea Pesan, Select Tipe (Info/Promo/
+  Kelas Baru), tombol "Kirim Notifikasi" (langsung broadcast ke semua
+  user begitu di-submit, tidak perlu draft/schedule untuk versi ini).
+- List riwayat notifikasi yang pernah dikirim (tabel: judul, tipe,
+  tanggal kirim, tombol hapus).
+- Routing `/admin/notifications` di `App.tsx`, menu "Notifikasi"
+  (icon `Bell`) di `AdminLayout.tsx`.
+
+## Yang Tidak Boleh Berubah
+- Notifikasi ini BROADCAST ke semua user (tidak ada targeting per user
+  individual untuk versi ini) — cukup sesuai kebutuhan yang diminta
+  ("info ke setiap pelajar").
+- Icon lonceng yang sudah ada posisinya di `CatalogPage.tsx` TIDAK
+  dipindah, cuma diganti jadi komponen fungsional.
+
+## Setelah Selesai
+1. Kirim notifikasi contoh dari Admin Panel ("Kelas baru: Fiqih Zakat
+   tersedia!").
+2. Buka akun pelajar, konfirmasi badge angka merah muncul di icon
+   lonceng (di halaman manapun yang sudah dipasangi `NotificationBell`).
+3. Klik lonceng, konfirmasi list notifikasi muncul, badge angka hilang
+   setelah dibuka (marked as read).
+4. Refresh halaman, konfirmasi notifikasi yang sudah dibaca tidak lagi
+   dihitung di badge, tapi tetap muncul di list (dengan style beda,
+   tidak di-highlight lagi).
+5. Jalankan `pnpm run typecheck`, harus 0 error.
+6. Tegaskan SQL Bagian A perlu saya jalankan manual dulu.
