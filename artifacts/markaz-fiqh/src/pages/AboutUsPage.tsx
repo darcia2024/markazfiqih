@@ -149,7 +149,7 @@ function AboutUsContent() {
             Tentang Kami
           </p>
           <h1 className="font-serif text-3xl lg:text-4xl font-bold text-foreground">
-            Tentang Kami: Kelas Markaz Fiqih
+            Tentang Kami
           </h1>
           <p className="font-serif text-lg italic text-primary mt-3">
             &ldquo;Membumikan fiqih dalam tiap lini masyarakat.&rdquo;
