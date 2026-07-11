@@ -40,6 +40,7 @@ export function StarRating({
             fill={filled ? 'currentColor' : 'none'}
             stroke="currentColor"
             strokeWidth={1.5}
+            style={{ pointerEvents: 'all' }}
             className={cn(
               SIZE_MAP[size],
               filled ? 'text-yellow-400' : 'text-muted-foreground/40',
