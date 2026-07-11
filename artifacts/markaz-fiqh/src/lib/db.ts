@@ -1153,6 +1153,80 @@ export async function bulkUpdateDarsVideos(updates: { darsId: string; youtubeVid
   if (firstError) throw firstError;
 }
 
+// ─── Module / Dars CRUD (Admin Panel) ─────────────────────────────────────────
+export type AdminModule = {
+  id: string;
+  title: string;
+  orderIndex: number;
+  darsList: { id: string; title: string; orderIndex: number; durationMinutes: number | null; youtubeVideoId: string | null }[];
+};
+
+export async function listModulesForClass(classId: string): Promise<AdminModule[]> {
+  const { data, error } = await supabase
+    .from('modules')
+    .select('id, title, order_index, dars(id, title, order_index, duration_minutes, youtube_video_id)')
+    .eq('class_id', classId)
+    .order('order_index');
+  if (error) throw error;
+  return (data ?? []).map((m: any) => ({
+    id: m.id, title: m.title, orderIndex: m.order_index,
+    darsList: (m.dars ?? [])
+      .sort((a: any, b: any) => a.order_index - b.order_index)
+      .map((d: any) => ({
+        id: d.id, title: d.title, orderIndex: d.order_index,
+        durationMinutes: d.duration_minutes, youtubeVideoId: d.youtube_video_id,
+      })),
+  }));
+}
+
+export async function createModule(classId: string, title: string): Promise<string> {
+  const { data: existing } = await supabase.from('modules').select('order_index').eq('class_id', classId).order('order_index', { ascending: false }).limit(1);
+  const nextOrder = ((existing?.[0]?.order_index as number) ?? -1) + 1;
+  const { data, error } = await supabase.from('modules').insert({ class_id: classId, title, order_index: nextOrder, duration_minutes: 0 }).select('id').single();
+  if (error) throw error;
+  return data.id;
+}
+
+export async function updateModule(id: string, title: string): Promise<void> {
+  const { error } = await supabase.from('modules').update({ title }).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteModule(id: string): Promise<void> {
+  const { error } = await supabase.from('modules').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function createDars(moduleId: string, payload: { title: string; durationMinutes: number; youtubeVideoId?: string }): Promise<void> {
+  const { data: existing } = await supabase.from('dars').select('order_index').eq('module_id', moduleId).order('order_index', { ascending: false }).limit(1);
+  const nextOrder = ((existing?.[0]?.order_index as number) ?? -1) + 1;
+  const { error } = await supabase.from('dars').insert({
+    module_id: moduleId, title: payload.title, order_index: nextOrder,
+    duration_minutes: payload.durationMinutes, youtube_video_id: payload.youtubeVideoId || null,
+  });
+  if (error) throw error;
+}
+
+export async function updateDarsFull(id: string, payload: { title: string; durationMinutes: number; youtubeVideoId: string | null }): Promise<void> {
+  const { error } = await supabase.from('dars').update({
+    title: payload.title, duration_minutes: payload.durationMinutes, youtube_video_id: payload.youtubeVideoId,
+  }).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteDars(id: string): Promise<void> {
+  const { error } = await supabase.from('dars').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function reorderModules(classId: string, orderedIds: string[]): Promise<void> {
+  await Promise.all(orderedIds.map((id, idx) => supabase.from('modules').update({ order_index: idx }).eq('id', id)));
+}
+
+export async function reorderDars(moduleId: string, orderedIds: string[]): Promise<void> {
+  await Promise.all(orderedIds.map((id, idx) => supabase.from('dars').update({ order_index: idx }).eq('id', id)));
+}
+
 export async function getInvoice(invoiceId: string): Promise<LocalInvoice> {
   const { data, error } = await supabase
     .from('invoices')

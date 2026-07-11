@@ -1,0 +1,142 @@
+# Prompt 144: Admin Bisa Tambah/Edit/Hapus Bab & Pelajaran Sendiri
+
+## Konteks
+Kelas model Modul/Bab (Fiqih Kitab) sekarang strukturnya (Bab, Pelajaran
+di dalamnya, video per pelajaran) CUMA BISA diatur lewat SQL manual —
+belum ada UI di Admin Panel buat nambah/edit/hapus Bab atau Pelajaran
+baru. Bikin ini jadi bisa diatur sendiri dari Admin Panel, MUDAH dipakai
+tanpa perlu SQL lagi ke depannya.
+
+## Bagian A — Function di `lib/db.ts`
+
+```ts
+export type AdminModule = {
+  id: string;
+  title: string;
+  orderIndex: number;
+  darsList: { id: string; title: string; orderIndex: number; durationMinutes: number | null; youtubeVideoId: string | null }[];
+};
+
+export async function listModulesForClass(classId: string): Promise<AdminModule[]> {
+  const { data, error } = await supabase
+    .from('modules')
+    .select('id, title, order_index, dars(id, title, order_index, duration_minutes, youtube_video_id)')
+    .eq('class_id', classId)
+    .order('order_index');
+  if (error) throw error;
+  return (data ?? []).map((m: any) => ({
+    id: m.id, title: m.title, orderIndex: m.order_index,
+    darsList: (m.dars ?? [])
+      .sort((a: any, b: any) => a.order_index - b.order_index)
+      .map((d: any) => ({
+        id: d.id, title: d.title, orderIndex: d.order_index,
+        durationMinutes: d.duration_minutes, youtubeVideoId: d.youtube_video_id,
+      })),
+  }));
+}
+
+export async function createModule(classId: string, title: string): Promise<string> {
+  const { data: existing } = await supabase.from('modules').select('order_index').eq('class_id', classId).order('order_index', { ascending: false }).limit(1);
+  const nextOrder = ((existing?.[0]?.order_index as number) ?? -1) + 1;
+  const { data, error } = await supabase.from('modules').insert({ class_id: classId, title, order_index: nextOrder, duration_minutes: 0 }).select('id').single();
+  if (error) throw error;
+  return data.id;
+}
+
+export async function updateModule(id: string, title: string): Promise<void> {
+  const { error } = await supabase.from('modules').update({ title }).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteModule(id: string): Promise<void> {
+  const { error } = await supabase.from('modules').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function createDars(moduleId: string, payload: { title: string; durationMinutes: number; youtubeVideoId?: string }): Promise<void> {
+  const { data: existing } = await supabase.from('dars').select('order_index').eq('module_id', moduleId).order('order_index', { ascending: false }).limit(1);
+  const nextOrder = ((existing?.[0]?.order_index as number) ?? -1) + 1;
+  const { error } = await supabase.from('dars').insert({
+    module_id: moduleId, title: payload.title, order_index: nextOrder,
+    duration_minutes: payload.durationMinutes, youtube_video_id: payload.youtubeVideoId || null,
+  });
+  if (error) throw error;
+}
+
+export async function updateDarsFull(id: string, payload: { title: string; durationMinutes: number; youtubeVideoId: string | null }): Promise<void> {
+  const { error } = await supabase.from('dars').update({
+    title: payload.title, duration_minutes: payload.durationMinutes, youtube_video_id: payload.youtubeVideoId,
+  }).eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteDars(id: string): Promise<void> {
+  const { error } = await supabase.from('dars').delete().eq('id', id);
+  if (error) throw error;
+}
+
+export async function reorderModules(classId: string, orderedIds: string[]): Promise<void> {
+  await Promise.all(orderedIds.map((id, idx) => supabase.from('modules').update({ order_index: idx }).eq('id', id)));
+}
+
+export async function reorderDars(moduleId: string, orderedIds: string[]): Promise<void> {
+  await Promise.all(orderedIds.map((id, idx) => supabase.from('dars').update({ order_index: idx }).eq('id', id)));
+}
+```
+
+## Bagian B — UI di `AdminClassesPage.tsx`
+
+Di form edit kelas, KHUSUS untuk kelas yang punya struktur modul/dars
+(bukan video playlist tunggal), tambahkan section baru "Struktur Bab &
+Pelajaran" — accordion per Bab:
+
+```
+Struktur Bab & Pelajaran                        [+ Tambah Bab]
+
+  v Bab 1: Pengantar                        [Edit] [Hapus] [drag]
+     - Pengantar Fiqih          [Edit] [Hapus] [drag]
+     [+ Tambah Pelajaran]
+
+  v Bab 2: Bab Thaharah                     [Edit] [Hapus] [drag]
+     - Matan Bab Thaharah       [Edit] [Hapus] [drag]
+     - Syarah Bab Thaharah      [Edit] [Hapus] [drag]
+     [+ Tambah Pelajaran]
+```
+
+- **"+ Tambah Bab"**: Dialog kecil, input Judul Bab saja, submit
+  langsung panggil `createModule`.
+- **"+ Tambah Pelajaran"** (per Bab): Dialog input Judul Pelajaran,
+  Durasi (menit), dan Link/ID Video YouTube (opsional, boleh
+  dikosongkan dulu dan diisi belakangan lewat tombol Edit atau tool
+  Auto-Match yang sudah ada dari Prompt 142) — buat helper untuk
+  extract video ID tunggal dari link `youtu.be/xxx` atau
+  `youtube.com/watch?v=xxx` kalau yang di-paste berupa link video
+  (bukan ID mentah), supaya admin bisa paste link video apa adanya di
+  sini juga (BUKAN link playlist, tapi link 1 video spesifik).
+- **Drag-and-drop reorder**: reuse pola `@dnd-kit` yang sudah dipakai
+  di Prompt 110 (drag urutan kelas Katalog) untuk reorder Bab
+  (`reorderModules`) dan Pelajaran dalam satu Bab (`reorderDars`).
+- **Hapus Bab/Pelajaran**: AlertDialog konfirmasi (khusus hapus Bab,
+  beri warning: "Menghapus Bab ini akan menghapus semua pelajaran di
+  dalamnya juga.").
+
+## Yang Tidak Boleh Berubah
+- Mode Video Playlist (Fiqih Tematik) TIDAK terpengaruh — section ini
+  HANYA muncul untuk kelas yang memang sudah memakai struktur modul/dars.
+- Tool "Auto-Match dari Playlist" (Prompt 142) TETAP ADA, tidak
+  digantikan — ini pelengkap untuk kasus tambah satuan manual/video
+  tunggal, sementara Auto-Match untuk kasus banyak video sekaligus dari
+  1 playlist.
+
+## Setelah Selesai
+1. Buka form edit kelas Safinah an-Naja, konfirmasi section "Struktur
+   Bab & Pelajaran" muncul dengan Bab "Pengantar" dan "Bab Thaharah"
+   dkk yang sudah ada.
+2. Tambah 1 Bab baru contoh, tambah 1 Pelajaran di dalamnya dengan
+   link video, konfirmasi langsung muncul di halaman belajar kelas itu.
+3. Coba drag-reorder urutan Bab, konfirmasi tersimpan.
+4. Jalankan `pnpm run typecheck`, harus 0 error.
+
+## Catatan
+Tidak ada SQL untuk prompt ini — struktur tabel `modules`/`dars` sudah
+ada semua, ini murni UI CRUD baru di admin panel.

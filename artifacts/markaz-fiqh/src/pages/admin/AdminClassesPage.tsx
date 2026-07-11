@@ -56,12 +56,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Plus, Search, Pencil, Trash2, Loader2, Wand2 } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, Loader2, Wand2, GripVertical, ChevronDown, ChevronRight } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { ImageUploadField } from '@/components/ImageUploadField';
 import { formatPrice } from '@/pages/CatalogPage';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import {
   listClasses,
   listAllInstructorsForAdmin,
@@ -73,6 +88,16 @@ import {
   getClassMeetingTitles,
   upsertClassMeetingTitle,
   bulkUpdateDarsVideos,
+  listModulesForClass,
+  createModule,
+  updateModule,
+  deleteModule,
+  createDars,
+  updateDarsFull,
+  deleteDars,
+  reorderModules,
+  reorderDars,
+  type AdminModule,
 } from '@/lib/db';
 
 type ClassSummary = Awaited<ReturnType<typeof listClasses>>[0];
@@ -449,6 +474,506 @@ function classToForm(cls: ClassDetail): ClassFormState {
   };
 }
 
+// ─── Extract single YouTube video ID from link or raw ID ──────────────────────
+function extractVideoId(input: string): string {
+  const trimmed = input.trim();
+  if (!trimmed.includes('youtube.com') && !trimmed.includes('youtu.be')) return trimmed;
+  try {
+    const url = new URL(trimmed);
+    if (url.hostname === 'youtu.be') return url.pathname.slice(1).split('?')[0];
+    return url.searchParams.get('v') ?? trimmed;
+  } catch { return trimmed; }
+}
+
+const EMPTY_DARS_FORM = { title: '', durationMinutes: '', youtubeVideoId: '' };
+type AdminDarsItem = AdminModule['darsList'][0];
+
+// ─── Sortable: module row ─────────────────────────────────────────────────────
+function SortableModuleRow({ module, isExpanded, onToggle, onEdit, onDelete, children }: {
+  module: AdminModule;
+  isExpanded: boolean;
+  onToggle: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  children: React.ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: module.id });
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }}
+      className="rounded-lg border bg-card"
+    >
+      <div className="flex items-center gap-1.5 px-2 py-2">
+        <button type="button" {...attributes} {...listeners}
+          className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-0.5">
+          <GripVertical className="h-4 w-4" />
+        </button>
+        <button type="button" onClick={onToggle}
+          className="flex items-center gap-1 flex-1 min-w-0 text-left py-0.5">
+          {isExpanded
+            ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />}
+          <span className="text-sm font-medium truncate">{module.title}</span>
+          <span className="text-xs text-muted-foreground ml-1.5 shrink-0">
+            ({module.darsList.length} pelajaran)
+          </span>
+        </button>
+        <Button type="button" variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={onEdit}>
+          <Pencil className="h-3.5 w-3.5" />
+        </Button>
+        <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive shrink-0" onClick={onDelete}>
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+      {isExpanded && <div className="border-t bg-muted/20 px-3 pb-3 pt-2">{children}</div>}
+    </div>
+  );
+}
+
+// ─── Sortable: dars row ───────────────────────────────────────────────────────
+function SortableDarsRow({ dars, onEdit, onDelete }: {
+  dars: AdminDarsItem;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: dars.id });
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.4 : 1 }}
+      className="flex items-center gap-1.5 py-1 select-none"
+    >
+      <button type="button" {...attributes} {...listeners}
+        className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-0.5">
+        <GripVertical className="h-3.5 w-3.5" />
+      </button>
+      <span className="flex-1 text-xs truncate text-foreground">{dars.title}</span>
+      {dars.youtubeVideoId && (
+        <span title="Ada video" className="text-[10px] bg-red-50 border border-red-200 text-red-600 rounded px-1.5 py-0.5 shrink-0">▶</span>
+      )}
+      {(dars.durationMinutes ?? 0) > 0 && (
+        <span className="text-[10px] text-muted-foreground shrink-0">{dars.durationMinutes}m</span>
+      )}
+      <Button type="button" variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={onEdit}>
+        <Pencil className="h-3 w-3" />
+      </Button>
+      <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-destructive hover:text-destructive shrink-0" onClick={onDelete}>
+        <Trash2 className="h-3 w-3" />
+      </Button>
+    </div>
+  );
+}
+
+// ─── Module Structure Section ─────────────────────────────────────────────────
+function ModuleStructureSection({ classId, modules, onMutated }: {
+  classId: string;
+  modules: AdminModule[];
+  onMutated: () => void;
+}) {
+  const { toast } = useToast();
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  // Local order ids for optimistic reorder
+  const [moduleOrderIds, setModuleOrderIds] = useState(() => modules.map(m => m.id));
+  const [darsOrderMap, setDarsOrderMap] = useState<Record<string, string[]>>(() =>
+    Object.fromEntries(modules.map(m => [m.id, m.darsList.map(d => d.id)])),
+  );
+  // Sync when modules prop changes (after mutations/refetch)
+  useEffect(() => {
+    setModuleOrderIds(prev => {
+      const cur = modules.map(m => m.id);
+      return prev.length === cur.length && prev.every(id => cur.includes(id)) ? prev : cur;
+    });
+    setDarsOrderMap(prev => {
+      const next: Record<string, string[]> = {};
+      modules.forEach(m => {
+        const cur = m.darsList.map(d => d.id);
+        const p = prev[m.id];
+        next[m.id] = (p && p.length === cur.length && p.every(id => cur.includes(id))) ? p : cur;
+      });
+      return next;
+    });
+  }, [modules]);
+
+  const sortedModules = moduleOrderIds
+    .map(id => modules.find(m => m.id === id))
+    .filter(Boolean) as AdminModule[];
+
+  // Expand/collapse per module
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(
+    () => new Set(modules.map(m => m.id)),
+  );
+  const toggleExpand = (id: string) =>
+    setExpandedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+
+  // DnD handlers
+  function handleModuleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIdx = moduleOrderIds.indexOf(active.id as string);
+    const newIdx = moduleOrderIds.indexOf(over.id as string);
+    const newIds = arrayMove(moduleOrderIds, oldIdx, newIdx);
+    setModuleOrderIds(newIds);
+    reorderModules(classId, newIds).then(onMutated).catch((e: any) =>
+      toast({ title: 'Gagal menyimpan urutan bab', description: e?.message, variant: 'destructive' }));
+  }
+
+  function handleDarsDragEnd(moduleId: string, event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const cur = darsOrderMap[moduleId] ?? [];
+    const oldIdx = cur.indexOf(active.id as string);
+    const newIdx = cur.indexOf(over.id as string);
+    const newIds = arrayMove(cur, oldIdx, newIdx);
+    setDarsOrderMap(prev => ({ ...prev, [moduleId]: newIds }));
+    reorderDars(moduleId, newIds).then(onMutated).catch((e: any) =>
+      toast({ title: 'Gagal menyimpan urutan pelajaran', description: e?.message, variant: 'destructive' }));
+  }
+
+  // Sub-dialog states
+  const [addModuleOpen, setAddModuleOpen] = useState(false);
+  const [addModuleTitle, setAddModuleTitle] = useState('');
+  const [addModuleSaving, setAddModuleSaving] = useState(false);
+
+  const [editModuleTarget, setEditModuleTarget] = useState<AdminModule | null>(null);
+  const [editModuleTitle, setEditModuleTitle] = useState('');
+  const [editModuleSaving, setEditModuleSaving] = useState(false);
+
+  const [deleteModuleTarget, setDeleteModuleTarget] = useState<AdminModule | null>(null);
+  const [deleteModuleSaving, setDeleteModuleSaving] = useState(false);
+
+  const [addDarsModuleId, setAddDarsModuleId] = useState<string | null>(null);
+  const [addDarsForm, setAddDarsForm] = useState(EMPTY_DARS_FORM);
+  const [addDarsSaving, setAddDarsSaving] = useState(false);
+
+  const [editDarsTarget, setEditDarsTarget] = useState<{ moduleId: string; dars: AdminDarsItem } | null>(null);
+  const [editDarsForm, setEditDarsForm] = useState(EMPTY_DARS_FORM);
+  const [editDarsSaving, setEditDarsSaving] = useState(false);
+
+  const [deleteDarsTarget, setDeleteDarsTarget] = useState<{ id: string; title: string } | null>(null);
+  const [deleteDarsSaving, setDeleteDarsSaving] = useState(false);
+
+  // Module handlers
+  async function handleAddModule() {
+    const t = addModuleTitle.trim();
+    if (!t) return;
+    setAddModuleSaving(true);
+    try {
+      await createModule(classId, t);
+      toast({ title: 'Bab berhasil ditambahkan' });
+      setAddModuleOpen(false);
+      setAddModuleTitle('');
+      onMutated();
+    } catch (e: any) {
+      toast({ title: 'Gagal menambahkan bab', description: e?.message, variant: 'destructive' });
+    } finally { setAddModuleSaving(false); }
+  }
+
+  async function handleEditModule() {
+    if (!editModuleTarget) return;
+    const t = editModuleTitle.trim();
+    if (!t) return;
+    setEditModuleSaving(true);
+    try {
+      await updateModule(editModuleTarget.id, t);
+      toast({ title: 'Bab berhasil diperbarui' });
+      setEditModuleTarget(null);
+      onMutated();
+    } catch (e: any) {
+      toast({ title: 'Gagal memperbarui bab', description: e?.message, variant: 'destructive' });
+    } finally { setEditModuleSaving(false); }
+  }
+
+  async function handleDeleteModule() {
+    if (!deleteModuleTarget) return;
+    setDeleteModuleSaving(true);
+    try {
+      await deleteModule(deleteModuleTarget.id);
+      toast({ title: 'Bab berhasil dihapus' });
+      setDeleteModuleTarget(null);
+      onMutated();
+    } catch (e: any) {
+      toast({ title: 'Gagal menghapus bab', description: e?.message, variant: 'destructive' });
+    } finally { setDeleteModuleSaving(false); }
+  }
+
+  // Dars handlers
+  async function handleAddDars() {
+    if (!addDarsModuleId) return;
+    if (!addDarsForm.title.trim()) return;
+    setAddDarsSaving(true);
+    try {
+      const rawVid = extractVideoId(addDarsForm.youtubeVideoId);
+      await createDars(addDarsModuleId, {
+        title: addDarsForm.title.trim(),
+        durationMinutes: parseInt(addDarsForm.durationMinutes || '0', 10) || 0,
+        youtubeVideoId: rawVid || undefined,
+      });
+      toast({ title: 'Pelajaran berhasil ditambahkan' });
+      setAddDarsModuleId(null);
+      setAddDarsForm(EMPTY_DARS_FORM);
+      onMutated();
+    } catch (e: any) {
+      toast({ title: 'Gagal menambahkan pelajaran', description: e?.message, variant: 'destructive' });
+    } finally { setAddDarsSaving(false); }
+  }
+
+  async function handleEditDars() {
+    if (!editDarsTarget) return;
+    if (!editDarsForm.title.trim()) return;
+    setEditDarsSaving(true);
+    try {
+      const rawVid = extractVideoId(editDarsForm.youtubeVideoId);
+      await updateDarsFull(editDarsTarget.dars.id, {
+        title: editDarsForm.title.trim(),
+        durationMinutes: parseInt(editDarsForm.durationMinutes || '0', 10) || 0,
+        youtubeVideoId: rawVid || null,
+      });
+      toast({ title: 'Pelajaran berhasil diperbarui' });
+      setEditDarsTarget(null);
+      onMutated();
+    } catch (e: any) {
+      toast({ title: 'Gagal memperbarui pelajaran', description: e?.message, variant: 'destructive' });
+    } finally { setEditDarsSaving(false); }
+  }
+
+  async function handleDeleteDars() {
+    if (!deleteDarsTarget) return;
+    setDeleteDarsSaving(true);
+    try {
+      await deleteDars(deleteDarsTarget.id);
+      toast({ title: 'Pelajaran berhasil dihapus' });
+      setDeleteDarsTarget(null);
+      onMutated();
+    } catch (e: any) {
+      toast({ title: 'Gagal menghapus pelajaran', description: e?.message, variant: 'destructive' });
+    } finally { setDeleteDarsSaving(false); }
+  }
+
+  return (
+    <div className="space-y-3">
+      {/* Module list with DnD */}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleModuleDragEnd}>
+        <SortableContext items={moduleOrderIds} strategy={verticalListSortingStrategy}>
+          <div className="space-y-2">
+            {sortedModules.map(module => {
+              const darsIds = darsOrderMap[module.id] ?? module.darsList.map(d => d.id);
+              const sortedDars = darsIds
+                .map(id => module.darsList.find(d => d.id === id))
+                .filter(Boolean) as AdminDarsItem[];
+              return (
+                <SortableModuleRow
+                  key={module.id}
+                  module={module}
+                  isExpanded={expandedIds.has(module.id)}
+                  onToggle={() => toggleExpand(module.id)}
+                  onEdit={() => { setEditModuleTarget(module); setEditModuleTitle(module.title); }}
+                  onDelete={() => setDeleteModuleTarget(module)}
+                >
+                  {/* Dars list with inner DnD */}
+                  <DndContext sensors={sensors} collisionDetection={closestCenter}
+                    onDragEnd={(e) => handleDarsDragEnd(module.id, e)}>
+                    <SortableContext items={darsIds} strategy={verticalListSortingStrategy}>
+                      <div className="space-y-0.5 pt-1">
+                        {sortedDars.map(dars => (
+                          <SortableDarsRow
+                            key={dars.id}
+                            dars={dars}
+                            onEdit={() => {
+                              setEditDarsTarget({ moduleId: module.id, dars });
+                              setEditDarsForm({
+                                title: dars.title,
+                                durationMinutes: dars.durationMinutes != null ? String(dars.durationMinutes) : '',
+                                youtubeVideoId: dars.youtubeVideoId ?? '',
+                              });
+                            }}
+                            onDelete={() => setDeleteDarsTarget({ id: dars.id, title: dars.title })}
+                          />
+                        ))}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
+                  <Button
+                    type="button" variant="ghost" size="sm"
+                    className="h-7 text-xs mt-2 text-muted-foreground hover:text-foreground w-full justify-start pl-1"
+                    onClick={() => { setAddDarsModuleId(module.id); setAddDarsForm(EMPTY_DARS_FORM); }}
+                  >
+                    <Plus className="h-3 w-3 mr-1" />Tambah Pelajaran
+                  </Button>
+                </SortableModuleRow>
+              );
+            })}
+          </div>
+        </SortableContext>
+      </DndContext>
+
+      <Button type="button" variant="outline" size="sm"
+        onClick={() => { setAddModuleOpen(true); setAddModuleTitle(''); }}>
+        <Plus className="h-4 w-4 mr-2" />Tambah Bab
+      </Button>
+
+      {/* ── Sub-Dialogs ──────────────────────────────────────────────── */}
+      {/* Add Module */}
+      <Dialog open={addModuleOpen} onOpenChange={(v) => !v && setAddModuleOpen(false)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Tambah Bab</DialogTitle></DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="add-module-title">Judul Bab</Label>
+              <Input id="add-module-title" placeholder="cth. Bab Thaharah" value={addModuleTitle}
+                onChange={e => setAddModuleTitle(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddModule())}
+                autoFocus />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setAddModuleOpen(false)}>Batal</Button>
+            <Button type="button" onClick={handleAddModule} disabled={addModuleSaving || !addModuleTitle.trim()}>
+              {addModuleSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Simpan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Module */}
+      <Dialog open={!!editModuleTarget} onOpenChange={(v) => !v && setEditModuleTarget(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Edit Bab</DialogTitle></DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-module-title">Judul Bab</Label>
+              <Input id="edit-module-title" value={editModuleTitle}
+                onChange={e => setEditModuleTitle(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleEditModule())}
+                autoFocus />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setEditModuleTarget(null)}>Batal</Button>
+            <Button type="button" onClick={handleEditModule} disabled={editModuleSaving || !editModuleTitle.trim()}>
+              {editModuleSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Simpan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Module */}
+      <AlertDialog open={!!deleteModuleTarget} onOpenChange={(v) => !v && setDeleteModuleTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus Bab?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Anda akan menghapus bab <strong>"{deleteModuleTarget?.title}"</strong>.{' '}
+              <strong>Menghapus Bab ini akan menghapus semua pelajaran di dalamnya juga.</strong>{' '}
+              Tindakan ini tidak dapat dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteModule} disabled={deleteModuleSaving}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {deleteModuleSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Hapus Bab
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Add Dars */}
+      <Dialog open={!!addDarsModuleId} onOpenChange={(v) => !v && setAddDarsModuleId(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Tambah Pelajaran</DialogTitle></DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="add-dars-title">Judul Pelajaran</Label>
+              <Input id="add-dars-title" placeholder="cth. Matan Bab Thaharah" value={addDarsForm.title}
+                onChange={e => setAddDarsForm(p => ({ ...p, title: e.target.value }))} autoFocus />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="add-dars-duration">Durasi (menit)</Label>
+              <Input id="add-dars-duration" type="number" min="0" placeholder="cth. 45"
+                value={addDarsForm.durationMinutes}
+                onChange={e => setAddDarsForm(p => ({ ...p, durationMinutes: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="add-dars-video">Link/ID Video YouTube (opsional)</Label>
+              <Input id="add-dars-video"
+                placeholder="https://youtu.be/xxx atau ID mentah"
+                value={addDarsForm.youtubeVideoId}
+                onChange={e => setAddDarsForm(p => ({ ...p, youtubeVideoId: e.target.value }))} />
+              <p className="text-[11px] text-muted-foreground">
+                Bisa dikosongkan dan diisi belakangan lewat Edit atau Auto-Match.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setAddDarsModuleId(null)}>Batal</Button>
+            <Button type="button" onClick={handleAddDars} disabled={addDarsSaving || !addDarsForm.title.trim()}>
+              {addDarsSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Simpan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dars */}
+      <Dialog open={!!editDarsTarget} onOpenChange={(v) => !v && setEditDarsTarget(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Edit Pelajaran</DialogTitle></DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-dars-title">Judul Pelajaran</Label>
+              <Input id="edit-dars-title" value={editDarsForm.title}
+                onChange={e => setEditDarsForm(p => ({ ...p, title: e.target.value }))} autoFocus />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-dars-duration">Durasi (menit)</Label>
+              <Input id="edit-dars-duration" type="number" min="0"
+                value={editDarsForm.durationMinutes}
+                onChange={e => setEditDarsForm(p => ({ ...p, durationMinutes: e.target.value }))} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="edit-dars-video">Link/ID Video YouTube</Label>
+              <Input id="edit-dars-video"
+                placeholder="https://youtu.be/xxx atau ID mentah (kosongkan untuk hapus)"
+                value={editDarsForm.youtubeVideoId}
+                onChange={e => setEditDarsForm(p => ({ ...p, youtubeVideoId: e.target.value }))} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setEditDarsTarget(null)}>Batal</Button>
+            <Button type="button" onClick={handleEditDars} disabled={editDarsSaving || !editDarsForm.title.trim()}>
+              {editDarsSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Simpan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Dars */}
+      <AlertDialog open={!!deleteDarsTarget} onOpenChange={(v) => !v && setDeleteDarsTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus Pelajaran?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Anda akan menghapus pelajaran <strong>"{deleteDarsTarget?.title}"</strong>.
+              Tindakan ini tidak dapat dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteDars} disabled={deleteDarsSaving}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              {deleteDarsSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}Hapus Pelajaran
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 export default function AdminClassesPage() {
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -487,6 +1012,13 @@ export default function AdminClassesPage() {
     queryFn: () => getClassMeetingTitles(editingId),
     enabled: !!editingClass && dialogOpen,
   });
+
+  const { data: adminModules = [], refetch: refetchModules } = useQuery({
+    queryKey: ['admin-modules', editingId],
+    queryFn: () => listModulesForClass(editingId),
+    enabled: !!editingClass && dialogOpen,
+  });
+  const isModuleClass = adminModules.length > 0 || (editingClassDetail?.modules?.length ?? 0) > 0;
 
   const invalidateClasses = () =>
     queryClient.invalidateQueries({ queryKey: ['classes', 'admin'] });
@@ -1135,8 +1667,25 @@ export default function AdminClassesPage() {
                 />
               </div>
 
+              {/* ── Struktur Bab & Pelajaran — khusus kelas modul/dars */}
+              {editingClass && isModuleClass && (
+                <div className="space-y-3 rounded-lg border p-4">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-semibold">Struktur Bab &amp; Pelajaran</Label>
+                  </div>
+                  <ModuleStructureSection
+                    classId={editingClass.id}
+                    modules={adminModules}
+                    onMutated={() => {
+                      refetchModules();
+                      queryClient.invalidateQueries({ queryKey: ['class', editingId] });
+                    }}
+                  />
+                </div>
+              )}
+
               {/* Tool Auto-Match — khusus kelas yang punya modul/dars */}
-              {editingClass && editingClassDetail && editingClassDetail.modules.length > 0 && (
+              {editingClass && isModuleClass && (
                 <div className="rounded-lg border border-dashed p-4 space-y-2">
                   <Label>Auto-Match Video dari Playlist YouTube</Label>
                   <p className="text-xs text-muted-foreground">
