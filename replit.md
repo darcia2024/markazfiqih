@@ -76,7 +76,7 @@ attached_assets/   Course images and design docs
 
 ## Replit setup notes
 
-- Re-imported and re-verified on 2026-07-11: dependencies reinstalled via `pnpm install`, missing secrets (`SUPABASE_DATABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`) re-collected, both workflows confirmed running and homepage verified via screenshot.
+- Re-imported and re-verified on 2026-07-11 (latest): upgraded to Node.js 22 module, dependencies reinstalled via `pnpm install`, missing secrets (`SUPABASE_DATABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`) re-collected, both workflows confirmed running and homepage verified via screenshot.
 - Re-imported and re-verified on 2026-07-09: dependencies reinstalled via `pnpm install`, missing secrets (`SUPABASE_DATABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`) re-collected, workflows recreated.
 - Secrets configured in Replit Secrets: `SUPABASE_DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
 - Two workflows configured and verified running:
