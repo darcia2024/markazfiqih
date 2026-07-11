@@ -39,6 +39,27 @@ Deno.serve(async (req) => {
 
     const normalizedEmail = user.email.toLowerCase().trim();
 
+    // Cek juga apakah ada class_grants untuk email ini yang belum diredeem —
+    // dijalankan terlepas dari status admin_invites, supaya kelas yang
+    // di-grant manual tetap otomatis masuk walau user ini bukan admin.
+    const { data: grants } = await supabaseAdmin
+      .from('class_grants')
+      .select('id, class_id')
+      .eq('email', normalizedEmail)
+      .is('redeemed_at', null);
+
+    if (grants && grants.length > 0) {
+      const enrollments = grants.map((g: any) => ({ user_id: user.id, class_id: g.class_id }));
+      await supabaseAdmin
+        .from('enrollments')
+        .upsert(enrollments, { onConflict: 'user_id,class_id', ignoreDuplicates: true });
+
+      await supabaseAdmin
+        .from('class_grants')
+        .update({ redeemed_at: new Date().toISOString() })
+        .in('id', grants.map((g: any) => g.id));
+    }
+
     const { data: invite } = await supabaseAdmin
       .from('admin_invites')
       .select('id')

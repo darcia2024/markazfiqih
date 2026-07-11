@@ -1830,6 +1830,58 @@ export async function listAllUsersForAdmin(): Promise<AdminUserRow[]> {
   return data.users as AdminUserRow[];
 }
 
+// ── Admin: Kelola Enrollment & Class Grants (Prompt 138) ───────────────────────
+
+export async function listUserEnrollments(
+  userId: string,
+): Promise<{ classId: string; classTitle: string }[]> {
+  const { data, error } = await supabase
+    .from('enrollments')
+    .select('class_id, classes(title)')
+    .eq('user_id', userId);
+  if (error) throw error;
+  return (data ?? []).map((e: any) => ({
+    classId: e.class_id as string,
+    classTitle: (e.classes?.title ?? '(kelas terhapus)') as string,
+  }));
+}
+
+export async function adminAddEnrollment(userId: string, classId: string): Promise<void> {
+  const { error } = await supabase.from('enrollments').insert({ user_id: userId, class_id: classId });
+  if (error) throw error;
+}
+
+export async function adminRemoveEnrollment(userId: string, classId: string): Promise<void> {
+  const { error } = await supabase
+    .from('enrollments')
+    .delete()
+    .eq('user_id', userId)
+    .eq('class_id', classId);
+  if (error) throw error;
+}
+
+export async function createClassGrant(email: string, classIds: string[]): Promise<void> {
+  const { error } = await supabase
+    .from('class_grants')
+    .insert(classIds.map((classId) => ({ email: email.toLowerCase().trim(), class_id: classId })));
+  if (error) throw error;
+}
+
+export async function listPendingGrantsForEmail(
+  email: string,
+): Promise<{ classId: string; classTitle: string }[]> {
+  const { data, error } = await supabase
+    .from('class_grants')
+    .select('class_id, classes(title)')
+    .eq('email', email.toLowerCase().trim())
+    .is('redeemed_at', null);
+  if (error) throw error;
+  return (data ?? []).map((g: any) => ({
+    classId: g.class_id as string,
+    classTitle: (g.classes?.title ?? '') as string,
+  }));
+}
+
 export async function getVideoCompletions(userId: string, classId: string): Promise<Set<number>> {
   const { data, error } = await supabase
     .from('video_completions')
