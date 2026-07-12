@@ -1,0 +1,65 @@
+# Prompt 152 (Cepat): Fix "Progress Keseluruhan" Gak Kehitung Kelas Video Tunggal
+
+## Konteks — Bug Dikonfirmasi
+`StatsSummary` di `DashboardPage.tsx` — "Progress Keseluruhan" cuma
+ngitung dari kelas model Modul/Bab (`totalDarsCount > 0`), kelas model
+video tunggal (`totalDarsCount === 0`) SAMA SEKALI dikeluarkan dari
+perhitungan (bukan cuma di-treat sebagai 0%, tapi bener-bener gak
+masuk pembilang MAUPUN penyebut). Ini bikin angkanya kerasa "macet"
+buat user yang sebagian besar kelasnya model video tunggal — nandain
+kelas selesai gak pernah ngubah "Progress Keseluruhan" sama sekali.
+
+Ini pola bug yang SAMA seperti yang sudah diperbaiki di Prompt 95/121,
+tapi khusus komponen `StatsSummary` ini kelewat belum ikut diperbaiki.
+
+## Fix
+Ganti perhitungan `overallPct` (sekitar baris 300-305) supaya kelas
+video tunggal ikut disertakan sebagai kontribusi "1 unit selesai / 1
+unit total" (kalau `isCompleted`) atau "0/1" (kalau belum) — SAMA
+seperti pola yang sudah dipakai di Prompt 95:
+
+```ts
+function StatsSummary({ enrollments }: { enrollments: EnrollmentItem[] }) {
+  const totalOwned = enrollments.length;
+  const totalCompleted = enrollments.filter(
+    (e) =>
+      (e.class.totalDarsCount > 0 && e.class.completedDarsCount === e.class.totalDarsCount) ||
+      (e.class.totalDarsCount === 0 && e.isCompleted),
+  ).length;
+
+  // Kelas video tunggal (totalDarsCount = 0) ikut disertakan: dianggap
+  // "1 dars total", selesai (1) kalau isCompleted, belum (0) kalau belum
+  const totalDarsAcross = enrollments.reduce(
+    (s, e) => s + (e.class.totalDarsCount > 0 ? e.class.totalDarsCount : 1),
+    0,
+  );
+  const totalDoneDars = enrollments.reduce(
+    (s, e) =>
+      s + (e.class.totalDarsCount > 0 ? e.class.completedDarsCount : e.isCompleted ? 1 : 0),
+    0,
+  );
+  const overallPct =
+    totalDarsAcross > 0 ? Math.round((totalDoneDars / totalDarsAcross) * 100) : 0;
+
+  // ...sisanya (totalMinutes, totalJam, return JSX) TIDAK berubah...
+}
+```
+
+(Hapus komentar lama "// Hanya kelas dengan dars yang masuk perhitungan
+persentase" dan variable `darsClasses` yang sudah tidak dipakai lagi.)
+
+## Yang Tidak Boleh Berubah
+- `totalCompleted` ("Kelas Tuntas") TIDAK berubah, sudah benar dari
+  awal.
+- Widget sidebar "Progress Kamu" (`AppShell.tsx`, dari Prompt 121)
+  TIDAK disentuh — itu sudah benar duluan, prompt ini cuma benerin
+  card `StatsSummary` di Dashboard.
+
+## Setelah Selesai
+1. Tandai 1 kelas video tunggal yang belum selesai jadi "Tandai Kelas
+   Selesai", konfirmasi "Progress Keseluruhan" di Dashboard ikut naik
+   (tidak lagi macet di angka yang sama).
+2. Jalankan `pnpm run typecheck`, harus 0 error.
+
+## Catatan
+Tidak ada SQL untuk prompt ini — murni perbaikan formula di frontend.

@@ -384,10 +384,17 @@ function StatsSummary({ enrollments }: { enrollments: EnrollmentItem[] }) {
       (e.class.totalDarsCount > 0 && e.class.completedDarsCount === e.class.totalDarsCount) ||
       (e.class.totalDarsCount === 0 && e.isCompleted),
   ).length;
-  // Hanya kelas dengan dars yang masuk perhitungan persentase (hindari pembagi salah)
-  const darsClasses = enrollments.filter((e) => e.class.totalDarsCount > 0);
-  const totalDarsAcross = darsClasses.reduce((s, e) => s + e.class.totalDarsCount, 0);
-  const totalDoneDars = darsClasses.reduce((s, e) => s + e.class.completedDarsCount, 0);
+  // Kelas video tunggal (totalDarsCount = 0) ikut disertakan: dianggap
+  // "1 dars total", selesai (1) kalau isCompleted, belum (0) kalau belum
+  const totalDarsAcross = enrollments.reduce(
+    (s, e) => s + (e.class.totalDarsCount > 0 ? e.class.totalDarsCount : 1),
+    0,
+  );
+  const totalDoneDars = enrollments.reduce(
+    (s, e) =>
+      s + (e.class.totalDarsCount > 0 ? e.class.completedDarsCount : e.isCompleted ? 1 : 0),
+    0,
+  );
   const overallPct =
     totalDarsAcross > 0 ? Math.round((totalDoneDars / totalDarsAcross) * 100) : 0;
   const totalMinutes = enrollments.reduce((s, e) => s + (e.class.totalDurationMinutes ?? 0), 0);
