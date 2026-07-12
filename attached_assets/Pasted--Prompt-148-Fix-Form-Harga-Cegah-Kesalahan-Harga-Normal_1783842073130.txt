@@ -1,0 +1,105 @@
+# Prompt 148: Fix Form Harga — Cegah Kesalahan "Harga Normal" vs "Harga Coret" Kebalik
+
+## Konteks — Bug Serius Dikonfirmasi
+Form "Kelola Kelas" punya 2 field: "Harga Normal (Rp)" (map ke kolom
+`base_price`) dan "Harga Coret (opsional)" (map ke kolom
+`discount_price`). Sistem checkout (`checkout/index.ts`) menghitung
+harga yang DIBAYAR customer dengan rumus `discount_price ?? base_price`
+— artinya kalau `discount_price` diisi, ITU YANG DIPAKAI SEBAGAI HARGA
+JUAL, bukan `base_price`.
+
+Masalahnya: LABEL "Harga Coret" secara bahasa terdengar seperti "harga
+yang DICORET/tidak dipakai lagi" (harga lama, referensi), padahal
+secara sistem field ini JUSTRU YANG DIPAKAI SEBAGAI HARGA JUAL AKTUAL.
+Ini bikin admin gampang salah isi — naruh angka LEBIH RENDAH di "Harga
+Normal" (mengira itu harga jual) dan angka LEBIH TINGGI di "Harga
+Coret" (mengira itu cuma referensi visual) — padahal hasilnya customer
+malah DIKENAKAN harga yang lebih tinggi (dari field "Harga Coret").
+
+## Bagian A — Perbaiki Label Field di `AdminClassesPage.tsx`
+
+GANTI label field supaya jelas dan tidak ambigu:
+
+```tsx
+<div className="space-y-1.5">
+  <Label htmlFor="class-base-price">Harga Sebelum Diskon (Rp)</Label>
+  <Input id="class-base-price" type="number" value={form.basePrice} onChange={...} />
+  <p className="text-xs text-muted-foreground">
+    Harga referensi yang akan dicoret/strikethrough. Kosongkan kolom di
+    bawah kalau kelas ini tidak ada diskon.
+  </p>
+</div>
+
+<div className="space-y-1.5">
+  <Label htmlFor="class-discount-price">Harga Jual Sekarang (Rp, opsional)</Label>
+  <Input id="class-discount-price" type="number" value={form.discountPrice} onChange={...} />
+  <p className="text-xs text-muted-foreground">
+    Ini harga yang BENERAN DIBAYAR pelajar. Kosongkan kalau tidak ada
+    diskon — harga di atas ("Sebelum Diskon") akan dipakai sebagai
+    harga jual.
+  </p>
+</div>
+```
+
+**PENTING**: field mana yang map ke kolom `base_price` vs
+`discount_price` di DATABASE TIDAK BERUBAH (tetap sama seperti
+sekarang) — yang berubah CUMA LABEL dan urutan tampilnya, supaya lebih
+jelas fungsinya. `base_price` = field pertama ("Sebelum Diskon"),
+`discount_price` = field kedua ("Harga Jual Sekarang").
+
+## Bagian B — Tambah Validasi Peringatan
+
+Setelah kedua field diisi, kalau `discountPrice` LEBIH BESAR dari
+`basePrice` (kondisi yang tidak masuk akal — harga jual lebih mahal
+dari harga sebelum diskon), tampilkan warning MERAH yang jelas di
+bawah field kedua (tidak block submit, tapi sangat mencolok):
+
+```tsx
+{form.discountPrice && Number(form.discountPrice) > Number(form.basePrice) && (
+  <p className="text-xs text-destructive font-medium mt-1">
+    ⚠ Harga Jual Sekarang ({formatPrice(Number(form.discountPrice))}) lebih
+    mahal dari Harga Sebelum Diskon ({formatPrice(Number(form.basePrice))}).
+    Pelajar akan dikenakan harga yang LEBIH MAHAL. Pastikan ini benar-benar
+    yang dimaksud, atau tukar posisi kedua angka ini.
+  </p>
+)}
+```
+
+## Bagian C — SQL: Perbaikan Data yang Sudah Terlanjur Salah
+
+**JANGAN otomatis di-swap oleh Replit Agent** — siapkan SQL berikut
+untuk SAYA REVIEW SATU-SATU dan jalankan manual sendiri (karena perlu
+saya pastikan swap-nya benar per kelas, bukan asumsi otomatis):
+
+```sql
+-- Preview dulu, kelas mana saja yang kena
+SELECT id, title, base_price AS harga_sekarang_sebelum_diskon, discount_price AS harga_sekarang_jual
+FROM classes
+WHERE discount_price IS NOT NULL AND discount_price > base_price
+ORDER BY title;
+
+-- Kalau semua baris di atas memang HARUS ditukar (base_price jadi
+-- discount_price dan sebaliknya), jalankan ini SETELAH saya konfirmasi
+-- satu-satu benar:
+UPDATE classes
+SET base_price = discount_price, discount_price = base_price
+WHERE discount_price IS NOT NULL AND discount_price > base_price;
+```
+
+## Yang Tidak Boleh Berubah
+- Rumus checkout `discount_price ?? base_price` TIDAK diubah — itu
+  logic yang benar (kalau discount_price ada, itu yang dibayar), yang
+  salah adalah CARA ADMIN MENGISI datanya, bukan rumusnya.
+- Nama kolom database (`base_price`, `discount_price`) TIDAK diubah,
+  supaya tidak perlu migrasi/ubah kode lain yang sudah memakai nama
+  kolom ini di banyak tempat.
+
+## Setelah Selesai
+1. Buka form edit kelas, konfirmasi label baru jelas ("Sebelum Diskon"
+   vs "Harga Jual Sekarang").
+2. Coba isi Harga Jual Sekarang lebih besar dari Sebelum Diskon,
+   konfirmasi warning merah muncul.
+3. Jalankan `pnpm run typecheck`, harus 0 error.
+4. Ingatkan saya untuk REVIEW SATU-SATU hasil query preview di Bagian C
+   sebelum menjalankan UPDATE-nya (JANGAN dijalankan otomatis tanpa
+   saya cek dulu).

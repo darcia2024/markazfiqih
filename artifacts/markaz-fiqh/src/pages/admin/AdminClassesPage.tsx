@@ -1388,8 +1388,8 @@ export default function AdminClassesPage() {
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="class-base-price">Harga Normal (Rp)</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="class-base-price">Harga Sebelum Diskon (Rp)</Label>
                   <Input
                     id="class-base-price"
                     type="number"
@@ -1397,9 +1397,13 @@ export default function AdminClassesPage() {
                     onChange={(e) => setForm((p) => ({ ...p, basePrice: e.target.value }))}
                     data-testid="input-class-base-price"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Harga referensi yang akan dicoret/strikethrough. Kosongkan kolom
+                    di bawah kalau kelas ini tidak ada diskon.
+                  </p>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="class-discount-price">Harga Coret (opsional)</Label>
+                <div className="space-y-1.5">
+                  <Label htmlFor="class-discount-price">Harga Jual Sekarang (Rp, opsional)</Label>
                   <Input
                     id="class-discount-price"
                     type="number"
@@ -1407,6 +1411,19 @@ export default function AdminClassesPage() {
                     onChange={(e) => setForm((p) => ({ ...p, discountPrice: e.target.value }))}
                     data-testid="input-class-discount-price"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Ini harga yang BENERAN DIBAYAR pelajar. Kosongkan kalau tidak ada
+                    diskon — harga di atas ("Sebelum Diskon") akan dipakai sebagai
+                    harga jual.
+                  </p>
+                  {form.discountPrice && Number(form.discountPrice) > Number(form.basePrice) && (
+                    <p className="text-xs text-destructive font-medium mt-1" data-testid="warning-price-mismatch">
+                      ⚠ Harga Jual Sekarang ({formatPrice(Number(form.discountPrice))}) lebih
+                      mahal dari Harga Sebelum Diskon ({formatPrice(Number(form.basePrice))}).
+                      Pelajar akan dikenakan harga yang LEBIH MAHAL. Pastikan ini benar-benar
+                      yang dimaksud, atau tukar posisi kedua angka ini.
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
