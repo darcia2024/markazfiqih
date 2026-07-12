@@ -1,0 +1,77 @@
+# Prompt 150: Fix Sidebar Admin Panel Transparan/Numpuk di Mobile
+
+## Konteks — Bug Dikonfirmasi
+Komponen `Sidebar` (shadcn, `components/ui/sidebar.tsx`) butuh 7 CSS
+variable buat background/warnanya (`--sidebar-background`,
+`--sidebar-foreground`, `--sidebar-border`, `--sidebar-accent`,
+`--sidebar-accent-foreground`, `--sidebar-primary`, `--sidebar-ring`)
+via class Tailwind `bg-sidebar`, `text-sidebar-foreground`, dst.
+Variable-variable ini TIDAK PERNAH didefinisikan di `index.css` —
+akibatnya background sidebar jadi transparan, dan saat sidebar mobile
+(mode Sheet/drawer) terbuka, konten Dashboard di belakangnya keliatan
+numpuk bareng menu, jadi susah dibaca (persis kayak di screenshot
+laporan).
+
+Ini KHUSUS Admin Panel — sidebar utama pelajar (`AppShell.tsx`, dari
+Prompt 130 dst) TIDAK pakai komponen shadcn `Sidebar` ini, jadi tidak
+terdampak bug yang sama.
+
+## Fix — Tambahkan CSS Variable di `index.css`
+
+Cari bagian `:root { ... }` dan blok dark mode (kalau ada) di
+`index.css`, tambahkan variable sidebar mengikuti tema brand yang sudah
+ada (maroon/gold Markaz Fiqih), CONTOH nilai yang konsisten dengan
+warna primary/accent yang sudah dipakai di tempat lain:
+
+```css
+:root {
+  /* ...variable yang sudah ada, JANGAN dihapus... */
+
+  --sidebar-background: 0 0% 100%; /* putih, background sidebar admin */
+  --sidebar-foreground: 240 5% 26%; /* abu gelap untuk teks */
+  --sidebar-border: 220 13% 91%; /* abu muda untuk border */
+  --sidebar-accent: 354 68% 96%; /* tint merah brand yang lembut, untuk hover/active state */
+  --sidebar-accent-foreground: 354 68% 38%; /* warna primary merah brand untuk teks saat active */
+  --sidebar-primary: 354 68% 38%; /* sama dengan --primary brand */
+  --sidebar-ring: 354 68% 38%;
+}
+```
+
+(Sesuaikan nilai HSL persis supaya konsisten dengan variable
+`--primary`, `--accent`, `--border` yang SUDAH ADA di file ini —
+JANGAN pakai warna baru yang tidak nyambung dengan brand, cek dulu
+nilai-nilai existing sebelum menentukan angka HSL final di atas.)
+
+Tambahkan juga mapping di `@theme`/Tailwind config kalau project ini
+pakai Tailwind v4 dengan `@theme inline` (cek pola yang sudah ada untuk
+variable lain seperti `--color-primary: hsl(var(--primary))`), tambahkan
+baris serupa:
+```css
+--color-sidebar: hsl(var(--sidebar-background));
+--color-sidebar-foreground: hsl(var(--sidebar-foreground));
+--color-sidebar-border: hsl(var(--sidebar-border));
+--color-sidebar-accent: hsl(var(--sidebar-accent));
+--color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
+--color-sidebar-primary: hsl(var(--sidebar-primary));
+--color-sidebar-ring: hsl(var(--sidebar-ring));
+```
+
+## Yang Tidak Boleh Berubah
+- `components/ui/sidebar.tsx` (komponen shadcn primitif) TIDAK diubah
+  sama sekali — bug-nya murni di CSS variable yang belum didefinisikan,
+  bukan di komponennya.
+- Sidebar utama pelajar (`AppShell.tsx`) TIDAK disentuh.
+
+## Setelah Selesai
+1. Buka Admin Panel di layar sempit/mobile (atau resize browser jadi
+   sempit), klik tombol buka sidebar, konfirmasi sidebar sekarang punya
+   background PUTIH SOLID (tidak transparan), konten Dashboard di
+   belakangnya TIDAK numpuk/kebaca bareng menu lagi.
+2. Cek juga tampilan desktop, pastikan sidebar admin tetap terlihat
+   normal/tidak berubah drastis (cuma benerin transparansi, bukan ganti
+   desain).
+3. Jalankan `pnpm run typecheck`, harus 0 error.
+
+## Catatan
+Tidak ada SQL untuk prompt ini — murni fix CSS variable yang belum
+didefinisikan.

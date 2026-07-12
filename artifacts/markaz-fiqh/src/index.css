@@ -65,6 +65,14 @@
   --radius-md: var(--radius);
   --radius-lg: 18px;
   --radius-xl: calc(18px + 4px);
+
+  --color-sidebar: hsl(var(--sidebar-background));
+  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+  --color-sidebar-border: hsl(var(--sidebar-border));
+  --color-sidebar-accent: hsl(var(--sidebar-accent));
+  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
+  --color-sidebar-primary: hsl(var(--sidebar-primary));
+  --color-sidebar-ring: hsl(var(--sidebar-ring));
 }
 
 /* LIGHT MODE — Markaz Fiqih Design System */
@@ -138,6 +146,15 @@
   --muted-border: hsl(from hsl(var(--muted)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
   --accent-border: hsl(from hsl(var(--accent)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
   --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
+
+  /* Sidebar (Admin Panel — shadcn Sidebar component) */
+  --sidebar-background: 0 0% 100%; /* Putih, sama dengan --card */
+  --sidebar-foreground: 11 10% 33%; /* Teks Sekunder, sama dengan --muted-foreground */
+  --sidebar-border: 17 23% 88%; /* sama dengan --border */
+  --sidebar-accent: 355 62% 96%; /* tint merah brand lembut, sama dengan --brand-red-tint */
+  --sidebar-accent-foreground: 354 68% 38%; /* Merah Utama, sama dengan --primary */
+  --sidebar-primary: 354 68% 38%; /* sama dengan --primary */
+  --sidebar-ring: 354 68% 38%; /* sama dengan --ring */
 }
 
 .dark {
@@ -163,6 +180,14 @@
   --destructive-foreground: 0 0% 100%;
   --input: 356 15% 18%;
   --ring: 354 68% 48%;
+
+  --sidebar-background: 356 25% 9%; /* sama dengan --card di dark mode */
+  --sidebar-foreground: 26 30% 95%; /* sama dengan --foreground di dark mode */
+  --sidebar-border: 356 15% 18%; /* sama dengan --border di dark mode */
+  --sidebar-accent: 356 15% 16%; /* sama dengan --secondary di dark mode */
+  --sidebar-accent-foreground: 354 68% 48%; /* sama dengan --primary di dark mode */
+  --sidebar-primary: 354 68% 48%; /* sama dengan --primary di dark mode */
+  --sidebar-ring: 354 68% 48%; /* sama dengan --ring di dark mode */
 }
 
 @utility transition-friendly {
