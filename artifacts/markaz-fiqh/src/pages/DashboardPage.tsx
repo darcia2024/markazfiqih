@@ -123,7 +123,7 @@ function DashboardBoardCard() {
   if (!board) return null;
 
   return (
-    <div className="rounded-2xl border bg-card p-5 mb-6">
+    <div className="rounded-2xl border bg-card p-5 mb-6 text-center">
       <p className="font-serif text-base font-bold text-foreground mb-1">{board.title}</p>
       {board.content && (
         <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">{board.content}</p>
