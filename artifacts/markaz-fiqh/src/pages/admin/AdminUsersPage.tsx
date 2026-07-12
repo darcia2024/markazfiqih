@@ -408,7 +408,7 @@ export default function AdminUsersPage() {
                   <SelectTrigger className="flex-1" data-testid="select-add-class">
                     <SelectValue placeholder="Cari & pilih kelas…" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-72 overflow-y-auto">
                     {availableToAdd.length === 0 ? (
                       <div className="px-3 py-2 text-sm text-muted-foreground">
                         Semua kelas sudah dimiliki

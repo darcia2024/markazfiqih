@@ -366,7 +366,7 @@ function AutoMatchPlaylistDialog({
                               <SelectTrigger className="h-8 text-xs">
                                 <SelectValue placeholder="Pilih dars..." />
                               </SelectTrigger>
-                              <SelectContent>
+                              <SelectContent className="max-h-72 overflow-y-auto">
                                 <SelectItem value="__none__">
                                   <span className="text-muted-foreground">— Lewati video ini —</span>
                                 </SelectItem>
@@ -1436,7 +1436,7 @@ export default function AdminClassesPage() {
                     <SelectTrigger data-testid="select-class-instructor">
                       <SelectValue placeholder="Pilih pengajar" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="max-h-72 overflow-y-auto">
                       {instructors.map((instructor) => (
                         <SelectItem key={instructor.id} value={instructor.id}>
                           {instructor.name}
