@@ -1,0 +1,96 @@
+# Prompt 147 (Revert Prompt 136): Balikin "Link Ebook" jadi Input Manual
+
+## Konteks
+Prompt 136 mengganti field "Link Ebook" (input URL manual) jadi dropdown
+"Ebook Terkait" (pilih dari Ebook Catalog). Setelah dicoba, ternyata
+lebih simpel balik ke cara manual — admin langsung paste link ebook
+(Google Drive/PDF), TIDAK perlu ebook-nya terdaftar dulu di Katalog
+Ebook. BALIKIN ke versi manual seperti sebelum Prompt 136.
+
+Kolom database `ebook_url` TIDAK PERNAH dihapus dari Prompt 136 (masih
+ada), jadi ini murni perubahan tampilan form + `FacilitasCard`, TIDAK
+perlu SQL apapun.
+
+## Bagian A — Form Admin (`AdminClassesPage.tsx`)
+
+Cari dropdown "Ebook Terkait" (dari Prompt 136, pakai `Select` dan
+field `relatedEbookId`), GANTI BALIK jadi input teks URL biasa:
+
+```tsx
+<div className="space-y-1.5">
+  <Label htmlFor="class-ebook-url">Link Ebook</Label>
+  <Input
+    id="class-ebook-url"
+    type="url"
+    value={form.ebookUrl}
+    onChange={(e) => setForm({ ...form, ebookUrl: e.target.value })}
+    placeholder="https://drive.google.com/... atau link PDF"
+  />
+</div>
+```
+(Field `form.ebookUrl` kemungkinan masih ada di state form kalau belum
+sempat dihapus waktu Prompt 136 — cek dulu, kalau sudah terlanjur
+dihapus dari type/state form, tambahkan lagi.)
+
+HAPUS dropdown "Ebook Terkait" (`relatedEbookId`) dari form — TIDAK
+perlu ditampilkan lagi (kolom `related_ebook_id` di database boleh
+tetap ada, tidak usah dihapus, cukup tidak dipakai di form).
+
+## Bagian B — `lib/db.ts`
+
+Pastikan `ebookUrl` kembali ikut di-select dan di-map di `getClassById`
+(kemungkinan masih ada dari sebelum Prompt 136, tinggal pastikan belum
+terlanjur dihapus), dan payload admin save kelas kembali mengirim
+`ebookUrl` (BUKAN `relatedEbookId`) ke kolom `ebook_url`.
+
+## Bagian C — `components/FacilitasCard.tsx`
+
+Balikin prop dan render item "Ebook" ke versi link eksternal (SEBELUM
+Prompt 136 mengubahnya jadi internal `<Link>`):
+
+```tsx
+interface FacilitasCardProps {
+  gdriveMateriUrl?: string | null;
+  waGroupUrl?: string | null;
+  soalLatihanUrl?: string | null;
+  ebookUrl?: string | null; // balik dari relatedEbook object
+  testimoniFormUrl?: string | null;
+}
+
+// ...
+
+{ebookUrl && (
+  <a href={ebookUrl} target="_blank" rel="noopener noreferrer"
+     className="flex items-center gap-2 p-3 rounded-lg border border-border hover:border-primary hover:bg-[hsl(var(--brand-red-tint))] transition-colors w-full text-sm text-foreground">
+    <BookOpen className="w-4 h-4 text-primary shrink-0" />
+    Ebook
+  </a>
+)}
+```
+
+## Bagian D — Teruskan Prop di Pemanggil
+
+Cari semua pemanggilan `<FacilitasCard` di `LearnPage.tsx` dan
+`ClassDetailPage.tsx` yang sekarang pakai `relatedEbook={...}`, GANTI
+BALIK jadi `ebookUrl={classDetail.ebookUrl}`.
+
+## Yang Tidak Boleh Berubah
+- Sistem Ebook Catalog (Prompt 119/120 — halaman "Kelola Ebook", "Ebook
+  Saya", checkout ebook) TIDAK disentuh sama sekali, TETAP berfungsi
+  penuh sebagai fitur terpisah. Ini CUMA soal field "Fasilitas Kelas"
+  di kelas, bukan menghapus sistem jual-beli ebook.
+- Kolom `related_ebook_id` di database TIDAK perlu dihapus (biarkan
+  saja ada walau tidak dipakai, jaga-jaga kalau nanti mau dipakai lagi).
+- 4 item fasilitas lain (Materi PDF, Grup WA, Soal Latihan, Testimoni)
+  TIDAK berubah.
+
+## Setelah Selesai
+1. Buka form edit kelas, konfirmasi field "Link Ebook" sekarang jadi
+   input teks URL biasa lagi (bukan dropdown).
+2. Isi link contoh, simpan, buka halaman kelas itu, konfirmasi item
+   "Ebook" di Fasilitas Kelas membuka link eksternal langsung (tab
+   baru), bukan lagi ke halaman `/ebook/:id`.
+3. Jalankan `pnpm run typecheck`, harus 0 error.
+
+## Catatan
+Tidak ada SQL untuk prompt ini.

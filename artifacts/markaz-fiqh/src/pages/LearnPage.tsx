@@ -324,7 +324,7 @@ function PlaylistMode({
   gdriveMateriUrl,
   waGroupUrl,
   soalLatihanUrl,
-  relatedEbook,
+  ebookUrl,
   testimoniFormUrl,
   reverseVideoOrder = false,
 }: {
@@ -344,7 +344,7 @@ function PlaylistMode({
   gdriveMateriUrl?: string | null;
   waGroupUrl?: string | null;
   soalLatihanUrl?: string | null;
-  relatedEbook?: { id: string; title: string } | null;
+  ebookUrl?: string | null;
   testimoniFormUrl?: string | null;
   reverseVideoOrder?: boolean;
 }) {
@@ -1022,13 +1022,13 @@ function PlaylistMode({
               </div>
             </div>
 
-            {(gdriveMateriUrl || waGroupUrl || soalLatihanUrl || relatedEbook || testimoniFormUrl) && (
+            {(gdriveMateriUrl || waGroupUrl || soalLatihanUrl || ebookUrl || testimoniFormUrl) && (
               <div className="order-4 bg-card rounded-2xl border overflow-hidden">
                 <FacilitasCard
                   gdriveMateriUrl={gdriveMateriUrl}
                   waGroupUrl={waGroupUrl}
                   soalLatihanUrl={soalLatihanUrl}
-                  relatedEbook={relatedEbook}
+                  ebookUrl={ebookUrl}
                   testimoniFormUrl={testimoniFormUrl}
                 />
               </div>
@@ -1385,7 +1385,7 @@ function LearnContent() {
         gdriveMateriUrl={classDetail.gdriveMateriUrl}
         waGroupUrl={classDetail.waGroupUrl}
         soalLatihanUrl={classDetail.soalLatihanUrl}
-        relatedEbook={classDetail.relatedEbook}
+        ebookUrl={classDetail.ebookUrl}
         testimoniFormUrl={classDetail.testimoniFormUrl}
         reverseVideoOrder={classDetail.reverseVideoOrder}
       />
@@ -1594,13 +1594,13 @@ function LearnContent() {
             </div>
 
             {/* Fasilitas Kelas — mobile only (desktop: tampil di sidebar kanan) */}
-            {(classDetail.gdriveMateriUrl || classDetail.waGroupUrl || classDetail.soalLatihanUrl || classDetail.relatedEbook || classDetail.testimoniFormUrl) && (
+            {(classDetail.gdriveMateriUrl || classDetail.waGroupUrl || classDetail.soalLatihanUrl || classDetail.ebookUrl || classDetail.testimoniFormUrl) && (
               <div className="pt-4 border-t lg:hidden">
                 <FacilitasCard
                   gdriveMateriUrl={classDetail.gdriveMateriUrl}
                   waGroupUrl={classDetail.waGroupUrl}
                   soalLatihanUrl={classDetail.soalLatihanUrl}
-                  relatedEbook={classDetail.relatedEbook}
+                  ebookUrl={classDetail.ebookUrl}
                   testimoniFormUrl={classDetail.testimoniFormUrl}
                 />
               </div>
@@ -1751,13 +1751,13 @@ function LearnContent() {
           </div>
 
           {/* Card: Fasilitas Kelas */}
-          {(classDetail.gdriveMateriUrl || classDetail.waGroupUrl || classDetail.soalLatihanUrl || classDetail.relatedEbook || classDetail.testimoniFormUrl) && (
+          {(classDetail.gdriveMateriUrl || classDetail.waGroupUrl || classDetail.soalLatihanUrl || classDetail.ebookUrl || classDetail.testimoniFormUrl) && (
             <div className="bg-card rounded-2xl border overflow-hidden">
               <FacilitasCard
                 gdriveMateriUrl={classDetail.gdriveMateriUrl}
                 waGroupUrl={classDetail.waGroupUrl}
                 soalLatihanUrl={classDetail.soalLatihanUrl}
-                relatedEbook={classDetail.relatedEbook}
+                ebookUrl={classDetail.ebookUrl}
                 testimoniFormUrl={classDetail.testimoniFormUrl}
               />
             </div>
