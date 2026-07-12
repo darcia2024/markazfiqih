@@ -413,26 +413,27 @@ export async function listBundles(): Promise<BundleItem[]> {
         classes ( id, title, cover_image )
       )
     `)
-    .eq('status', 'published')
-    .order('created_at', { ascending: true });
+    .eq('status', 'published');
   if (error) throw error;
 
-  return (data ?? []).map((b: any) => ({
-    id: b.id as string,
-    title: b.title as string,
-    description: b.description as string,
-    normalPrice: b.normal_price as number,
-    bundlePrice: b.bundle_price as number,
-    coverImage: b.cover_image as string,
-    classes: (b.bundle_classes ?? [])
-      .map((bc: any) => bc.classes)
-      .filter(Boolean)
-      .map((cls: any) => ({
-        id: cls.id as string,
-        title: cls.title as string,
-        coverImage: cls.cover_image as string,
-      })),
-  }));
+  return (data ?? [])
+    .map((b: any) => ({
+      id: b.id as string,
+      title: b.title as string,
+      description: b.description as string,
+      normalPrice: b.normal_price as number,
+      bundlePrice: b.bundle_price as number,
+      coverImage: b.cover_image as string,
+      classes: (b.bundle_classes ?? [])
+        .map((bc: any) => bc.classes)
+        .filter(Boolean)
+        .map((cls: any) => ({
+          id: cls.id as string,
+          title: cls.title as string,
+          coverImage: cls.cover_image as string,
+        })),
+    }))
+    .sort((a, b) => a.title.localeCompare(b.title, 'id'));
 }
 
 export async function getBundleById(id: string): Promise<BundleItem> {
