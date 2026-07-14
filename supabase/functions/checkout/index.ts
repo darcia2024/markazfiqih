@@ -41,29 +41,9 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     );
 
-    // ── Invoice pending yang masih hidup: pakai ulang, jangan bikin baru ──────
-    // Kalau user klik "Bayar" dua kali, atau balik lagi ke halaman checkout,
-    // dia harus dapat tagihan yang sama — bukan tagihan kembar di Mayar.
-    const { data: reusable } = await supabaseAdmin
-      .from('invoices')
-      .select('id, total_amount, mayar_payment_url, expires_at')
-      .eq('user_id', user.id)
-      .eq('status', 'pending')
-      .not('mayar_payment_url', 'is', null)
-      .gt('expires_at', new Date().toISOString())
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (reusable) {
-      return json({
-        id: reusable.id,
-        paymentUrl: reusable.mayar_payment_url,
-        expiresAt: reusable.expires_at,
-        totalAmount: reusable.total_amount,
-        reused: true,
-      });
-    }
+    // ── DEBUG: titik (a) — isi keranjang MENTAH tepat sebelum invoice dibuat ──
+    // Log ini dipakai untuk investigasi bug "invoice hanya menghitung 1 item".
+    // Aman untuk production: tidak berisi data sensitif, hanya id/jumlah.
 
     // ── Ambil isi keranjang ───────────────────────────────────────────────────
     const { data: cartItems, error: cartError } = await supabaseAdmin
@@ -80,6 +60,12 @@ Deno.serve(async (req) => {
       .eq('user_id', user.id);
 
     if (cartError) throw cartError;
+
+    console.log(
+      `[checkout] user=${user.id} cart_items dari DB: count=${cartItems?.length ?? 0}`,
+      JSON.stringify((cartItems ?? []).map((i: any) => ({ id: i.id, class_id: i.class_id, bundle_id: i.bundle_id, ebook_id: i.ebook_id }))),
+    );
+
     if (!cartItems?.length) return json({ error: 'Keranjang kosong.' }, 400);
 
     // ── Voucher (hanya untuk kelas individual) ────────────────────────────────
@@ -206,6 +192,63 @@ Deno.serve(async (req) => {
       return json({ error: 'Total pembayaran tidak valid. Coba muat ulang keranjang.' }, 400);
     }
 
+    console.log(`[checkout] user=${user.id} totalAmount dihitung dari cart saat ini: ${totalAmount}`);
+
+    // ── Invoice pending yang masih hidup: pakai ulang HANYA kalau keranjang ───
+    // belum berubah sejak invoice itu dibuat.
+    //
+    // BUG YANG DIPERBAIKI: sebelumnya invoice pending langsung dipakai ulang
+    // begitu ada (asal belum expired), tanpa mengecek apakah isi keranjang
+    // berubah sejak invoice itu dibuat. Skenario nyata yang ditemukan di data:
+    // user checkout dengan 1 kelas → dapat invoice+link Mayar (1 item) →
+    // balik ke keranjang, tambah kelas ke-2 → klik "Bayar" lagi → kode lama
+    // langsung mengembalikan invoice/link LAMA yang cuma 1 item, padahal
+    // ringkasan di halaman checkout sudah menampilkan 2 item & total yang benar
+    // (karena ringkasan itu baca live dari CartContext, bukan dari invoice).
+    // Itu sebabnya total di invoice Mayar terasa "nyangkut" di kelas pertama.
+    //
+    // Fix: bandingkan totalAmount (dihitung ulang dari keranjang saat ini)
+    // dengan total_amount invoice pending yang ada. Kalau sama → aman dipakai
+    // ulang (mencegah tagihan kembar kalau user cuma klik "Bayar" dua kali).
+    // Kalau beda → invoice itu basi (stale), JANGAN dipakai ulang: set
+    // expires_at-nya ke masa lalu supaya tidak terpilih lagi, lalu lanjut buat
+    // invoice baru yang mencakup SEMUA item di keranjang saat ini.
+    const { data: reusable } = await supabaseAdmin
+      .from('invoices')
+      .select('id, total_amount, mayar_payment_url, expires_at')
+      .eq('user_id', user.id)
+      .eq('status', 'pending')
+      .not('mayar_payment_url', 'is', null)
+      .gt('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (reusable) {
+      const stillMatches = reusable.total_amount === totalAmount;
+      console.log(
+        `[checkout] user=${user.id} invoice pending ditemukan id=${reusable.id} total_amount=${reusable.total_amount} vs totalAmount_sekarang=${totalAmount} → ${stillMatches ? 'REUSE' : 'STALE, invoice baru dibuat'}`,
+      );
+
+      if (stillMatches) {
+        return json({
+          id: reusable.id,
+          paymentUrl: reusable.mayar_payment_url,
+          expiresAt: reusable.expires_at,
+          totalAmount: reusable.total_amount,
+          reused: true,
+        });
+      }
+
+      // Invoice basi: jangan biarkan bisa dipakai ulang lagi, dan jangan biarkan
+      // link Mayar lamanya membingungkan (link tetap ada di Mayar, tapi secara
+      // lokal invoice ini tidak akan pernah dianggap "reusable" lagi).
+      await supabaseAdmin
+        .from('invoices')
+        .update({ expires_at: new Date(0).toISOString() })
+        .eq('id', reusable.id);
+    }
+
     // ── Nomor HP wajib (Mayar butuh `mobile`) ─────────────────────────────────
     const { data: profile } = await supabaseAdmin
       .from('user_profiles')
@@ -279,6 +322,28 @@ Deno.serve(async (req) => {
     if (itemsToInsert.length > 0) {
       const { error: itemsError } = await supabaseAdmin.from('invoice_items').insert(itemsToInsert);
       if (itemsError) throw itemsError;
+    }
+
+    console.log(
+      `[checkout] user=${user.id} invoice=${invoice.id} itemsForMayar (count=${itemsForMayar.length}):`,
+      JSON.stringify(itemsForMayar),
+    );
+
+    // ── Validasi anomali: total dari itemsForMayar HARUS sama dengan totalAmount
+    // yang sudah dihitung server dari keranjang. Kalau beda, jangan lanjut kirim
+    // ke Mayar — ada bug di logic pembentukan itemsForMayar yang harus diketahui
+    // segera, bukan baru ketahuan manual dari komplain user.
+    const itemsForMayarSum = itemsForMayar.reduce((sum, i) => sum + i.price, 0);
+    if (itemsForMayarSum !== totalAmount) {
+      console.error(
+        `[checkout] ANOMALI: user=${user.id} invoice=${invoice.id} sum(itemsForMayar)=${itemsForMayarSum} != totalAmount=${totalAmount}. itemsForMayar=${JSON.stringify(itemsForMayar)} cartItems=${JSON.stringify((cartItems as any[]).map((i) => ({ id: i.id, class_id: i.class_id, bundle_id: i.bundle_id, ebook_id: i.ebook_id })))}`,
+      );
+      // Batalkan invoice lokal yang baru dibuat supaya tidak menggantung sebagai 'pending' basi.
+      await supabaseAdmin.from('invoices').update({ expires_at: new Date(0).toISOString() }).eq('id', invoice.id);
+      return json(
+        { error: 'Terjadi kesalahan saat menghitung total pembayaran. Coba muat ulang halaman dan ulangi.' },
+        500,
+      );
     }
 
     // ── Buat tagihan di Mayar ─────────────────────────────────────────────────

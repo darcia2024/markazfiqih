@@ -1,0 +1,93 @@
+⚠️ BUG KRITIS — PRIORITAS TERTINGGI, kerjakan berurutan sesuai nomor
+
+Konteks: Sebelumnya sudah pernah diminta fix untuk bug ini tapi masih belum 
+berhasil — invoice yang dibuat di Mayar tetap hanya menghitung 1 item (kelas 
+pertama) meskipun user memiliki 2+ item di keranjang saat checkout. Perlu 
+investigasi lebih dalam, jangan asumsi dulu di mana masalahnya.
+
+===========================================
+BAGIAN 1 — Debug & fix: invoice hanya menghitung 1 item padahal keranjang ada 2+
+===========================================
+
+LANGKAH DEBUG (wajib dilakukan dan dilaporkan sebelum fix):
+1. Tambahkan console.log/logging sementara di titik-titik berikut, lalu 
+   lakukan test manual (tambah 2 kelas ke keranjang, checkout) dan laporkan 
+   hasil log-nya ke saya:
+   a. State/data keranjang tepat sebelum tombol "Bayar" diklik — berapa 
+      item yang ada di state saat itu?
+   b. Body request yang dikirim dari frontend ke endpoint create-invoice — 
+      apakah array items-nya berisi 2 item atau cuma 1?
+   c. Body request yang dikirim dari backend ke Mayar API (POST 
+      {MAYAR_BASE_URL}/invoice/create) — apakah field "items" di sini 
+      berisi 2 item atau cuma 1?
+   
+2. Dari 3 titik ini, temukan PERSIS di titik mana jumlah item berkurang 
+   dari 2 menjadi 1. Kemungkinan penyebab yang perlu dicek:
+   - Apakah ada bug di logic "Tambahkan kelas lain" (add-on) yang menambah 
+     item ke UI/state tampilan saja, tapi tidak benar-benar masuk ke array 
+     "cart items" yang dipakai saat submit ke create-invoice?
+   - Apakah ada dua sumber data berbeda — satu untuk render UI ringkasan 
+     (yang menampilkan total 90rb dengan benar) dan satu lagi untuk data 
+     yang dikirim ke create-invoice (yang ternyata masih baca dari sumber 
+     lama/state awal sebelum ada penambahan)?
+   - Apakah backend create-invoice hanya mengambil items[0] atau sejenisnya 
+     alih-alih looping seluruh array items yang dikirim?
+
+3. Setelah ketemu root cause-nya, perbaiki, dan PASTIKAN dengan test ulang 
+   (tambah 2-3 kelas, checkout) bahwa:
+   - Invoice popup Mayar menampilkan SEMUA item yang ada di keranjang
+   - Total di invoice popup sama persis dengan total di ringkasan checkout
+
+4. Tambahkan validasi di backend: sebelum mengirim ke Mayar, hitung ulang 
+   total dari items yang diterima, bandingkan dengan total yang diharapkan 
+   dari frontend — kalau ada selisih, tolak request dan log sebagai anomali 
+   (supaya bug seperti ini ketahuan otomatis di masa depan, bukan baru 
+   ketahuan manual)
+
+===========================================
+BAGIAN 2 — Pastikan SEMUA kelas dari invoice masuk otomatis ke "Kelas Saya" setelah bayar
+===========================================
+
+Ini terhubung dengan Bagian 1: setelah bug invoice items diperbaiki, pastikan 
+juga proses pemberian akses kelas mengikuti SEMUA item di invoice, bukan cuma 
+item pertama.
+
+1. Cek/buat mekanisme webhook dari Mayar (endpoint `/api/webhooks/mayar` — 
+   jika sudah pernah dibuat sebelumnya, cek dan perbaiki; jika belum ada, 
+   buat baru):
+   - Terima notifikasi dari Mayar saat status invoice berubah
+   - JANGAN langsung percaya isi payload webhook untuk kepastian status — 
+     panggil balik API Mayar untuk get detail invoice berdasarkan invoice ID 
+     dari payload, menggunakan MAYAR_API_KEY, untuk konfirmasi status 
+     "paid" yang sebenarnya
+   - Dari detail invoice yang dikonfirmasi itu, ambil SELURUH daftar items 
+     yang ada di dalamnya (bukan hanya item pertama)
+   - Untuk SETIAP item/kelas di invoice tersebut, berikan akses ke user 
+     yang bersangkutan (masukkan ke tabel/relasi yang menandakan user 
+     memiliki akses ke kelas itu, sesuai struktur yang sudah ada di 
+     "Kelas Saya")
+   - Proses ini harus idempotent (aman kalau webhook yang sama terkirim 
+     dua kali, tidak boleh duplikat/error)
+   - Log seluruh proses ini untuk keperluan debug
+
+2. Pastikan saat create invoice, ada cara untuk menghubungkan invoice 
+   tersebut dengan user yang membeli (misal customer email/mobile yang 
+   dikirim ke Mayar harus match dengan akun user di sistem, atau sertakan 
+   referensi userId di description/metadata yang bisa dibaca kembali saat 
+   webhook diproses)
+
+3. Setelah selesai, tunjukkan ke saya:
+   - URL webhook yang perlu saya register ke dashboard Mayar
+   - Cara test end-to-end: checkout dengan 2+ kelas → bayar (bisa pakai 
+     nominal kecil dulu) → cek apakah SEMUA kelas yang dibeli otomatis 
+     muncul di "Kelas Saya"
+
+===========================================
+ATURAN UMUM:
+===========================================
+- Jangan mengubah fitur lain yang sudah berjalan (tampilan add-on, metode 
+  pembayaran dengan logo, fix mobile keranjang) kecuali memang diperlukan 
+  untuk fix bug ini
+- Laporkan hasil debug logging (poin 1 di Bagian 1) SEBELUM melakukan fix, 
+  supaya saya juga paham di mana letak masalahnya
+- Setelah semua selesai, konfirmasi checkout flow lain masih berjalan normal
