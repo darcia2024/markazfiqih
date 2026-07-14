@@ -151,23 +151,6 @@ router.post("/checkout", requireAuth, async (req, res): Promise<void> => {
     })),
   );
 
-  // ── TODO: Integrasi Mayar (Kasus 5, Langkah 0) ──────────────────────────────
-  // Setelah mendapat API key + dokumentasi Mayar, tambahkan di sini:
-  //
-  //   const mayarRes = await fetch(`${process.env.MAYAR_BASE_URL}/...`, {
-  //     method: "POST",
-  //     headers: { Authorization: `Bearer ${process.env.MAYAR_API_KEY}`, "Content-Type": "application/json" },
-  //     body: JSON.stringify({ amount: totalAmount, ... }),
-  //   });
-  //   const mayarData = await mayarRes.json();
-  //   const paymentUrl = mayarData.???;
-  //   const mayarInvoiceId = mayarData.???;
-  //
-  //   await db.update(invoicesTable).set({ mayarInvoiceId }).where(eq(invoicesTable.id, invoice.id));
-  //
-  // Lalu ganti `paymentUrl: null` di response menjadi `paymentUrl`.
-  // ────────────────────────────────────────────────────────────────────────────
-
   const response = await buildInvoiceResponse(invoice.id);
   res.json(response);
 });

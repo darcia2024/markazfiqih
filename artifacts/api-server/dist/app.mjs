@@ -65015,6 +65015,9 @@ var invoicesTable = pgTable("invoices", {
   totalAmount: integer("total_amount").notNull(),
   status: text("status", { enum: INVOICE_STATUS_VALUES }).notNull().default("pending"),
   mayarInvoiceId: text("mayar_invoice_id"),
+  mayarPaymentUrl: text("mayar_payment_url"),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
+  voucherId: uuid("voucher_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   paidAt: timestamp("paid_at", { withTimezone: true })
 });
@@ -72985,13 +72988,15 @@ function shouldShowDeprecationWarning() {
 }
 if (shouldShowDeprecationWarning()) console.warn("\u26A0\uFE0F  Node.js 20 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 22 or later. For more information, visit: https://github.com/orgs/supabase/discussions/45715");
 
-// src/middlewares/requireAuth.ts
+// src/lib/supabase-admin.ts
 var supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
 var serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!supabaseUrl || !serviceRoleKey) {
   throw new Error("SUPABASE_URL dan SUPABASE_SERVICE_ROLE_KEY wajib diisi");
 }
 var supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+
+// src/middlewares/requireAuth.ts
 async function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith("Bearer ")) {
@@ -74019,38 +74024,80 @@ router11.get("/auth/me", requireAuth, (req, res) => {
 });
 var auth_default = router11;
 
-// src/routes/webhooks.ts
+// src/routes/create-invoice.ts
 var import_express12 = __toESM(require_express2(), 1);
 var router12 = (0, import_express12.Router)();
-router12.post("/webhooks/mayar", async (req, res) => {
-  res.status(501).json({ error: "Webhook signature verification not yet implemented. Complete the TODO in webhooks.ts first." });
-  return;
-  const payload = req.body;
-  const mayarStatus = payload.status ?? "";
-  const mayarInvoiceId = payload.id ?? "";
-  if (!mayarInvoiceId) {
-    res.status(400).json({ error: "Missing invoice ID in payload" });
+router12.post("/create-invoice", async (req, res) => {
+  const mayarApiKey = process.env.MAYAR_API_KEY;
+  const mayarBaseUrl = process.env.MAYAR_BASE_URL;
+  if (!mayarApiKey || !mayarBaseUrl) {
+    res.status(503).json({
+      error: "Layanan pembayaran belum dikonfigurasi. Hubungi admin."
+    });
     return;
   }
-  const STATUS_PAID = "PAID";
-  if (mayarStatus === STATUS_PAID) {
-    const invoiceRows = await db.select().from(invoicesTable).where(eq(invoicesTable.mayarInvoiceId, mayarInvoiceId)).limit(1);
-    const invoice = invoiceRows[0];
-    if (!invoice) {
-      res.status(200).json({ ok: true });
-      return;
-    }
-    await markInvoiceAsPaid(invoice.id);
+  const { name, email: email3, mobile, description, amount } = req.body;
+  if (typeof name !== "string" || !name.trim() || typeof email3 !== "string" || !email3.trim() || typeof mobile !== "string" || !mobile.trim() || typeof description !== "string" || !description.trim() || typeof amount !== "number" || amount <= 0) {
+    res.status(400).json({
+      error: "Field wajib: name, email, mobile, description (string), amount (angka positif)."
+    });
+    return;
   }
-  res.status(200).json({ ok: true });
+  let mayarRes;
+  try {
+    mayarRes = await fetch(`${mayarBaseUrl}/invoice/create`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${mayarApiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        name: name.trim(),
+        email: email3.trim(),
+        mobile: mobile.trim(),
+        description: description.trim(),
+        items: [
+          {
+            quantity: 1,
+            rate: amount,
+            description: description.trim()
+          }
+        ]
+      })
+    });
+  } catch (err) {
+    console.error("[create-invoice] Network error calling Mayar:", err);
+    res.status(502).json({ error: "Tidak bisa menghubungi layanan pembayaran. Coba lagi." });
+    return;
+  }
+  let mayarData;
+  try {
+    mayarData = await mayarRes.json();
+  } catch {
+    res.status(502).json({ error: "Response tidak valid dari layanan pembayaran." });
+    return;
+  }
+  if (!mayarRes.ok) {
+    const msg = typeof mayarData.message === "string" ? mayarData.message : "Gagal membuat invoice. Coba lagi.";
+    console.error("[create-invoice] Mayar error:", mayarData);
+    res.status(mayarRes.status).json({ error: msg });
+    return;
+  }
+  const data = mayarData.data;
+  const paymentUrl = data?.link ?? data?.payment_link ?? mayarData.link ?? mayarData.payment_link;
+  if (!paymentUrl) {
+    console.error("[create-invoice] paymentUrl tidak ditemukan di response Mayar:", mayarData);
+    res.status(502).json({ error: "Link pembayaran tidak tersedia dari Mayar." });
+    return;
+  }
+  res.json({ paymentUrl });
 });
-var webhooks_default = router12;
+var create_invoice_default = router12;
 
 // src/routes/index.ts
 var router13 = (0, import_express13.Router)();
 router13.use(health_default);
 router13.use(auth_default);
-router13.use(webhooks_default);
 router13.use(classes_default);
 router13.use(instructors_default);
 router13.use(cart_default);
@@ -74060,6 +74107,7 @@ router13.use(settings_default);
 router13.use(enrollments_default);
 router13.use(dars_default);
 router13.use(user_profile_default);
+router13.use(create_invoice_default);
 var routes_default = router13;
 
 // src/lib/logger.ts

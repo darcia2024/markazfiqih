@@ -10,6 +10,9 @@ export const invoicesTable = pgTable("invoices", {
   totalAmount: integer("total_amount").notNull(),
   status: text("status", { enum: INVOICE_STATUS_VALUES }).notNull().default("pending"),
   mayarInvoiceId: text("mayar_invoice_id"),
+  mayarPaymentUrl: text("mayar_payment_url"),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
+  voucherId: uuid("voucher_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   paidAt: timestamp("paid_at", { withTimezone: true }),
 });

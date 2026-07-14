@@ -10,13 +10,11 @@ import enrollmentsRouter from "./enrollments.js";
 import darsRouter from "./dars.js";
 import userProfileRouter from "./user-profile.js";
 import authRouter from "./auth.js";
-import webhooksRouter from "./webhooks.js";
-
+import createInvoiceRouter from "./create-invoice.js";
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(authRouter);
-router.use(webhooksRouter);
 router.use(classesRouter);
 router.use(instructorsRouter);
 router.use(cartRouter);
@@ -26,5 +24,6 @@ router.use(settingsRouter);
 router.use(enrollmentsRouter);
 router.use(darsRouter);
 router.use(userProfileRouter);
+router.use(createInvoiceRouter);
 
 export default router;

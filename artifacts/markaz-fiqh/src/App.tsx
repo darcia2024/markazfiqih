@@ -39,6 +39,8 @@ import BundlesPage from '@/pages/BundlesPage';
 import { AboutUsPage } from '@/pages/AboutUsPage';
 import MyEbooksPage from '@/pages/MyEbooksPage';
 import EbookDetailPage from '@/pages/EbookDetailPage';
+import CheckoutPage from '@/pages/CheckoutPage';
+import PaymentPage from '@/pages/PaymentPage';
 
 const queryClient = new QueryClient();
 
@@ -60,6 +62,8 @@ function Router() {
       <Route path="/learn/:classId" component={LearnPage} />
       <Route path="/ebook-saya" component={MyEbooksPage} />
       <Route path="/ebook/:id" component={EbookDetailPage} />
+      <Route path="/checkout" component={CheckoutPage} />
+      <Route path="/pembayaran/:invoiceId" component={PaymentPage} />
       <Route path="/sertifikat/:id" component={CertificatePage} />
       <Route path="/admin/certificates">
         {() => <RequireAdminRoute><AdminCertificatesPage /></RequireAdminRoute>}

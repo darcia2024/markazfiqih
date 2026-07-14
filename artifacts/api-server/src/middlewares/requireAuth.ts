@@ -1,14 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
-import { createClient } from "@supabase/supabase-js";
-
-const supabaseUrl = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-if (!supabaseUrl || !serviceRoleKey) {
-  throw new Error("SUPABASE_URL dan SUPABASE_SERVICE_ROLE_KEY wajib diisi");
-}
-
-const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+import { supabaseAdmin } from "../lib/supabase-admin.js";
 
 declare global {
   namespace Express {

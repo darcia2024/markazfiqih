@@ -1,0 +1,31 @@
+Kamu akan mengintegrasikan payment gateway Mayar ke repo ini. JANGAN menulis kode apa pun di
+langkah ini. Baca dulu, lalu tulis rencana kerja dan tunggu konfirmasiku.
+
+Yang harus kamu baca lebih dulu:
+- TUTORIAL-MAYAR.md (di root) — ini spesifikasi resminya, ikuti persis
+- supabase/functions/checkout/index.ts, mayar-webhook/index.ts, payment-status/index.ts,
+  _shared/mayar.ts, _shared/fulfillment.ts
+- supabase/migrations/20260714_mayar_payment.sql
+- frontend/pages/CheckoutPage.tsx, frontend/pages/PaymentPage.tsx,
+  frontend/components/PaymentSheet.tsx, frontend/lib/payments.ts
+- artifacts/markaz-fiqh/src/pages/CartPage.tsx, src/App.tsx, src/lib/db.ts
+
+ATURAN YANG TIDAK BOLEH DILANGGAR:
+1. File-file di atas adalah IMPLEMENTASI FINAL, bukan draft. Salin apa adanya ke lokasi yang
+   benar. Jangan "memperbaiki", menyederhanakan, atau menulis ulang logikanya. Kalau kamu pikir
+   ada bug, laporkan ke aku — jangan diam-diam mengubah.
+2. MAYAR_API_KEY dan MAYAR_WEBHOOK_SECRET HANYA boleh ada di Supabase Edge Function secrets.
+   DILARANG KERAS membuat variabel berawalan VITE_ yang berisi kredensial Mayar. Semua VITE_*
+   ikut ter-bundle ke JavaScript yang dikirim ke browser.
+3. Frontend TIDAK PERNAH memanggil api.mayar.id langsung. Semua lewat Edge Function.
+4. Frontend TIDAK PERNAH mengirim jumlah yang harus dibayar. Harga selalu dihitung ulang di server.
+5. Jangan menambah library baru. Semua yang dibutuhkan sudah ada: framer-motion, lucide-react,
+   @tanstack/react-query v5, wouter, shadcn/ui, sonner.
+6. Jangan menyentuh sistem desain yang sudah ada. Pakai token yang sudah dipakai halaman lain:
+   font-serif untuk heading, bg-card, border, text-muted-foreground, text-primary, text-success,
+   text-destructive, rounded-xl, shadow-sm. Jangan memasukkan warna hex baru.
+
+Setelah membaca, jawab dengan:
+(a) daftar file yang akan kamu buat/ubah/hapus, dan
+(b) satu hal dari repo ini yang bertabrakan dengan rencana di TUTORIAL-MAYAR.md, kalau ada.
+Lalu berhenti dan tunggu aku bilang lanjut.

@@ -1,0 +1,70 @@
+Saya punya project dengan integrasi Mayar (payment gateway) sudah berjalan, 
+dengan environment variables berikut sudah tersedia di Secrets:
+- MAYAR_API_KEY
+- MAYAR_BASE_URL (https://api.mayar.id/hl/v1)
+
+⚠️ SANGAT PENTING — BACA DULU SEBELUM MENGERJAKAN:
+Frontend dan backend project ini SUDAH SETTLE dan berjalan dengan baik. 
+Tugas ini HANYA menambahkan fitur baru (checkout page + 1 endpoint), 
+BUKAN mengubah/refactor apapun yang sudah ada. Ikuti aturan ini dengan ketat:
+
+- JANGAN mengubah file konfigurasi utama (routing config, package.json, 
+  tsconfig, database schema/migration, environment setup) kecuali benar-benar 
+  wajib untuk menambahkan route baru — dan jika terpaksa, JELASKAN dulu ke saya 
+  apa yang akan diubah SEBELUM melakukannya
+- JANGAN mengubah komponen/halaman lain yang sudah ada, hanya BACA untuk referensi 
+  styling (lihat LANGKAH 1). Kalau butuh reusable component (Button, Input, dst), 
+  IMPORT dan PAKAI komponen itu apa adanya — jangan modifikasi isinya
+- JANGAN mengubah dependency version yang sudah terpasang, kecuali menambah 
+  dependency baru yang belum ada dan itupun harus dikonfirmasi dulu ke saya
+- Buat file-file baru untuk fitur ini (halaman checkout, endpoint baru) di lokasi 
+  yang terpisah/jelas, mengikuti konvensi folder yang sudah ada di project 
+  (misal kalau ada folder pages/routes/api, ikuti pola yang sama)
+- SEBELUM mulai coding, tunjukkan dulu ke saya: file apa saja yang akan dibuat, 
+  dan file yang sudah ada mana saja yang perlu disentuh (jika ada) beserta alasannya
+- SETELAH selesai, pastikan seluruh halaman dan endpoint yang sudah ada sebelumnya 
+  masih berfungsi normal — sebutkan langkah verifikasi yang sudah dilakukan
+- Kalau ragu apakah suatu perubahan berisiko merusak sesuatu yang sudah jalan, 
+  STOP dan tanya saya dulu, jangan asumsi sendiri
+
+LANGKAH 1 — Audit desain yang sudah ada (read-only, jangan ubah apapun di sini):
+- Pelajari struktur project ini: design system/component library yang dipakai 
+  (Tailwind config, shadcn/ui, dst), cek file seperti tailwind.config, global CSS, 
+  atau folder components/ui
+- Identifikasi elemen visual yang konsisten dipakai: warna primer/sekunder, 
+  typography, border radius, spacing, gaya tombol, gaya input, gaya card, 
+  dark mode atau tidak
+- Cari komponen reusable yang sudah ada dan akan dipakai ulang (bukan dibuat baru)
+- Cek logo dan header/navbar yang dipakai di halaman lain
+
+LANGKAH 2 — Buat backend endpoint BARU `/api/create-invoice` (file baru, 
+tidak menyentuh endpoint lain yang sudah ada):
+- Menerima POST dengan body: { name, email, mobile, description, amount }
+- Memanggil Mayar API: POST {MAYAR_BASE_URL}/invoice/create
+  dengan header Authorization: Bearer {MAYAR_API_KEY}
+  dan body: { name, email, mobile, description, items: [{ quantity: 1, rate: amount, description }] }
+- Mengambil link pembayaran dari response Mayar (cek nama field yang tepat)
+- Mengembalikan { paymentUrl: <link tersebut> } ke frontend
+- Stateless, tidak perlu database, tidak menyentuh tabel/schema yang sudah ada
+
+LANGKAH 3 — Buat halaman checkout BARU (route/file baru):
+- Gunakan layout/wrapper yang sama dengan halaman lain (import, jangan duplikat 
+  atau modifikasi layout aslinya)
+- Form: Nama, Email, No HP, ringkasan produk/harga — pakai komponen Input/Button 
+  yang sudah ada via import
+- Gunakan warna, font, spacing dari design tokens/CSS variables yang sudah ada
+- Saat "Bayar" diklik: kirim ke /api/create-invoice, tampilkan loading state, 
+  redirect ke paymentUrl
+- Error state dengan gaya alert yang konsisten dengan project
+
+LANGKAH 4 — Setelah selesai, tunjukkan ke saya:
+- Daftar LENGKAP file yang dibuat (baru) vs file yang diubah (jika ada, 
+  dengan alasan kenapa terpaksa diubah)
+- Konfirmasi bahwa halaman-halaman dan endpoint lain yang sudah ada sebelum 
+  perubahan ini masih bisa diakses dan berjalan normal
+- Route URL untuk halaman checkout baru ini
+- Cara test end-to-end-nya
+
+Prioritas utama: TIDAK ADA regresi atau kerusakan pada fitur yang sudah settle. 
+Lebih baik bertanya dulu ke saya daripada mengambil risiko mengubah sesuatu 
+yang sudah berjalan baik.

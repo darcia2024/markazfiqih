@@ -764,50 +764,6 @@ export async function validateVoucher(classId: string, code: string): Promise<Vo
   return { valid: true, discountPrice: data.discount_price as number };
 }
 
-export async function createCheckout(voucherCode?: string): Promise<LocalInvoice> {
-  const { data: { session } } = await supabase.auth.getSession();
-  const token = session?.access_token;
-  if (!token) throw new Error('Tidak ada sesi login');
-
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-  const res = await fetch(`${supabaseUrl}/functions/v1/checkout`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(voucherCode ? { voucherCode } : {}),
-  });
-
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error ?? 'Checkout gagal');
-  }
-  return res.json();
-}
-
-export async function simulateSuccess(invoiceId: string): Promise<{ success: boolean; invoiceId: string }> {
-  const { data: { session } } = await supabase.auth.getSession();
-  const token = session?.access_token;
-  if (!token) throw new Error('Tidak ada sesi login');
-
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-  const res = await fetch(`${supabaseUrl}/functions/v1/simulate-success`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ invoiceId }),
-  });
-
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.error ?? 'Simulasi gagal');
-  }
-  return res.json();
-}
-
 // ─── PROGRESS ─────────────────────────────────────────────────────────────────
 // Catatan skema: tabel `progress` tidak punya kolom `is_completed`.
 // Keberadaan sebuah row berarti dars tersebut sudah selesai (ditandai completed_at).

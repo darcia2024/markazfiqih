@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Link, useLocation, useSearch } from 'wouter';
+import { useState } from 'react';
+import { Link, useLocation } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft,
@@ -10,10 +10,9 @@ import {
   CheckCircle2,
   Sparkles,
   Loader2,
-  XCircle,
   Package2,
 } from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 
 import { toast } from 'sonner';
 import { AppShell } from '@/components/AppShell';
@@ -28,8 +27,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import type { CartClassItem, CartBundleItem, CartEbookItem } from '@/context/CartContext';
 import { formatPrice } from '@/pages/CatalogPage';
-import { createCheckout, simulateSuccess, getInvoice, validateVoucher, listClasses, getUserPhone, updateUserPhone } from '@/lib/db';
-import type { LocalInvoice } from '@/lib/db';
+import { validateVoucher, listClasses } from '@/lib/db';
 
 function formatDuration(totalMinutes: number | null): string | null {
   if (!totalMinutes) return null;
@@ -126,122 +124,6 @@ function RecommendationCard({
         </div>
       </div>
     </div>
-  );
-}
-
-function CartSuccessView({ invoice, onBackToCatalog }: { invoice: LocalInvoice; onBackToCatalog: () => void }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="max-w-lg mx-auto text-center py-16 px-4"
-    >
-      <CheckCircle2 className="h-12 w-12 text-success/70 mx-auto mb-6" />
-      <h2 className="font-serif text-2xl font-bold text-foreground mb-2">Pembayaran Berhasil!</h2>
-      <p className="text-muted-foreground mb-6">
-        Kamu telah berhasil mendaftar ke {invoice.items.length} kelas. Selamat belajar!
-      </p>
-      <div className="rounded-xl border bg-card p-5 text-left space-y-3 mb-8">
-        {(() => {
-          const bundleGroups = new Map<string, { bundleName: string; items: typeof invoice.items }>();
-          const standaloneItems: typeof invoice.items = [];
-          invoice.items.forEach((item) => {
-            if (item.bundleId) {
-              if (!bundleGroups.has(item.bundleId)) {
-                bundleGroups.set(item.bundleId, { bundleName: item.bundleName ?? 'Paket Bundle', items: [] });
-              }
-              bundleGroups.get(item.bundleId)!.items.push(item);
-            } else {
-              standaloneItems.push(item);
-            }
-          });
-          return (
-            <>
-              {Array.from(bundleGroups.values()).map((group) => (
-                <div key={group.bundleName} className="space-y-1.5">
-                  <p className="text-sm font-semibold text-foreground">Paket Bundle: {group.bundleName}</p>
-                  <ul className="pl-4 space-y-1">
-                    {group.items.map((item) => (
-                      <li key={item.id} className="flex items-center gap-2">
-                        <div className="w-10 h-7 rounded overflow-hidden bg-muted shrink-0">
-                          <img src={item.coverImage} alt={item.title} className="w-full h-full object-cover" />
-                        </div>
-                        <p className="text-xs text-muted-foreground line-clamp-1">{item.title}</p>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-              {standaloneItems.map((item) => (
-                <div key={item.id} className="flex items-center gap-3">
-                  <div className="w-12 h-9 rounded-md overflow-hidden bg-muted shrink-0">
-                    <img src={item.coverImage} alt={item.title} className="w-full h-full object-cover" />
-                  </div>
-                  <p className="text-sm font-medium text-foreground line-clamp-1">{item.title}</p>
-                </div>
-              ))}
-            </>
-          );
-        })()}
-        <Separator />
-        <div className="flex justify-between text-sm font-bold">
-          <span>Total Dibayar</span>
-          <span className="text-primary">{formatPrice(invoice.totalAmount)}</span>
-        </div>
-      </div>
-      <div className="flex flex-col sm:flex-row gap-3 justify-center">
-        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.15 }}>
-          <Button asChild size="lg">
-            <Link href="/dashboard">Lihat Dashboard</Link>
-          </Button>
-        </motion.div>
-        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.15 }}>
-          <Button variant="outline" size="lg" onClick={onBackToCatalog}>
-            Jelajahi Kelas Lain
-          </Button>
-        </motion.div>
-      </div>
-    </motion.div>
-  );
-}
-
-/** Tampil setelah user kembali dari Mayar — polling status invoice tiap 3 detik */
-function WaitingForPaymentView({
-  invoiceId,
-  onSuccess,
-  onFailed,
-}: {
-  invoiceId: string;
-  onSuccess: (invoice: LocalInvoice) => void;
-  onFailed: () => void;
-}) {
-  const { data: invoice } = useQuery({
-    queryKey: ['invoice', invoiceId],
-    queryFn: () => getInvoice(invoiceId),
-    refetchInterval: 3000,
-  });
-
-  useEffect(() => {
-    if (!invoice) return;
-    if (invoice.status === 'paid') onSuccess(invoice);
-    if (invoice.status === 'failed') onFailed();
-  }, [invoice, onSuccess, onFailed]);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="max-w-md mx-auto text-center py-20 px-4"
-    >
-      <Loader2 className="h-12 w-12 text-primary/60 mx-auto mb-6 animate-spin" />
-      <h2 className="font-serif text-2xl font-bold text-foreground mb-2">
-        Menunggu Konfirmasi Pembayaran
-      </h2>
-      <p className="text-muted-foreground">
-        Halaman ini akan otomatis update setelah pembayaran dikonfirmasi.
-        Jangan tutup tab ini.
-      </p>
-    </motion.div>
   );
 }
 
@@ -487,54 +369,6 @@ function CartContent() {
   const { user } = useAuth();
   const { items, isLoading, removeFromCart, isRemoving, classIdsInCart } = useCart();
   const [, setLocation] = useLocation();
-  const search = useSearch();
-  const queryClient = useQueryClient();
-
-  // Deteksi return dari Mayar: /keranjang?invoice=<id>
-  const returnInvoiceId = new URLSearchParams(search).get('invoice');
-
-  type Step = 'cart' | 'paying' | 'waiting' | 'success' | 'failed';
-  const [checkoutStep, setCheckoutStep] = useState<Step>(
-    returnInvoiceId ? 'waiting' : 'cart',
-  );
-  const [invoice, setInvoice] = useState<LocalInvoice | null>(null);
-  const [waitingInvoiceId, setWaitingInvoiceId] = useState<string | null>(
-    returnInvoiceId,
-  );
-  const [isProcessing, setIsProcessing] = useState(false);
-
-  // ── Nomor HP (wajib sebelum checkout ke Mayar) ─────────────────────────────
-  const [savedPhone, setSavedPhone] = useState<string | null | undefined>(undefined); // undefined = belum dimuat
-  const [phoneInput, setPhoneInput] = useState('');
-  const [isSavingPhone, setIsSavingPhone] = useState(false);
-  const [phoneError, setPhoneError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!user) return;
-    getUserPhone(user.id)
-      .then((phone) => {
-        setSavedPhone(phone);
-        if (phone) setPhoneInput(phone);
-      })
-      .catch(() => setSavedPhone(null));
-  }, [user]);
-
-  const handleSavePhone = async () => {
-    const cleaned = phoneInput.trim().replace(/\s/g, '');
-    if (!cleaned) { setPhoneError('Nomor HP tidak boleh kosong.'); return; }
-    if (!/^\+?\d{8,15}$/.test(cleaned)) { setPhoneError('Format nomor tidak valid. Contoh: 08123456789'); return; }
-    setPhoneError(null);
-    setIsSavingPhone(true);
-    try {
-      await updateUserPhone(user!.id, cleaned);
-      setSavedPhone(cleaned);
-      toast.success('Nomor HP berhasil disimpan.');
-    } catch {
-      setPhoneError('Gagal menyimpan nomor HP. Coba lagi.');
-    } finally {
-      setIsSavingPhone(false);
-    }
-  };
 
   // ── Voucher (hanya untuk kelas individual) ─────────────────────────────────
   const [voucherInputCode, setVoucherInputCode] = useState('');
@@ -555,11 +389,6 @@ function CartContent() {
   const recommendedClasses = allClasses
     .filter((cls) => !classIdsInCart.has(cls.id))
     .slice(0, 4);
-
-  const createCheckoutMutation = useMutation({ mutationFn: createCheckout });
-  const simulateSuccessMutation = useMutation({
-    mutationFn: (invoiceId: string) => simulateSuccess(invoiceId),
-  });
 
   // Subtotal: bundle pakai bundlePrice, kelas pakai harga (voucher kalau ada)
   const subtotal = items.reduce((sum, item) => {
@@ -612,190 +441,7 @@ function CartContent() {
     }
   };
 
-  const handleCheckout = async () => {
-    if (!user || items.length === 0) return;
-    setIsProcessing(true);
-    try {
-      const voucherCode = appliedVoucher ? voucherInputCode.trim().toUpperCase() : undefined;
-      const createdInvoice = await createCheckoutMutation.mutateAsync(voucherCode);
-
-      if (createdInvoice.paymentUrl) {
-        setWaitingInvoiceId(createdInvoice.id);
-        window.location.href = createdInvoice.paymentUrl;
-        return;
-      }
-
-      setInvoice(createdInvoice);
-      setCheckoutStep('paying');
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Checkout gagal. Coba lagi.');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handleSimulateSuccess = async () => {
-    if (!invoice) return;
-    setIsProcessing(true);
-    try {
-      await simulateSuccessMutation.mutateAsync(invoice.id);
-      const paidInvoice = await getInvoice(invoice.id);
-      setInvoice(paidInvoice);
-      setCheckoutStep('success');
-      queryClient.invalidateQueries({ queryKey: ['cart', user!.id] });
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Simulasi gagal. Coba lagi.');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  const handlePaymentSuccess = (paidInvoice: LocalInvoice) => {
-    setInvoice(paidInvoice);
-    setCheckoutStep('success');
-    queryClient.invalidateQueries({ queryKey: ['cart', user!.id] });
-    window.history.replaceState(null, '', '/keranjang');
-  };
-
-  const handlePaymentFailed = () => {
-    setCheckoutStep('failed');
-    window.history.replaceState(null, '', '/keranjang');
-  };
-
-  // ── Waiting ────────────────────────────────────────────────────────────────
-  if (checkoutStep === 'waiting' && waitingInvoiceId) {
-    return (
-      <WaitingForPaymentView
-        invoiceId={waitingInvoiceId}
-        onSuccess={handlePaymentSuccess}
-        onFailed={handlePaymentFailed}
-      />
-    );
-  }
-
-  // ── Failed ─────────────────────────────────────────────────────────────────
-  if (checkoutStep === 'failed') {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="max-w-md mx-auto text-center py-20 px-4"
-      >
-        <XCircle className="h-12 w-12 text-destructive/70 mx-auto mb-6" />
-        <h2 className="font-serif text-2xl font-bold text-foreground mb-2">Pembayaran Gagal</h2>
-        <p className="text-muted-foreground mb-8">
-          Pembayaran tidak berhasil diproses. Kamu bisa coba lagi atau pilih metode lain.
-        </p>
-        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.15 }} className="inline-block">
-          <Button size="lg" onClick={() => setCheckoutStep('cart')}>
-            Kembali ke Keranjang
-          </Button>
-        </motion.div>
-      </motion.div>
-    );
-  }
-
-  // ── Success ────────────────────────────────────────────────────────────────
-  if (checkoutStep === 'success' && invoice) {
-    return (
-      <CartSuccessView invoice={invoice} onBackToCatalog={() => setLocation('/katalog')} />
-    );
-  }
-
-  // ── Paying (Dev-only simulasi) ─────────────────────────────────────────────
-  if (checkoutStep === 'paying' && invoice) {
-    return (
-      <div className="max-w-2xl mx-auto py-10 lg:py-14 px-4">
-        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-          <motion.button
-            onClick={() => setCheckoutStep('cart')}
-            className="inline-flex items-center text-sm text-muted-foreground hover:text-primary transition-colors mb-4"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            transition={{ duration: 0.15 }}
-          >
-            <ArrowLeft className="mr-1.5 h-4 w-4" />
-            Kembali ke Keranjang
-          </motion.button>
-          <h1 className="font-serif text-2xl font-bold text-foreground">Simulasi Pembayaran</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Mode pengembangan: pembayaran Mayar belum aktif.
-          </p>
-        </motion.div>
-
-        <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
-          <div className="p-5 space-y-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Ringkasan Invoice
-            </p>
-            <div className="space-y-3">
-              {(() => {
-                const bundleGroups = new Map<string, { bundleName: string; items: typeof invoice.items; total: number }>();
-                const standaloneItems: typeof invoice.items = [];
-                invoice.items.forEach((item) => {
-                  if (item.bundleId) {
-                    if (!bundleGroups.has(item.bundleId)) {
-                      bundleGroups.set(item.bundleId, { bundleName: item.bundleName ?? 'Paket Bundle', items: [], total: 0 });
-                    }
-                    const group = bundleGroups.get(item.bundleId)!;
-                    group.items.push(item);
-                    group.total += item.price;
-                  } else {
-                    standaloneItems.push(item);
-                  }
-                });
-                return (
-                  <>
-                    {Array.from(bundleGroups.values()).map((group) => (
-                      <div key={group.bundleName} className="space-y-1.5">
-                        <div className="flex items-center justify-between text-sm font-medium">
-                          <span className="text-foreground">Paket Bundle: {group.bundleName}</span>
-                          <span className="text-muted-foreground shrink-0 ml-3">{formatPrice(group.total)}</span>
-                        </div>
-                        <ul className="pl-4 space-y-1">
-                          {group.items.map((item) => (
-                            <li key={item.id} className="text-xs text-muted-foreground list-disc">
-                              {item.title}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ))}
-                    {standaloneItems.map((item) => (
-                      <div key={item.id} className="flex items-center justify-between text-sm">
-                        <span className="text-foreground line-clamp-1 flex-1">{item.title}</span>
-                        <span className="text-muted-foreground shrink-0 ml-3">{formatPrice(item.price)}</span>
-                      </div>
-                    ))}
-                  </>
-                );
-              })()}
-            </div>
-            <Separator />
-            <div className="flex justify-between font-bold text-base">
-              <span>Total</span>
-              <span className="text-primary">{formatPrice(invoice.totalAmount)}</span>
-            </div>
-          </div>
-          <div className="border-t p-5 space-y-3">
-            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.15 }}>
-              <Button
-                size="lg"
-                className="w-full text-base font-semibold"
-                disabled={isProcessing}
-                onClick={handleSimulateSuccess}
-              >
-                {isProcessing ? 'Memproses…' : `Simulasi Lunas ${formatPrice(invoice.totalAmount)}`}
-              </Button>
-            </motion.div>
-            <p className="text-xs text-center text-muted-foreground">
-              Tombol ini hanya muncul di mode pengembangan. Di production, user akan diarahkan ke halaman Mayar.
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const handleCheckout = () => setLocation('/checkout');
 
   // ── Cart ───────────────────────────────────────────────────────────────────
   return (
@@ -955,47 +601,6 @@ function CartContent() {
                     </div>
                   )}
 
-                  {/* ── Nomor HP — wajib sebelum checkout ── */}
-                  {savedPhone === undefined ? null : savedPhone ? (
-                    <div className="rounded-lg bg-muted/50 border px-3 py-2.5 flex items-center justify-between gap-2">
-                      <div>
-                        <p className="text-xs font-medium text-foreground">Nomor WhatsApp/HP</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{savedPhone}</p>
-                      </div>
-                      <motion.button
-                        className="text-xs text-primary underline underline-offset-2 shrink-0"
-                        onClick={() => setSavedPhone(null)}
-                        whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} transition={{ duration: 0.15 }}
-                      >
-                        Ubah
-                      </motion.button>
-                    </div>
-                  ) : (
-                    <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-foreground">
-                        Nomor WhatsApp/HP <span className="text-destructive">*</span>
-                      </label>
-                      <p className="text-xs text-muted-foreground">Diperlukan untuk konfirmasi pembayaran.</p>
-                      <div className="flex gap-2">
-                        <Input
-                          type="tel"
-                          placeholder="08123456789"
-                          value={phoneInput}
-                          onChange={(e) => { setPhoneInput(e.target.value); setPhoneError(null); }}
-                          className="h-9 text-sm"
-                          disabled={isSavingPhone}
-                          onKeyDown={(e) => { if (e.key === 'Enter') void handleSavePhone(); }}
-                        />
-                        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.15 }} className="shrink-0">
-                          <Button variant="outline" size="sm" className="h-9" onClick={handleSavePhone} disabled={isSavingPhone || !phoneInput.trim()}>
-                            {isSavingPhone ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Simpan'}
-                          </Button>
-                        </motion.div>
-                      </div>
-                      {phoneError && <p className="text-xs text-destructive">{phoneError}</p>}
-                    </div>
-                  )}
-
                   <Separator />
 
                   {appliedVoucher && (() => {
@@ -1022,10 +627,10 @@ function CartContent() {
                     <Button
                       size="lg"
                       className="w-full text-base font-semibold"
-                      disabled={isProcessing}
+                      disabled={items.length === 0}
                       onClick={handleCheckout}
                     >
-                      {isProcessing ? 'Memproses…' : 'Lanjutkan ke Pembayaran'}
+                      Lanjut ke pembayaran
                     </Button>
                   </motion.div>
                 </div>

@@ -1,35 +1,42 @@
 ---
 name: Mayar integration status
-description: What's scaffolded for Mayar payment gateway vs what still needs Mayar API docs to complete.
+description: Mayar payment gateway integration — API details, webhook security, and what's implemented.
 ---
 
 # Mayar integration status
 
-## What's scaffolded (done without Mayar API docs)
-- `GET /checkout/:id` — polls invoice status, used by CartPage after returning from payment gateway.
-- `POST /checkout` returns `paymentUrl` field (null until Mayar is connected).
-- CartPage: if `paymentUrl` → redirect to it; else → show dev simulate panel.
-- CartPage: detects `?invoice=<id>` query param on load → 'waiting' step, polls every 3s via `useGetCheckout`.
-- `POST /webhooks/mayar` skeleton exists but **always returns 501** until signature verification is implemented.
-- `simulate-success` guarded by `ALLOW_SIMULATE_SUCCESS=false` env var.
-- `.env.example` has `MAYAR_API_KEY`, `MAYAR_WEBHOOK_SECRET`, `MAYAR_BASE_URL` placeholders.
+## API Details (from docs.mayar.id)
 
-## What still needs Mayar API docs
-- Actual API call in checkout edge function — endpoint, auth format, request body, response field names.
-- Webhook signature verification — header name, HMAC algorithm.
-- `mayarInvoiceId` field on `invoices` — needed to cross-reference Mayar's webhook payload to local invoice.
-- InvoiceStatus values may need 'cancelled' or other states depending on what Mayar sends.
+### Create Invoice
+- **Endpoint**: `POST https://api.mayar.id/hl/v1/invoice/create`
+- **Auth**: `Authorization: Bearer {MAYAR_API_KEY}`
+- **Required body fields**: `name`, `email`, `mobile`, `redirectUrl`, `description`, `expiredAt` (ISO 8601), `items[]` (quantity, rate, description), `extraData`
+- **Response**: `data.id` = Mayar invoice ID (store as `mayarInvoiceId`), `data.link` = payment URL (redirect user here)
 
-**Why:** Webhook endpoint intentionally returns 501 (not 200) until signature is verified. Accepting unverified webhooks = free enrollment exploit.
+### Webhook
+- **No HMAC signature** — Mayar does NOT use HMAC/signature verification
+- **Security via URL token**: register webhook as `https://<domain>/webhooks/mayar?token=<MAYAR_WEBHOOK_SECRET>`
+- **Event for payment**: `event.received === "payment.received"` (the field is nested: `payload.event.received`)
+- **Mayar invoice ID in webhook**: `payload.data.id` — match this to local `invoices.mayar_invoice_id`
+- **Always return 200** so Mayar doesn't retry on non-payment events (reminders, membership changes, etc.)
+
+## What's implemented (done)
+
+- `artifacts/api-server/src/routes/checkout.ts`: POST /checkout now calls Mayar invoice/create API, stores `mayarInvoiceId`, returns actual `paymentUrl`
+- `artifacts/api-server/src/routes/webhooks.ts`: POST /webhooks/mayar now processes `payment.received` events and calls `markInvoiceAsPaid`
+- `artifacts/api-server/src/lib/supabase-admin.ts`: shared Supabase admin client (used by requireAuth + checkout)
+- User info (name, email, mobile) fetched from Supabase auth admin API at checkout time
+
+## User steps to go live
+
+1. **Set env vars**: `MAYAR_API_KEY`, `MAYAR_WEBHOOK_SECRET`, `MAYAR_BASE_URL=https://api.mayar.id/hl/v1`
+2. **Register webhook URL** on Mayar Dashboard → Integration → Webhook:
+   `https://<deployed-domain>/webhooks/mayar?token=<MAYAR_WEBHOOK_SECRET>`
+3. **Set ADMIN_USER_IDS** to real Supabase user UUIDs (currently set to placeholder "a")
 
 ## Env vars needed from Mayar
 - `MAYAR_API_KEY` — from Mayar Dashboard → API / Developer
-- `MAYAR_WEBHOOK_SECRET` — for HMAC signature verification
-- `MAYAR_BASE_URL` — default `https://api.mayar.id/hl/v1`
+- `MAYAR_WEBHOOK_SECRET` — secret string you choose; pass it as `?token=` in the webhook URL
+- `MAYAR_BASE_URL` — `https://api.mayar.id/hl/v1` (sandbox: `https://api.mayar.club/hl/v1`)
 
-## Voucher timing (implemented)
-- **checkout** edge function: stores `voucherRowId`, passes `voucher_id` to invoice insert (does NOT increment used_count)
-- **simulate-success** edge function: increments used_count ONLY when pending→paid transition actually occurs
-- Idempotency guard: checks `invoice.status`, then atomic update `.eq('status','pending')` + checks `updatedCount`; concurrent/repeated calls return `alreadyPaid: true` without double-increment
-- **REQUIRED MIGRATION before deploy**: `ALTER TABLE invoices ADD COLUMN IF NOT EXISTS voucher_id UUID REFERENCES class_vouchers(id) ON DELETE SET NULL;`
-- **increment_voucher_usage** SQL function must be created in Supabase SQL Editor (provided separately)
+**Why URL token for security:** Mayar doesn't support HMAC. Anyone who knows your webhook URL could send fake events. The `?token=` param acts as a shared secret — only Mayar (which you register the URL with) will call it with the correct token.
