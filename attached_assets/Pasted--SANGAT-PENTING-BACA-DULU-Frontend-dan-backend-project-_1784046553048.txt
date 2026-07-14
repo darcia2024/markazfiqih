@@ -1,0 +1,123 @@
+⚠️ SANGAT PENTING — BACA DULU:
+Frontend dan backend project ini SUDAH SETTLE dan berjalan baik untuk sebagian 
+besar fitur. Ada 4 tugas terpisah di bawah ini. Untuk masing-masing:
+- JANGAN mengubah file/komponen lain yang tidak berkaitan
+- SEBELUM mulai coding tiap bagian, tunjukkan dulu file apa yang akan dibuat/diubah
+- SETELAH selesai tiap bagian, konfirmasi fitur lain yang sudah ada masih normal
+- Kalau ragu, STOP dan tanya saya dulu
+
+Environment variables yang tersedia di Secrets:
+- MAYAR_API_KEY, MAYAR_BASE_URL (https://api.mayar.id/hl/v1)
+- MAYAR_WEBHOOK_SECRET, MAYAR_WEBHOOK_TOKEN
+
+===========================================
+BAGIAN 1 — FIX BUG KRITIS: Kelas tidak masuk ke akun user setelah bayar
+===========================================
+Ini bug paling penting, kerjakan lebih dulu. Saat ini setelah user membayar 
+lewat Mayar, sistem TIDAK memberikan akses kelas ke user tersebut.
+
+Root cause kemungkinan: tidak ada mekanisme yang mengonfirmasi status 
+pembayaran balik ke aplikasi setelah user membayar di halaman Mayar.
+
+Solusi yang harus dibuat:
+1. Buat endpoint webhook BARU, misal `/api/webhooks/mayar`, yang akan menerima 
+   notifikasi dari Mayar. JANGAN langsung percaya isi payload webhook untuk 
+   menentukan status pembayaran (karena format signature verification Mayar 
+   belum saya pastikan). Sebagai gantinya:
+   a. Ambil invoice ID / reference dari payload webhook yang masuk
+   b. Panggil balik API Mayar "Get Detail Invoice" (cek endpoint yang sesuai 
+      di dokumentasi Mayar untuk get invoice by ID) menggunakan MAYAR_API_KEY 
+      untuk mengonfirmasi status invoice tersebut SECARA LANGSUNG dari Mayar 
+      (bukan dari payload webhook)
+   c. Jika status dari API benar-benar "paid"/"success", baru proses pemberian 
+      akses kelas ke user
+   d. Log seluruh payload webhook yang masuk (header + body) untuk keperluan 
+      debug, karena formatnya belum saya konfirmasi 100%
+   e. Selalu return 200 OK ke Mayar setelah selesai memproses, agar tidak 
+      di-retry terus menerus
+
+2. Cari di kode yang sudah ada: bagaimana cara sistem menyimpan relasi antara 
+   "user membeli kelas apa" (kemungkinan ada tabel orders/enrollments/purchases). 
+   Setelah invoice dikonfirmasi "paid", tambahkan/update record supaya user 
+   tersebut resmi memiliki akses ke kelas yang dibeli (cek kelas mana yang 
+   dibeli dari deskripsi/item invoice atau dari metadata yang dikirim saat 
+   create invoice — pastikan saat create invoice, sertakan referensi unik 
+   seperti orderId/userId+classId di description atau field lain yang bisa 
+   dibaca kembali saat konfirmasi ini)
+
+3. Setelah kode ini jadi, tunjukkan ke saya URL webhook yang harus saya 
+   register ke dashboard Mayar (via endpoint Register URL Hook atau dashboard), 
+   dan cara saya test end-to-end-nya (dari checkout sampai kelas benar-benar 
+   muncul di akun user)
+
+4. PENTING: pastikan proses ini idempotent — kalau webhook yang sama terkirim 
+   dua kali (retry dari Mayar), jangan sampai user dapat akses ganda/error
+
+===========================================
+BAGIAN 2 — Fitur add-on offer (penawaran kelas lain) sebelum pembayaran
+===========================================
+Di halaman checkout (langkah "Pembayaran"), tambahkan section baru sebelum 
+atau sesudah bagian "Pesanan kamu" yang menawarkan kelas lain sebagai 
+tambahan (add-on/upsell) sebelum user klik bayar.
+
+- Tampilkan sebagai list/card kecil, misal 2-3 kelas rekomendasi (bisa 
+  hardcode dulu daftar kelasnya, atau ambil dari data kelas yang sudah ada 
+  di sistem jika ada endpoint/list kelas)
+- Setiap item ada tombol "+ Tambah" yang saat diklik akan menambahkan kelas 
+  itu ke pesanan (update jumlah item dan subtotal/total di ringkasan sebelah 
+  kanan secara real-time)
+- Styling mengikuti desain yang sudah ada di halaman ini (card style, warna, 
+  font — reuse komponen yang ada, jangan bikin gaya baru)
+- Pastikan saat create invoice ke Mayar, item yang ditambahkan dari add-on 
+  ini ikut masuk ke dalam array "items" pada request
+
+===========================================
+BAGIAN 3 — Redesign section "Metode pembayaran" pakai logo
+===========================================
+Ubah tampilan section "Metode pembayaran" dari yang sekarang (pill/badge text 
+saja: QRIS, Virtual Account, E-Wallet, Kartu Kredit) menjadi list dengan 
+logo, mengikuti referensi berikut (saya lampirkan gambar referensi terpisah):
+- Setiap metode pembayaran ditampilkan sebagai baris/card dengan nama metode 
+  di kiri dan logo-logo penyedia terkait di kanan
+- Contoh: baris "QRIS" dengan logo QRIS di kanan; baris "Transfer Bank (VA)" 
+  dengan logo-logo bank/jaringan terkait; baris "E-Wallet" dengan logo-logo 
+  e-wallet; baris "Mini Market" dengan logo minimarket
+- Untuk logo, gunakan asset resmi (SVG/PNG) dari masing-masing brand — cari 
+  yang berkualitas baik dan proporsional, atau gunakan icon library yang 
+  sudah tersedia di project jika ada
+- Sesuaikan warna border/background card dengan tema project yang sudah ada 
+  (bukan warna generik)
+- Tetap pertahankan style/warna aksen merah yang sudah jadi identitas 
+  checkout page ini
+
+===========================================
+BAGIAN 4 — Fix bug mobile: tombol keranjang menghalangi klik
+===========================================
+Di tampilan mobile, ada floating bar "1 item di keranjang - Rp xxx" yang 
+posisinya fixed di bawah layar. Bar ini MENUTUPI/menghalangi tombol metode 
+pembayaran (QRIS, Virtual Account, dst) sehingga user tidak bisa mengklik 
+tombol tersebut di mobile, meskipun di desktop/PC tidak masalah karena 
+posisinya tidak bertabrakan.
+
+Fix yang diperlukan:
+- Cek CSS/styling floating bar tersebut di breakpoint mobile — kemungkinan 
+  perlu menambahkan padding-bottom pada container utama halaman checkout 
+  sebesar tinggi floating bar tersebut, supaya konten (termasuk tombol 
+  metode pembayaran) tidak tertutup
+- Pastikan z-index floating bar tetap di atas konten (agar tetap terlihat), 
+  TAPI konten di baliknya tidak boleh ter-block dari sisi clickable area
+- Test dengan cara scroll ke section "Metode pembayaran" di viewport mobile 
+  (gunakan device toolbar/responsive mode) dan pastikan semua tombol metode 
+  pembayaran bisa diklik tanpa terhalang
+- Jangan mengubah floating bar ini di tampilan desktop jika di sana sudah 
+  tidak ada masalah
+
+===========================================
+SETELAH SEMUA SELESAI:
+===========================================
+Berikan ringkasan:
+1. File yang dibuat baru vs yang diubah (dan alasannya)
+2. URL webhook yang perlu saya register di dashboard Mayar
+3. Cara test masing-masing dari 4 bagian di atas
+4. Konfirmasi bahwa checkout flow yang sudah berjalan (create invoice, 
+   redirect ke Mayar) masih berfungsi normal setelah semua perubahan ini
