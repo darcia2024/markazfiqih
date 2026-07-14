@@ -44,9 +44,26 @@ Set in Replit Secrets / shared env vars:
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase Dashboard → Project Settings → API → service_role |
 | `ADMIN_USER_IDS` | Comma-separated Supabase user UUIDs allowed to access /admin |
 | `FRONTEND_URL` | Deployed frontend origin (required in production) |
-| `MAYAR_API_KEY` | Mayar Dashboard (payment gateway, optional until Kasus 5) |
-| `MAYAR_WEBHOOK_SECRET` | Mayar Dashboard |
+| `MAYAR_API_KEY` | Mayar Dashboard (payment gateway — live, used by `supabase/functions/checkout` & `mayar-webhook`) |
+| `MAYAR_WEBHOOK_SECRET` | Mayar Dashboard — shared-secret token Mayar must send back on webhook calls (`?token=` or `Authorization: Bearer`) |
 | `MAYAR_BASE_URL` | `https://api.mayar.id/hl/v1` |
+
+## Payment flow (Mayar)
+
+The real checkout/payment implementation is the **Supabase Edge Functions**
+in `supabase/functions/` (`checkout`, `mayar-webhook`, `payment-status`,
+`simulate-success`, `_shared/mayar.ts`, `_shared/fulfillment.ts`) — the
+frontend calls these directly via `src/lib/payments.ts`, not the Express
+`api-server`. The webhook re-verifies payment status directly with Mayar's
+API before granting access (never trusts the webhook payload alone), and
+`fulfillInvoice()` is idempotent so retries/duplicate webhooks are safe.
+See `.agents/memory/mayar-integration.md` for details.
+
+Checkout page (`src/pages/CheckoutPage.tsx`) also has: an add-on/upsell
+section (`CheckoutAddonOffers.tsx`, suggests 2-3 classes not already in
+cart/owned), a logo-based payment method list (`PaymentMethodLogos.tsx`,
+logo assets in `public/payment-logos/`), and mobile bottom padding sized to
+clear `FloatingCartBar`.
 
 ## Class ordering (display_order)
 

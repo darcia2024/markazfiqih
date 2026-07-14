@@ -55,6 +55,19 @@ Deno.serve(async (req) => {
     }
 
     const payload = await req.json();
+
+    // Debug: catat seluruh payload + header yang masuk. Format webhook Mayar
+    // belum 100% dipastikan, jadi log ini dipakai untuk verifikasi di awal.
+    // Aman untuk production — payload tidak berisi rahasia, dan token verifikasi
+    // sudah lolos di Lapis 1 sebelum baris ini dijalankan.
+    console.log(
+      'mayar-webhook payload diterima:',
+      JSON.stringify({
+        headers: Object.fromEntries(req.headers.entries()),
+        body: payload,
+      }),
+    );
+
     const event: string = payload?.event ?? '';
 
     // Mayar mengirim beberapa event (payment.reminder, membership.*, shipper.*).

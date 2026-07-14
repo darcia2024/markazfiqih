@@ -1,42 +1,36 @@
 ---
 name: Mayar integration status
-description: Mayar payment gateway integration — API details, webhook security, and what's implemented.
+description: Mayar payment gateway integration — where the real implementation lives and how webhook security works.
 ---
 
 # Mayar integration status
 
-## API Details (from docs.mayar.id)
+## Where it actually lives
 
-### Create Invoice
-- **Endpoint**: `POST https://api.mayar.id/hl/v1/invoice/create`
-- **Auth**: `Authorization: Bearer {MAYAR_API_KEY}`
-- **Required body fields**: `name`, `email`, `mobile`, `redirectUrl`, `description`, `expiredAt` (ISO 8601), `items[]` (quantity, rate, description), `extraData`
-- **Response**: `data.id` = Mayar invoice ID (store as `mayarInvoiceId`), `data.link` = payment URL (redirect user here)
+The live payment flow runs entirely on **Supabase Edge Functions**
+(`supabase/functions/`), NOT the Express `api-server`. The frontend
+(`src/lib/payments.ts`) calls Supabase functions directly with the user's
+Supabase JWT — it never talks to `api-server` for payments.
 
-### Webhook
-- **No HMAC signature** — Mayar does NOT use HMAC/signature verification
-- **Security via URL token**: register webhook as `https://<domain>/webhooks/mayar?token=<MAYAR_WEBHOOK_SECRET>`
-- **Event for payment**: `event.received === "payment.received"` (the field is nested: `payload.event.received`)
-- **Mayar invoice ID in webhook**: `payload.data.id` — match this to local `invoices.mayar_invoice_id`
-- **Always return 200** so Mayar doesn't retry on non-payment events (reminders, membership changes, etc.)
+- `checkout/` — creates the local `invoices`/`invoice_items` rows, then calls Mayar's invoice/create API
+- `mayar-webhook/` — receives Mayar's webhook, deployed with `--no-verify-jwt` (Mayar can't send a Supabase JWT)
+- `payment-status/` — polled by the frontend; re-verifies with Mayar if still pending (safety net if webhook fails/is late)
+- `simulate-success/` — dev-only manual fulfillment, gated by `ALLOW_SIMULATE_SUCCESS`
+- `_shared/mayar.ts` — Mayar API client (create invoice, get invoice detail, `isPaidStatus`)
+- `_shared/fulfillment.ts` — single idempotent `fulfillInvoice()` used by all three of the above (atomic pending→paid transition, enrollment/ebook upsert, cart clear)
 
-## What's implemented (done)
+Any `artifacts/api-server/src/routes/checkout.ts` or `webhooks.ts` code is a
+leftover/parallel implementation that the frontend does not call — don't
+assume that's the live path without checking `payments.ts` first.
 
-- `artifacts/api-server/src/routes/checkout.ts`: POST /checkout now calls Mayar invoice/create API, stores `mayarInvoiceId`, returns actual `paymentUrl`
-- `artifacts/api-server/src/routes/webhooks.ts`: POST /webhooks/mayar now processes `payment.received` events and calls `markInvoiceAsPaid`
-- `artifacts/api-server/src/lib/supabase-admin.ts`: shared Supabase admin client (used by requireAuth + checkout)
-- User info (name, email, mobile) fetched from Supabase auth admin API at checkout time
+## Webhook security model (already implemented)
 
-## User steps to go live
+Two layers, matches what's needed for a trustworthy webhook without HMAC support:
+1. Shared-secret token via `Authorization: Bearer <token>` or `?token=` query param, checked with constant-time compare against `MAYAR_WEBHOOK_SECRET`.
+2. Re-confirms status by calling Mayar's `GET /hl/v2/invoices/{id}` directly — the webhook payload is never trusted for the paid/unpaid decision.
 
-1. **Set env vars**: `MAYAR_API_KEY`, `MAYAR_WEBHOOK_SECRET`, `MAYAR_BASE_URL=https://api.mayar.id/hl/v1`
-2. **Register webhook URL** on Mayar Dashboard → Integration → Webhook:
-   `https://<deployed-domain>/webhooks/mayar?token=<MAYAR_WEBHOOK_SECRET>`
-3. **Set ADMIN_USER_IDS** to real Supabase user UUIDs (currently set to placeholder "a")
+**Why:** Mayar doesn't sign webhooks with HMAC, so payload contents alone can't be trusted; re-querying Mayar's API is what makes a forged webhook call harmless.
 
-## Env vars needed from Mayar
-- `MAYAR_API_KEY` — from Mayar Dashboard → API / Developer
-- `MAYAR_WEBHOOK_SECRET` — secret string you choose; pass it as `?token=` in the webhook URL
-- `MAYAR_BASE_URL` — `https://api.mayar.id/hl/v1` (sandbox: `https://api.mayar.club/hl/v1`)
+**How to apply:** if asked to harden or debug Mayar webhooks again, check this file lives up to date — verify via `curl` that the deployed function URL responds (401 without token = deployed and working, not a 404).
 
-**Why URL token for security:** Mayar doesn't support HMAC. Anyone who knows your webhook URL could send fake events. The `?token=` param acts as a shared secret — only Mayar (which you register the URL with) will call it with the correct token.
+Register in Mayar dashboard: `https://<project-ref>.supabase.co/functions/v1/mayar-webhook?token=<MAYAR_WEBHOOK_SECRET>`. Note `MAYAR_WEBHOOK_TOKEN` (a similarly-named secret sometimes present) is NOT referenced anywhere in code — only `MAYAR_WEBHOOK_SECRET` is used.
