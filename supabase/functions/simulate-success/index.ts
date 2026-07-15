@@ -11,9 +11,10 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  // Blokir endpoint simulasi di production.
-  // Set ALLOW_SIMULATE_SUCCESS=false untuk menonaktifkan tanpa deploy ulang.
-  if (Deno.env.get('ALLOW_SIMULATE_SUCCESS') === 'false') {
+  // Fail-closed: endpoint simulasi HANYA aktif jika env var eksplisit diset ke 'true'.
+  // Nilai lain (undefined, kosong, 'false', dll) → 403. Ini mencegah endpoint
+  // simulasi ini tanpa sengaja terbuka di production karena env var lupa diset.
+  if (Deno.env.get('ALLOW_SIMULATE_SUCCESS') !== 'true') {
     return new Response(
       JSON.stringify({ error: 'Endpoint simulasi tidak tersedia di mode produksi.' }),
       { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },

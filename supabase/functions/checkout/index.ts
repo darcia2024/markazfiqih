@@ -207,12 +207,41 @@ Deno.serve(async (req) => {
     // (karena ringkasan itu baca live dari CartContext, bukan dari invoice).
     // Itu sebabnya total di invoice Mayar terasa "nyangkut" di kelas pertama.
     //
-    // Fix: bandingkan totalAmount (dihitung ulang dari keranjang saat ini)
-    // dengan total_amount invoice pending yang ada. Kalau sama → aman dipakai
-    // ulang (mencegah tagihan kembar kalau user cuma klik "Bayar" dua kali).
-    // Kalau beda → invoice itu basi (stale), JANGAN dipakai ulang: set
-    // expires_at-nya ke masa lalu supaya tidak terpilih lagi, lalu lanjut buat
-    // invoice baru yang mencakup SEMUA item di keranjang saat ini.
+    // Fix: bandingkan fingerprint ISI (tipe:id:harga per item, di-sort) DAN
+    // total_amount dari invoice pending dengan fingerprint+total yang dibentuk
+    // dari keranjang saat ini. Hanya total saja tidak cukup — keranjang bisa
+    // berubah (tukar kelas A dengan kelas B yang harganya kebetulan sama) tanpa
+    // mengubah total, dan reuse-by-total-saja akan salah mengirim invoice_items
+    // lama (user bayar tapi dapat kelas yang salah). Reuse hanya jika fingerprint
+    // DAN total identik. Kalau beda → invoice itu basi (stale), JANGAN dipakai
+    // ulang: set expires_at-nya ke masa lalu supaya tidak terpilih lagi, lalu
+    // lanjut buat invoice baru yang mencakup SEMUA item di keranjang saat ini.
+    const buildFingerprint = (rows: Array<{ class_id: string | null; bundle_id: string | null; ebook_id: string | null; price: number }>) =>
+      rows
+        .map((r) => `${r.bundle_id ? 'bundle' : r.ebook_id ? 'ebook' : 'class'}:${r.bundle_id ?? r.ebook_id ?? r.class_id}:${r.price}`)
+        .sort()
+        .join('|');
+
+    // Fingerprint keranjang saat ini, dengan harga per-baris yang sama seperti
+    // yang nanti dipakai untuk invoice_items (lihat pembentukan itemsToInsert
+    // di bawah): kelas satuan pakai harga kelas (voucher-aware), bundle pakai
+    // satu baris per bundle_id dengan harga bundle_price, ebook pakai harga ebook.
+    const currentFingerprintRows: Array<{ class_id: string | null; bundle_id: string | null; ebook_id: string | null; price: number }> = [];
+    for (const item of cartItems as any[]) {
+      if (item.bundle_id && item.bundles) {
+        currentFingerprintRows.push({ class_id: null, bundle_id: item.bundle_id, ebook_id: null, price: item.bundles.bundle_price ?? 0 });
+      } else if (item.class_id && item.classes) {
+        const price =
+          voucherApplied && item.class_id === voucherClassId
+            ? voucherDiscountPrice!
+            : (item.classes.discount_price ?? item.classes.base_price ?? 0);
+        currentFingerprintRows.push({ class_id: item.class_id, bundle_id: null, ebook_id: null, price });
+      } else if (item.ebook_id && item.ebooks) {
+        currentFingerprintRows.push({ class_id: null, bundle_id: null, ebook_id: item.ebook_id, price: item.ebooks.discount_price ?? item.ebooks.price ?? 0 });
+      }
+    }
+    const currentFingerprint = buildFingerprint(currentFingerprintRows);
+
     const { data: reusable } = await supabaseAdmin
       .from('invoices')
       .select('id, total_amount, mayar_payment_url, expires_at')
@@ -225,9 +254,36 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (reusable) {
-      const stillMatches = reusable.total_amount === totalAmount;
+      const { data: reusableItems } = await supabaseAdmin
+        .from('invoice_items')
+        .select('class_id, bundle_id, ebook_id, price')
+        .eq('invoice_id', reusable.id);
+
+      // invoice_items menyimpan bundle sebagai satu baris per kelas anggota
+      // (lihat itemsToInsert di bawah), sedangkan fingerprint keranjang di atas
+      // punya satu baris per bundle_id. Kelompokkan dulu baris bundle di
+      // invoice_items jadi satu baris per bundle_id (harga dijumlahkan) supaya
+      // kedua fingerprint bisa dibandingkan dengan bentuk yang sama.
+      const bundleTotals = new Map<string, number>();
+      const nonBundleRows: Array<{ class_id: string | null; bundle_id: string | null; ebook_id: string | null; price: number }> = [];
+      for (const r of (reusableItems ?? []) as any[]) {
+        if (r.bundle_id) {
+          bundleTotals.set(r.bundle_id, (bundleTotals.get(r.bundle_id) ?? 0) + (r.price ?? 0));
+        } else {
+          nonBundleRows.push({ class_id: r.class_id, bundle_id: null, ebook_id: r.ebook_id, price: r.price ?? 0 });
+        }
+      }
+      for (const [bundleId, price] of bundleTotals) {
+        nonBundleRows.push({ class_id: null, bundle_id: bundleId, ebook_id: null, price });
+      }
+      const reusableFingerprint = buildFingerprint(nonBundleRows);
+
+      const totalMatches = reusable.total_amount === totalAmount;
+      const fingerprintMatches = reusableFingerprint === currentFingerprint;
+      const stillMatches = totalMatches && fingerprintMatches;
+
       console.log(
-        `[checkout] user=${user.id} invoice pending ditemukan id=${reusable.id} total_amount=${reusable.total_amount} vs totalAmount_sekarang=${totalAmount} → ${stillMatches ? 'REUSE' : 'STALE, invoice baru dibuat'}`,
+        `[checkout] user=${user.id} invoice pending ditemukan id=${reusable.id} total_amount=${reusable.total_amount} vs totalAmount_sekarang=${totalAmount} (match=${totalMatches}); fingerprint lama="${reusableFingerprint}" vs sekarang="${currentFingerprint}" (match=${fingerprintMatches}) → ${stillMatches ? 'REUSE' : 'STALE, invoice baru dibuat'}`,
       );
 
       if (stillMatches) {
