@@ -9,3 +9,4 @@
 - [Supabase JS Node version requirement](supabase-js-node-version.md) — supabase-js needs Node 22+ (native WebSocket) even if realtime is unused; Node 20 fails at client creation.
 - [LearnPage Playlist Mode patterns](learnpage-playlist-mode.md) — reading video IDs from a YT playlist w/o extra API key, server-truth completion badges, key={routeParam} for stateful route components.
 - [Supabase RLS embeds and secret columns](supabase-rls-embeds-secrets.md) — RLS is row-level not column-level; a table holding a secret column must not be publicly SELECT-able at all, and any query embedding that table from a non-admin/non-service-role client silently returns null once you lock it down.
+- [Playlist-mode vs module/dars-mode conflict](playlist-mode-conflict.md) — a stray leftover module/dars row on a playlist-mode class silently disables live YouTube playlist reads; looks like a caching bug but isn't.

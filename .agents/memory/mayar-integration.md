@@ -31,6 +31,8 @@ Two layers, matches what's needed for a trustworthy webhook without HMAC support
 
 **Why:** Mayar doesn't sign webhooks with HMAC, so payload contents alone can't be trusted; re-querying Mayar's API is what makes a forged webhook call harmless.
 
+**Amount-mismatch policy (client decision, 2026-07-15):** `mayar-webhook` and `payment-status` no longer hard-reject fulfillment on a `detail.amount !== invoice.total_amount` mismatch — they `console.warn` and still fulfill, since Mayar-side discount codes can legitimately shrink the paid amount below the locally recorded total. Also removed the payload-supplied `mayarInvoiceId` fallback for invoice lookup — only the DB's own `mayar_invoice_id` is trusted now. Both functions must be redeployed via Supabase CLI after any change here (Vercel does not deploy them).
+
 **How to apply:** if asked to harden or debug Mayar webhooks again, check this file lives up to date — verify via `curl` that the deployed function URL responds (401 without token = deployed and working, not a 404).
 
 Register in Mayar dashboard: `https://<project-ref>.supabase.co/functions/v1/mayar-webhook?token=<MAYAR_WEBHOOK_SECRET>`. Note `MAYAR_WEBHOOK_TOKEN` (a similarly-named secret sometimes present) is NOT referenced anywhere in code — only `MAYAR_WEBHOOK_SECRET` is used.

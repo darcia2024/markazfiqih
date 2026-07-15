@@ -227,7 +227,16 @@ function DarsVideoPlayer({
 }
 
 // ── Certificate Section ────────────────────────────────────────────────────────
-function CertificateSection({ classId, classTitle }: { classId: string; classTitle: string }) {
+function CertificateSection({
+  classId,
+  classTitle,
+  isClassCompleted,
+}: {
+  classId: string;
+  classTitle: string;
+  // Revisi 5 item 6: sertifikat hanya bisa diambil kalau kelas sudah 100% selesai.
+  isClassCompleted: boolean;
+}) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -263,6 +272,17 @@ function CertificateSection({ classId, classTitle }: { classId: string; classTit
         >
           <Award className="w-4 h-4" /> Lihat &amp; Download Sertifikat
         </a>
+      </div>
+    );
+  }
+
+  if (!isClassCompleted) {
+    return (
+      <div className="bg-card rounded-2xl border p-5 space-y-2">
+        <p className="text-sm font-semibold text-foreground">Ambil Sertifikat</p>
+        <p className="text-xs text-muted-foreground">
+          Selesaikan seluruh kelas ini dulu untuk bisa mengambil sertifikat.
+        </p>
       </div>
     );
   }
@@ -1035,7 +1055,7 @@ function PlaylistMode({
             )}
 
             <div className="order-4">
-              <CertificateSection classId={classId} classTitle={classTitle} />
+              <CertificateSection classId={classId} classTitle={classTitle} isClassCompleted={isCompleted} />
             </div>
 
             {/* "Kelas Lainnya" — paling bawah di mobile (order-5, bagian dari
@@ -1608,7 +1628,11 @@ function LearnContent() {
 
             {/* Sertifikat — mobile only */}
             <div className="lg:hidden">
-              <CertificateSection classId={classId} classTitle={classDetail.title} />
+              <CertificateSection
+                classId={classId}
+                classTitle={classDetail.title}
+                isClassCompleted={totalDars > 0 && completedIds.size === totalDars}
+              />
             </div>
 
             {/* Mini nav — dars in current module */}
@@ -1764,7 +1788,11 @@ function LearnContent() {
           )}
 
           {/* Card: Sertifikat */}
-          <CertificateSection classId={classId} classTitle={classDetail.title} />
+          <CertificateSection
+            classId={classId}
+            classTitle={classDetail.title}
+            isClassCompleted={totalDars > 0 && completedIds.size === totalDars}
+          />
         </aside>
       </div>
     </AppShell>
