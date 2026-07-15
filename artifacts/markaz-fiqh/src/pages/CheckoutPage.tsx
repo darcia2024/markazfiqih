@@ -9,7 +9,6 @@ import {
   Lock,
   Package2,
   ShieldCheck,
-  Tag,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -25,7 +24,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import { formatPrice } from '@/pages/CatalogPage';
-import { getUserPhone, updateUserPhone, validateVoucher } from '@/lib/db';
+import { getUserPhone, updateUserPhone } from '@/lib/db';
 import { startCheckout, type CheckoutSession } from '@/lib/payments';
 
 // ── Indikator langkah ────────────────────────────────────────────────────────
@@ -103,57 +102,20 @@ function CheckoutContent() {
     }
   };
 
-  // ── Voucher ───────────────────────────────────────────────────────────────
-  const [voucherCode, setVoucherCode] = useState('');
-  const [appliedVoucher, setAppliedVoucher] = useState<{ classId: string; discountPrice: number } | null>(null);
-  const [voucherError, setVoucherError] = useState<string | null>(null);
-  const [isValidatingVoucher, setIsValidatingVoucher] = useState(false);
-
-  const handleApplyVoucher = async () => {
-    const code = voucherCode.trim().toUpperCase();
-    if (!code) return;
-    setVoucherError(null);
-    setAppliedVoucher(null);
-    setIsValidatingVoucher(true);
-    try {
-      for (const item of items) {
-        if (item.type !== 'class') continue;
-        const result = await validateVoucher(item.class.id, code);
-        if (result.valid) {
-          setAppliedVoucher({ classId: item.class.id, discountPrice: result.discountPrice });
-          setIsValidatingVoucher(false);
-          return;
-        }
-      }
-      setVoucherError('Kode ini tidak berlaku untuk kelas di keranjang kamu.');
-    } catch {
-      setVoucherError('Kode gagal diperiksa. Coba lagi.');
-    } finally {
-      setIsValidatingVoucher(false);
-    }
-  };
-
   // ── Total ─────────────────────────────────────────────────────────────────
-  const { subtotal, savings } = useMemo(() => {
+  const subtotal = useMemo(() => {
     let subtotal = 0;
-    let savings = 0;
     for (const item of items) {
       if (item.type === 'bundle') {
         subtotal += item.bundle.bundlePrice;
       } else if (item.type === 'ebook') {
         subtotal += item.ebook.discountPrice ?? item.ebook.price;
       } else {
-        const normal = item.class.discountPrice ?? item.class.basePrice;
-        if (appliedVoucher && item.class.id === appliedVoucher.classId) {
-          subtotal += appliedVoucher.discountPrice;
-          savings += normal - appliedVoucher.discountPrice;
-        } else {
-          subtotal += normal;
-        }
+        subtotal += item.class.discountPrice ?? item.class.basePrice;
       }
     }
-    return { subtotal, savings };
-  }, [items, appliedVoucher]);
+    return subtotal;
+  }, [items]);
 
   // ── Bayar ─────────────────────────────────────────────────────────────────
   const [session, setSession] = useState<CheckoutSession | null>(null);
@@ -165,7 +127,7 @@ function CheckoutContent() {
     if (!canPay) return;
     setIsStarting(true);
     try {
-      const created = await startCheckout(appliedVoucher ? voucherCode.trim().toUpperCase() : undefined);
+      const created = await startCheckout();
       if (created.freeCheckout) {
         toast.success('Pembayaran berhasil — kelas gratis sudah aktif.');
         setLocation(`/pembayaran/${created.id}`);
@@ -305,9 +267,7 @@ function CheckoutContent() {
                     ? item.bundle.bundlePrice
                     : isEbook
                       ? (item.ebook.discountPrice ?? item.ebook.price)
-                      : appliedVoucher && item.class.id === appliedVoucher.classId
-                        ? appliedVoucher.discountPrice
-                        : (item.class.discountPrice ?? item.class.basePrice);
+                      : (item.class.discountPrice ?? item.class.basePrice);
 
                   return (
                     <li key={item.id} className="flex gap-3 px-5 py-3.5 items-center">
@@ -358,55 +318,13 @@ function CheckoutContent() {
               <div className="p-5 space-y-4">
                 <h2 className="text-sm font-semibold text-foreground">Ringkasan</h2>
 
-                {/* Voucher */}
-                {items.some((i) => i.type === 'class') && (
-                  <div className="space-y-2">
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="Kode voucher"
-                        value={voucherCode}
-                        onChange={(e) => {
-                          setVoucherCode(e.target.value);
-                          setAppliedVoucher(null);
-                          setVoucherError(null);
-                        }}
-                        onKeyDown={(e) => e.key === 'Enter' && void handleApplyVoucher()}
-                        disabled={isValidatingVoucher || !!appliedVoucher}
-                        className="h-9 text-sm"
-                      />
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-9 shrink-0"
-                        onClick={handleApplyVoucher}
-                        disabled={!voucherCode.trim() || isValidatingVoucher || !!appliedVoucher}
-                      >
-                        {isValidatingVoucher ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Pakai'}
-                      </Button>
-                    </div>
-                    {appliedVoucher && (
-                      <p className="flex items-center gap-1.5 text-xs text-success">
-                        <Tag className="h-3.5 w-3.5" />
-                        Voucher dipakai
-                      </p>
-                    )}
-                    {voucherError && <p className="text-xs text-destructive">{voucherError}</p>}
-                  </div>
-                )}
-
                 <Separator />
 
                 <div className="space-y-1.5 text-sm">
                   <div className="flex justify-between text-muted-foreground">
                     <span>Subtotal</span>
-                    <span>{formatPrice(subtotal + savings)}</span>
+                    <span>{formatPrice(subtotal)}</span>
                   </div>
-                  {savings > 0 && (
-                    <div className="flex justify-between text-success">
-                      <span>Potongan voucher</span>
-                      <span>−{formatPrice(savings)}</span>
-                    </div>
-                  )}
                 </div>
 
                 <div className="flex items-baseline justify-between">

@@ -81,7 +81,7 @@ export default function LoginPage() {
             
             <h2 className="font-serif text-3xl font-bold text-foreground">Selamat Datang</h2>
             <p className="text-muted-foreground">
-              Masuk ke akun Anda untuk melanjutkan pembelajaran.
+              Masuk ke akun google Anda untuk melanjutkan pembelajaran.
             </p>
           </div>
 
@@ -97,7 +97,8 @@ export default function LoginPage() {
             </Button>
 
             <p className="text-center text-xs text-muted-foreground/80 px-4">
-              Kamu akan diarahkan ke halaman verifikasi Google untuk keamanan akun.
+              Anda akan diarahkan untuk menghubungkan akun secara aman dengan Database
+              Kelas Markaz Fiqih (butibupkkgiujnaoietc.supabase.co).
             </p>
 
             <p className="text-center text-sm text-muted-foreground px-4">

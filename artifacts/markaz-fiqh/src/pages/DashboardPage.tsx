@@ -21,97 +21,10 @@ import { AppShell } from '@/components/AppShell';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { useMemo, useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useQuery } from '@tanstack/react-query';
-import { toast } from 'sonner';
-import { Phone, Pencil, Check, X } from 'lucide-react';
-import { listEnrollments, listActiveDashboardMessages, getActiveDashboardBoard, getUserPhone, updateUserPhone, type EnrollmentItem } from '@/lib/db';
-
-// ── Phone Card ────────────────────────────────────────────────────────────────
-function PhoneCard({ userId }: { userId: string }) {
-  const [savedPhone, setSavedPhone] = useState<string | null | undefined>(undefined);
-  const [editing, setEditing] = useState(false);
-  const [phoneInput, setPhoneInput] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    getUserPhone(userId)
-      .then((phone) => {
-        setSavedPhone(phone);
-        if (phone) setPhoneInput(phone);
-      })
-      .catch(() => setSavedPhone(null));
-  }, [userId]);
-
-  const handleSave = async () => {
-    const cleaned = phoneInput.trim().replace(/\s/g, '');
-    if (!cleaned) { setError('Nomor HP tidak boleh kosong.'); return; }
-    if (!/^\+?\d{8,15}$/.test(cleaned)) { setError('Format tidak valid. Contoh: 08123456789'); return; }
-    setError(null);
-    setIsSaving(true);
-    try {
-      await updateUserPhone(userId, cleaned);
-      setSavedPhone(cleaned);
-      setEditing(false);
-      toast.success('Nomor HP berhasil disimpan.');
-    } catch {
-      setError('Gagal menyimpan. Coba lagi.');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  if (savedPhone === undefined) return null;
-
-  return (
-    <div className="rounded-2xl border bg-card p-5 mb-6">
-      <div className="flex items-center gap-2 mb-3">
-        <Phone className="h-4 w-4 text-primary" />
-        <p className="font-semibold text-sm text-foreground">Nomor WhatsApp/HP</p>
-      </div>
-      {editing ? (
-        <div className="space-y-2">
-          <div className="flex gap-2">
-            <Input
-              type="tel"
-              placeholder="08123456789"
-              value={phoneInput}
-              onChange={(e) => { setPhoneInput(e.target.value); setError(null); }}
-              className="h-9 text-sm"
-              disabled={isSaving}
-              onKeyDown={(e) => { if (e.key === 'Enter') void handleSave(); if (e.key === 'Escape') setEditing(false); }}
-              autoFocus
-            />
-            <Button size="sm" className="h-9 shrink-0" onClick={handleSave} disabled={isSaving || !phoneInput.trim()}>
-              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-            </Button>
-            <Button size="sm" variant="ghost" className="h-9 shrink-0" onClick={() => { setEditing(false); setError(null); if (savedPhone) setPhoneInput(savedPhone); }}>
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-          {error && <p className="text-xs text-destructive">{error}</p>}
-        </div>
-      ) : savedPhone ? (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-muted-foreground">{savedPhone}</p>
-          <Button size="sm" variant="ghost" className="h-8 gap-1.5 text-xs" onClick={() => setEditing(true)}>
-            <Pencil className="h-3.5 w-3.5" /> Ubah
-          </Button>
-        </div>
-      ) : (
-        <div className="flex items-center justify-between gap-4">
-          <p className="text-sm text-muted-foreground">Belum diisi. Diperlukan untuk konfirmasi pembayaran.</p>
-          <Button size="sm" variant="outline" className="shrink-0 text-xs" onClick={() => setEditing(true)}>
-            Isi Sekarang
-          </Button>
-        </div>
-      )}
-    </div>
-  );
-}
+import { listEnrollments, listActiveDashboardMessages, getActiveDashboardBoard, type EnrollmentItem } from '@/lib/db';
 
 // ── Dashboard Board Card ──────────────────────────────────────────────────────
 function DashboardBoardCard() {
@@ -527,7 +440,6 @@ function DashboardContent() {
       </div>
       <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl py-8 lg:py-10">
         <DashboardBoardCard />
-        <PhoneCard userId={user!.id} />
 
         {isLoading ? (
           <div className="flex items-center justify-center py-32">

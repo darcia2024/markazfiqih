@@ -78,7 +78,6 @@ Deno.serve(async (req) => {
 
     // idProd kita isi sendiri saat createMayarInvoice di fungsi checkout.
     const invoiceId: string | undefined = payload?.data?.extraData?.idProd;
-    const mayarInvoiceId: string | undefined = payload?.data?.id;
 
     if (!invoiceId) {
       console.error('Webhook tanpa extraData.idProd:', JSON.stringify(payload).slice(0, 500));
@@ -107,25 +106,27 @@ Deno.serve(async (req) => {
     }
 
     // ── Lapis 2: konfirmasi ke Mayar (ini yang bikin webhook palsu tidak berguna) ─
-    const lookupId = invoice.mayar_invoice_id || mayarInvoiceId;
-    if (!lookupId) {
-      console.error('Tidak ada mayar_invoice_id untuk invoice', invoiceId);
-      return json({ error: 'Referensi Mayar tidak lengkap' }, 400);
+    // HANYA gunakan mayar_invoice_id yang tersimpan lokal (bukan payload webhook) —
+    // ini membuat status 'paid' dari invoice Mayar milik kita sendiri otoritatif.
+    if (!invoice.mayar_invoice_id) {
+      console.error('Tidak ada mayar_invoice_id lokal untuk invoice', invoiceId);
+      return json({ received: true, missingLocalReference: true }, 202);
     }
 
-    const detail = await getMayarInvoice(lookupId);
+    const detail = await getMayarInvoice(invoice.mayar_invoice_id);
 
     if (!detail || !isPaidStatus(detail.status)) {
       console.warn('Webhook bilang paid, tapi Mayar bilang:', detail?.status ?? 'not found');
       return json({ received: true, verified: false }, 202);
     }
 
-    // Nominal harus cocok — cegah tagihan dibayar dengan jumlah lebih kecil.
+    // Nominal bisa SAH lebih kecil dari invoice lokal karena discount code Mayar
+    // (voucher UI kita sudah dihapus, diskon kini lewat Mayar). Tidak lagi
+    // menolak pembayaran — hanya dicatat untuk audit.
     if (detail.amount !== invoice.total_amount) {
-      console.error(
-        `Nominal tidak cocok untuk invoice ${invoiceId}: Mayar=${detail.amount} lokal=${invoice.total_amount}`,
+      console.warn(
+        `Nominal tidak cocok (kemungkinan discount code Mayar) untuk invoice ${invoiceId}: Mayar=${detail.amount} lokal=${invoice.total_amount}`,
       );
-      return json({ received: true, amountMismatch: true }, 202);
     }
 
     const result = await fulfillInvoice(supabaseAdmin, invoiceId);

@@ -1,0 +1,117 @@
+REVISI 5 dari klien — 11 item. Kerjakan BERURUTAN sesuai nomor. Aturan umum:
+jangan menyentuh file di luar kebutuhan tiap item, jangan refactor arsitektur
+pembayaran yang sudah benar, dan setelah tiap item selesai pastikan fitur lain
+masih normal. File-file yang saya sebut sudah diverifikasi ada di repo ini.
+
+── ITEM 1: Hapus kartu "Nomor WhatsApp/HP" dari Dashboard ──
+Di src/pages/DashboardPage.tsx ada card Nomor WhatsApp/HP ("Belum diisi.
+Diperlukan untuk konfirmasi pembayaran" + tombol Isi Sekarang / Ubah).
+Hapus card itu dari dashboard. Input nomor WA di halaman checkout
+(CheckoutPage.tsx) TETAP ADA dan tidak diubah — itu satu-satunya tempat
+nomor WA diminta.
+
+── ITEM 2: Hapus UI kode voucher (voucher pindah ke discount code Mayar) ──
+a. Hapus input "Kode voucher" + tombol "Pakai" dari:
+   - src/pages/CartPage.tsx (bagian Ringkasan Belanja)
+   - src/pages/CheckoutPage.tsx (bagian Ringkasan) — termasuk state voucher,
+     handleApplyVoucher, dan pemanggilan startCheckout dengan voucherCode
+     (panggil startCheckout() tanpa argumen).
+   JANGAN hapus fungsi backend/edge function terkait voucher — biarkan dormant.
+b. PENYESUAIAN KRITIS di supabase/functions/mayar-webhook/index.ts dan
+   supabase/functions/payment-status/index.ts: saat ini fulfillment ditolak
+   jika detail.amount !== invoice.total_amount. Karena diskon kini lewat
+   discount code Mayar, jumlah terbayar bisa SAH lebih kecil dari invoice
+   lokal, dan pengecekan ini akan menolak pembayaran yang sebenarnya sukses.
+   Ubah menjadi:
+   - Di mayar-webhook: HAPUS fallback lookupId ke payload (baris
+     `invoice.mayar_invoice_id || mayarInvoiceId`) — gunakan HANYA
+     invoice.mayar_invoice_id yang tersimpan lokal; jika null, return 202.
+     Ini penting: karena verifikasi selalu ke invoice Mayar MILIK KITA,
+     status 'paid' dari Mayar menjadi otoritatif.
+   - Di kedua file: ganti penolakan amount-mismatch menjadi console.warn
+     (tetap dicatat untuk audit) dan LANJUTKAN fulfillment selama
+     isPaidStatus(detail.status) true.
+c. Ingatkan saya di akhir: mayar-webhook & payment-status perlu deploy ulang.
+
+── ITEM 3: Ebook tidak muncul di katalog ──
+Root cause sudah diketahui: katalog membaca view `ebooks_catalog` yang hanya
+menampilkan baris status='published' (lihat supabase/migrations/20260709_ebooks.sql),
+sedangkan ebook yang dibuat admin masih 'draft'. Perbaiki di halaman admin
+Kelola Ebook: pastikan ada kontrol status Draft/Published yang jelas (toggle
+atau select), default form BARU boleh tetap draft tapi tampilkan badge status
+di list ebook admin + tombol "Terbitkan" yang mengubah status ke 'published'.
+Verifikasi: setelah dipublish, ebook muncul di tab Ebook katalog.
+
+── ITEM 4: Copy halaman login ──
+Di src/pages/LoginPage.tsx, ubah teks sambutan menjadi:
+"Masuk ke akun google Anda untuk melanjutkan pembelajaran."
+dan di bawah tombol Google tambahkan:
+"Anda akan diarahkan untuk menghubungkan akun secara aman dengan Database
+Kelas Markaz Fiqih (butibupkkgiujnaoietc.supabase.co)."
+Gaya teks mengikuti styling yang sudah ada.
+
+── ITEM 5: Hapus menu "Kelola Voucher" dari panel admin ──
+Hapus item menu + route + halaman Kelola Voucher dari panel admin.
+JANGAN drop tabel class_vouchers atau fungsi DB — cukup UI-nya.
+
+── ITEM 6: Sertifikat — pastikan bisa diuji ──
+Halaman admin Sertifikat menampilkan 0 sertifikat. Klien ingin memastikan
+fitur ini benar-benar jalan dengan template. Telusuri alur penerbitan
+sertifikat yang ada (kapan sertifikat dibuat? otomatis saat kelas 100%?),
+lalu: (a) jika alur sudah ada tapi butuh template/asset yang belum terpasang,
+pasang template default sederhana (logo Markaz Fiqih + nama + nama kelas +
+tanggal) supaya bisa diuji end-to-end; (b) tuliskan ke saya langkah manual
+untuk memicu 1 sertifikat test. Jika ada keputusan desain yang perlu
+konfirmasi klien, tulis daftar pertanyaannya, jangan mengarang kebijakan.
+
+── ITEM 7: Urutkan A-Z ──
+src/pages/MyClassesPage.tsx dan src/pages/MyEbooksPage.tsx: urutkan kartu
+berdasarkan judul A-Z (locale 'id', case-insensitive). Karena MyClassesPage
+mengelompokkan per kategori, urutkan A-Z DI DALAM tiap kelompok.
+
+── ITEM 8: BUG PRIORITAS — loading tak berhenti saat pertama buka web ──
+Reproduksi: buka https://kelasmarkazfiqih.vercel.app/dashboard di
+browser/profil yang belum pernah membuka situs (incognito) → spinner
+loading tidak pernah selesai; setelah refresh manual baru tampil. Terjadi
+di semua device. Investigasi src/context/AuthContext.tsx dan komponen
+ProtectedRoute/AppShell: kemungkinan race antara getSession()/
+onAuthStateChange yang membuat state loading tidak pernah di-set false
+pada kunjungan pertama (atau saat redirect balik dari OAuth Google).
+Temukan root cause pastinya, laporkan, lalu perbaiki. Pastikan ada
+mekanisme agar loading SELALU terselesaikan (mis. timeout fallback yang
+mengarahkan ke login jika sesi tidak kunjung terbaca).
+
+── ITEM 9: Scroll ke atas saat pindah halaman ──
+Dari katalog (posisi scroll bawah) → klik keranjang → halaman keranjang
+terbuka dalam posisi scroll bawah. Tambahkan komponen ScrollToTop global:
+useEffect pada perubahan lokasi wouter (useLocation) → window.scrollTo(0,0),
+dipasang sekali di src/App.tsx. Pastikan tidak mengganggu anchor/scroll
+dalam halaman yang disengaja.
+
+── ITEM 10: Video baru di playlist Safinatunnaja tidak muncul ──
+Klien menambah video pada playlist YouTube untuk kelas Safinatunnaja tapi
+daftar pelajaran di LearnPage tidak bertambah; sedangkan kelas tematik
+(video manual) normal. Baca .agents/memory/learnpage-playlist-mode.md dan
+telusuri bagaimana kelas mode playlist mengambil daftar video (apakah
+di-import sekali ke DB dan tidak pernah re-sync?). Perbaiki sesuai akar
+masalah: jika daftar video playlist disimpan statis, tambahkan mekanisme
+re-sync (mis. tombol "Sinkronkan playlist" di admin untuk kelas mode
+playlist). Laporkan root cause sebelum memperbaiki.
+
+── ITEM 11: Sidebar terpotong di laptop (bagian akun tertutup) ──
+Pada laptop dengan tinggi layar standar (zoom 100%), sidebar kepenuhan
+sehingga blok akun di bawah terpotong ketika blok "PROGRESS KAMU" tampil.
+Perbaiki di komponen sidebar (cek src/components/AppShell.tsx / Navbar.tsx):
+- Kecilkan blok "PROGRESS KAMU" (font & padding lebih kompak), dan
+- Pastikan blok akun selalu terlihat: jadikan area menu bisa scroll
+  (overflow-y-auto) dengan blok akun pinned di bawah, ATAU sembunyikan
+  blok progress pada viewport pendek (mis. max-height media query).
+Uji pada tinggi viewport 768px dan 900px: seluruh menu tetap terjangkau
+dan blok akun terlihat.
+
+── SETELAH SEMUA SELESAI ──
+1. Jalankan typecheck.
+2. Ringkas per item: file yang diubah + cara test.
+3. Ingatkan saya deploy edge functions: mayar-webhook & payment-status
+   (item 2b) via supabase CLI — Vercel tidak men-deploy supabase/functions.
+4. Konfirmasi checkout flow normal (tanpa voucher) tetap jalan.

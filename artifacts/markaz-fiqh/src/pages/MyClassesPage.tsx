@@ -247,17 +247,22 @@ function MyClassesContent() {
   const showEmpty = search.get('demo') === 'empty';
   const classesToShow = showEmpty ? [] : enrollments;
 
-  // Saat filter kategori spesifik dipilih, tampilkan list flat kategori tsb saja.
+  // Saat filter kategori spesifik dipilih, tampilkan list flat kategori tsb saja
+  // — diurutkan A-Z berdasarkan judul.
   const filteredClasses = useMemo(
     () =>
-      activeFilter === 'Semua'
+      (activeFilter === 'Semua'
         ? classesToShow
-        : classesToShow.filter((e) => e.class.category === activeFilter),
+        : classesToShow.filter((e) => e.class.category === activeFilter)
+      )
+        .slice()
+        .sort((a, b) => a.class.title.localeCompare(b.class.title, 'id', { sensitivity: 'base' })),
     [classesToShow, activeFilter],
   );
 
   // Saat filter "Semua" aktif, kelompokkan kelas berdasarkan kategori —
-  // hanya tampilkan heading kategori yang benar-benar punya kelas.
+  // hanya tampilkan heading kategori yang benar-benar punya kelas, dan
+  // urutkan kelas A-Z di dalam tiap kelompok.
   const groupedByCategory = useMemo(() => {
     if (activeFilter !== 'Semua') return null;
     const groups = new Map<string, EnrollmentItem[]>();
@@ -270,7 +275,10 @@ function MyClassesContent() {
     const restKeys = [...groups.keys()].filter((k) => !CATEGORY_ORDER.includes(k)).sort();
     return [...knownKeys, ...restKeys].map((category) => ({
       category,
-      items: groups.get(category)!,
+      items: groups
+        .get(category)!
+        .slice()
+        .sort((a, b) => a.class.title.localeCompare(b.class.title, 'id', { sensitivity: 'base' })),
     }));
   }, [classesToShow, activeFilter]);
 

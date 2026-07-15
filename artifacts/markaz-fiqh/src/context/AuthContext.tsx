@@ -59,15 +59,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
+    // Dua sumber bisa menyelesaikan status loading: getSession() ATAU event
+    // pertama dari onAuthStateChange (termasuk INITIAL_SESSION). Siapapun
+    // yang selesai lebih dulu yang menentukan. Ini penting karena getSession()
+    // diketahui bisa "menggantung" tanpa pernah resolve di beberapa kondisi
+    // supabase-js v2 (deadlock Web Locks API), terutama di mode
+    // incognito/private browsing pada kunjungan pertama — jadi kita tidak
+    // boleh bergantung padanya sendirian.
+    let settled = false;
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (!mounted) return;
-      if (session?.user) {
-        const appUser = await buildUser(session.user, session);
-        if (mounted) setUser(appUser);
+    const settleLoading = () => {
+      if (mounted && !settled) {
+        settled = true;
+        setIsLoading(false);
       }
-      if (mounted) setIsLoading(false);
-    });
+    };
+
+    supabase.auth
+      .getSession()
+      .then(async ({ data: { session } }) => {
+        if (!mounted) return;
+        if (session?.user) {
+          const appUser = await buildUser(session.user, session);
+          if (mounted) setUser(appUser);
+        }
+        settleLoading();
+      })
+      .catch((error) => {
+        console.error('AuthContext: getSession() gagal:', error);
+        settleLoading();
+      });
+
+    // Fallback terakhir: kalau setelah beberapa detik status loading belum
+    // juga selesai (getSession() menggantung DAN onAuthStateChange belum
+    // sempat memberi event apapun), jangan biarkan spinner nyangkut selamanya.
+    // Anggap belum login — ProtectedRoute akan menampilkan halaman login.
+    const timeoutId = setTimeout(() => {
+      if (!settled) {
+        console.warn('AuthContext: sesi tidak selesai dimuat dalam 8 detik, menganggap belum login.');
+      }
+      settleLoading();
+    }, 8000);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
@@ -75,6 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (session?.user) {
           let appUser = await buildUser(session.user, session);
           if (mounted) setUser(appUser);
+          settleLoading();
 
           // Hanya saat SIGNED_IN (login pertama sesi ini), bukan setiap kali
           // auth state berubah, supaya tidak dipanggil berulang-ulang untuk
@@ -92,12 +125,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         } else {
           if (mounted) setUser(null);
+          settleLoading();
         }
       },
     );
 
     return () => {
       mounted = false;
+      clearTimeout(timeoutId);
       subscription.unsubscribe();
     };
   }, []);

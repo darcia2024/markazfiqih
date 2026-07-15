@@ -6,6 +6,7 @@ import { Route, Switch, Router as WouterRouter } from 'wouter';
 import { AuthProvider } from '@/context/AuthContext';
 import { CartProvider } from '@/context/CartContext';
 import { RequireAdminRoute } from '@/components/RequireAdminRoute';
+import { ScrollToTop } from '@/components/ScrollToTop';
 
 import LoginPage from '@/pages/LoginPage';
 import OnboardingNamaPage from '@/pages/OnboardingNamaPage';
@@ -25,7 +26,6 @@ import AdminReviewsPage from '@/pages/admin/AdminReviewsPage';
 import AdminSettingsPage from '@/pages/admin/AdminSettingsPage';
 import AdminManageAdminsPage from '@/pages/admin/AdminManageAdminsPage';
 import AdminDashboardMessagesPage from '@/pages/admin/AdminDashboardMessagesPage';
-import AdminVouchersPage from '@/pages/admin/AdminVouchersPage';
 import AdminUsersPage from '@/pages/admin/AdminUsersPage';
 import AdminCatalogLayoutPage from '@/pages/admin/AdminCatalogLayoutPage';
 import AdminBundlesPage from '@/pages/admin/AdminBundlesPage';
@@ -95,9 +95,6 @@ function Router() {
       <Route path="/admin/dashboard-messages">
         {() => <RequireAdminRoute><AdminDashboardMessagesPage /></RequireAdminRoute>}
       </Route>
-      <Route path="/admin/vouchers">
-        {() => <RequireAdminRoute><AdminVouchersPage /></RequireAdminRoute>}
-      </Route>
       <Route path="/admin/users">
         {() => <RequireAdminRoute><AdminUsersPage /></RequireAdminRoute>}
       </Route>
@@ -123,6 +120,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+          <ScrollToTop />
           <AuthProvider>
             <CartProvider>
               <Router />

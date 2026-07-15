@@ -9,7 +9,6 @@ import {
   Clock,
   CheckCircle2,
   Sparkles,
-  Loader2,
   Package2,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
@@ -18,7 +17,6 @@ import { toast } from 'sonner';
 import { AppShell } from '@/components/AppShell';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -27,7 +25,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import type { CartClassItem, CartBundleItem, CartEbookItem } from '@/context/CartContext';
 import { formatPrice } from '@/pages/CatalogPage';
-import { validateVoucher, listClasses } from '@/lib/db';
+import { listClasses } from '@/lib/db';
 
 function formatDuration(totalMinutes: number | null): string | null {
   if (!totalMinutes) return null;
@@ -131,21 +129,16 @@ function RecommendationCard({
 
 function ClassCartItem({
   item,
-  appliedVoucher,
   onRemove,
   isRemoving,
 }: {
   item: CartClassItem;
-  appliedVoucher: { classId: string; discountPrice: number } | null;
   onRemove: (id: string) => void;
   isRemoving: boolean;
 }) {
   const hasDiscount = item.class.discountPrice != null;
   const durationLabel = formatDuration(item.class.totalDurationMinutes);
-  const voucherApplied = appliedVoucher?.classId === item.class.id;
-  const displayPrice = voucherApplied
-    ? appliedVoucher!.discountPrice
-    : (item.class.discountPrice ?? item.class.basePrice);
+  const displayPrice = item.class.discountPrice ?? item.class.basePrice;
 
   return (
     <motion.div
@@ -186,14 +179,9 @@ function ClassCartItem({
         </div>
         <div className="mt-auto pt-2 flex items-center justify-between">
           <div className="flex items-baseline gap-2">
-            {(hasDiscount || voucherApplied) && !voucherApplied && (
+            {hasDiscount && (
               <span className="text-xs text-text-tertiary line-through">
                 {formatPrice(item.class.basePrice)}
-              </span>
-            )}
-            {voucherApplied && (
-              <span className="text-xs text-text-tertiary line-through">
-                {formatPrice(item.class.discountPrice ?? item.class.basePrice)}
               </span>
             )}
             <span className="text-sm font-bold text-primary">
@@ -370,12 +358,6 @@ function CartContent() {
   const { items, isLoading, removeFromCart, isRemoving, classIdsInCart } = useCart();
   const [, setLocation] = useLocation();
 
-  // ── Voucher (hanya untuk kelas individual) ─────────────────────────────────
-  const [voucherInputCode, setVoucherInputCode] = useState('');
-  const [appliedVoucher, setAppliedVoucher] = useState<{ classId: string; discountPrice: number } | null>(null);
-  const [voucherError, setVoucherError] = useState<string | null>(null);
-  const [isValidatingVoucher, setIsValidatingVoucher] = useState(false);
-
   const handleRemoveAndRefreshRecommended = async (id: string) => {
     await removeFromCart(id);
   };
@@ -399,9 +381,6 @@ function CartContent() {
       return sum + (item.ebook.discountPrice ?? item.ebook.price);
     }
     // kelas biasa
-    if (appliedVoucher && item.class.id === appliedVoucher.classId) {
-      return sum + appliedVoucher.discountPrice;
-    }
     return sum + (item.class.discountPrice ?? item.class.basePrice);
   }, 0);
 
@@ -411,34 +390,6 @@ function CartContent() {
 
   const handleRemove = (id: string) => {
     void handleRemoveAndRefreshRecommended(id);
-  };
-
-  const handleApplyVoucher = async () => {
-    const code = voucherInputCode.trim().toUpperCase();
-    if (!code) return;
-    setVoucherError(null);
-    setAppliedVoucher(null);
-    setIsValidatingVoucher(true);
-    try {
-      let firstValid: { classId: string; discountPrice: number } | null = null;
-      for (const item of items) {
-        if (item.type !== 'class') continue;
-        const result = await validateVoucher(item.class.id, code);
-        if (result.valid) {
-          firstValid = { classId: item.class.id, discountPrice: result.discountPrice };
-          break;
-        }
-      }
-      if (firstValid) {
-        setAppliedVoucher(firstValid);
-      } else {
-        setVoucherError('Kode voucher tidak valid atau sudah tidak berlaku.');
-      }
-    } catch {
-      setVoucherError('Gagal memvalidasi voucher. Coba lagi.');
-    } finally {
-      setIsValidatingVoucher(false);
-    }
   };
 
   const handleCheckout = () => setLocation('/checkout');
@@ -505,7 +456,6 @@ function CartContent() {
                     <ClassCartItem
                       key={item.id}
                       item={item}
-                      appliedVoucher={appliedVoucher}
                       onRemove={handleRemove}
                       isRemoving={isRemoving}
                     />
@@ -539,85 +489,21 @@ function CartContent() {
                     )}
                   </div>
 
-                  {/* Input kode voucher — hanya tampil jika ada kelas individual */}
                   {classItemCount > 0 && (
-                    <div className="space-y-2">
-                      <div className="flex gap-2">
-                        <Input
-                          placeholder="Kode voucher"
-                          value={voucherInputCode}
-                          onChange={(e) => {
-                            setVoucherInputCode(e.target.value);
-                            if (appliedVoucher) setAppliedVoucher(null);
-                            if (voucherError) setVoucherError(null);
-                          }}
-                          className="h-9 text-sm"
-                          disabled={isValidatingVoucher || !!appliedVoucher}
-                          onKeyDown={(e) => { if (e.key === 'Enter') void handleApplyVoucher(); }}
-                        />
-                        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.15 }} className="shrink-0">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-9"
-                            onClick={handleApplyVoucher}
-                            disabled={!voucherInputCode.trim() || isValidatingVoucher || !!appliedVoucher}
-                          >
-                            {isValidatingVoucher ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Pakai'}
-                          </Button>
-                        </motion.div>
-                      </div>
-                      {appliedVoucher && (
-                        <div className="flex items-center justify-between text-xs text-green-600">
-                          <span className="flex items-center gap-1">
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                            Voucher diterapkan
-                          </span>
-                          <motion.button
-                            className="underline text-muted-foreground hover:text-foreground transition-colors"
-                            onClick={() => { setAppliedVoucher(null); setVoucherInputCode(''); }}
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            transition={{ duration: 0.15 }}
-                          >
-                            Hapus
-                          </motion.button>
-                        </div>
-                      )}
-                      {voucherError && (
-                        <p className="text-xs text-destructive">{voucherError}</p>
-                      )}
-                      <p className="text-xs text-muted-foreground mt-2">
-                        Pembayaran selain Rupiah?{' '}
-                        <a
-                          href="https://docs.google.com/forms/d/e/1FAIpQLScmvdS21cixu6h261rDcKM0YscOm7z44upzZSO4leuOWY-dKg/viewform"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-primary underline underline-offset-2 hover:text-primary/80"
-                        >
-                          klik disini
-                        </a>.
-                      </p>
-                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Pembayaran selain Rupiah?{' '}
+                      <a
+                        href="https://docs.google.com/forms/d/e/1FAIpQLScmvdS21cixu6h261rDcKM0YscOm7z44upzZSO4leuOWY-dKg/viewform"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary underline underline-offset-2 hover:text-primary/80"
+                      >
+                        klik disini
+                      </a>.
+                    </p>
                   )}
 
                   <Separator />
-
-                  {appliedVoucher && (() => {
-                    const originalItem = items.find(
-                      (i) => i.type === 'class' && i.class.id === appliedVoucher.classId,
-                    );
-                    const originalPrice = originalItem && originalItem.type === 'class'
-                      ? (originalItem.class.discountPrice ?? originalItem.class.basePrice)
-                      : appliedVoucher.discountPrice;
-                    const savings = originalPrice - appliedVoucher.discountPrice;
-                    return savings > 0 ? (
-                      <div className="flex justify-between text-sm text-green-600">
-                        <span>Diskon voucher</span>
-                        <span>−{formatPrice(savings)}</span>
-                      </div>
-                    ) : null;
-                  })()}
 
                   <div className="flex justify-between font-bold text-base">
                     <span>Subtotal</span>

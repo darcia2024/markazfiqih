@@ -74,7 +74,14 @@ Deno.serve(async (req) => {
     if (invoice.mayar_invoice_id) {
       const detail = await getMayarInvoice(invoice.mayar_invoice_id);
 
-      if (detail && isPaidStatus(detail.status) && detail.amount === invoice.total_amount) {
+      if (detail && isPaidStatus(detail.status)) {
+        // Nominal bisa SAH lebih kecil dari invoice lokal karena discount code
+        // Mayar — tidak lagi menolak, hanya dicatat untuk audit.
+        if (detail.amount !== invoice.total_amount) {
+          console.warn(
+            `Nominal tidak cocok (kemungkinan discount code Mayar) untuk invoice ${invoice.id}: Mayar=${detail.amount} lokal=${invoice.total_amount}`,
+          );
+        }
         const result = await fulfillInvoice(supabaseAdmin, invoice.id);
         return json({ ...base, status: 'paid', reconciled: !result.alreadyPaid });
       }

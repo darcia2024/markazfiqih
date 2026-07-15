@@ -135,9 +135,12 @@ function MyEbooksContent() {
   });
 
   const ebooks = ebooksQuery.data ?? [];
-  const filtered = search.trim()
+  const filtered = (search.trim()
     ? ebooks.filter((e) => e.title.toLowerCase().includes(search.toLowerCase()))
-    : ebooks;
+    : ebooks
+  )
+    .slice()
+    .sort((a, b) => a.title.localeCompare(b.title, 'id', { sensitivity: 'base' }));
 
   return (
     <AppShell>

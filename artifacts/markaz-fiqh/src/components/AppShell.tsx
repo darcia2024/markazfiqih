@@ -95,55 +95,58 @@ function SidebarContent({
 
   return (
     <div className="flex flex-col h-full w-full bg-gradient-to-b from-primary to-[hsl(var(--brand-red-hover))]">
-      <div className="h-16 flex items-center px-6 border-b border-[hsl(var(--accent))]/30">
+      <div className="h-16 flex items-center px-6 border-b border-[hsl(var(--accent))]/30 shrink-0">
         <Link href="/" className="flex items-center gap-2" onClick={onClose}>
           <img src="/logo.png" alt="Markaz Fiqih" className="h-9 w-auto brightness-0 invert" />
         </Link>
       </div>
 
-      <nav className="flex flex-col gap-1 px-3 py-4">
-        <p className="px-3 text-[11px] font-semibold uppercase tracking-wider text-white/50 mb-2">
-          Menu Utama
-        </p>
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-          const isActive = location === href || location.startsWith(href + '/');
-          return (
+      {/* Area menu + widget progress bisa di-scroll sendiri di layar pendek
+          (mis. laptop 768-900px tinggi), supaya blok akun di bawah selalu
+          terlihat dan tidak pernah terdorong keluar viewport. */}
+      <div className="flex-1 min-h-0 overflow-y-auto">
+        <nav className="flex flex-col gap-1 px-3 py-4">
+          <p className="px-3 text-[11px] font-semibold uppercase tracking-wider text-white/50 mb-2">
+            Menu Utama
+          </p>
+          {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+            const isActive = location === href || location.startsWith(href + '/');
+            return (
+              <Link
+                key={href}
+                href={href}
+                onClick={onClose}
+                className={
+                  isActive
+                    ? 'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-semibold text-primary bg-white shadow-[0_4px_12px_rgba(0,0,0,0.15)] border-l-2 border-[hsl(var(--accent))]'
+                    : 'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 hover:scale-[1.02] transition-friendly'
+                }
+              >
+                <Icon className={`h-4 w-4 ${isActive ? 'text-[hsl(var(--accent))]' : ''}`} />
+                {label}
+              </Link>
+            );
+          })}
+
+          {isAdmin && (
+            // Admin link: tambah hover:scale-[1.02] selaras dengan nav items lainnya
             <Link
-              key={href}
-              href={href}
+              href="/admin"
               onClick={onClose}
-              className={
-                isActive
-                  ? 'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-semibold text-primary bg-white shadow-[0_4px_12px_rgba(0,0,0,0.15)] border-l-2 border-[hsl(var(--accent))]'
-                  : 'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 hover:scale-[1.02] transition-friendly'
-              }
+              className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 hover:scale-[1.02] transition-friendly"
             >
-              <Icon className={`h-4 w-4 ${isActive ? 'text-[hsl(var(--accent))]' : ''}`} />
-              {label}
+              <Settings className="h-4 w-4" />
+              Panel Admin
             </Link>
-          );
-        })}
+          )}
+        </nav>
 
-        {isAdmin && (
-          // Admin link: tambah hover:scale-[1.02] selaras dengan nav items lainnya
-          <Link
-            href="/admin"
-            onClick={onClose}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 hover:scale-[1.02] transition-friendly"
-          >
-            <Settings className="h-4 w-4" />
-            Panel Admin
-          </Link>
-        )}
-      </nav>
-
-      <div className="pb-3">
-        <ProgressWidget enrollments={enrollments} />
+        <div className="pb-3">
+          <ProgressWidget enrollments={enrollments} />
+        </div>
       </div>
 
-      <div className="flex-1" />
-
-      <div className="border-t border-white/20 p-4">
+      <div className="border-t border-white/20 p-4 shrink-0">
         <div className="flex items-center gap-3">
           <div className="h-9 w-9 rounded-full bg-white text-primary flex items-center justify-center text-sm font-semibold shrink-0 ring-2 ring-white/20">
             {initial}
