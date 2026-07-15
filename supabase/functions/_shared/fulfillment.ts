@@ -34,13 +34,15 @@ export async function fulfillInvoice(
     return { status: 'paid', alreadyPaid: true };
   }
 
-  // Transisi atomik: hanya berhasil kalau status MASIH 'pending'.
+  // Transisi atomik: berhasil kalau status masih 'pending' ATAU 'failed'
+  // (invoice bisa sudah ditandai gagal/kedaluwarsa lokal, tapi user tetap
+  // membayar QRIS/invoice Mayar-nya — uang tetap masuk, akses tetap harus dibuka).
   // Dua request bersamaan → hanya satu yang dapat updatedCount > 0.
   const { count: updatedCount } = await admin
     .from('invoices')
     .update({ status: 'paid', paid_at: new Date().toISOString() })
     .eq('id', invoiceId)
-    .eq('status', 'pending')
+    .in('status', ['pending', 'failed'])
     .select('id', { count: 'exact', head: true });
 
   if (!updatedCount) {

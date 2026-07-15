@@ -67,6 +67,17 @@ Deno.serve(async (req) => {
       return json({ ...base, status: 'paid', paidAt: invoice.paid_at });
     }
     if (invoice.status === 'failed') {
+      // Invoice sudah ditandai gagal/kedaluwarsa secara lokal, tapi user bisa
+      // saja TETAP membayar QRIS/invoice Mayar-nya setelahnya — uang benar-benar
+      // masuk. Cek ulang ke Mayar sebelum benar-benar mengembalikan 'failed',
+      // supaya user tidak membayar tanpa pernah menerima akses kelas.
+      if (invoice.mayar_invoice_id) {
+        const detail = await getMayarInvoice(invoice.mayar_invoice_id);
+        if (detail && isPaidStatus(detail.status)) {
+          const result = await fulfillInvoice(supabaseAdmin, invoice.id);
+          return json({ ...base, status: 'paid', reconciled: !result.alreadyPaid });
+        }
+      }
       return json({ ...base, status: 'failed' });
     }
 
