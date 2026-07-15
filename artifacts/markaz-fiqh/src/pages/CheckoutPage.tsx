@@ -166,6 +166,11 @@ function CheckoutContent() {
     setIsStarting(true);
     try {
       const created = await startCheckout(appliedVoucher ? voucherCode.trim().toUpperCase() : undefined);
+      if (created.freeCheckout) {
+        toast.success('Pembayaran berhasil — kelas gratis sudah aktif.');
+        setLocation(`/pembayaran/${created.id}`);
+        return;
+      }
       setSession(created);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Pembayaran belum bisa dimulai.');
@@ -444,12 +449,12 @@ function CheckoutContent() {
         </div>
       </main>
 
-      {session && (
+      {session && session.paymentUrl && (
         <PaymentSheet
           invoiceId={session.id}
           paymentUrl={session.paymentUrl}
           totalAmount={session.totalAmount}
-          expiresAt={session.expiresAt}
+          expiresAt={session.expiresAt ?? null}
           onPaid={() => setLocation(`/pembayaran/${session.id}`)}
           onClose={() => setSession(null)}
         />

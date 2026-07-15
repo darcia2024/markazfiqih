@@ -28,12 +28,16 @@ async function authedPost<T>(path: string, body: unknown): Promise<T> {
 
 export type CheckoutSession = {
   id: string;
-  paymentUrl: string;
-  expiresAt: string;
+  /** Tidak ada saat freeCheckout — total Rp 0 tidak pernah lewat Mayar. */
+  paymentUrl?: string;
+  expiresAt?: string;
   totalAmount: number;
   voucherApplied?: boolean;
   /** true kalau tagihan pending yang lama dipakai ulang, bukan bikin baru */
   reused?: boolean;
+  /** true kalau total Rp 0 dan sudah langsung difulfill di server, tanpa lewat Mayar */
+  freeCheckout?: boolean;
+  status?: 'paid';
 };
 
 /** Bikin invoice + tagihan Mayar. Harga dihitung ulang di server. */

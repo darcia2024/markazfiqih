@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { createMayarInvoice } from '../_shared/mayar.ts';
+import { fulfillInvoice } from '../_shared/fulfillment.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -188,7 +189,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (totalAmount <= 0) {
+    if (totalAmount < 0) {
       return json({ error: 'Total pembayaran tidak valid. Coba muat ulang keranjang.' }, 400);
     }
 
@@ -400,6 +401,21 @@ Deno.serve(async (req) => {
         { error: 'Terjadi kesalahan saat menghitung total pembayaran. Coba muat ulang halaman dan ulangi.' },
         500,
       );
+    }
+
+    // ── Checkout gratis (total Rp 0): kelas discount_price=0 atau voucher 100% ─
+    // Mayar tidak bisa memproses tagihan di bawah Rp 1.000, jadi untuk total
+    // persis 0 kita fulfill langsung di server tanpa pernah membuat tagihan di
+    // Mayar sama sekali. fulfillInvoice sudah idempoten (aman dipanggil ulang).
+    if (totalAmount === 0) {
+      console.log(`[checkout] user=${user.id} invoice=${invoice.id} totalAmount=0 → fulfill langsung tanpa Mayar`);
+      await fulfillInvoice(supabaseAdmin, invoice.id);
+      return json({
+        id: invoice.id,
+        freeCheckout: true,
+        totalAmount: 0,
+        status: 'paid',
+      });
     }
 
     // ── Buat tagihan di Mayar ─────────────────────────────────────────────────
