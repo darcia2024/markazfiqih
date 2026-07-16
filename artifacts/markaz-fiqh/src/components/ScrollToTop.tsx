@@ -8,12 +8,19 @@ import { useLocation } from 'wouter';
  *
  * Dipasang sekali di root App, di dalam WouterRouter supaya punya akses ke
  * location. Tidak merender apapun.
+ *
+ * Pakai requestAnimationFrame agar scroll terjadi setelah browser selesai
+ * paint halaman baru — tanpa ini window.scrollTo bisa terpanggil saat DOM
+ * halaman lama masih ada sehingga tidak berpengaruh pada halaman berikutnya.
  */
 export function ScrollToTop() {
   const [location] = useLocation();
 
   useEffect(() => {
-    window.scrollTo(0, 0);
+    const id = requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    });
+    return () => cancelAnimationFrame(id);
   }, [location]);
 
   return null;
