@@ -53,13 +53,13 @@ function ProgressWidget({ enrollments }: { enrollments: EnrollmentItem[] }) {
   return (
     <Link href="/dashboard">
       {/* Card klikable: tambah hover:-translate-y-1 transition-all duration-200 */}
-      <div className="mx-3 rounded-[18px] bg-white/10 backdrop-blur-sm border border-white/10 p-4 space-y-3 cursor-pointer hover:bg-white/15 hover:-translate-y-1 transition-all duration-200">
-        <p className="text-xs font-semibold text-white/70 uppercase tracking-wide">
+      <div className="mx-3 rounded-[14px] bg-white/10 backdrop-blur-sm border border-white/10 px-3 py-2.5 space-y-2 cursor-pointer hover:bg-white/15 hover:-translate-y-1 transition-all duration-200">
+        <p className="text-[10px] font-semibold text-white/70 uppercase tracking-wide">
           Progress Kamu
         </p>
-        <div>
-          <p className="font-serif text-2xl font-bold text-white">{overallProgress}%</p>
-          <p className="text-xs text-white/60">{totalOwned} kelas dimiliki</p>
+        <div className="flex items-baseline justify-between gap-2">
+          <p className="font-serif text-xl font-bold text-white leading-none">{overallProgress}%</p>
+          <p className="text-[11px] text-white/60">{totalOwned} kelas dimiliki</p>
         </div>
         <div className="h-1.5 rounded-full bg-white/20 overflow-hidden">
           <div
@@ -175,7 +175,7 @@ function SidebarContent({
 // ── Desktop sidebar (fixed, hidden on mobile) ────────────────────────────
 export function AppSidebar({ isAdmin }: { isAdmin: boolean }) {
   return (
-    <aside className="hidden lg:flex fixed inset-y-0 left-0 w-[240px] h-full flex-col border-r border-white/10 z-40">
+    <aside className="hidden lg:flex fixed inset-y-0 left-0 w-[240px] h-screen flex-col border-r border-white/10 z-40">
       <SidebarContent isAdmin={isAdmin} />
     </aside>
   );
@@ -243,7 +243,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-              className="lg:hidden fixed inset-y-0 left-0 z-50 w-[260px] shadow-2xl"
+              className="lg:hidden fixed inset-y-0 left-0 z-50 w-[260px] h-screen shadow-2xl"
             >
               {/* Close button: ikon aksi — whileHover/whileTap */}
               <motion.button
