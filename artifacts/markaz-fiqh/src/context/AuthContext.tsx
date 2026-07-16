@@ -59,13 +59,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
-    // Dua sumber bisa menyelesaikan status loading: getSession() ATAU event
-    // pertama dari onAuthStateChange (termasuk INITIAL_SESSION). Siapapun
-    // yang selesai lebih dulu yang menentukan. Ini penting karena getSession()
-    // diketahui bisa "menggantung" tanpa pernah resolve di beberapa kondisi
-    // supabase-js v2 (deadlock Web Locks API), terutama di mode
-    // incognito/private browsing pada kunjungan pertama — jadi kita tidak
-    // boleh bergantung padanya sendirian.
     let settled = false;
 
     const settleLoading = () => {
@@ -75,37 +68,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    supabase.auth
-      .getSession()
-      .then(async ({ data: { session } }) => {
-        if (!mounted) return;
-        if (session?.user) {
-          const appUser = await buildUser(session.user, session);
-          if (mounted) setUser(appUser);
-        }
-        settleLoading();
-      })
-      .catch((error) => {
-        console.error('AuthContext: getSession() gagal:', error);
-        settleLoading();
-      });
+    // Jangan panggil getSession() — di supabase-js v2, getSession() memakai
+    // Web Locks API untuk baca sesi dari storage. Pada tab/device baru (cold
+    // start), lock ini bisa deadlock selamanya dan memblokir onAuthStateChange
+    // juga. Cukup andalkan onAuthStateChange dengan event INITIAL_SESSION yang
+    // sudah menjadi cara resmi supabase-js v2 untuk mendapat sesi awal.
 
-    // Fallback terakhir: kalau setelah beberapa detik status loading belum
-    // juga selesai (getSession() menggantung DAN onAuthStateChange belum
-    // sempat memberi event apapun), jangan biarkan spinner nyangkut selamanya.
-    // Anggap belum login — ProtectedRoute akan menampilkan halaman login.
+    // Safety net: kalau onAuthStateChange tidak juga menembak dalam 3 detik
+    // (mis. Supabase down / network error), jangan biarkan spinner nyangkut.
     const timeoutId = setTimeout(() => {
       if (!settled) {
-        console.warn('AuthContext: sesi tidak selesai dimuat dalam 8 detik, menganggap belum login.');
+        console.warn('AuthContext: sesi tidak selesai dalam 3 detik, anggap belum login.');
+        settleLoading();
       }
-      settleLoading();
-    }, 8000);
+    }, 3000);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
         if (session?.user) {
-          let appUser = await buildUser(session.user, session);
+          // buildUser diberi timeout 5 detik agar fetchUserProfile yang lambat
+          // tidak bisa menahan settleLoading() selamanya.
+          let appUser: User;
+          try {
+            appUser = await Promise.race([
+              buildUser(session.user, session),
+              new Promise<never>((_, reject) =>
+                setTimeout(() => reject(new Error('buildUser timeout')), 5000),
+              ),
+            ]);
+          } catch {
+            // Fallback: tetap login tapi tanpa data profil tambahan.
+            // fetchUserProfile akan dicoba ulang di render berikutnya.
+            appUser = {
+              id: session.user.id,
+              name: session.user.user_metadata?.full_name ?? session.user.email ?? 'Pengguna',
+              email: session.user.email ?? '',
+              avatar_url: session.user.user_metadata?.avatar_url ?? '',
+              nickname: null,
+              isAdmin: false,
+            };
+          }
           if (mounted) setUser(appUser);
           settleLoading();
 
@@ -116,8 +119,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             try {
               const { promoted } = await checkAdminInvite();
               if (promoted && mounted) {
-                appUser = await buildUser(session.user, session);
-                if (mounted) setUser(appUser);
+                const refreshed = await buildUser(session.user, session);
+                if (mounted) setUser(refreshed);
               }
             } catch (error) {
               console.error('Gagal memeriksa undangan admin:', error);
