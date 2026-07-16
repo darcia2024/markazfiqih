@@ -44,12 +44,13 @@ export async function fulfillInvoice(
   // (invoice bisa sudah ditandai gagal/kedaluwarsa lokal, tapi user tetap
   // membayar QRIS/invoice Mayar-nya — uang tetap masuk, akses tetap harus dibuka).
   // Dua request bersamaan → hanya satu yang dapat updatedCount > 0.
-  const { count: updatedCount } = await admin
+  const { data: updatedRows } = await admin
     .from('invoices')
     .update({ status: 'paid', paid_at: new Date().toISOString() })
     .eq('id', invoiceId)
     .in('status', ['pending', 'failed'])
-    .select('id', { count: 'exact', head: true });
+    .select('id');
+  const updatedCount = updatedRows?.length ?? 0;
 
   if (!updatedCount) {
     return { status: 'paid', alreadyPaid: true };
