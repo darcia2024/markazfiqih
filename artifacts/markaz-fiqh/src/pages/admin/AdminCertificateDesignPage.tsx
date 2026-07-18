@@ -13,13 +13,12 @@ import {
   mergeOverlayConfig,
   type OverlayFieldConfig,
   type CertificateOverlayConfig,
+  type MergedOverlayConfig,
 } from '@/lib/certificateOverlayDefaults';
+import { FontUploadField } from '@/components/FontUploadField';
 
-type FullOverlayConfig = {
-  nama: OverlayFieldConfig;
-  kelas: OverlayFieldConfig;
-  tanggal: OverlayFieldConfig;
-};
+// State shape = MergedOverlayConfig (termasuk fontUrl)
+type PageConfig = MergedOverlayConfig;
 
 function formatTanggalPreview(): string {
   return new Date().toLocaleDateString('id-ID', {
@@ -31,17 +30,18 @@ function formatTanggalPreview(): string {
 
 interface FieldControlsProps {
   label: string;
-  field: keyof FullOverlayConfig;
-  config: FullOverlayConfig;
-  onChange: (field: keyof FullOverlayConfig, key: keyof OverlayFieldConfig, value: number) => void;
+  field: 'nama' | 'kelas' | 'tanggal';
+  config: PageConfig;
+  onNumChange: (field: 'nama' | 'kelas' | 'tanggal', key: keyof OverlayFieldConfig, value: number) => void;
+  onColorChange: (field: 'nama' | 'kelas' | 'tanggal', color: string) => void;
 }
 
-function FieldControls({ label, field, config, onChange }: FieldControlsProps) {
+function FieldControls({ label, field, config, onNumChange, onColorChange }: FieldControlsProps) {
   const val = config[field];
   return (
     <div className="space-y-3">
       <h3 className="font-medium text-sm">{label}</h3>
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="space-y-1">
           <Label className="text-xs">Posisi Horizontal (%)</Label>
           <Input
@@ -50,7 +50,7 @@ function FieldControls({ label, field, config, onChange }: FieldControlsProps) {
             max={100}
             step={0.1}
             value={val.left}
-            onChange={(e) => onChange(field, 'left', parseFloat(e.target.value) || 0)}
+            onChange={(e) => onNumChange(field, 'left', parseFloat(e.target.value) || 0)}
           />
         </div>
         <div className="space-y-1">
@@ -61,7 +61,7 @@ function FieldControls({ label, field, config, onChange }: FieldControlsProps) {
             max={100}
             step={0.1}
             value={val.top}
-            onChange={(e) => onChange(field, 'top', parseFloat(e.target.value) || 0)}
+            onChange={(e) => onNumChange(field, 'top', parseFloat(e.target.value) || 0)}
           />
         </div>
         <div className="space-y-1">
@@ -72,12 +72,28 @@ function FieldControls({ label, field, config, onChange }: FieldControlsProps) {
             max={8}
             step={0.1}
             value={val.fontSize}
-            onChange={(e) => onChange(field, 'fontSize', parseFloat(e.target.value) || 1)}
+            onChange={(e) => onNumChange(field, 'fontSize', parseFloat(e.target.value) || 1)}
           />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Warna Teks</Label>
+          <div className="flex items-center gap-2">
+            <input
+              type="color"
+              value={val.color}
+              onChange={(e) => onColorChange(field, e.target.value)}
+              className="h-9 w-12 cursor-pointer rounded border border-input bg-transparent p-0.5"
+            />
+            <span className="text-xs font-mono text-muted-foreground">{val.color}</span>
+          </div>
         </div>
       </div>
     </div>
   );
+}
+
+function defaultConfig(): PageConfig {
+  return mergeOverlayConfig(null);
 }
 
 export default function AdminCertificateDesignPage() {
@@ -87,9 +103,7 @@ export default function AdminCertificateDesignPage() {
     queryFn: getSettings,
   });
 
-  const [config, setConfig] = useState<FullOverlayConfig>(() =>
-    mergeOverlayConfig(null)
-  );
+  const [config, setConfig] = useState<PageConfig>(defaultConfig);
 
   // Inisialisasi dari settings saat data tersedia
   useEffect(() => {
@@ -99,7 +113,7 @@ export default function AdminCertificateDesignPage() {
   }, [settings]);
 
   const mutation = useMutation({
-    mutationFn: (cfg: FullOverlayConfig) =>
+    mutationFn: (cfg: PageConfig) =>
       updateSettings({ certificateOverlayConfig: cfg }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['settings'] });
@@ -110,8 +124,8 @@ export default function AdminCertificateDesignPage() {
     },
   });
 
-  function handleChange(
-    field: keyof FullOverlayConfig,
+  function handleNumChange(
+    field: 'nama' | 'kelas' | 'tanggal',
     key: keyof OverlayFieldConfig,
     value: number
   ) {
@@ -121,12 +135,24 @@ export default function AdminCertificateDesignPage() {
     }));
   }
 
+  function handleColorChange(field: 'nama' | 'kelas' | 'tanggal', color: string) {
+    setConfig((prev) => ({
+      ...prev,
+      [field]: { ...prev[field], color },
+    }));
+  }
+
+  function handleFontChange(url: string | null) {
+    setConfig((prev) => ({ ...prev, fontUrl: url }));
+  }
+
   function handleReset() {
-    setConfig(mergeOverlayConfig(null)); // kembali ke DEFAULT_OVERLAY_CONFIG penuh
+    setConfig(defaultConfig());
   }
 
   const templateUrl = settings?.certificateDefaultTemplateUrl?.trim() || null;
   const todayStr = formatTanggalPreview();
+  const customFontFamily = config.fontUrl ? "'sertifikat-custom-font', serif" : undefined;
 
   return (
     <AdminLayout>
@@ -134,7 +160,7 @@ export default function AdminCertificateDesignPage() {
         <div>
           <h2 className="text-xl font-serif font-semibold">Pengaturan Tampilan Sertifikat</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Atur posisi dan ukuran teks Nama, Kelas, dan Tanggal pada template sertifikat. Preview berubah langsung saat kamu mengubah nilai.
+            Atur posisi, ukuran, warna, dan font teks pada template sertifikat. Preview berubah langsung saat kamu mengubah nilai.
           </p>
         </div>
 
@@ -153,6 +179,11 @@ export default function AdminCertificateDesignPage() {
                 className="relative w-full"
                 style={{ containerType: 'inline-size' }}
               >
+                {/* Inject @font-face identik dengan CertificateView */}
+                {config.fontUrl && (
+                  <style>{`@font-face { font-family: 'sertifikat-custom-font'; src: url('${config.fontUrl}'); font-display: swap; }`}</style>
+                )}
+
                 <img
                   src={templateUrl}
                   alt="Template Sertifikat"
@@ -162,15 +193,17 @@ export default function AdminCertificateDesignPage() {
 
                 {/* Overlay: Nama */}
                 <p
-                  className="absolute font-serif font-bold text-foreground text-center pointer-events-none"
+                  className="absolute font-serif font-bold text-center pointer-events-none"
                   style={{
                     left: `${config.nama.left}%`,
                     top: `${config.nama.top}%`,
                     transform: 'translate(-50%, -50%)',
                     fontSize: `${config.nama.fontSize}cqw`,
+                    color: config.nama.color,
                     maxWidth: '60%',
                     wordWrap: 'break-word',
                     lineHeight: 1.2,
+                    ...(customFontFamily ? { fontFamily: customFontFamily } : {}),
                   }}
                 >
                   Nama Peserta Contoh
@@ -178,15 +211,17 @@ export default function AdminCertificateDesignPage() {
 
                 {/* Overlay: Kelas */}
                 <p
-                  className="absolute font-serif text-foreground text-center pointer-events-none"
+                  className="absolute font-serif text-center pointer-events-none"
                   style={{
                     left: `${config.kelas.left}%`,
                     top: `${config.kelas.top}%`,
                     transform: 'translate(-50%, -50%)',
                     fontSize: `${config.kelas.fontSize}cqw`,
+                    color: config.kelas.color,
                     maxWidth: '55%',
                     wordWrap: 'break-word',
                     lineHeight: 1.3,
+                    ...(customFontFamily ? { fontFamily: customFontFamily } : {}),
                   }}
                 >
                   Nama Kelas Contoh
@@ -194,13 +229,15 @@ export default function AdminCertificateDesignPage() {
 
                 {/* Overlay: Tanggal */}
                 <p
-                  className="absolute text-foreground text-center pointer-events-none"
+                  className="absolute text-center pointer-events-none"
                   style={{
                     left: `${config.tanggal.left}%`,
                     top: `${config.tanggal.top}%`,
                     transform: 'translate(-50%, -50%)',
                     fontSize: `${config.tanggal.fontSize}cqw`,
+                    color: config.tanggal.color,
                     whiteSpace: 'nowrap',
+                    ...(customFontFamily ? { fontFamily: customFontFamily } : {}),
                   }}
                 >
                   {todayStr}
@@ -217,20 +254,52 @@ export default function AdminCertificateDesignPage() {
           </CardContent>
         </Card>
 
+        {/* Font kustom */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Font Sertifikat (opsional)</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <FontUploadField value={config.fontUrl} onChange={handleFontChange} />
+            <p className="text-xs text-muted-foreground">
+              Upload font kustom (.ttf/.otf/.woff/.woff2) untuk teks Nama, Kelas, dan Tanggal di sertifikat.
+              Kosongkan untuk memakai font bawaan situs.
+            </p>
+          </CardContent>
+        </Card>
+
         {/* Kontrol per-field */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Pengaturan Posisi & Ukuran</CardTitle>
+            <CardTitle className="text-base">Pengaturan Posisi, Ukuran & Warna</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6 divide-y divide-border">
             <div className="pt-0">
-              <FieldControls label="Nama" field="nama" config={config} onChange={handleChange} />
+              <FieldControls
+                label="Nama"
+                field="nama"
+                config={config}
+                onNumChange={handleNumChange}
+                onColorChange={handleColorChange}
+              />
             </div>
             <div className="pt-6">
-              <FieldControls label="Kelas" field="kelas" config={config} onChange={handleChange} />
+              <FieldControls
+                label="Kelas"
+                field="kelas"
+                config={config}
+                onNumChange={handleNumChange}
+                onColorChange={handleColorChange}
+              />
             </div>
             <div className="pt-6">
-              <FieldControls label="Tanggal" field="tanggal" config={config} onChange={handleChange} />
+              <FieldControls
+                label="Tanggal"
+                field="tanggal"
+                config={config}
+                onNumChange={handleNumChange}
+                onColorChange={handleColorChange}
+              />
             </div>
           </CardContent>
         </Card>
@@ -267,9 +336,10 @@ export default function AdminCertificateDesignPage() {
             {Object.entries(DEFAULT_OVERLAY_CONFIG).map(([field, val]) => (
               <p key={field}>
                 <span className="font-mono capitalize">{field}</span>:{' '}
-                left={val.left}%, top={val.top}%, fontSize={val.fontSize}cqw
+                left={val.left}%, top={val.top}%, fontSize={val.fontSize}cqw, color={val.color}
               </p>
             ))}
+            <p>fontUrl: <span className="font-mono">null</span> (font-serif bawaan)</p>
           </CardContent>
         </Card>
       </div>

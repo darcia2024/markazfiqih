@@ -40,6 +40,8 @@ export function CertificateView({ cert, showPrintButton = true }: CertificateVie
 
   // Merge overlay config dari settings dengan default
   const overlayConfig = mergeOverlayConfig(settings?.certificateOverlayConfig ?? null);
+  const fontUrl = overlayConfig.fontUrl ?? null;
+  const customFontFamily = fontUrl ? "'sertifikat-custom-font', serif" : undefined;
 
   const handleDownloadPdf = async () => {
     if (!certificateRef.current || !cert) return;
@@ -111,6 +113,11 @@ export function CertificateView({ cert, showPrintButton = true }: CertificateVie
               className="relative w-full max-w-5xl"
               style={{ containerType: 'inline-size' }}
             >
+              {/* Inject @font-face sekali per instance, hanya jika fontUrl terisi */}
+              {fontUrl && (
+                <style>{`@font-face { font-family: 'sertifikat-custom-font'; src: url('${fontUrl}'); font-display: swap; }`}</style>
+              )}
+
               <img
                 src={activeTemplate!}
                 alt="Template Sertifikat"
@@ -121,15 +128,17 @@ export function CertificateView({ cert, showPrintButton = true }: CertificateVie
 
               {/* ── Overlay: Nama ── */}
               <p
-                className="absolute font-serif font-bold text-foreground text-center"
+                className="absolute font-serif font-bold text-center"
                 style={{
                   left: `${overlayConfig.nama.left}%`,
                   top: `${overlayConfig.nama.top}%`,
                   transform: 'translate(-50%, -50%)',
                   fontSize: `${overlayConfig.nama.fontSize}cqw`,
+                  color: overlayConfig.nama.color,
                   maxWidth: '60%',
                   wordWrap: 'break-word',
                   lineHeight: 1.2,
+                  ...(customFontFamily ? { fontFamily: customFontFamily } : {}),
                 }}
               >
                 {cert.fullName}
@@ -137,15 +146,17 @@ export function CertificateView({ cert, showPrintButton = true }: CertificateVie
 
               {/* ── Overlay: Kelas ── */}
               <p
-                className="absolute font-serif text-foreground text-center"
+                className="absolute font-serif text-center"
                 style={{
                   left: `${overlayConfig.kelas.left}%`,
                   top: `${overlayConfig.kelas.top}%`,
                   transform: 'translate(-50%, -50%)',
                   fontSize: `${overlayConfig.kelas.fontSize}cqw`,
+                  color: overlayConfig.kelas.color,
                   maxWidth: '55%',
                   wordWrap: 'break-word',
                   lineHeight: 1.3,
+                  ...(customFontFamily ? { fontFamily: customFontFamily } : {}),
                 }}
               >
                 {cert.classTitle}
@@ -153,13 +164,15 @@ export function CertificateView({ cert, showPrintButton = true }: CertificateVie
 
               {/* ── Overlay: Tanggal ── */}
               <p
-                className="absolute text-foreground text-center"
+                className="absolute text-center"
                 style={{
                   left: `${overlayConfig.tanggal.left}%`,
                   top: `${overlayConfig.tanggal.top}%`,
                   transform: 'translate(-50%, -50%)',
                   fontSize: `${overlayConfig.tanggal.fontSize}cqw`,
+                  color: overlayConfig.tanggal.color,
                   whiteSpace: 'nowrap',
+                  ...(customFontFamily ? { fontFamily: customFontFamily } : {}),
                 }}
               >
                 {formatTanggal(cert.issuedAt)}

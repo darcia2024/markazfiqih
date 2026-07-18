@@ -1,0 +1,27 @@
+Kerjakan HANYA di artifacts/markaz-fiqh/src. JANGAN sentuh supabase/. Tidak perlu SQL migrasi baru — kolom site_settings.certificate_overlay_config sudah JSONB, tinggal diperluas skema JSON-nya.
+
+Konteks: sudah ada panel admin "Tampilan Sertifikat" (AdminCertificateDesignPage.tsx) dengan live preview + kontrol posisi & ukuran untuk 3 field overlay (Nama/Kelas/Tanggal) di CertificateView.tsx, disimpan lewat certificateOverlayConfig. Sekarang tambahkan 2 kemampuan baru: (1) admin bisa ubah WARNA teks per field, (2) admin bisa upload FONT KUSTOM (file .ttf/.otf/.woff/.woff2) yang dipakai di ketiga field itu.
+
+TUGAS 1 — src/lib/certificateOverlayDefaults.ts (atau file tempat DEFAULT_OVERLAY_CONFIG didefinisikan sebelumnya):
+- Perluas type config per field jadi { left: number; top: number; fontSize: number; color: string }.
+- Tambah field top-level fontUrl: string | null pada config keseluruhan.
+- PENTING: sebelum menetapkan warna default, cek dulu warna teks yang SEKARANG sudah dipakai secara hardcoded untuk masing-masing overlay Nama/Kelas/Tanggal di CertificateView.tsx (lewat className atau style yang ada) — jadikan warna itu sebagai nilai default color di konfigurasi ini, supaya begitu fitur ini aktif TIDAK ADA perubahan visual sampai admin sengaja menggantinya. fontUrl default null (pakai font bawaan situs / font-serif yang sudah ada).
+
+TUGAS 2 — buat komponen baru src/components/FontUploadField.tsx:
+- Sebelum menulis kode upload, buka src/components/ImageUploadField.tsx dan lihat persis bagaimana file diupload ke Supabase Storage (nama bucket, cara generate path/nama file, cara dapat public URL). SALIN logic upload itu persis, jangan menulis ulang dari asumsi.
+- Ubah hanya: accept=".ttf,.otf,.woff,.woff2" pada input file, dan validasi ukuran file wajar (maks ±5MB, tolak dengan toast error kalau lebih).
+- Tampilan: bukan preview gambar, tapi tampilkan nama file yang sedang aktif (ekstrak dari URL) + ikon (lucide Type atau FileType) + tombol "Hapus" (set value ke null).
+- Props: { value: string | null; onChange: (url: string | null) => void }.
+- Kalau ternyata bucket storage yang dipakai ImageUploadField menolak upload file font (error terkait tipe MIME/policy), JANGAN memaksakan workaround yang menebak-nebak — laporkan pesan error persis yang muncul, saya akan berikan SQL policy storage yang sesuai.
+
+TUGAS 3 — src/components/CertificateView.tsx:
+- Untuk masing-masing overlay Nama/Kelas/Tanggal, tambahkan style inline color: config.nama.color (dst, sesuai field) — style inline ini otomatis override className warna lama, jadi className lain (font-weight, posisi) boleh tetap dipakai.
+- Kalau config.fontUrl terisi: render sekali <style>{`@font-face { font-family: 'sertifikat-custom-font'; src: url('${config.fontUrl}'); font-display: swap; }`}</style> di dalam komponen (pastikan hanya di-render sekali per instance, tidak duplikat), dan tambahkan fontFamily: "'sertifikat-custom-font', serif" ke style inline ketiga field overlay. Kalau fontUrl kosong, jangan render @font-face sama sekali dan biarkan font-serif bawaan yang sekarang tetap dipakai (tidak ada perubahan).
+
+TUGAS 4 — src/pages/admin/AdminCertificateDesignPage.tsx:
+- Tambahkan section baru di atas kontrol posisi, judul "Font Sertifikat (opsional)", berisi <FontUploadField value={config.fontUrl} onChange={...} />, dengan teks bantu: "Upload font kustom untuk teks Nama, Kelas, dan Tanggal di sertifikat. Kosongkan untuk memakai font bawaan situs."
+- Untuk masing-masing grup kontrol 3 field (Nama/Kelas/Tanggal) yang sudah ada (Posisi Horizontal/Vertikal/Ukuran Teks), tambahkan satu input lagi: "Warna Teks" — pakai <input type="color"> terhubung ke config.<field>.color, plus tampilkan kode hex-nya sebagai teks kecil di sampingnya.
+- Preview live yang sudah ada: pastikan ikut menerapkan warna & font baru ini secara real-time (styling di preview harus identik dengan cara CertificateView menerapkannya di Tugas 3 — termasuk inject @font-face yang sama saat config.fontUrl terisi).
+- Tombol "Reset ke Default" ikut mereset warna & fontUrl ke default (Tugas 1).
+
+Jalankan pnpm run typecheck dari root dan pastikan lolos. Laporkan khusus: apakah upload font di Tugas 2 berhasil tanpa error saat dites manual, dan warna default apa yang dipakai untuk masing-masing field (hasil pengecekan di Tugas 1).
