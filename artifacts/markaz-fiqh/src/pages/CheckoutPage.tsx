@@ -124,6 +124,9 @@ function CheckoutContent() {
     return subtotal;
   }, [items]);
 
+  // ── Kode Hadiah ───────────────────────────────────────────────────────────
+  const [giftCode, setGiftCode] = useState('');
+
   // ── Syarat & Ketentuan ────────────────────────────────────────────────────
   const [agreedToTerms, setAgreedToTerms] = useState(false);
 
@@ -137,7 +140,7 @@ function CheckoutContent() {
     if (!canPay) return;
     setIsStarting(true);
     try {
-      const created = await startCheckout();
+      const created = await startCheckout(giftCode.trim() ? giftCode.trim() : undefined);
       if (created.freeCheckout) {
         toast.success('Pembayaran berhasil — kelas gratis sudah aktif.');
         setLocation(`/pembayaran/${created.id}`);
@@ -349,6 +352,24 @@ function CheckoutContent() {
             <div className="sticky top-24 rounded-xl border bg-card shadow-sm overflow-hidden">
               <div className="p-5 space-y-4">
                 <h2 className="text-sm font-semibold text-foreground">Ringkasan</h2>
+
+                <div className="space-y-1.5">
+                  <label htmlFor="gift-code" className="text-xs font-medium text-foreground">
+                    Kode Hadiah <span className="text-muted-foreground font-normal">(opsional)</span>
+                  </label>
+                  <Input
+                    id="gift-code"
+                    placeholder="Masukkan kode"
+                    value={giftCode}
+                    onChange={(e) => setGiftCode(e.target.value.toUpperCase())}
+                    autoComplete="off"
+                    disabled={isStarting}
+                    className="h-9 font-mono tracking-wider"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Punya kode hadiah dari Markaz Fiqih? Masukkan di sini — potongan dihitung otomatis saat menekan Bayar.
+                  </p>
+                </div>
 
                 <div className="flex items-start gap-2.5">
                   <Checkbox
