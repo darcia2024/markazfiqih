@@ -338,6 +338,11 @@ export default function AdminSettingsPage() {
                 rows={10}
                 data-testid="input-about-us-content"
               />
+              <p className="text-xs text-muted-foreground">
+                Kosongkan untuk memakai teks bawaan yang sekarang tampil di halaman Tentang Kami.
+                Mengisi kolom ini hanya mengganti bagian deskripsi pembuka — bagian Metode, daftar
+                kelas, dan sosial media tetap.
+              </p>
             </div>
           </CardContent>
         </Card>

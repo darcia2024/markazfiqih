@@ -58,6 +58,8 @@ export function AboutUsPage() {
     staleTime: 5 * 60 * 1000,
   });
 
+  const adminContent = settings?.aboutUsContent?.trim();
+
   const socialLinks = [
     {
       label: 'Instagram',
@@ -110,32 +112,39 @@ export function AboutUsPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1, ease: 'easeOut' }}
-              className="space-y-4 text-muted-foreground leading-relaxed mb-12"
             >
-              <p>
-                Markaz Fiqih adalah lembaga keilmuan yang berfokus pada edukasi, kaderisasi,
-                publikasi dan pengembangan kajian fiqih. Dirintis oleh alumni Universitas
-                Al-Azhar, Kairo, Markaz Fiqih hadir dengan cita-cita menjadi pusat rujukan
-                fiqih yang berlandaskan madzhab Syafi'i. Membawa visi: membumikan fiqih di
-                setiap lini kehidupan.
-              </p>
-              <p>
-                Markaz Fiqih terbuka bagi seluruh lapisan masyarakat, mulai dari masyarakat
-                umum, mahasiswa, santri, hingga para asatidz yang ingin memperdalam fiqih
-                secara sistematis.
-              </p>
-              <p>
-                Metode fiqih yang diusung oleh Markaz Fiqih adalah fiqih madzhab Syafi'i yang
-                bersifat solutif, artinya tetap terbuka terhadap pendapat madzhab lain selama
-                termasuk pendapat yang mu'tabar, diakui validitasnya berdasarkan kaidah
-                keilmuan Islam.
-              </p>
-              <p>
-                Dengan pendekatan ini, kami berupaya menghadirkan kajian fiqih yang ilmiah,
-                aplikatif, dan relevan dengan kebutuhan masyarakat. Sejalan dengan semangat
-                kami bahwa:{' '}
-                <em className="text-primary font-medium">Fiqih Islam Itu Mudah.</em>
-              </p>
+              {adminContent ? (
+                <div className="space-y-4 text-muted-foreground leading-relaxed mb-12 whitespace-pre-line">
+                  {adminContent}
+                </div>
+              ) : (
+                <div className="space-y-4 text-muted-foreground leading-relaxed mb-12">
+                  <p>
+                    Markaz Fiqih adalah lembaga keilmuan yang berfokus pada edukasi, kaderisasi,
+                    publikasi dan pengembangan kajian fiqih. Dirintis oleh alumni Universitas
+                    Al-Azhar, Kairo, Markaz Fiqih hadir dengan cita-cita menjadi pusat rujukan
+                    fiqih yang berlandaskan madzhab Syafi'i. Membawa visi: membumikan fiqih di
+                    setiap lini kehidupan.
+                  </p>
+                  <p>
+                    Markaz Fiqih terbuka bagi seluruh lapisan masyarakat, mulai dari masyarakat
+                    umum, mahasiswa, santri, hingga para asatidz yang ingin memperdalam fiqih
+                    secara sistematis.
+                  </p>
+                  <p>
+                    Metode fiqih yang diusung oleh Markaz Fiqih adalah fiqih madzhab Syafi'i yang
+                    bersifat solutif, artinya tetap terbuka terhadap pendapat madzhab lain selama
+                    termasuk pendapat yang mu'tabar, diakui validitasnya berdasarkan kaidah
+                    keilmuan Islam.
+                  </p>
+                  <p>
+                    Dengan pendekatan ini, kami berupaya menghadirkan kajian fiqih yang ilmiah,
+                    aplikatif, dan relevan dengan kebutuhan masyarakat. Sejalan dengan semangat
+                    kami bahwa:{' '}
+                    <em className="text-primary font-medium">Fiqih Islam Itu Mudah.</em>
+                  </p>
+                </div>
+              )}
             </motion.div>
 
             {/* ── Urutan Rujukan ────────────────────────────────────────── */}
