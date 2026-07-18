@@ -12,12 +12,14 @@ import {
   Trophy,
   TrendingUp,
   Loader2,
+  Search,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/AppShell';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import { useAuth } from '@/context/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { listEnrollments, type EnrollmentItem } from '@/lib/db';
@@ -236,6 +238,7 @@ function CategorySection({
 function MyClassesContent() {
   const { user } = useAuth();
   const [activeFilter, setActiveFilter] = useState('Semua');
+  const [search, setSearch] = useState('');
 
   const { data: enrollments = [], isLoading } = useQuery({
     queryKey: ['enrollments', user?.id],
@@ -243,21 +246,27 @@ function MyClassesContent() {
     enabled: !!user?.id,
   });
 
-  const search = new URLSearchParams(window.location.search);
-  const showEmpty = search.get('demo') === 'empty';
+  const urlParams = new URLSearchParams(window.location.search);
+  const showEmpty = urlParams.get('demo') === 'empty';
   const classesToShow = showEmpty ? [] : enrollments;
+
+  // Terapkan filter pencarian judul sebelum filter kategori dan grouping.
+  const q = search.trim().toLowerCase();
+  const searched = q
+    ? classesToShow.filter((e) => e.class.title.toLowerCase().includes(q))
+    : classesToShow;
 
   // Saat filter kategori spesifik dipilih, tampilkan list flat kategori tsb saja
   // — diurutkan A-Z berdasarkan judul.
   const filteredClasses = useMemo(
     () =>
       (activeFilter === 'Semua'
-        ? classesToShow
-        : classesToShow.filter((e) => e.class.category === activeFilter)
+        ? searched
+        : searched.filter((e) => e.class.category === activeFilter)
       )
         .slice()
         .sort((a, b) => a.class.title.localeCompare(b.class.title, 'id', { sensitivity: 'base' })),
-    [classesToShow, activeFilter],
+    [searched, activeFilter, search],
   );
 
   // Saat filter "Semua" aktif, kelompokkan kelas berdasarkan kategori —
@@ -266,7 +275,7 @@ function MyClassesContent() {
   const groupedByCategory = useMemo(() => {
     if (activeFilter !== 'Semua') return null;
     const groups = new Map<string, EnrollmentItem[]>();
-    for (const e of classesToShow) {
+    for (const e of searched) {
       const cat = e.class.category || 'Lainnya';
       if (!groups.has(cat)) groups.set(cat, []);
       groups.get(cat)!.push(e);
@@ -280,7 +289,7 @@ function MyClassesContent() {
         .slice()
         .sort((a, b) => a.class.title.localeCompare(b.class.title, 'id', { sensitivity: 'base' })),
     }));
-  }, [classesToShow, activeFilter]);
+  }, [searched, activeFilter, search]);
 
   return (
     <AppShell>
@@ -291,6 +300,18 @@ function MyClassesContent() {
         </motion.div>
       </div>
       <main className="flex-1 container mx-auto px-4 sm:px-6 lg:px-8 max-w-6xl py-8 lg:py-10">
+
+        {/* Search */}
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+          <Input
+            type="search"
+            placeholder="Cari di kelas saya..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-10 h-11 rounded-sm"
+          />
+        </div>
 
         {/* Filter chips */}
         <div className="flex flex-wrap gap-2 mb-8">
@@ -314,6 +335,16 @@ function MyClassesContent() {
           </div>
         ) : classesToShow.length === 0 ? (
           <EmptyState />
+        ) : searched.length === 0 ? (
+          <div className="flex flex-col items-center justify-center text-center py-20 gap-4">
+            <BookOpen className="w-12 h-12 text-muted-foreground/40" />
+            <p className="text-muted-foreground">
+              Tidak ada kelas yang cocok dengan pencarianmu.
+            </p>
+            <Button size="sm" variant="outline" onClick={() => setSearch('')}>
+              Reset Pencarian
+            </Button>
+          </div>
         ) : activeFilter === 'Semua' ? (
           <div className="space-y-10">
             {groupedByCategory!.map(({ category, items }) => (
