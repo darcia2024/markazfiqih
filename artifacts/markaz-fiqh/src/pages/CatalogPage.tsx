@@ -720,8 +720,10 @@ function CatalogContent() {
       default:
         break; // sudah diurutkan by created_at DESC dari Supabase
     }
-    return arr;
-  }, [classes, sort]);
+    const notOwned = arr.filter((c) => !enrolledClassIds.has(c.id));
+    const owned = arr.filter((c) => enrolledClassIds.has(c.id));
+    return [...notOwned, ...owned];
+  }, [classes, sort, enrolledClassIds]);
 
   const isLoading = classesQuery.isLoading;
   const isEmpty = !isLoading && classes.length === 0;
