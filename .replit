@@ -35,6 +35,8 @@ LOG_LEVEL = "info"
 SUPABASE_URL = "https://butibupkkgiujnaoietc.supabase.co"
 BASE_PATH = "/"
 VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ1dGlidXBra2dpdWpuYW9pZXRjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyNDI5MDEsImV4cCI6MjA5ODgxODkwMX0.DcRaLjLcXa-hohmw9uiTEiEAFIAkbLr1Zs12SRNO1MM"
+MAYAR_BASE_URL = "https://api.mayar.id"
+PORT = "8080"
 
 [workflows]
 runButton = "Project"

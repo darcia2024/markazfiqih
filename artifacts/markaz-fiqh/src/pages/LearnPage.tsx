@@ -265,8 +265,10 @@ function CertificateSection({
     onError: (err) => toast.error(err instanceof Error ? err.message : 'Gagal mengambil sertifikat.'),
   });
 
+  let mainContent: React.ReactNode;
+
   if (myCert) {
-    return (
+    mainContent = (
       <div className="bg-card rounded-2xl border p-5 space-y-3">
         <p className="text-sm font-semibold text-foreground">Sertifikat Kamu</p>
         <p className="text-xs text-muted-foreground">No. {myCert.certificateNumber}</p>
@@ -280,10 +282,8 @@ function CertificateSection({
         </a>
       </div>
     );
-  }
-
-  if (!isClassCompleted) {
-    return (
+  } else if (!isClassCompleted) {
+    mainContent = (
       <div className="bg-card rounded-2xl border p-5 space-y-2">
         <p className="text-sm font-semibold text-foreground">Ambil Sertifikat</p>
         <p className="text-xs text-muted-foreground">
@@ -291,10 +291,8 @@ function CertificateSection({
         </p>
       </div>
     );
-  }
-
-  return (
-    <>
+  } else {
+    mainContent = (
       <div className="bg-card rounded-2xl border p-5 space-y-3">
         <p className="text-sm font-semibold text-foreground">Ambil Sertifikat</p>
         {!isFormOpen ? (
@@ -324,7 +322,12 @@ function CertificateSection({
           </div>
         )}
       </div>
+    );
+  }
 
+  return (
+    <>
+      {mainContent}
       <Dialog open={showCertModal} onOpenChange={setShowCertModal}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>

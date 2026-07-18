@@ -401,6 +401,15 @@ export async function getSettings() {
         return ['Fiqih Kitab', 'Fiqih Tematik', 'Akademi'];
       }
     })(),
+    certificateOverlayConfig: (() => {
+      try {
+        const raw = data.certificate_overlay_config;
+        if (!raw || raw === '{}') return {};
+        return typeof raw === 'string' ? JSON.parse(raw) : raw;
+      } catch {
+        return {};
+      }
+    })(),
   };
 }
 
@@ -891,6 +900,7 @@ export async function updateSettings(data: {
   socialTiktok?: string; studentCountLabel?: string; aboutUsContent?: string;
   catalogCategoryOrder?: string[];
   certificateDefaultTemplateUrl?: string | null;
+  certificateOverlayConfig?: object;
 }) {
   const patch: Record<string, unknown> = {};
   if (data.siteName !== undefined) patch.site_name = data.siteName;
@@ -910,6 +920,7 @@ export async function updateSettings(data: {
   if (data.aboutUsContent !== undefined) patch.about_us_content = data.aboutUsContent;
   if (data.catalogCategoryOrder !== undefined) patch.catalog_category_order = JSON.stringify(data.catalogCategoryOrder);
   if ('certificateDefaultTemplateUrl' in data) patch.certificate_default_template_url = data.certificateDefaultTemplateUrl ?? null;
+  if (data.certificateOverlayConfig !== undefined) patch.certificate_overlay_config = JSON.stringify(data.certificateOverlayConfig);
   const { error } = await supabase.from('site_settings').update(patch).eq('id', 1);
   if (error) {
     // Beberapa kolom mungkin belum ada jika migrasi SQL belum dijalankan.

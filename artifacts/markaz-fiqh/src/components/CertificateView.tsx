@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import { mergeOverlayConfig } from '@/lib/certificateOverlayDefaults';
 
 function formatTanggal(iso: string): string {
   return new Date(iso).toLocaleDateString('id-ID', {
@@ -36,6 +37,9 @@ export function CertificateView({ cert, showPrintButton = true }: CertificateVie
     null;
 
   const hasTemplate = !!activeTemplate;
+
+  // Merge overlay config dari settings dengan default
+  const overlayConfig = mergeOverlayConfig(settings?.certificateOverlayConfig ?? null);
 
   const handleDownloadPdf = async () => {
     if (!certificateRef.current || !cert) return;
@@ -99,63 +103,77 @@ export function CertificateView({ cert, showPrintButton = true }: CertificateVie
 
       {hasTemplate ? (
         /* ── Mode Template ───────────────────────────────────────────── */
-        <div className="bg-white flex items-center justify-center">
-          <div ref={certificateRef} className="relative w-full max-w-5xl">
-            <img
-              src={activeTemplate!}
-              alt="Template Sertifikat"
-              crossOrigin="anonymous"
-              className="w-full h-auto block"
-              style={{ display: 'block' }}
-            />
-
-            {/* ── Overlay: Nama ── */}
-            <p
-              className="absolute font-serif font-bold text-foreground text-center"
-              style={{
-                left: '50.8%',
-                top: '40.1%',
-                transform: 'translate(-50%, -50%)',
-                fontSize: '3.5vw',
-                maxWidth: '60%',
-                wordWrap: 'break-word',
-                lineHeight: 1.2,
-              }}
+        <>
+          <div className="bg-white flex items-center justify-center">
+            {/* certificateRef hanya membungkus gambar + overlay — tidak termasuk badge verifikasi */}
+            <div
+              ref={certificateRef}
+              className="relative w-full max-w-5xl"
+              style={{ containerType: 'inline-size' }}
             >
-              {cert.fullName}
-            </p>
+              <img
+                src={activeTemplate!}
+                alt="Template Sertifikat"
+                crossOrigin="anonymous"
+                className="w-full h-auto block"
+                style={{ display: 'block' }}
+              />
 
-            {/* ── Overlay: Kelas ── */}
-            <p
-              className="absolute font-serif text-foreground text-center"
-              style={{
-                left: '50%',
-                top: '56%',
-                transform: 'translate(-50%, -50%)',
-                fontSize: '2.1vw',
-                maxWidth: '55%',
-                wordWrap: 'break-word',
-                lineHeight: 1.3,
-              }}
-            >
-              {cert.classTitle}
-            </p>
+              {/* ── Overlay: Nama ── */}
+              <p
+                className="absolute font-serif font-bold text-foreground text-center"
+                style={{
+                  left: `${overlayConfig.nama.left}%`,
+                  top: `${overlayConfig.nama.top}%`,
+                  transform: 'translate(-50%, -50%)',
+                  fontSize: `${overlayConfig.nama.fontSize}cqw`,
+                  maxWidth: '60%',
+                  wordWrap: 'break-word',
+                  lineHeight: 1.2,
+                }}
+              >
+                {cert.fullName}
+              </p>
 
-            {/* ── Overlay: Tanggal ── */}
-            <p
-              className="absolute text-foreground text-center"
-              style={{
-                left: '14%',
-                top: '93.7%',
-                transform: 'translate(-50%, -50%)',
-                fontSize: '1.575vw',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {formatTanggal(cert.issuedAt)}
-            </p>
+              {/* ── Overlay: Kelas ── */}
+              <p
+                className="absolute font-serif text-foreground text-center"
+                style={{
+                  left: `${overlayConfig.kelas.left}%`,
+                  top: `${overlayConfig.kelas.top}%`,
+                  transform: 'translate(-50%, -50%)',
+                  fontSize: `${overlayConfig.kelas.fontSize}cqw`,
+                  maxWidth: '55%',
+                  wordWrap: 'break-word',
+                  lineHeight: 1.3,
+                }}
+              >
+                {cert.classTitle}
+              </p>
+
+              {/* ── Overlay: Tanggal ── */}
+              <p
+                className="absolute text-foreground text-center"
+                style={{
+                  left: `${overlayConfig.tanggal.left}%`,
+                  top: `${overlayConfig.tanggal.top}%`,
+                  transform: 'translate(-50%, -50%)',
+                  fontSize: `${overlayConfig.tanggal.fontSize}cqw`,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {formatTanggal(cert.issuedAt)}
+              </p>
+            </div>
           </div>
-        </div>
+
+          {/* Badge verifikasi — DI LUAR certificateRef, tidak ikut ter-capture html2canvas */}
+          <div className="flex justify-center mt-3">
+            <span className="rounded-full bg-muted text-muted-foreground text-xs px-3 py-1.5 inline-block">
+              Verifikasi: markaz-fiqih.com/sertifikat/{cert.id}
+            </span>
+          </div>
+        </>
       ) : (
         /* ── Mode Bawaan ─────────────────────────────────────────────── */
         <div

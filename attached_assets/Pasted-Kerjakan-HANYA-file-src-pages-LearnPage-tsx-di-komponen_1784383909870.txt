@@ -1,0 +1,18 @@
+Kerjakan HANYA file src/pages/LearnPage.tsx, di komponen form "Ambil Sertifikat" (yang berisi state showCertModal & issuedCert).
+
+Bug: Dialog pop-up sertifikat langsung hilang sesaat setelah muncul. Penyebabnya BUKAN soal waktu/delay, tapi struktur render: komponen ini punya beberapa early return berbeda tergantung kondisi (myCert sudah ada → return JSX A; !isClassCompleted → return JSX B; kondisi default dengan form → return JSX C yang menyertakan <Dialog>). Begitu requestMutation sukses, ia invalidate query 'my-certificate', membuat query itu refetch dan myCert langsung menjadi truthy dalam sekejap — komponen otomatis re-render ke branch PALING ATAS (if (myCert) return ...) yang TIDAK menyertakan elemen <Dialog> sama sekali. Itu sebabnya Dialog seolah "ketutup buru-buru".
+
+Perbaikan — restrukturisasi supaya <Dialog> selalu ikut dirender di DOM terlepas dari branch mana yang sedang aktif:
+1. Ganti pola beberapa `return (...)` terpisah menjadi: hitung dulu konten utama ke variabel, misal `let mainContent: React.ReactNode;`, lalu isi variabel itu sesuai kondisi yang sudah ada (myCert / !isClassCompleted / form default) pakai if/else biasa — JANGAN early return lagi.
+2. Di akhir komponen, return SATU kali saja, membungkus mainContent DAN Dialog dalam fragment supaya Dialog selalu ada:
+   return (
+     <>
+       {mainContent}
+       <Dialog open={showCertModal} onOpenChange={setShowCertModal}>
+         {/* isi dialog yang sudah ada sekarang, JANGAN diubah sama sekali */}
+       </Dialog>
+     </>
+   );
+3. Pastikan seluruh hook (useState, useQuery, useMutation) tetap dipanggil di bagian paling atas komponen, sebelum percabangan if/else manapun — jangan sampai ada hook di dalam blok kondisional (melanggar Rules of Hooks React). Kalau urutan hook sekarang sudah begitu, cukup restrukturisasi bagian return-nya saja sesuai poin 1-2, tidak perlu memindahkan hook.
+
+Jangan mengubah logic query/mutation atau isi masing-masing tampilan kondisi. Jalankan pnpm run typecheck dari root dan pastikan lolos.

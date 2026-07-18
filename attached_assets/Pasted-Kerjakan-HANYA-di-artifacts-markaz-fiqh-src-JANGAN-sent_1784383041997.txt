@@ -1,0 +1,34 @@
+Kerjakan HANYA di artifacts/markaz-fiqh/src. JANGAN sentuh supabase/. Prasyarat SQL manual sudah dijalankan: site_settings.certificate_overlay_config (JSONB, default '{}').
+
+Ada 2 tugas: (1) perbaiki bug badge verifikasi yang overlap dengan gambar sertifikat, (2) bikin panel admin untuk mengatur posisi & ukuran 3 field overlay (Nama/Kelas/Tanggal) tanpa perlu ubah kode lagi.
+
+TUGAS 1 — perbaiki src/components/CertificateView.tsx:
+Saat ini elemen "Verifikasi: markaz-fiqih.com/sertifikat/..." tampaknya ikut ter-render DI DALAM/menumpuk dengan area yang sama dengan certificateRef (gambar template), sehingga terlihat overlap dan terpotong di bagian bawah gambar. Perbaiki dengan memindahkan elemen verifikasi ini keluar dari certificateRef sepenuhnya — render sebagai elemen TERPISAH di bawah gambar (bukan absolute-positioned di atasnya), dengan jarak margin-top yang wajar (mt-3), styling badge kecil rounded-full bg-muted text-muted-foreground text-xs px-3 py-1.5 inline-block, supaya TIDAK ikut ter-capture oleh html2canvas saat Download PDF (karena certificateRef harus hanya membungkus gambar sertifikat itu sendiri).
+
+TUGAS 2 — src/lib/db.ts:
+- getSettings(): tambahkan mapping certificate_overlay_config → certificateOverlayConfig (JSON, parse sebagai object; kalau null/kosong beri default {}).
+- updateSettings(): tambahkan parameter opsional certificateOverlayConfig (object), dipetakan ke kolom certificate_overlay_config, dikirim sebagai JSON.
+
+TUGAS 3 — src/components/CertificateView.tsx, jadikan posisi & ukuran dinamis:
+- Definisikan konstanta default (dipakai kalau admin belum pernah mengatur):
+  const DEFAULT_OVERLAY_CONFIG = {
+    nama: { left: 50.8, top: 40.1, fontSize: 3.5 },
+    kelas: { left: 50, top: 56, fontSize: 2.1 },
+    tanggal: { left: 14, top: 93.7, fontSize: 1.575 },
+  };
+- Ambil config aktif: settings?.certificateOverlayConfig yang di-merge di atas DEFAULT_OVERLAY_CONFIG per field (kalau field tertentu belum diisi admin, pakai default field itu saja, bukan reset semua ke default).
+- Ganti nilai left/top/fontSize yang sebelumnya hardcoded pada overlay Nama/Kelas/Tanggal dengan nilai dari config ini (fontSize tetap pakai satuan cqw seperti sekarang, hanya angkanya yang dinamis).
+
+TUGAS 4 — buat halaman admin baru src/pages/admin/AdminCertificateDesignPage.tsx:
+- Bungkus AdminLayout, judul "Pengaturan Tampilan Sertifikat".
+- State lokal untuk config, di-inisialisasi dari settings?.certificateOverlayConfig (merge dengan DEFAULT_OVERLAY_CONFIG yang sama seperti di CertificateView — pertimbangkan taruh DEFAULT_OVERLAY_CONFIG di file terpisah src/lib/certificateOverlayDefaults.ts supaya bisa diimpor kedua tempat tanpa duplikasi).
+- PREVIEW LIVE: tampilkan gambar template aktif (settings?.certificateDefaultTemplateUrl, fallback ke pesan "Upload template default dulu di atas" kalau belum ada) dalam container relative, dengan 3 overlay teks contoh ("Nama Peserta Contoh", "Nama Kelas Contoh", format tanggal hari ini) yang posisi & ukurannya mengikuti state config secara real-time (pakai styling yang identik dengan CertificateView, termasuk container-type inline-size + unit cqw, supaya preview ini representatif).
+- Untuk masing-masing 3 field (Nama, Kelas, Tanggal), buat grup kontrol dengan 3 input number: "Posisi Horizontal (%)" (0-100), "Posisi Vertikal (%)" (0-100), "Ukuran Teks" (langkah 0.1, range wajar misal 0.5-8), masing-masing terhubung ke state config, update preview langsung saat diketik/diubah (tanpa perlu klik simpan dulu untuk lihat preview).
+- Tombol "Simpan Pengaturan" memanggil updateSettings({ certificateOverlayConfig: config }), invalidate query settings, toast sukses.
+- Tombol "Reset ke Default" mengembalikan state ke DEFAULT_OVERLAY_CONFIG (tanpa langsung menyimpan, biar admin bisa lihat dulu previewnya sebelum yakin simpan).
+
+TUGAS 5 — registrasi:
+- Route baru "/admin/certificate-design" di src/App.tsx (RequireAdminRoute, pola sama seperti route admin lain).
+- Menu baru "Tampilan Sertifikat" di src/components/admin/AdminLayout.tsx (ikon lucide yang cocok, misal Palette atau LayoutTemplate), mengarah ke route ini.
+
+Jalankan pnpm run typecheck dari root dan pastikan lolos.
