@@ -43,11 +43,25 @@ import {
 } from '@/lib/db';
 import { formatPrice } from '@/pages/CatalogPage';
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const ALL_CLASSES_VALUE = '__ALL__';
+
+/** Compute percentage off, rounded to nearest integer */
+function toPercent(discountPrice: number, basePrice: number): number {
+  if (!basePrice) return 0;
+  return Math.round((1 - discountPrice / basePrice) * 100);
+}
+
+/** Compute final price from basePrice + percent discount */
+function computeFinalPrice(basePrice: number, percent: number): number {
+  return Math.floor(basePrice * (1 - percent / 100));
+}
+
 // ── Form state ────────────────────────────────────────────────────────────────
 type FormState = {
   code: string;
-  classId: string;
-  discountPrice: string;
+  classId: string; // class UUID or ALL_CLASSES_VALUE
+  discountPercent: string; // 0–100
   maxUses: string;
   isActive: boolean;
 };
@@ -55,7 +69,7 @@ type FormState = {
 const EMPTY_FORM: FormState = {
   code: '',
   classId: '',
-  discountPrice: '',
+  discountPercent: '',
   maxUses: '',
   isActive: true,
 };
@@ -87,11 +101,7 @@ export default function AdminGiftCodesPage() {
 
   const createMutation = useMutation({
     mutationFn: createVoucher,
-    onSuccess: () => {
-      invalidate();
-      setDialogOpen(false);
-      toast.success('Kode Hadiah berhasil dibuat.');
-    },
+    onSuccess: () => { /* handled after all batch creates */ },
     onError: (e) => toast.error(e instanceof Error ? e.message : 'Gagal membuat Kode Hadiah.'),
   });
 
@@ -116,7 +126,8 @@ export default function AdminGiftCodesPage() {
     onError: (e) => toast.error(e instanceof Error ? e.message : 'Gagal menghapus Kode Hadiah.'),
   });
 
-  const isSaving = createMutation.isPending || updateMutation.isPending;
+  const [isBatchSaving, setIsBatchSaving] = useState(false);
+  const isSaving = createMutation.isPending || updateMutation.isPending || isBatchSaving;
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   function openCreate() {
@@ -130,32 +141,84 @@ export default function AdminGiftCodesPage() {
     setForm({
       code: v.code,
       classId: v.classId,
-      discountPrice: String(v.discountPrice),
+      discountPercent: String(toPercent(v.discountPrice, v.basePrice)),
       maxUses: v.maxUses != null ? String(v.maxUses) : '',
       isActive: v.isActive,
     });
     setDialogOpen(true);
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const code = form.code.trim().toUpperCase();
-    const classId = form.classId;
-    const discountPrice = parseInt(form.discountPrice, 10);
+    const percent = parseFloat(form.discountPercent);
     const maxUses = form.maxUses.trim() ? parseInt(form.maxUses, 10) : null;
 
-    if (!code || !classId || isNaN(discountPrice) || discountPrice < 0) {
-      toast.error('Lengkapi semua kolom wajib dengan benar.');
+    if (!code || isNaN(percent) || percent < 0 || percent > 100) {
+      toast.error('Lengkapi semua kolom wajib dengan benar (potongan 0–100%).');
       return;
     }
 
     if (editingVoucher) {
+      // Edit: recompute final price using stored basePrice
+      const finalPrice = computeFinalPrice(editingVoucher.basePrice, percent);
       updateMutation.mutate({
         id: editingVoucher.id,
-        payload: { code, discountPrice, isActive: form.isActive, maxUses },
+        payload: { code, discountPrice: finalPrice, isActive: form.isActive, maxUses },
       });
+      return;
+    }
+
+    // Create
+    if (!form.classId) {
+      toast.error('Pilih kelas terlebih dahulu.');
+      return;
+    }
+
+    if (form.classId === ALL_CLASSES_VALUE) {
+      // Batch create one voucher per class
+      if (classes.length === 0) {
+        toast.error('Tidak ada kelas yang tersedia.');
+        return;
+      }
+      setIsBatchSaving(true);
+      try {
+        await Promise.all(
+          classes.map((cls) =>
+            createVoucher({
+              classId: cls.id,
+              code,
+              discountPrice: computeFinalPrice(cls.basePrice, percent),
+              maxUses,
+            })
+          )
+        );
+        invalidate();
+        setDialogOpen(false);
+        toast.success(`Kode Hadiah berhasil dibuat untuk ${classes.length} kelas.`);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : 'Gagal membuat Kode Hadiah.');
+      } finally {
+        setIsBatchSaving(false);
+      }
     } else {
-      createMutation.mutate({ classId, code, discountPrice, maxUses });
+      // Single class
+      const cls = classes.find((c) => c.id === form.classId);
+      if (!cls) {
+        toast.error('Kelas tidak ditemukan.');
+        return;
+      }
+      const finalPrice = computeFinalPrice(cls.basePrice, percent);
+      createMutation.mutate(
+        { classId: form.classId, code, discountPrice: finalPrice, maxUses },
+        {
+          onSuccess: () => {
+            invalidate();
+            setDialogOpen(false);
+            toast.success('Kode Hadiah berhasil dibuat.');
+          },
+        }
+      );
     }
   }
 
@@ -169,8 +232,7 @@ export default function AdminGiftCodesPage() {
           <Gift className="w-5 h-5 text-[hsl(var(--accent))] shrink-0 mt-0.5" />
           <p className="text-sm text-foreground/80">
             Kode Hadiah dipakai pelajar di halaman checkout untuk mendapatkan harga khusus per kelas.
-            Isi 'Harga Setelah Kode' dengan 0 untuk menggratiskan kelas — pembayaran Rp 0 aktif
-            otomatis tanpa lewat Mayar.
+            Masukkan persentase potongan (mis. 100% = gratis). Bisa diterapkan ke satu kelas atau semua kelas sekaligus.
           </p>
         </div>
 
@@ -201,58 +263,69 @@ export default function AdminGiftCodesPage() {
                     <tr>
                       <th className="px-4 py-3 text-left font-medium text-muted-foreground">Kode</th>
                       <th className="px-4 py-3 text-left font-medium text-muted-foreground hidden md:table-cell">Kelas</th>
-                      <th className="px-4 py-3 text-right font-medium text-muted-foreground">Harga Setelah Kode</th>
+                      <th className="px-4 py-3 text-right font-medium text-muted-foreground">Potongan</th>
+                      <th className="px-4 py-3 text-right font-medium text-muted-foreground hidden lg:table-cell">Harga Akhir</th>
                       <th className="px-4 py-3 text-center font-medium text-muted-foreground">Pemakaian</th>
                       <th className="px-4 py-3 text-center font-medium text-muted-foreground">Status</th>
                       <th className="px-4 py-3 text-right font-medium text-muted-foreground">Aksi</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
-                    {vouchers.map((v) => (
-                      <tr key={v.id} className="hover:bg-muted/20 transition-colors">
-                        <td className="px-4 py-3 font-mono font-semibold text-foreground">{v.code}</td>
-                        <td className="px-4 py-3 text-muted-foreground hidden md:table-cell max-w-[200px]">
-                          <span className="line-clamp-1">{v.className}</span>
-                        </td>
-                        <td className="px-4 py-3 text-right font-semibold text-foreground">
-                          {v.discountPrice === 0 ? (
-                            <span className="text-success font-bold">Gratis</span>
-                          ) : (
-                            formatPrice(v.discountPrice)
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-center text-muted-foreground">
-                          {v.usedCount}/{v.maxUses != null ? v.maxUses : '∞'}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          {v.isActive ? (
-                            <Badge className="bg-success/10 text-success border-success/20 hover:bg-success/10">Aktif</Badge>
-                          ) : (
-                            <Badge variant="secondary">Nonaktif</Badge>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => openEdit(v)}
-                            >
-                              <Pencil className="w-3.5 h-3.5" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                              onClick={() => setDeleteTarget(v)}
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                    {vouchers.map((v) => {
+                      const pct = toPercent(v.discountPrice, v.basePrice);
+                      return (
+                        <tr key={v.id} className="hover:bg-muted/20 transition-colors">
+                          <td className="px-4 py-3 font-mono font-semibold text-foreground">{v.code}</td>
+                          <td className="px-4 py-3 text-muted-foreground hidden md:table-cell max-w-[200px]">
+                            <span className="line-clamp-1">{v.className}</span>
+                          </td>
+                          <td className="px-4 py-3 text-right font-semibold text-foreground">
+                            {pct === 100 ? (
+                              <span className="text-success font-bold">100%</span>
+                            ) : (
+                              <span>{pct}%</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-right text-muted-foreground hidden lg:table-cell">
+                            {v.discountPrice === 0 ? (
+                              <span className="text-success font-bold">Gratis</span>
+                            ) : (
+                              formatPrice(v.discountPrice)
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-center text-muted-foreground">
+                            {v.usedCount}/{v.maxUses != null ? v.maxUses : '∞'}
+                          </td>
+                          <td className="px-4 py-3 text-center">
+                            {v.isActive ? (
+                              <Badge className="bg-success/10 text-success border-success/20 hover:bg-success/10">Aktif</Badge>
+                            ) : (
+                              <Badge variant="secondary">Nonaktif</Badge>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => openEdit(v)}
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                onClick={() => setDeleteTarget(v)}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -300,7 +373,10 @@ export default function AdminGiftCodesPage() {
                   <SelectTrigger id="gc-class">
                     <SelectValue placeholder="Pilih kelas…" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="max-h-60 overflow-y-auto">
+                    <SelectItem value={ALL_CLASSES_VALUE}>
+                      <span className="font-medium">— Semua Kelas —</span>
+                    </SelectItem>
                     {classes.map((cls) => (
                       <SelectItem key={cls.id} value={cls.id}>
                         {cls.title}
@@ -309,26 +385,72 @@ export default function AdminGiftCodesPage() {
                   </SelectContent>
                 </Select>
               )}
+              {form.classId === ALL_CLASSES_VALUE && (
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  Kode ini akan dibuat untuk semua {classes.length} kelas sekaligus, dengan harga akhir dihitung per kelas.
+                </p>
+              )}
             </div>
 
-            {/* Harga Setelah Kode */}
+            {/* Persentase Potongan */}
             <div className="space-y-1.5">
-              <Label htmlFor="gc-price">
-                Harga Setelah Kode (Rp) <span className="text-destructive">*</span>
+              <Label htmlFor="gc-percent">
+                Persentase Potongan (%) <span className="text-destructive">*</span>
               </Label>
-              <Input
-                id="gc-price"
-                type="number"
-                min={0}
-                placeholder="0"
-                value={form.discountPrice}
-                onChange={(e) => setForm((p) => ({ ...p, discountPrice: e.target.value }))}
-                required
-                disabled={isSaving}
-              />
-              <p className="text-xs text-muted-foreground">
-                Ini <span className="font-semibold">HARGA AKHIR</span> kelas setelah kode dipakai, bukan besar potongan.
-              </p>
+              <div className="relative">
+                <Input
+                  id="gc-percent"
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={1}
+                  placeholder="Mis. 20"
+                  value={form.discountPercent}
+                  onChange={(e) => setForm((p) => ({ ...p, discountPercent: e.target.value }))}
+                  required
+                  disabled={isSaving}
+                  className="pr-8"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+                  %
+                </span>
+              </div>
+              {/* Preview harga akhir untuk single class */}
+              {(() => {
+                const pct = parseFloat(form.discountPercent);
+                if (isNaN(pct) || pct < 0 || pct > 100) return null;
+
+                if (editingVoucher) {
+                  const final = computeFinalPrice(editingVoucher.basePrice, pct);
+                  return (
+                    <p className="text-xs text-muted-foreground">
+                      Harga akhir: <span className="font-semibold">{pct === 100 ? 'Gratis' : formatPrice(final)}</span>
+                      {' '}(dari {formatPrice(editingVoucher.basePrice)})
+                    </p>
+                  );
+                }
+
+                const selectedCls = classes.find((c) => c.id === form.classId);
+                if (selectedCls) {
+                  const final = computeFinalPrice(selectedCls.basePrice, pct);
+                  return (
+                    <p className="text-xs text-muted-foreground">
+                      Harga akhir: <span className="font-semibold">{pct === 100 ? 'Gratis' : formatPrice(final)}</span>
+                      {' '}(dari {formatPrice(selectedCls.basePrice)})
+                    </p>
+                  );
+                }
+
+                if (form.classId === ALL_CLASSES_VALUE) {
+                  return (
+                    <p className="text-xs text-muted-foreground">
+                      Potongan {pct}% akan dihitung dari harga masing-masing kelas.
+                    </p>
+                  );
+                }
+
+                return null;
+              })()}
             </div>
 
             {/* Batas Pemakaian */}

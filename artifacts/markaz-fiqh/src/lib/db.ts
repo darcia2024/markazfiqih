@@ -1293,6 +1293,7 @@ export type AdminVoucher = {
   className: string;
   code: string;
   discountPrice: number;
+  basePrice: number;
   isActive: boolean;
   maxUses: number | null;
   usedCount: number;
@@ -1301,7 +1302,7 @@ export type AdminVoucher = {
 export async function listAllVouchersForAdmin(): Promise<AdminVoucher[]> {
   const { data, error } = await supabase
     .from('class_vouchers')
-    .select('id, class_id, code, discount_price, is_active, max_uses, used_count, classes(title)')
+    .select('id, class_id, code, discount_price, is_active, max_uses, used_count, classes(title, base_price)')
     .order('code');
   if (error) throw error;
   return (data ?? []).map((v: any) => ({
@@ -1310,6 +1311,7 @@ export async function listAllVouchersForAdmin(): Promise<AdminVoucher[]> {
     className: (v.classes?.title ?? 'Kelas tidak ditemukan') as string,
     code: v.code as string,
     discountPrice: v.discount_price as number,
+    basePrice: (v.classes?.base_price ?? 0) as number,
     isActive: v.is_active as boolean,
     maxUses: v.max_uses as number | null,
     usedCount: (v.used_count ?? 0) as number,
