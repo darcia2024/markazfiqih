@@ -33,6 +33,8 @@ import { useParams, Link } from 'wouter';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { CertificateView } from '@/components/CertificateView';
 import {
   ArrowLeft,
   Award,
@@ -76,6 +78,7 @@ import {
   getClassMeetingTitles,
   getMyCertificate,
   requestCertificate,
+  type CertificateRequest,
 } from '@/lib/db';
 import { StarRating } from '@/components/StarRating';
 
@@ -242,6 +245,8 @@ function CertificateSection({
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [fullName, setFullName] = useState(user?.name ?? '');
   const [score, setScore] = useState('');
+  const [showCertModal, setShowCertModal] = useState(false);
+  const [issuedCert, setIssuedCert] = useState<CertificateRequest | null>(null);
 
   const { data: myCert } = useQuery({
     queryKey: ['my-certificate', user?.id, classId],
@@ -251,10 +256,11 @@ function CertificateSection({
 
   const requestMutation = useMutation({
     mutationFn: () => requestCertificate({ classId, fullName, email: user?.email ?? '', score }),
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['my-certificate', user?.id, classId] });
       setIsFormOpen(false);
-      toast.success('Sertifikat berhasil diterbitkan!');
+      setIssuedCert(data);
+      setShowCertModal(true);
     },
     onError: (err) => toast.error(err instanceof Error ? err.message : 'Gagal mengambil sertifikat.'),
   });
@@ -288,35 +294,60 @@ function CertificateSection({
   }
 
   return (
-    <div className="bg-card rounded-2xl border p-5 space-y-3">
-      <p className="text-sm font-semibold text-foreground">Ambil Sertifikat</p>
-      {!isFormOpen ? (
-        <Button size="sm" onClick={() => setIsFormOpen(true)}>
-          <Award className="w-4 h-4 mr-1.5" /> Ambil Sertifikat Kelas Ini
-        </Button>
-      ) : (
-        <div className="space-y-3">
-          <div className="space-y-1">
-            <Label>Nama Lengkap</Label>
-            <Input value={fullName} onChange={(e) => setFullName(e.target.value)} />
+    <>
+      <div className="bg-card rounded-2xl border p-5 space-y-3">
+        <p className="text-sm font-semibold text-foreground">Ambil Sertifikat</p>
+        {!isFormOpen ? (
+          <Button size="sm" onClick={() => setIsFormOpen(true)}>
+            <Award className="w-4 h-4 mr-1.5" /> Ambil Sertifikat Kelas Ini
+          </Button>
+        ) : (
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label>Nama Lengkap</Label>
+              <Input value={fullName} onChange={(e) => setFullName(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <Label>Nilai Soal Latihan (opsional)</Label>
+              <Input value={score} onChange={(e) => setScore(e.target.value)} placeholder="cth: 90" />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                onClick={() => requestMutation.mutate()}
+                disabled={!fullName.trim() || requestMutation.isPending}
+              >
+                {requestMutation.isPending ? 'Menerbitkan...' : 'Terbitkan Sertifikat'}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setIsFormOpen(false)}>Batal</Button>
+            </div>
           </div>
-          <div className="space-y-1">
-            <Label>Nilai Soal Latihan (opsional)</Label>
-            <Input value={score} onChange={(e) => setScore(e.target.value)} placeholder="cth: 90" />
-          </div>
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              onClick={() => requestMutation.mutate()}
-              disabled={!fullName.trim() || requestMutation.isPending}
-            >
-              {requestMutation.isPending ? 'Menerbitkan...' : 'Terbitkan Sertifikat'}
-            </Button>
-            <Button size="sm" variant="ghost" onClick={() => setIsFormOpen(false)}>Batal</Button>
-          </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+
+      <Dialog open={showCertModal} onOpenChange={setShowCertModal}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Sertifikat Berhasil Diterbitkan 🎉</DialogTitle>
+          </DialogHeader>
+          {issuedCert && (
+            <div className="space-y-4">
+              <CertificateView cert={issuedCert} showPrintButton={false} />
+              <div className="flex justify-end">
+                <a
+                  href={`/sertifikat/${issuedCert.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-primary font-medium hover:underline"
+                >
+                  Buka halaman lengkap sertifikat →
+                </a>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
