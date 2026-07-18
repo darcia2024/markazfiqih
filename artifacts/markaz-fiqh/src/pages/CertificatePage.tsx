@@ -1,8 +1,12 @@
 import { useParams } from 'wouter';
 import { useQuery } from '@tanstack/react-query';
+import { useRef, useState } from 'react';
 import { getCertificateById, getSettings } from '@/lib/db';
-import { Loader2, Printer } from 'lucide-react';
+import { Loader2, Printer, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 function formatTanggal(iso: string): string {
   return new Date(iso).toLocaleDateString('id-ID', {
@@ -14,6 +18,8 @@ function formatTanggal(iso: string): string {
 
 export default function CertificatePage() {
   const { id } = useParams<{ id: string }>();
+  const certificateRef = useRef<HTMLDivElement>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const { data: cert, isLoading, isError } = useQuery({
     queryKey: ['certificate', id],
@@ -25,6 +31,42 @@ export default function CertificatePage() {
     queryKey: ['settings'],
     queryFn: getSettings,
   });
+
+  const handleDownloadPdf = async () => {
+    if (!certificateRef.current || !cert) return;
+    setIsDownloading(true);
+    try {
+      const canvas = await html2canvas(certificateRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+      });
+      const imgData = canvas.toDataURL('image/png', 1.0);
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      // Fit gambar ke halaman penuh sambil menjaga rasio, ditengahkan
+      const canvasRatio = canvas.width / canvas.height;
+      const pageRatio = pageWidth / pageHeight;
+      let renderWidth = pageWidth, renderHeight = pageHeight, offsetX = 0, offsetY = 0;
+      if (canvasRatio > pageRatio) {
+        renderHeight = pageWidth / canvasRatio;
+        offsetY = (pageHeight - renderHeight) / 2;
+      } else {
+        renderWidth = pageHeight * canvasRatio;
+        offsetX = (pageWidth - renderWidth) / 2;
+      }
+      pdf.addImage(imgData, 'PNG', offsetX, offsetY, renderWidth, renderHeight);
+      const safeName = (cert.fullName || 'peserta').replace(/[^a-zA-Z0-9]+/g, '-');
+      const safeClass = (cert.classTitle || 'kelas').replace(/[^a-zA-Z0-9]+/g, '-');
+      pdf.save(`Sertifikat-${safeClass}-${safeName}.pdf`);
+    } catch {
+      toast.error('Gagal membuat file PDF, coba lagi.');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -68,22 +110,36 @@ export default function CertificatePage() {
         }
       `}</style>
 
-      {/* Tombol print — disembunyikan saat print */}
-      <div className="no-print fixed top-4 right-4 z-50">
-        <Button onClick={() => window.print()} className="gap-2 shadow-lg">
+      {/* Tombol aksi — disembunyikan saat print */}
+      <div className="no-print fixed top-4 right-4 z-50 flex gap-2">
+        <Button onClick={() => window.print()} variant="outline" className="gap-2 shadow-lg">
           <Printer className="w-4 h-4" />
-          Download / Print
+          Print
+        </Button>
+        <Button onClick={handleDownloadPdf} disabled={isDownloading} className="gap-2 shadow-lg">
+          {isDownloading ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Mengunduh...
+            </>
+          ) : (
+            <>
+              <Download className="w-4 h-4" />
+              Download PDF
+            </>
+          )}
         </Button>
       </div>
 
       {hasTemplate ? (
         /* ── Mode Template ───────────────────────────────────────────── */
         <div className="cert-root min-h-screen bg-white flex items-center justify-center p-4">
-          <div className="relative w-full max-w-5xl">
+          <div ref={certificateRef} className="relative w-full max-w-5xl">
             {/* Gambar template full-width, mempertahankan rasio asli */}
             <img
               src={activeTemplate!}
               alt="Template Sertifikat"
+              crossOrigin="anonymous"
               className="w-full h-auto block"
               style={{ display: 'block' }}
             />
@@ -138,6 +194,7 @@ export default function CertificatePage() {
       ) : (
       /* ── Mode Bawaan ─────────────────────────────────────────────── */
       <div
+        ref={certificateRef}
         className="cert-root min-h-screen bg-white flex items-center justify-center p-8"
         style={{
           backgroundImage: 'url(/hero-pattern.png)',
