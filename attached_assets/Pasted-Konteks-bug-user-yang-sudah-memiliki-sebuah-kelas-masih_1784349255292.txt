@@ -1,0 +1,35 @@
+Konteks bug: user yang sudah memiliki sebuah kelas masih bisa menambahkannya ke keranjang, lalu bingung karena tombol bayar diblokir server dengan error "Kamu sudah punya kelas ini". Sumber bocornya: section rekomendasi "Kamu Mungkin Juga Suka" di halaman keranjang hanya memfilter kelas yang sudah ADA DI KERANJANG, tidak memfilter kelas yang sudah DIMILIKI.
+
+Kerjakan HANYA di artifacts/markaz-fiqh/src (file: pages/CartPage.tsx, context/CartContext.tsx, lib/db.ts). JANGAN sentuh supabase/functions — validasi server di edge function checkout sudah benar dan jadi lapisan pengaman terakhir, biarkan.
+
+TUGAS 1 — CartPage.tsx, filter rekomendasi:
+Di CartContent, tambahkan query id kelas yang sudah dimiliki (pakai pola yang sudah ada di codebase, contoh di CatalogPage):
+  const { data: enrolledClassIds = new Set<string>() } = useQuery({
+    queryKey: ['enrolled-class-ids', user?.id],
+    queryFn: async () => new Set((await listEnrollments(user!.id)).map((e) => e.class.id)),
+    enabled: !!user?.id,
+  });
+(import listEnrollments dari '@/lib/db')
+Lalu ubah recommendedClasses supaya juga membuang:
+  - kelas yang sudah dimiliki: !enrolledClassIds.has(cls.id)
+  - kelas yang sudah tercakup bundle di keranjang: kumpulkan dulu const coveredByBundle = new Set(items.filter(i => i.type === 'bundle').flatMap(i => i.bundle.classes.map(c => c.id))) lalu filter !coveredByBundle.has(cls.id)
+
+TUGAS 2 — pagar di lapisan data, lib/db.ts fungsi addCartItem:
+Pada cabang penambahan KELAS (bukan bundle/ebook), sebelum insert ke cart_items, cek dulu:
+  const { data: owned } = await supabase
+    .from('enrollments')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('class_id', item.classId)
+    .maybeSingle();
+  if (owned) throw new Error('Kelas ini sudah kamu miliki — tidak perlu dibeli lagi.');
+Biarkan cabang bundle dan ebook seperti sekarang (bundle sudah dicegah di UI Paket Bundle, ebook sudah dicek di kartunya, dan server tetap memblokir semuanya saat checkout).
+
+TUGAS 3 — CartContext.tsx:
+Toast error di addMutation.onError sekarang selalu bertuliskan generik "Gagal menambahkan ke keranjang, coba lagi." — ubah supaya menampilkan error.message asli bila ada (error instanceof Error ? error.message : teks generik), supaya pesan "Kelas ini sudah kamu miliki" dari Tugas 2 sampai ke user.
+
+TUGAS 4 — CartPage.tsx, penanda item bermasalah:
+Untuk kasus item yang SUDAH terlanjur ada di keranjang padahal kelasnya kini sudah dimiliki (mis. dibeli lewat bundle): di ClassCartItem, terima prop baru isOwned: boolean (dihitung di CartContent dari enrolledClassIds.has(item.class.id)). Jika isOwned true, tampilkan di dalam kartu item tersebut sebuah badge/baris peringatan kecil berwarna amber dengan teks: "Sudah kamu miliki — hapus item ini agar bisa lanjut bayar." Jangan menghapus otomatis, cukup beri tanda + biarkan tombol hapus yang sudah ada.
+Tambahan pada tombol "Lanjut ke pembayaran" di ringkasan: bila ada minimal satu item yang isOwned, disable tombol itu dan tampilkan teks kecil di bawahnya: "Ada kelas yang sudah kamu miliki di keranjang. Hapus dulu untuk melanjutkan."
+
+Jangan mengubah tampilan lain. Jalankan pnpm run typecheck dari root dan pastikan lolos.

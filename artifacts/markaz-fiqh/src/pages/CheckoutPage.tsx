@@ -200,9 +200,6 @@ function CheckoutContent() {
             {/* Kontak */}
             <section className="rounded-xl border bg-card shadow-sm p-5">
               <h2 className="text-sm font-semibold text-foreground mb-1">Nomor WhatsApp</h2>
-              <p className="text-xs text-muted-foreground mb-3">
-                Bukti bayar dan akses kelas dikirim ke nomor ini.
-              </p>
 
               {savedPhone === undefined ? (
                 <Skeleton className="h-9 w-full" />

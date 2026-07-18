@@ -17,8 +17,6 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/context/AuthContext';
-import { useQuery } from '@tanstack/react-query';
-import { listEnrollments, type EnrollmentItem } from '@/lib/db';
 import { NotificationBell } from '@/components/NotificationBell';
 
 const NAV_ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
@@ -30,47 +28,6 @@ const NAV_ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: '/ebook-saya', label: 'Ebook Saya', icon: BookOpen },
   { href: '/tentang-kami', label: 'Tentang Kami', icon: Info },
 ];
-
-// ── Progress Widget ───────────────────────────────────────────────────────
-function ProgressWidget({ enrollments }: { enrollments: EnrollmentItem[] }) {
-  const totalOwned = enrollments.length;
-  if (totalOwned === 0) return null;
-
-  // Rata-rata PER KELAS: tiap kelas kontribusinya setara 1 unit ke rata-rata,
-  // terlepas dari jumlah dars-nya. Kelas video tunggal (totalDarsCount = 0)
-  // dihitung selesai/belum berdasarkan enrollment.isCompleted, bukan diabaikan.
-  const perClassProgress = enrollments.map((e) => {
-    if (e.class.totalDarsCount > 0) {
-      return e.class.completedDarsCount / e.class.totalDarsCount;
-    }
-    return e.isCompleted ? 1 : 0;
-  });
-
-  const overallProgress = Math.round(
-    (perClassProgress.reduce((sum, p) => sum + p, 0) / totalOwned) * 100,
-  );
-
-  return (
-    <Link href="/dashboard">
-      {/* Card klikable: tambah hover:-translate-y-1 transition-all duration-200 */}
-      <div className="mx-3 rounded-[14px] bg-white/10 backdrop-blur-sm border border-white/10 px-3 py-2.5 space-y-2 cursor-pointer hover:bg-white/15 hover:-translate-y-1 transition-all duration-200">
-        <p className="text-[10px] font-semibold text-white/70 uppercase tracking-wide">
-          Progress Kamu
-        </p>
-        <div className="flex items-baseline justify-between gap-2">
-          <p className="font-serif text-xl font-bold text-white leading-none">{overallProgress}%</p>
-          <p className="text-[11px] text-white/60">{totalOwned} kelas dimiliki</p>
-        </div>
-        <div className="h-1.5 rounded-full bg-white/20 overflow-hidden">
-          <div
-            className="h-full bg-[hsl(var(--accent))] rounded-full transition-all"
-            style={{ width: `${overallProgress}%` }}
-          />
-        </div>
-      </div>
-    </Link>
-  );
-}
 
 // ── Sidebar content (shared between desktop fixed sidebar & mobile drawer) ──
 function SidebarContent({
@@ -86,12 +43,6 @@ function SidebarContent({
   const initial =
     user?.nickname?.[0]?.toUpperCase() ?? user?.name?.[0]?.toUpperCase() ?? 'U';
   const displayName = user?.nickname ?? user?.name ?? 'Pengguna';
-
-  const { data: enrollments = [] } = useQuery({
-    queryKey: ['enrollments', user?.id],
-    queryFn: () => listEnrollments(user!.id),
-    enabled: !!user?.id,
-  });
 
   return (
     <div className="flex flex-col h-full w-full bg-gradient-to-b from-primary to-[hsl(var(--brand-red-hover))]">
@@ -141,12 +92,9 @@ function SidebarContent({
           )}
         </nav>
 
-        <div className="pb-3">
-          <ProgressWidget enrollments={enrollments} />
-        </div>
       </div>
 
-      <div className="border-t border-white/20 p-4 shrink-0">
+      <div className="border-t border-white/20 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shrink-0">
         <div className="flex items-center gap-3">
           <div className="h-9 w-9 rounded-full bg-white text-primary flex items-center justify-center text-sm font-semibold shrink-0 ring-2 ring-white/20">
             {initial}
@@ -243,7 +191,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-              className="lg:hidden fixed inset-y-0 left-0 z-50 w-[260px] h-screen shadow-2xl"
+              className="lg:hidden fixed top-0 left-0 z-50 w-[260px] h-dvh shadow-2xl"
             >
               {/* Close button: ikon aksi — whileHover/whileTap */}
               <motion.button

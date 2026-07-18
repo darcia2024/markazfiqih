@@ -10,11 +10,6 @@ import {
   Trophy,
   TrendingUp,
   Loader2,
-  Flame,
-  Medal,
-  Award,
-  Crown,
-  type LucideIcon,
 } from 'lucide-react';
 
 import { AppShell } from '@/components/AppShell';
@@ -79,81 +74,6 @@ function formatDuration(min: number | null) {
   const h = Math.floor(min / 60);
   const m = min % 60;
   return h > 0 ? `${h} jam ${m > 0 ? m + ' mnt' : ''}` : `${m} mnt`;
-}
-
-// ── Badge Pencapaian ──────────────────────────────────────────────────────────
-type BadgeDefinition = {
-  id: string;
-  label: string;
-  description: string;
-  icon: LucideIcon;
-  threshold: number;
-};
-
-const ACHIEVEMENT_BADGES: BadgeDefinition[] = [
-  {
-    id: 'first-class',
-    label: 'Langkah Pertama',
-    description: 'Setiap perjalanan ilmu dimulai dari satu langkah. Kamu baru saja memulainya.',
-    icon: Sparkles,
-    threshold: 1,
-  },
-  {
-    id: 'three-classes',
-    label: 'Istiqomah',
-    description: 'Konsistensi adalah kunci dalam menuntut ilmu. Tiga kelas telah kamu tuntaskan dengan tekun.',
-    icon: Flame,
-    threshold: 3,
-  },
-  {
-    id: 'five-classes',
-    label: 'Penuntut Ilmu',
-    description: 'Rasulullah bersabda, menuntut ilmu adalah kewajiban setiap muslim. Kamu sedang menjalankannya dengan sungguh-sungguh.',
-    icon: Medal,
-    threshold: 5,
-  },
-  {
-    id: 'ten-classes',
-    label: 'Ahli Fiqih Pemula',
-    description: 'Sepuluh kelas bukan angka kecil. Pemahamanmu tentang fiqih madzhab Syafi\'i kian terstruktur.',
-    icon: Award,
-    threshold: 10,
-  },
-  {
-    id: 'twenty-classes',
-    label: 'Penjaga Sanad Ilmu',
-    description: 'Dua puluh kelas telah kamu tuntaskan. Ilmu yang tersambung sanadnya, kini juga tersambung padamu.',
-    icon: Crown,
-    threshold: 20,
-  },
-];
-
-function AchievementBadges({ totalCompleted }: { totalCompleted: number }) {
-  return (
-    <div className="bg-card rounded-[14px] border p-5 shadow-sm">
-      <p className="font-serif font-semibold mb-4">Pencapaian</p>
-      <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
-        {ACHIEVEMENT_BADGES.map((badge) => {
-          const unlocked = totalCompleted >= badge.threshold;
-          const Icon = badge.icon;
-          return (
-            <div
-              key={badge.id}
-              title={`${badge.label}: ${badge.description}${!unlocked ? ` (butuh ${badge.threshold} kelas selesai)` : ''}`}
-              className={`flex flex-col items-center gap-1.5 text-center p-3 rounded-xl border transition-opacity ${
-                unlocked
-                  ? 'border-[hsl(var(--accent))]/30 bg-[hsl(var(--accent))]/5'
-                  : 'border-border opacity-40 grayscale'
-              }`}
-            >
-              <Icon className={`w-6 h-6 ${unlocked ? 'text-[hsl(var(--accent))]' : 'text-muted-foreground'}`} />
-              <p className="text-[11px] font-semibold leading-tight">{badge.label}</p>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
 }
 
 // ── KelasCard ─────────────────────────────────────────────────────────────────
@@ -476,20 +396,6 @@ function DashboardContent() {
               transition={{ delay: 0.1 }}
             >
               <StatsSummary enrollments={enrollments} />
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15 }}
-            >
-              <AchievementBadges
-                totalCompleted={enrollments.filter(
-                  (e) =>
-                    (e.class.totalDarsCount > 0 && e.class.completedDarsCount === e.class.totalDarsCount) ||
-                    (e.class.totalDarsCount === 0 && e.isCompleted),
-                ).length}
-              />
             </motion.div>
 
             <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-8">
