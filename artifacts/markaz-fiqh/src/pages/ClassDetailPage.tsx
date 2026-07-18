@@ -20,6 +20,7 @@ import {
 import { AppShell } from '@/components/AppShell';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { ShareButton } from '@/components/ShareButton';
 import {
   Accordion,
   AccordionItem,
@@ -203,6 +204,7 @@ export default function ClassDetailPage() {
                       Terdaftar
                     </Badge>
                   )}
+                  <ShareButton title={cls.title} />
                 </div>
                 <h1 className="font-serif text-3xl md:text-4xl font-bold text-foreground leading-tight">
                   {cls.title}

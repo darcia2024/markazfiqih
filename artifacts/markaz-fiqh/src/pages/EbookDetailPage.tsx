@@ -12,6 +12,7 @@ import { supabase } from '@/lib/supabase';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { AppShell } from '@/components/AppShell';
 import { Button } from '@/components/ui/button';
+import { ShareButton } from '@/components/ShareButton';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { formatPrice } from '@/pages/CatalogPage';
@@ -148,9 +149,12 @@ function EbookDetailContent() {
           {/* Info */}
           <div className="flex-1 flex flex-col gap-5">
             <div>
-              <Badge variant="outline" className="text-xs border-primary/30 text-primary bg-primary/5 mb-3">
-                Ebook
-              </Badge>
+              <div className="flex items-center gap-2 mb-3">
+                <Badge variant="outline" className="text-xs border-primary/30 text-primary bg-primary/5">
+                  Ebook
+                </Badge>
+                <ShareButton title={ebook.title} />
+              </div>
               <h1 className="font-serif text-2xl lg:text-3xl font-bold text-foreground leading-snug">
                 {ebook.title}
               </h1>

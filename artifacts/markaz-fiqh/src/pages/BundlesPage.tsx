@@ -11,6 +11,7 @@ import type { BundleItem } from '@/lib/db';
 import { formatPrice } from '@/pages/CatalogPage';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { ShareButton } from '@/components/ShareButton';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { AppShell } from '@/components/AppShell';
@@ -137,11 +138,14 @@ function BundleCard({
                 {bundle.title}
               </h3>
             </div>
-            {persen > 0 && (
-              <Badge className="shrink-0 bg-green-100 text-green-700 border-green-200 text-[11px] font-semibold">
-                Hemat {persen}%
-              </Badge>
-            )}
+            <div className="flex items-center gap-2 shrink-0">
+              {persen > 0 && (
+                <Badge className="shrink-0 bg-green-100 text-green-700 border-green-200 text-[11px] font-semibold">
+                  Hemat {persen}%
+                </Badge>
+              )}
+              <ShareButton title={bundle.title} url={`${window.location.origin}/paket-bundle`} />
+            </div>
           </div>
           {bundle.description && (
             <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
