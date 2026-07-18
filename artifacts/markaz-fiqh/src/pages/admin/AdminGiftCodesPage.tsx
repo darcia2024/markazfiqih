@@ -30,7 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Gift, Loader2, Pencil, Trash2, Plus } from 'lucide-react';
+import { Gift, Loader2, Pencil, Trash2, Plus, X } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import {
@@ -38,6 +38,7 @@ import {
   createVoucher,
   updateVoucher,
   deleteVoucher,
+  bulkDeleteVouchers,
   listClasses,
   type AdminVoucher,
 } from '@/lib/db';
@@ -46,13 +47,11 @@ import { formatPrice } from '@/pages/CatalogPage';
 // ── Helpers ───────────────────────────────────────────────────────────────────
 const ALL_CLASSES_VALUE = '__ALL__';
 
-/** Compute percentage off, rounded to nearest integer */
 function toPercent(discountPrice: number, basePrice: number): number {
   if (!basePrice) return 0;
   return Math.round((1 - discountPrice / basePrice) * 100);
 }
 
-/** Compute final price from basePrice + percent discount */
 function computeFinalPrice(basePrice: number, percent: number): number {
   return Math.floor(basePrice * (1 - percent / 100));
 }
@@ -60,8 +59,8 @@ function computeFinalPrice(basePrice: number, percent: number): number {
 // ── Form state ────────────────────────────────────────────────────────────────
 type FormState = {
   code: string;
-  classId: string; // class UUID or ALL_CLASSES_VALUE
-  discountPercent: string; // 0–100
+  classId: string;
+  discountPercent: string;
   maxUses: string;
   isActive: boolean;
 };
@@ -88,6 +87,32 @@ export default function AdminGiftCodesPage() {
     queryFn: () => listClasses({ includeAll: true }),
   });
 
+  // ── Selection state ───────────────────────────────────────────────────────
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const allSelected = vouchers.length > 0 && selectedIds.size === vouchers.length;
+  const someSelected = selectedIds.size > 0 && !allSelected;
+
+  function toggleAll() {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(vouchers.map((v) => v.id)));
+    }
+  }
+
+  function toggleOne(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function clearSelection() {
+    setSelectedIds(new Set());
+  }
+
   // ── Dialog state ─────────────────────────────────────────────────────────
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingVoucher, setEditingVoucher] = useState<AdminVoucher | null>(null);
@@ -95,13 +120,14 @@ export default function AdminGiftCodesPage() {
 
   // ── Delete confirm state ──────────────────────────────────────────────────
   const [deleteTarget, setDeleteTarget] = useState<AdminVoucher | null>(null);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
 
   // ── Mutations ─────────────────────────────────────────────────────────────
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['admin-vouchers'] });
 
   const createMutation = useMutation({
     mutationFn: createVoucher,
-    onSuccess: () => { /* handled after all batch creates */ },
+    onSuccess: () => {},
     onError: (e) => toast.error(e instanceof Error ? e.message : 'Gagal membuat Kode Hadiah.'),
   });
 
@@ -125,6 +151,24 @@ export default function AdminGiftCodesPage() {
     },
     onError: (e) => toast.error(e instanceof Error ? e.message : 'Gagal menghapus Kode Hadiah.'),
   });
+
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+
+  async function handleBulkDelete() {
+    const ids = Array.from(selectedIds);
+    setIsBulkDeleting(true);
+    try {
+      const count = await bulkDeleteVouchers(ids);
+      invalidate();
+      setSelectedIds(new Set());
+      setBulkDeleteOpen(false);
+      toast.success(`${count} Kode Hadiah berhasil dihapus.`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Gagal menghapus Kode Hadiah.');
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  }
 
   const [isBatchSaving, setIsBatchSaving] = useState(false);
   const isSaving = createMutation.isPending || updateMutation.isPending || isBatchSaving;
@@ -160,7 +204,6 @@ export default function AdminGiftCodesPage() {
     }
 
     if (editingVoucher) {
-      // Edit: recompute final price using stored basePrice
       const finalPrice = computeFinalPrice(editingVoucher.basePrice, percent);
       updateMutation.mutate({
         id: editingVoucher.id,
@@ -169,14 +212,12 @@ export default function AdminGiftCodesPage() {
       return;
     }
 
-    // Create
     if (!form.classId) {
       toast.error('Pilih kelas terlebih dahulu.');
       return;
     }
 
     if (form.classId === ALL_CLASSES_VALUE) {
-      // Batch create one voucher per class
       if (classes.length === 0) {
         toast.error('Tidak ada kelas yang tersedia.');
         return;
@@ -202,7 +243,6 @@ export default function AdminGiftCodesPage() {
         setIsBatchSaving(false);
       }
     } else {
-      // Single class
       const cls = classes.find((c) => c.id === form.classId);
       if (!cls) {
         toast.error('Kelas tidak ditemukan.');
@@ -257,77 +297,126 @@ export default function AdminGiftCodesPage() {
                 Belum ada Kode Hadiah. Buat yang pertama dengan tombol di atas.
               </p>
             ) : (
-              <div className="rounded-lg border overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted/50">
-                    <tr>
-                      <th className="px-4 py-3 text-left font-medium text-muted-foreground">Kode</th>
-                      <th className="px-4 py-3 text-left font-medium text-muted-foreground hidden md:table-cell">Kelas</th>
-                      <th className="px-4 py-3 text-right font-medium text-muted-foreground">Potongan</th>
-                      <th className="px-4 py-3 text-right font-medium text-muted-foreground hidden lg:table-cell">Harga Akhir</th>
-                      <th className="px-4 py-3 text-center font-medium text-muted-foreground">Pemakaian</th>
-                      <th className="px-4 py-3 text-center font-medium text-muted-foreground">Status</th>
-                      <th className="px-4 py-3 text-right font-medium text-muted-foreground">Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y">
-                    {vouchers.map((v) => {
-                      const pct = toPercent(v.discountPrice, v.basePrice);
-                      return (
-                        <tr key={v.id} className="hover:bg-muted/20 transition-colors">
-                          <td className="px-4 py-3 font-mono font-semibold text-foreground">{v.code}</td>
-                          <td className="px-4 py-3 text-muted-foreground hidden md:table-cell max-w-[200px]">
-                            <span className="line-clamp-1">{v.className}</span>
-                          </td>
-                          <td className="px-4 py-3 text-right font-semibold text-foreground">
-                            {pct === 100 ? (
-                              <span className="text-success font-bold">100%</span>
-                            ) : (
-                              <span>{pct}%</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-right text-muted-foreground hidden lg:table-cell">
-                            {v.discountPrice === 0 ? (
-                              <span className="text-success font-bold">Gratis</span>
-                            ) : (
-                              formatPrice(v.discountPrice)
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-center text-muted-foreground">
-                            {v.usedCount}/{v.maxUses != null ? v.maxUses : '∞'}
-                          </td>
-                          <td className="px-4 py-3 text-center">
-                            {v.isActive ? (
-                              <Badge className="bg-success/10 text-success border-success/20 hover:bg-success/10">Aktif</Badge>
-                            ) : (
-                              <Badge variant="secondary">Nonaktif</Badge>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => openEdit(v)}
-                              >
-                                <Pencil className="w-3.5 h-3.5" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                onClick={() => setDeleteTarget(v)}
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+              <div className="space-y-2">
+                {/* Bulk action bar */}
+                {selectedIds.size > 0 && (
+                  <div className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg bg-muted border">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">
+                        {selectedIds.size} item dipilih
+                      </span>
+                      <button
+                        onClick={clearSelection}
+                        className="text-muted-foreground hover:text-foreground transition-colors"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="gap-1.5 h-7 text-xs"
+                      onClick={() => setBulkDeleteOpen(true)}
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      Hapus {selectedIds.size} Kode
+                    </Button>
+                  </div>
+                )}
+
+                <div className="rounded-lg border overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/50">
+                      <tr>
+                        <th className="px-3 py-3 w-8">
+                          <Checkbox
+                            checked={allSelected}
+                            ref={(el) => {
+                              if (el) (el as any).indeterminate = someSelected;
+                            }}
+                            onCheckedChange={toggleAll}
+                            aria-label="Pilih semua"
+                          />
+                        </th>
+                        <th className="px-4 py-3 text-left font-medium text-muted-foreground">Kode</th>
+                        <th className="px-4 py-3 text-left font-medium text-muted-foreground hidden md:table-cell">Kelas</th>
+                        <th className="px-4 py-3 text-right font-medium text-muted-foreground">Potongan</th>
+                        <th className="px-4 py-3 text-right font-medium text-muted-foreground hidden lg:table-cell">Harga Akhir</th>
+                        <th className="px-4 py-3 text-center font-medium text-muted-foreground">Pemakaian</th>
+                        <th className="px-4 py-3 text-center font-medium text-muted-foreground">Status</th>
+                        <th className="px-4 py-3 text-right font-medium text-muted-foreground">Aksi</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {vouchers.map((v) => {
+                        const pct = toPercent(v.discountPrice, v.basePrice);
+                        const isSelected = selectedIds.has(v.id);
+                        return (
+                          <tr
+                            key={v.id}
+                            className={`transition-colors ${isSelected ? 'bg-muted/40' : 'hover:bg-muted/20'}`}
+                          >
+                            <td className="px-3 py-3">
+                              <Checkbox
+                                checked={isSelected}
+                                onCheckedChange={() => toggleOne(v.id)}
+                                aria-label={`Pilih ${v.code}`}
+                              />
+                            </td>
+                            <td className="px-4 py-3 font-mono font-semibold text-foreground">{v.code}</td>
+                            <td className="px-4 py-3 text-muted-foreground hidden md:table-cell max-w-[200px]">
+                              <span className="line-clamp-1">{v.className}</span>
+                            </td>
+                            <td className="px-4 py-3 text-right font-semibold text-foreground">
+                              {pct === 100 ? (
+                                <span className="text-success font-bold">100%</span>
+                              ) : (
+                                <span>{pct}%</span>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-right text-muted-foreground hidden lg:table-cell">
+                              {v.discountPrice === 0 ? (
+                                <span className="text-success font-bold">Gratis</span>
+                              ) : (
+                                formatPrice(v.discountPrice)
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-center text-muted-foreground">
+                              {v.usedCount}/{v.maxUses != null ? v.maxUses : '∞'}
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              {v.isActive ? (
+                                <Badge className="bg-success/10 text-success border-success/20 hover:bg-success/10">Aktif</Badge>
+                              ) : (
+                                <Badge variant="secondary">Nonaktif</Badge>
+                              )}
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => openEdit(v)}
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => setDeleteTarget(v)}
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             )}
           </CardContent>
@@ -355,7 +444,7 @@ export default function AdminGiftCodesPage() {
               />
             </div>
 
-            {/* Kelas — hanya dapat diubah saat create */}
+            {/* Kelas */}
             <div className="space-y-1.5">
               <Label htmlFor="gc-class">Kelas <span className="text-destructive">*</span></Label>
               {editingVoucher ? (
@@ -415,7 +504,6 @@ export default function AdminGiftCodesPage() {
                   %
                 </span>
               </div>
-              {/* Preview harga akhir untuk single class */}
               {(() => {
                 const pct = parseFloat(form.discountPercent);
                 if (isNaN(pct) || pct < 0 || pct > 100) return null;
@@ -500,7 +588,7 @@ export default function AdminGiftCodesPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Delete Confirm ──────────────────────────────────────────────── */}
+      {/* ── Single Delete Confirm ────────────────────────────────────────── */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -519,6 +607,30 @@ export default function AdminGiftCodesPage() {
             >
               {deleteMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Hapus
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* ── Bulk Delete Confirm ──────────────────────────────────────────── */}
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={(open) => { if (!isBulkDeleting) setBulkDeleteOpen(open); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus {selectedIds.size} Kode Hadiah?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Semua kode yang dipilih akan dihapus permanen dan tidak bisa dipakai lagi.
+              Tindakan ini tidak bisa dibatalkan.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isBulkDeleting}>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/90"
+              disabled={isBulkDeleting}
+              onClick={handleBulkDelete}
+            >
+              {isBulkDeleting && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Hapus {selectedIds.size} Kode
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

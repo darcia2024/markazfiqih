@@ -11,6 +11,7 @@ import darsRouter from "./dars.js";
 import userProfileRouter from "./user-profile.js";
 import authRouter from "./auth.js";
 import createInvoiceRouter from "./create-invoice.js";
+import vouchersRouter from "./vouchers.js";
 const router: IRouter = Router();
 
 router.use(healthRouter);
@@ -25,5 +26,6 @@ router.use(enrollmentsRouter);
 router.use(darsRouter);
 router.use(userProfileRouter);
 router.use(createInvoiceRouter);
+router.use(vouchersRouter);
 
 export default router;

@@ -1349,8 +1349,29 @@ export async function updateVoucher(
 }
 
 export async function deleteVoucher(id: string): Promise<void> {
-  const { error } = await supabase.from('class_vouchers').delete().eq('id', id);
+  const { data, error } = await supabase
+    .from('class_vouchers')
+    .delete()
+    .eq('id', id)
+    .select('id');
   if (error) throw error;
+  if (!data || data.length === 0) {
+    throw new Error('Voucher tidak dapat dihapus. Pastikan Anda memiliki akses admin.');
+  }
+}
+
+export async function bulkDeleteVouchers(ids: string[]): Promise<number> {
+  if (ids.length === 0) return 0;
+  const { data, error } = await supabase
+    .from('class_vouchers')
+    .delete()
+    .in('id', ids)
+    .select('id');
+  if (error) throw error;
+  if (!data || data.length === 0) {
+    throw new Error('Voucher tidak dapat dihapus. Pastikan Anda memiliki akses admin.');
+  }
+  return data.length;
 }
 
 export async function deleteDashboardMessage(id: string) {
