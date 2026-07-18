@@ -47,6 +47,20 @@ export function CertificateView({ cert, showPrintButton = true }: CertificateVie
     if (!certificateRef.current || !cert) return;
     setIsDownloading(true);
     try {
+      // Pastikan semua font selesai dimuat sebelum html2canvas mengambil snapshot,
+      // agar layout overlay tidak bergeser akibat font fallback yang metrik baris-nya berbeda.
+      if (fontUrl) {
+        try {
+          await document.fonts.load(`700 32px 'sertifikat-custom-font'`);
+          await document.fonts.load(`400 32px 'sertifikat-custom-font'`);
+        } catch {
+          // Biarkan lanjut — document.fonts.ready di bawah tetap jadi pengaman utama
+        }
+      }
+      await document.fonts.ready;
+      // Tunggu dua frame: browser bisa masih reflow satu frame setelah font resmi "ready"
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
       const canvas = await html2canvas(certificateRef.current, {
         scale: 2,
         useCORS: true,
