@@ -392,6 +392,7 @@ export async function getSettings() {
     socialTiktok: data.social_tiktok as string,
     studentCountLabel: data.student_count_label as string | null,
     aboutUsContent: data.about_us_content as string | null,
+    certificateDefaultTemplateUrl: data.certificate_default_template_url as string | null,
     catalogCategoryOrder: (() => {
       try {
         const parsed = JSON.parse(data.catalog_category_order ?? '[]');
@@ -889,6 +890,7 @@ export async function updateSettings(data: {
   socialInstagram?: string; socialYoutube?: string; socialFacebook?: string;
   socialTiktok?: string; studentCountLabel?: string; aboutUsContent?: string;
   catalogCategoryOrder?: string[];
+  certificateDefaultTemplateUrl?: string | null;
 }) {
   const patch: Record<string, unknown> = {};
   if (data.siteName !== undefined) patch.site_name = data.siteName;
@@ -907,19 +909,22 @@ export async function updateSettings(data: {
   if (data.studentCountLabel !== undefined) patch.student_count_label = data.studentCountLabel;
   if (data.aboutUsContent !== undefined) patch.about_us_content = data.aboutUsContent;
   if (data.catalogCategoryOrder !== undefined) patch.catalog_category_order = JSON.stringify(data.catalogCategoryOrder);
+  if ('certificateDefaultTemplateUrl' in data) patch.certificate_default_template_url = data.certificateDefaultTemplateUrl ?? null;
   const { error } = await supabase.from('site_settings').update(patch).eq('id', 1);
   if (error) {
     // Beberapa kolom mungkin belum ada jika migrasi SQL belum dijalankan.
     // Coba lagi tanpa kolom-kolom opsional tersebut supaya field lain tetap bisa disimpan.
     const missingAboutUs = 'about_us_content' in patch && /about_us_content/i.test(error.message ?? '');
     const missingCategoryOrder = 'catalog_category_order' in patch && /catalog_category_order/i.test(error.message ?? '');
-    if (missingAboutUs || missingCategoryOrder) {
-      const { about_us_content, catalog_category_order, ...fallbackPatch } = patch;
+    const missingCertTemplate = 'certificate_default_template_url' in patch && /certificate_default_template_url/i.test(error.message ?? '');
+    if (missingAboutUs || missingCategoryOrder || missingCertTemplate) {
+      const { about_us_content, catalog_category_order, certificate_default_template_url, ...fallbackPatch } = patch;
       const { error: retryError } = await supabase.from('site_settings').update(fallbackPatch).eq('id', 1);
       if (retryError) throw retryError;
       const missingFields = [
         missingAboutUs && '"Konten Tentang Kami"',
         missingCategoryOrder && '"Urutan Kategori Katalog"',
+        missingCertTemplate && '"Template Sertifikat Default"',
       ].filter(Boolean).join(' dan ');
       throw new Error(
         `Pengaturan lain berhasil disimpan, tapi kolom ${missingFields} belum tersedia di database. Jalankan migrasi SQL terlebih dahulu.`

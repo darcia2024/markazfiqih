@@ -31,6 +31,7 @@ type SettingsFormState = {
   studentCountLabel: string;
   aboutUsContent: string;
   catalogCategoryOrder: string[];
+  certificateDefaultTemplateUrl: string;
 };
 
 const EMPTY_FORM: SettingsFormState = {
@@ -50,6 +51,7 @@ const EMPTY_FORM: SettingsFormState = {
   studentCountLabel: '',
   aboutUsContent: '',
   catalogCategoryOrder: DEFAULT_CATEGORY_ORDER,
+  certificateDefaultTemplateUrl: '',
 };
 
 export default function AdminSettingsPage() {
@@ -85,6 +87,7 @@ export default function AdminSettingsPage() {
         catalogCategoryOrder: s.catalogCategoryOrder?.length
           ? s.catalogCategoryOrder
           : DEFAULT_CATEGORY_ORDER,
+        certificateDefaultTemplateUrl: s.certificateDefaultTemplateUrl ?? '',
       });
     }
   }, [settingsQuery.data]);
@@ -342,6 +345,34 @@ export default function AdminSettingsPage() {
                 Kosongkan untuk memakai teks bawaan yang sekarang tampil di halaman Tentang Kami.
                 Mengisi kolom ini hanya mengganti bagian deskripsi pembuka — bagian Metode, daftar
                 kelas, dan sosial media tetap.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Template Sertifikat Default</CardTitle>
+            <CardDescription>
+              Template gambar yang dipakai untuk semua kelas yang belum punya template sertifikat sendiri.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Gambar Template</Label>
+              <ImageUploadField
+                value={form.certificateDefaultTemplateUrl}
+                onChange={(url) => updateField('certificateDefaultTemplateUrl', url ?? '')}
+                previewClassName="w-full max-w-xs rounded border object-contain bg-muted"
+              />
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Template ini otomatis dipakai untuk SEMUA kelas yang belum punya template sertifikat sendiri (diatur di halaman Kelas).
+                Kosongkan untuk memakai desain sertifikat bawaan (HTML) yang lama.
+                Pastikan area untuk Nama, Kelas, dan Tanggal dikosongkan saat membuat gambar template,
+                karena teks tersebut akan ditempel otomatis oleh sistem di posisi berikut (dalam persen dari lebar/tinggi gambar):
+                Nama di tengah horizontal 50.8%, tengah vertikal 40.1%;
+                Kelas di tengah horizontal 50%, tengah vertikal 56%;
+                Tanggal di tengah horizontal 14%, tengah vertikal 93.7%.
               </p>
             </div>
           </CardContent>
