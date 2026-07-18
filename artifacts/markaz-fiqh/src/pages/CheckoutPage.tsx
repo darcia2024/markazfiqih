@@ -179,14 +179,7 @@ function CheckoutContent() {
         </div>
       </div>
 
-      {/*
-        pb-36: ruang ekstra di bawah untuk FloatingCartBar (fixed, bottom-20 = 80px + tinggi bar
-        ~70px dengan px-5 py-3.5) supaya section "Metode pembayaran" tidak ketutupan & tetap bisa
-        diklik di mobile. lg:pb-14: di desktop FloatingCartBar sudah digeser ke kanan
-        (lg:left-[calc(50%+120px)]) jadi tidak tumpang tindih dengan konten — padding dikembalikan
-        ke nilai semula.
-      */}
-      <main className="flex-1 container mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 pt-10 pb-36 lg:py-14">
+      <main className="flex-1 container mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-10 lg:py-14">
         <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <h1 className="font-serif text-3xl font-bold text-foreground">Pembayaran</h1>
           <p className="text-muted-foreground mt-1">

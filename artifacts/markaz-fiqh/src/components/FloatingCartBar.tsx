@@ -12,7 +12,8 @@ export function FloatingCartBar() {
   // Kondisi ini ada DI DALAM AnimatePresence supaya exit animation benar-benar berjalan
   // saat keranjang dikosongkan (jika return null dilakukan sebelum AnimatePresence,
   // animasi keluar tidak pernah terpicu).
-  const visible = count > 0 && location !== '/keranjang';
+  const CART_BAR_PATHS = ['/katalog', '/paket-bundle'];
+  const visible = count > 0 && CART_BAR_PATHS.includes(location);
 
   return (
     <AnimatePresence>
