@@ -1,0 +1,24 @@
+Kerjakan HANYA file src/pages/CheckoutPage.tsx di artifacts/markaz-fiqh. JANGAN sentuh supabase/ dan JANGAN mengubah alur startCheckout/PaymentSheet — hanya menambahkan syarat baru sebelum tombol bayar aktif. Halaman ini satu markup responsive, jadi perubahan otomatis berlaku di web dan mobile.
+
+TUGAS 1 — Section "Syarat & Ketentuan" (collapsible):
+Di kolom kiri, di antara <CheckoutAddonOffers /> dan section "Metode pembayaran", tambahkan satu <section> baru bergaya sama (rounded-xl border bg-card shadow-sm p-5) berjudul "Syarat & Ketentuan", berisi komponen Accordion (import dari '@/components/ui/accordion', type="single" collapsible) dengan satu item "Baca Syarat & Ketentuan Program Kelas Markaz Fiqih". Isi accordion adalah teks berikut PERSIS (jangan diparafrase, jangan dipotong). Render sebagai beberapa <p> dengan className "text-sm text-muted-foreground leading-relaxed", istilah Arab inline biarkan mengalir dalam kalimat, sedangkan DUA kutipan Arab yang berdiri sendiri render sebagai <p dir="rtl" className="text-right font-medium text-foreground leading-loose">:
+
+Paragraf 1: Program Kelas Markaz Fiqih menggunakan akad jual beli atas hak pemanfaatan (بيع حق الانتفاع), yaitu pemberian hak kepada peserta untuk mengakses dan memanfaatkan materi pembelajaran secara pribadi, tanpa mengalihkan kepemilikan materi maupun hak cipta atas materi tersebut.
+
+Paragraf 2: Dengan akad tersebut, peserta hanya memperoleh hak pemanfaatan secara pribadi (حق الانتفاع الشخصي). Oleh karena itu, hak akses tidak boleh dipindahtangankan, dipinjamkan, dibagikan, digunakan bersama (termasuk patungan), atau diperjualbelikan tanpa izin dari Markaz Fiqih.
+
+Paragraf 3: Hak cipta dan seluruh hak kekayaan intelektual atas materi pembelajaran tetap menjadi milik Markaz Fiqih. Kepemilikan tersebut tidak beralih kepada peserta melalui akad ini. Ketentuan ini sejalan dengan Keputusan Majma' al-Fiqh al-Islami No. 43 (5/5) yang menegaskan bahwa hak cipta merupakan hak yang diakui syariat, yaitu:
+
+Kutipan Arab 1 (dir="rtl"): الاسم التجاري، والعنوان التجاري، والعلامة التجارية، والتأليف والاختراع أو الابتكار، هي حقوقٌ خاصةٌ لأصحابها، أصبح لها في العُرف المعاصر قيمةٌ ماليةٌ معتبرةٌ؛ لتموُّل الناس لها، وهذه الحقوق يُعتدُّ بها شرعًا، فلا يجوز الاعتداء عليها.
+
+Paragraf 4: Konsep hak pemanfaatan pribadi (حق الانتفاع الشخصي) ini sejalan dengan penjelasan para fuqaha (madzhab Maliki, juga Syafi'i). Syaikh Wahbah az-Zuhaili menjelaskan bahwa hak pemanfaatan pada hakikatnya merupakan izin untuk memanfaatkan suatu objek secara pribadi dan tidak memberikan kewenangan kepada penerimanya untuk mengalihkan manfaat tersebut kepada pihak lain. Beliau berkata dalam al-Fiqh al-Islāmī wa Adillatuhu (6/4552):
+
+Kutipan Arab 2 (dir="rtl"): وأما حق الانتفاع: فهو مجرد رخصة بالانتفاع الشخصي... فليس للمنتفع أن يملك المنفعة لغيره.
+
+TUGAS 2 — Checkbox wajib:
+- Tambah state: const [agreedToTerms, setAgreedToTerms] = useState(false);
+- Di kartu Ringkasan (kolom kanan), TEPAT DI ATAS baris Subtotal, tambahkan checkbox (pakai komponen Checkbox dari '@/components/ui/checkbox' — sudah ada di project ini) dengan label: "Saya telah membaca, memahami, dan menyetujui Syarat dan Ketentuan Program Kelas Markaz Fiqih." Label bisa diklik untuk toggle. Ukuran teks text-xs, label tetap terbaca (bukan muted penuh).
+- Ubah: const canPay = !!savedPhone && items.length > 0 && !isStarting && agreedToTerms;
+- Di bawah tombol Bayar, bila agreedToTerms masih false, tampilkan teks kecil: "Centang persetujuan Syarat & Ketentuan dulu untuk melanjutkan." (pola yang sama seperti peringatan nomor WhatsApp yang sudah ada; kalau dua-duanya belum terpenuhi, tampilkan keduanya).
+
+Jangan mengubah handlePay, PaymentSheet, atau logika lain. Jalankan pnpm run typecheck dari root dan pastikan lolos.

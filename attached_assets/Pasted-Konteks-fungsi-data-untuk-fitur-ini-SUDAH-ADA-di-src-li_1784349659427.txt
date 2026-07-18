@@ -1,0 +1,22 @@
+Konteks: fungsi data untuk fitur ini SUDAH ADA di src/lib/db.ts dan tidak dipakai halaman mana pun: listAllVouchersForAdmin(), createVoucher(), updateVoucher(), deleteVoucher(), plus type AdminVoucher. JANGAN membuat fungsi data baru dan JANGAN mengubah keempat fungsi itu. JANGAN sentuh supabase/.
+
+TUGAS — buat halaman admin baru "Kode Hadiah" di artifacts/markaz-fiqh:
+
+1. File baru: src/pages/admin/AdminGiftCodesPage.tsx
+   - Bungkus dengan AdminLayout (lihat pola src/pages/admin/AdminCertificatesPage.tsx sebagai referensi gaya).
+   - Judul halaman & semua label memakai istilah "Kode Hadiah" (jangan pernah menulis "voucher" di UI; nama internal fungsi db biarkan).
+   - Kotak info di atas (pola sama seperti AdminCertificatesPage): "Kode Hadiah dipakai pelajar di halaman checkout untuk mendapatkan harga khusus per kelas. Isi 'Harga Setelah Kode' dengan 0 untuk menggratiskan kelas — pembayaran Rp 0 aktif otomatis tanpa lewat Mayar."
+   - Tabel daftar (data dari useQuery listAllVouchersForAdmin): kolom Kode, Kelas, Harga Setelah Kode (format rupiah), Pemakaian (usedCount/maxUses, tampilkan "∞" bila maxUses null), Status (badge Aktif/Nonaktif), Aksi (Edit, Hapus).
+   - Form tambah/edit dalam Dialog: 
+     * Kode (Input, otomatis uppercase, wajib)
+     * Kelas (Select berisi semua kelas dari listClasses({ includeAll: true }) — tampilkan judulnya, simpan id-nya; wajib)
+     * Harga Setelah Kode (Input number, rupiah, min 0, wajib) — beri teks bantu: "Ini HARGA AKHIR kelas setelah kode dipakai, bukan besar potongan."
+     * Batas Pemakaian (Input number opsional; kosong = tanpa batas → kirim null)
+     * Toggle/Checkbox Aktif (hanya di mode edit; saat create otomatis aktif — createVoucher sudah mengatur itu)
+   - Simpan lewat createVoucher / updateVoucher, hapus lewat deleteVoucher dengan konfirmasi AlertDialog. Setelah mutasi sukses: invalidate query daftar + toast sukses. Error → toast pesan errornya.
+
+2. Registrasi route: di src/App.tsx tambahkan route "/admin/gift-codes" yang merender halaman baru ini, dibungkus pola proteksi admin yang sama seperti route /admin/certificates (RequireAdminRoute).
+
+3. Navigasi admin: tambahkan menu "Kode Hadiah" di sidebar/menu AdminLayout (file src/components/admin/AdminLayout.tsx — ikuti pola item menu yang sudah ada, pakai ikon lucide yang cocok, mis. Gift atau Ticket), mengarah ke /admin/gift-codes.
+
+Jangan mengubah halaman admin lain. Jalankan pnpm run typecheck dari root dan pastikan lolos.

@@ -18,9 +18,16 @@ import { PaymentSheet } from '@/components/PaymentSheet';
 import { CheckoutAddonOffers } from '@/components/CheckoutAddonOffers';
 import { PaymentMethodLogos } from '@/components/PaymentMethodLogos';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import { formatPrice } from '@/pages/CatalogPage';
@@ -117,11 +124,14 @@ function CheckoutContent() {
     return subtotal;
   }, [items]);
 
+  // ── Syarat & Ketentuan ────────────────────────────────────────────────────
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
+
   // ── Bayar ─────────────────────────────────────────────────────────────────
   const [session, setSession] = useState<CheckoutSession | null>(null);
   const [isStarting, setIsStarting] = useState(false);
 
-  const canPay = !!savedPhone && items.length > 0 && !isStarting;
+  const canPay = !!savedPhone && items.length > 0 && !isStarting && agreedToTerms;
 
   const handlePay = async () => {
     if (!canPay) return;
@@ -292,6 +302,38 @@ function CheckoutContent() {
             {/* Add-on / upsell */}
             <CheckoutAddonOffers />
 
+            {/* Syarat & Ketentuan */}
+            <section className="rounded-xl border bg-card shadow-sm p-5">
+              <h2 className="text-sm font-semibold text-foreground mb-3">Syarat &amp; Ketentuan</h2>
+              <Accordion type="single" collapsible>
+                <AccordionItem value="terms" className="border-0">
+                  <AccordionTrigger className="text-sm text-muted-foreground hover:text-foreground py-0 hover:no-underline">
+                    Baca Syarat &amp; Ketentuan Program Kelas Markaz Fiqih
+                  </AccordionTrigger>
+                  <AccordionContent className="pt-4 space-y-4">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Program Kelas Markaz Fiqih menggunakan akad jual beli atas hak pemanfaatan (بيع حق الانتفاع), yaitu pemberian hak kepada peserta untuk mengakses dan memanfaatkan materi pembelajaran secara pribadi, tanpa mengalihkan kepemilikan materi maupun hak cipta atas materi tersebut.
+                    </p>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Dengan akad tersebut, peserta hanya memperoleh hak pemanfaatan secara pribadi (حق الانتفاع الشخصي). Oleh karena itu, hak akses tidak boleh dipindahtangankan, dipinjamkan, dibagikan, digunakan bersama (termasuk patungan), atau diperjualbelikan tanpa izin dari Markaz Fiqih.
+                    </p>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Hak cipta dan seluruh hak kekayaan intelektual atas materi pembelajaran tetap menjadi milik Markaz Fiqih. Kepemilikan tersebut tidak beralih kepada peserta melalui akad ini. Ketentuan ini sejalan dengan Keputusan Majma' al-Fiqh al-Islami No. 43 (5/5) yang menegaskan bahwa hak cipta merupakan hak yang diakui syariat, yaitu:
+                    </p>
+                    <p dir="rtl" className="text-right font-medium text-foreground leading-loose">
+                      الاسم التجاري، والعنوان التجاري، والعلامة التجارية، والتأليف والاختراع أو الابتكار، هي حقوقٌ خاصةٌ لأصحابها، أصبح لها في العُرف المعاصر قيمةٌ ماليةٌ معتبرةٌ؛ لتموُّل الناس لها، وهذه الحقوق يُعتدُّ بها شرعًا، فلا يجوز الاعتداء عليها.
+                    </p>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Konsep hak pemanfaatan pribadi (حق الانتفاع الشخصي) ini sejalan dengan penjelasan para fuqaha (madzhab Maliki, juga Syafi'i). Syaikh Wahbah az-Zuhaili menjelaskan bahwa hak pemanfaatan pada hakikatnya merupakan izin untuk memanfaatkan suatu objek secara pribadi dan tidak memberikan kewenangan kepada penerimanya untuk mengalihkan manfaat tersebut kepada pihak lain. Beliau berkata dalam al-Fiqh al-Islāmī wa Adillatuhu (6/4552):
+                    </p>
+                    <p dir="rtl" className="text-right font-medium text-foreground leading-loose">
+                      وأما حق الانتفاع: فهو مجرد رخصة بالانتفاع الشخصي... فليس للمنتفع أن يملك المنفعة لغيره.
+                    </p>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </section>
+
             {/* Metode */}
             <section className="rounded-xl border bg-card shadow-sm p-5">
               <h2 className="text-sm font-semibold text-foreground mb-1">Metode pembayaran</h2>
@@ -307,6 +349,21 @@ function CheckoutContent() {
             <div className="sticky top-24 rounded-xl border bg-card shadow-sm overflow-hidden">
               <div className="p-5 space-y-4">
                 <h2 className="text-sm font-semibold text-foreground">Ringkasan</h2>
+
+                <div className="flex items-start gap-2.5">
+                  <Checkbox
+                    id="agree-terms"
+                    checked={agreedToTerms}
+                    onCheckedChange={(v) => setAgreedToTerms(Boolean(v))}
+                    className="mt-0.5 shrink-0"
+                  />
+                  <label
+                    htmlFor="agree-terms"
+                    className="text-xs text-foreground/80 leading-relaxed cursor-pointer"
+                  >
+                    Saya telah membaca, memahami, dan menyetujui Syarat dan Ketentuan Program Kelas Markaz Fiqih.
+                  </label>
+                </div>
 
                 <Separator />
 
@@ -344,6 +401,12 @@ function CheckoutContent() {
                 {!savedPhone && savedPhone !== undefined && (
                   <p className="text-xs text-destructive text-center">
                     Isi nomor WhatsApp dulu untuk melanjutkan.
+                  </p>
+                )}
+
+                {!agreedToTerms && (
+                  <p className="text-xs text-destructive text-center">
+                    Centang persetujuan Syarat &amp; Ketentuan dulu untuk melanjutkan.
                   </p>
                 )}
 
