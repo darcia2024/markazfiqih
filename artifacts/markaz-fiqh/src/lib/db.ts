@@ -608,6 +608,13 @@ export async function addCartItem(
       .insert({ user_id: userId, ebook_id: item.ebookId });
     if (error) throw error;
   } else {
+    const { data: owned } = await supabase
+      .from('enrollments')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('class_id', item.classId)
+      .maybeSingle();
+    if (owned) throw new Error('Kelas ini sudah kamu miliki — tidak perlu dibeli lagi.');
     const { error } = await supabase
       .from('cart_items')
       .insert({ user_id: userId, class_id: item.classId });

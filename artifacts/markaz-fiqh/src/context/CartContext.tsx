@@ -43,7 +43,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     },
     onError: (error) => {
       console.error('Gagal menambahkan ke keranjang:', error);
-      toast.error('Gagal menambahkan ke keranjang, coba lagi.');
+      toast.error(error instanceof Error ? error.message : 'Gagal menambahkan ke keranjang, coba lagi.');
     },
   });
 

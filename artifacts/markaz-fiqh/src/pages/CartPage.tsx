@@ -25,7 +25,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import type { CartClassItem, CartBundleItem, CartEbookItem } from '@/context/CartContext';
 import { formatPrice } from '@/pages/CatalogPage';
-import { listClasses } from '@/lib/db';
+import { listClasses, listEnrollments } from '@/lib/db';
 
 function formatDuration(totalMinutes: number | null): string | null {
   if (!totalMinutes) return null;
@@ -131,10 +131,12 @@ function ClassCartItem({
   item,
   onRemove,
   isRemoving,
+  isOwned,
 }: {
   item: CartClassItem;
   onRemove: (id: string) => void;
   isRemoving: boolean;
+  isOwned: boolean;
 }) {
   const hasDiscount = item.class.discountPrice != null;
   const durationLabel = formatDuration(item.class.totalDurationMinutes);
@@ -147,8 +149,15 @@ function ClassCartItem({
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: 100, height: 0, marginBottom: 0, paddingTop: 0, paddingBottom: 0 }}
       transition={{ duration: 0.25, ease: 'easeInOut' }}
-      className="flex gap-4 rounded-lg border bg-card p-4 shadow-sm"
+      className={`flex flex-col gap-0 rounded-lg border bg-card shadow-sm overflow-hidden${isOwned ? ' border-amber-400/60' : ''}`}
     >
+      {isOwned && (
+        <div className="flex items-center gap-2 bg-amber-50 border-b border-amber-200 px-4 py-2 text-amber-800 text-xs font-medium">
+          <span>⚠</span>
+          <span>Sudah kamu miliki — hapus item ini agar bisa lanjut bayar.</span>
+        </div>
+      )}
+      <div className="flex gap-4 p-4">
       <Link href={`/class/${item.class.id}`} className="shrink-0">
         <div className="w-20 h-16 sm:w-28 sm:h-20 rounded-md overflow-hidden bg-muted">
           <img
@@ -200,6 +209,7 @@ function ClassCartItem({
             <Trash2 className="w-4 h-4" />
           </motion.button>
         </div>
+      </div>
       </div>
     </motion.div>
   );
@@ -367,9 +377,27 @@ function CartContent() {
     queryFn: () => listClasses(),
     enabled: !!user,
   });
-  // Kelas rekomendasi: kelas published yang belum ada di keranjang, maks 4
+
+  const { data: enrolledClassIds = new Set<string>() } = useQuery({
+    queryKey: ['enrolled-class-ids', user?.id],
+    queryFn: async () => new Set((await listEnrollments(user!.id)).map((e) => e.class.id)),
+    enabled: !!user?.id,
+  });
+
+  // Kelas rekomendasi: kelas published yang belum ada di keranjang, belum dimiliki,
+  // dan belum tercakup bundle yang ada di keranjang — maks 4
+  const coveredByBundle = new Set(
+    items
+      .filter((i) => i.type === 'bundle')
+      .flatMap((i) => (i as import('@/context/CartContext').CartBundleItem).bundle.classes.map((c) => c.id)),
+  );
   const recommendedClasses = allClasses
-    .filter((cls) => !classIdsInCart.has(cls.id))
+    .filter(
+      (cls) =>
+        !classIdsInCart.has(cls.id) &&
+        !enrolledClassIds.has(cls.id) &&
+        !coveredByBundle.has(cls.id),
+    )
     .slice(0, 4);
 
   // Subtotal: bundle pakai bundlePrice, kelas pakai harga (voucher kalau ada)
@@ -458,6 +486,7 @@ function CartContent() {
                       item={item}
                       onRemove={handleRemove}
                       isRemoving={isRemoving}
+                      isOwned={enrolledClassIds.has(item.class.id)}
                     />
                   );
                 })}
@@ -509,16 +538,30 @@ function CartContent() {
                     <span>Subtotal</span>
                     <span className="text-primary">{formatPrice(subtotal)}</span>
                   </div>
-                  <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.15 }}>
-                    <Button
-                      size="lg"
-                      className="w-full text-base font-semibold"
-                      disabled={items.length === 0}
-                      onClick={handleCheckout}
-                    >
-                      Lanjut ke pembayaran
-                    </Button>
-                  </motion.div>
+                  {(() => {
+                    const hasOwnedInCart = items.some(
+                      (i) => i.type === 'class' && enrolledClassIds.has(i.class.id),
+                    );
+                    return (
+                      <>
+                        <motion.div whileHover={{ scale: hasOwnedInCart ? 1 : 1.02 }} whileTap={{ scale: hasOwnedInCart ? 1 : 0.98 }} transition={{ duration: 0.15 }}>
+                          <Button
+                            size="lg"
+                            className="w-full text-base font-semibold"
+                            disabled={items.length === 0 || hasOwnedInCart}
+                            onClick={handleCheckout}
+                          >
+                            Lanjut ke pembayaran
+                          </Button>
+                        </motion.div>
+                        {hasOwnedInCart && (
+                          <p className="text-xs text-amber-700 text-center">
+                            Ada kelas yang sudah kamu miliki di keranjang. Hapus dulu untuk melanjutkan.
+                          </p>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
