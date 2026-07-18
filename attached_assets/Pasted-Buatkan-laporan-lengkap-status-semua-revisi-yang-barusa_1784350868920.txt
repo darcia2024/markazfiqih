@@ -1,0 +1,30 @@
+Buatkan laporan lengkap status semua revisi yang barusan dikerjakan di sesi ini. JANGAN mengubah kode apa pun — ini murni permintaan laporan (read-only). Cek langsung ke file-file terkait di repo untuk memastikan tiap poin benar-benar sudah diterapkan, jangan hanya mengandalkan ingatan chat sebelumnya.
+
+Untuk SETIAP poin revisi di bawah, laporkan dengan format:
+- Status: SELESAI / SEBAGIAN / BELUM / GAGAL (dengan alasan singkat)
+- File yang berubah (path lengkap)
+- Kalau ada bagian yang tidak bisa diselesaikan sesuai instruksi awal (misalnya karena keterbatasan teknis, konflik dengan kode lain, atau butuh keputusan tambahan), jelaskan apa masalahnya dan apa yang sudah dilakukan sebagai gantinya
+
+Daftar poin yang harus dilaporkan:
+1. Hapus section "Pencapaian" di Dashboard
+2. Hapus teks "Bukti bayar dan akses kelas dikirim ke nomor ini." di checkout
+3. Drawer mobile: perbaikan supaya blok akun + tombol logout tidak ketutup toolbar browser, dan hapus widget "Progress Kamu"
+4. FloatingCartBar hanya tampil di /katalog dan /paket-bundle
+5. Bug kelas yang sudah dimiliki bisa masuk ke keranjang (filter rekomendasi + pagar di addCartItem + penanda item bermasalah di halaman keranjang)
+6. Katalog: kelas yang belum dimiliki tampil lebih dulu
+7. Checkbox wajib Syarat & Ketentuan di checkout (termasuk isi teks S&K-nya, cek tidak terpotong)
+8. Input "Kode Hadiah" di halaman checkout tersambung ke startCheckout
+9. Halaman admin "Kode Hadiah" (CRUD lengkap + route + menu sidebar admin)
+10. Tombol melayang "Chat via WhatsApp" (ambil nomor dari site_settings, muncul di AppShell dan LandingPage)
+11. Fitur search di halaman Kelas Saya
+12. Halaman Tentang Kami tersambung ke field admin (dengan fallback ke teks bawaan)
+13. Template sertifikat per kelas (upload di admin + render di halaman sertifikat)
+14. Tombol Bagikan di ClassDetailPage, EbookDetailPage, dan BundlesPage
+
+Tambahan yang wajib dicek dan dilaporkan terpisah:
+- Apakah SQL manual (kolom about_us_content di site_settings, dan certificate_template_url di classes) sudah terdeteksi ada di database — kalau ada cara untuk mengeceknya dari kode/error, laporkan; kalau tidak bisa dicek dari sini, tegaskan bahwa itu perlu saya verifikasi manual di Supabase.
+- Apakah ada file di luar folder artifacts/markaz-fiqh/src yang ikut berubah (terutama cek folder supabase/functions dan artifacts/api-server) — seharusnya TIDAK ADA perubahan di sana sama sekali.
+- Hasil terakhir `pnpm run typecheck` dari root repo: lolos atau tidak, dan kalau ada error, tampilkan error lengkapnya.
+- Daftar SEMUA file yang berubah selama sesi ini (bisa pakai git diff --stat atau git status kalau repo ini pakai git), dikelompokkan per poin revisi di atas.
+
+Akhiri laporan dengan ringkasan: berapa dari 14 poin yang selesai penuh, dan apa saja langkah yang masih harus saya lakukan secara manual (SQL, konfigurasi admin, dll) sebelum bisa dianggap benar-benar selesai.
