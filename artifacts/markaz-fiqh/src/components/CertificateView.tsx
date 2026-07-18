@@ -47,46 +47,105 @@ export function CertificateView({ cert, showPrintButton = true }: CertificateVie
     if (!certificateRef.current || !cert) return;
     setIsDownloading(true);
     try {
-      // Pastikan semua font selesai dimuat sebelum html2canvas mengambil snapshot,
-      // agar layout overlay tidak bergeser akibat font fallback yang metrik baris-nya berbeda.
-      if (fontUrl) {
-        try {
-          await document.fonts.load(`700 32px 'sertifikat-custom-font'`);
-          await document.fonts.load(`400 32px 'sertifikat-custom-font'`);
-        } catch {
-          // Biarkan lanjut — document.fonts.ready di bawah tetap jadi pengaman utama
-        }
-      }
-      await document.fonts.ready;
-      // Tunggu dua frame: browser bisa masih reflow satu frame setelah font resmi "ready"
-      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-
-      // foreignObjectRendering dihapus: di environment proxy/cross-origin (termasuk Replit)
-      // opsi itu menghasilkan canvas putih kosong secara silent. Mode default html2canvas
-      // sudah cukup akurat setelah document.fonts.ready + double-rAF di atas.
-      const canvas = await html2canvas(certificateRef.current, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-      });
-      const imgData = canvas.toDataURL('image/png', 1.0);
+      const safeName = (cert.fullName || 'peserta').replace(/[^a-zA-Z0-9]+/g, '-');
+      const safeClass = (cert.classTitle || 'kelas').replace(/[^a-zA-Z0-9]+/g, '-');
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
-      const canvasRatio = canvas.width / canvas.height;
-      const pageRatio = pageWidth / pageHeight;
-      let renderWidth = pageWidth, renderHeight = pageHeight, offsetX = 0, offsetY = 0;
-      if (canvasRatio > pageRatio) {
-        renderHeight = pageWidth / canvasRatio;
-        offsetY = (pageHeight - renderHeight) / 2;
+
+      if (hasTemplate) {
+        // ── Mode Template: gambar langsung ke Canvas 2D ──────────────────────
+        // Bypass html2canvas sepenuhnya — posisi overlay dikontrol eksak sehingga
+        // hasil PDF identik pixel-perfect dengan preview browser.
+
+        // 1. Muat font kustom via FontFace API agar canvas ctx bisa memakainya
+        let resolvedFontFamily = 'Georgia, serif'; // fallback font-serif
+        if (fontUrl) {
+          try {
+            const ff700 = new FontFace('sertifikat-custom-font', `url(${fontUrl})`, { weight: '700' });
+            const ff400 = new FontFace('sertifikat-custom-font', `url(${fontUrl})`, { weight: '400' });
+            await Promise.all([ff700.load(), ff400.load()]);
+            document.fonts.add(ff700);
+            document.fonts.add(ff400);
+            resolvedFontFamily = "'sertifikat-custom-font', serif";
+          } catch {
+            // pakai fallback
+          }
+        }
+
+        // 2. Muat template image ke HTMLImageElement baru (CORS-safe)
+        const templateImg = await new Promise<HTMLImageElement>((resolve, reject) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => resolve(img);
+          img.onerror = reject;
+          img.src = activeTemplate!;
+        });
+
+        // 3. Buat canvas — ukuran natural image × scale untuk kualitas tinggi
+        const SCALE = 3;
+        const W = templateImg.naturalWidth * SCALE;
+        const H = templateImg.naturalHeight * SCALE;
+        const canvas = document.createElement('canvas');
+        canvas.width = W;
+        canvas.height = H;
+        const ctx = canvas.getContext('2d')!;
+
+        // 4. Gambar template
+        ctx.drawImage(templateImg, 0, 0, W, H);
+
+        // 5. Gambar setiap overlay teks
+        // CSS: left/top dalam %, transform translate(-50%,-50%) → textAlign center + textBaseline middle
+        // CSS: fontSize dalam cqw (= % dari lebar container = % dari lebar gambar)
+        const drawText = (
+          text: string,
+          cfg: typeof overlayConfig.nama,
+          weight: '400' | '700',
+        ) => {
+          const x = (cfg.left / 100) * W;
+          const y = (cfg.top / 100) * H;
+          const px = (cfg.fontSize / 100) * W; // cqw → px (container = lebar gambar)
+          ctx.save();
+          ctx.font = `${weight} ${px}px ${resolvedFontFamily}`;
+          ctx.fillStyle = cfg.color;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(text, x, y);
+          ctx.restore();
+        };
+
+        drawText(cert.fullName,              overlayConfig.nama,    '700');
+        drawText(cert.classTitle,            overlayConfig.kelas,   '400');
+        drawText(formatTanggal(cert.issuedAt), overlayConfig.tanggal, '400');
+
+        // 6. Export ke PDF
+        const imgData = canvas.toDataURL('image/png', 1.0);
+        const canvasRatio = W / H;
+        const pageRatio = pageWidth / pageHeight;
+        let rW = pageWidth, rH = pageHeight, oX = 0, oY = 0;
+        if (canvasRatio > pageRatio) { rH = pageWidth / canvasRatio; oY = (pageHeight - rH) / 2; }
+        else                         { rW = pageHeight * canvasRatio; oX = (pageWidth - rW) / 2; }
+        pdf.addImage(imgData, 'PNG', oX, oY, rW, rH);
+
       } else {
-        renderWidth = pageHeight * canvasRatio;
-        offsetX = (pageWidth - renderWidth) / 2;
+        // ── Mode Bawaan: html2canvas (tidak ada template image) ───────────────
+        await document.fonts.ready;
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+        const canvas = await html2canvas(certificateRef.current, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          logging: false,
+        });
+        const imgData = canvas.toDataURL('image/png', 1.0);
+        const canvasRatio = canvas.width / canvas.height;
+        const pageRatio = pageWidth / pageHeight;
+        let rW = pageWidth, rH = pageHeight, oX = 0, oY = 0;
+        if (canvasRatio > pageRatio) { rH = pageWidth / canvasRatio; oY = (pageHeight - rH) / 2; }
+        else                         { rW = pageHeight * canvasRatio; oX = (pageWidth - rW) / 2; }
+        pdf.addImage(imgData, 'PNG', oX, oY, rW, rH);
       }
-      pdf.addImage(imgData, 'PNG', offsetX, offsetY, renderWidth, renderHeight);
-      const safeName = (cert.fullName || 'peserta').replace(/[^a-zA-Z0-9]+/g, '-');
-      const safeClass = (cert.classTitle || 'kelas').replace(/[^a-zA-Z0-9]+/g, '-');
+
       pdf.save(`Sertifikat-${safeClass}-${safeName}.pdf`);
     } catch {
       toast.error('Gagal membuat file PDF, coba lagi.');
