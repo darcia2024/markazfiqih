@@ -424,6 +424,7 @@ type ClassFormState = {
   meetingCount: string;
   displayOrder: string;
   reverseVideoOrder: boolean;
+  certificateTemplateUrl: string;
 };
 
 const EMPTY_FORM: ClassFormState = {
@@ -445,6 +446,7 @@ const EMPTY_FORM: ClassFormState = {
   meetingCount: '',
   displayOrder: '0',
   reverseVideoOrder: false,
+  certificateTemplateUrl: '',
 };
 
 function classToForm(cls: ClassDetail): ClassFormState {
@@ -467,6 +469,7 @@ function classToForm(cls: ClassDetail): ClassFormState {
     meetingCount: cls.meetingCount != null ? String(cls.meetingCount) : '',
     displayOrder: String(cls.displayOrder ?? 0),
     reverseVideoOrder: cls.reverseVideoOrder ?? false,
+    certificateTemplateUrl: cls.certificateTemplateUrl ?? '',
   };
 }
 
@@ -1154,6 +1157,7 @@ export default function AdminClassesPage() {
       meetingCount: '',
       displayOrder: String(cls.displayOrder ?? 0),
       reverseVideoOrder: false,
+      certificateTemplateUrl: cls.certificateTemplateUrl ?? '',
     });
     setDialogOpen(true);
   }
@@ -1187,6 +1191,7 @@ export default function AdminClassesPage() {
       meetingCount: form.meetingCount ? parseInt(form.meetingCount, 10) : null,
       displayOrder: form.displayOrder ? parseInt(form.displayOrder, 10) : 0,
       reverseVideoOrder: form.reverseVideoOrder,
+      certificateTemplateUrl: form.certificateTemplateUrl.trim() || null,
     };
 
     if (editingClass) {
@@ -1662,6 +1667,18 @@ export default function AdminClassesPage() {
                   onChange={(e) => setForm((p) => ({ ...p, testimoniFormUrl: e.target.value }))}
                   data-testid="input-class-testimoni"
                 />
+              </div>
+              <div className="space-y-2">
+                <Label>Template Sertifikat (opsional)</Label>
+                <ImageUploadField
+                  value={form.certificateTemplateUrl}
+                  onChange={(url) => setForm((p) => ({ ...p, certificateTemplateUrl: url }))}
+                  previewClassName="w-28 h-20 rounded-md object-cover border"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Upload gambar template landscape (disarankan rasio A4 landscape, mis. 1123×794 px atau lebih besar).
+                  Kosongkan untuk memakai desain sertifikat bawaan.
+                </p>
               </div>
 
               {/* ── Struktur Bab & Pelajaran — khusus kelas modul/dars */}

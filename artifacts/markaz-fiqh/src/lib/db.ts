@@ -84,7 +84,7 @@ export async function listClasses(params?: {
     .from('classes')
     .select(`
       id, title, description, cover_image, base_price, discount_price,
-      status, level, category, youtube_playlist_id, meeting_count, display_order,
+      status, level, category, youtube_playlist_id, meeting_count, display_order, certificate_template_url,
       instructors ( id, name, photo_url ),
       modules ( id, dars ( id, duration_minutes ) )
     `)
@@ -117,6 +117,7 @@ export async function listClasses(params?: {
       moduleCount: modules.length as number,
       meetingCount: (c.meeting_count ?? null) as number | null,
       displayOrder: (c.display_order ?? 0) as number,
+      certificateTemplateUrl: (c.certificate_template_url as string | null) ?? null,
       totalDurationMinutes: dars.reduce(
         (acc: number, d: any) => acc + (d.duration_minutes ?? 0),
         0,
@@ -133,7 +134,7 @@ export async function getClassById(id: string) {
     .from('classes')
     .select(`
       id, title, description, cover_image, base_price, discount_price,
-      status, level, category, youtube_playlist_id, gdrive_materi_url, wa_group_url, soal_latihan_url, ebook_url, testimoni_form_url, meeting_count, display_order, reverse_video_order,
+      status, level, category, youtube_playlist_id, gdrive_materi_url, wa_group_url, soal_latihan_url, ebook_url, testimoni_form_url, meeting_count, display_order, reverse_video_order, certificate_template_url,
       related_ebook_id, ebooks:related_ebook_id ( id, title, cover_image ),
       instructors ( id, name, photo_url, bio ),
       modules (
@@ -215,6 +216,7 @@ export async function getClassById(id: string) {
     modules,
     moduleCount: modules.length,
     meetingCount: (data.meeting_count ?? null) as number | null,
+    certificateTemplateUrl: (data.certificate_template_url as string | null) ?? null,
     totalDurationMinutes: modules
       .flatMap((m) => m.dars)
       .reduce((acc, d) => acc + (d.durationMinutes ?? 0), 0),
@@ -942,6 +944,7 @@ export async function createClass(data: {
   waGroupUrl?: string | null; soalLatihanUrl?: string | null;
   ebookUrl?: string | null; relatedEbookId?: string | null; testimoniFormUrl?: string | null; meetingCount?: number | null;
   displayOrder?: number | null; reverseVideoOrder?: boolean;
+  certificateTemplateUrl?: string | null;
 }) {
   const { data: created, error } = await supabase
     .from('classes')
@@ -961,6 +964,7 @@ export async function createClass(data: {
       meeting_count: data.meetingCount ?? null,
       display_order: data.displayOrder ?? 0,
       reverse_video_order: data.reverseVideoOrder ?? false,
+      certificate_template_url: data.certificateTemplateUrl ?? null,
     })
     .select().single();
   if (error) throw error;
@@ -978,6 +982,7 @@ export async function updateClass(
     waGroupUrl: string | null; soalLatihanUrl: string | null;
     ebookUrl: string | null; relatedEbookId: string | null; testimoniFormUrl: string | null; meetingCount: number | null;
     displayOrder: number; reverseVideoOrder: boolean;
+    certificateTemplateUrl: string | null;
   }>,
 ) {
   const patch: Record<string, unknown> = {};
@@ -1000,6 +1005,7 @@ export async function updateClass(
   if ('meetingCount' in data) patch.meeting_count = data.meetingCount;
   if (data.displayOrder !== undefined) patch.display_order = data.displayOrder;
   if (data.reverseVideoOrder !== undefined) patch.reverse_video_order = data.reverseVideoOrder;
+  if ('certificateTemplateUrl' in data) patch.certificate_template_url = data.certificateTemplateUrl;
   const { error } = await supabase.from('classes').update(patch).eq('id', id);
   if (error) throw error;
 }
@@ -2250,6 +2256,7 @@ export type CertificateRequest = {
   certificateNumber: string;
   classId: string;
   classTitle: string;
+  certificateTemplateUrl: string | null;
   fullName: string;
   email: string;
   score: string | null;
@@ -2265,7 +2272,7 @@ function generateCertificateNumber(): string {
 export async function getMyCertificate(userId: string, classId: string): Promise<CertificateRequest | null> {
   const { data, error } = await supabase
     .from('certificate_requests')
-    .select('id, certificate_number, class_id, full_name, email, score, issued_at, classes(title)')
+    .select('id, certificate_number, class_id, full_name, email, score, issued_at, classes(title, certificate_template_url)')
     .eq('user_id', userId)
     .eq('class_id', classId)
     .maybeSingle();
@@ -2273,7 +2280,9 @@ export async function getMyCertificate(userId: string, classId: string): Promise
   if (!data) return null;
   return {
     id: data.id, certificateNumber: data.certificate_number, classId: data.class_id,
-    classTitle: (data as any).classes?.title ?? '', fullName: data.full_name, email: data.email,
+    classTitle: (data as any).classes?.title ?? '',
+    certificateTemplateUrl: (data as any).classes?.certificate_template_url ?? null,
+    fullName: data.full_name, email: data.email,
     score: data.score, issuedAt: data.issued_at,
   };
 }
@@ -2297,12 +2306,14 @@ export async function requestCertificate(params: {
       email: params.email,
       score: params.score || null,
     })
-    .select('id, certificate_number, class_id, full_name, email, score, issued_at, classes(title)')
+    .select('id, certificate_number, class_id, full_name, email, score, issued_at, classes(title, certificate_template_url)')
     .single();
   if (error) throw error;
   return {
     id: data.id, certificateNumber: data.certificate_number, classId: data.class_id,
-    classTitle: (data as any).classes?.title ?? '', fullName: data.full_name, email: data.email,
+    classTitle: (data as any).classes?.title ?? '',
+    certificateTemplateUrl: (data as any).classes?.certificate_template_url ?? null,
+    fullName: data.full_name, email: data.email,
     score: data.score, issuedAt: data.issued_at,
   };
 }
@@ -2310,14 +2321,16 @@ export async function requestCertificate(params: {
 export async function getCertificateById(id: string): Promise<CertificateRequest | null> {
   const { data, error } = await supabase
     .from('certificate_requests')
-    .select('id, certificate_number, class_id, full_name, email, score, issued_at, classes(title)')
+    .select('id, certificate_number, class_id, full_name, email, score, issued_at, classes(title, certificate_template_url)')
     .eq('id', id)
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;
   return {
     id: data.id, certificateNumber: data.certificate_number, classId: data.class_id,
-    classTitle: (data as any).classes?.title ?? '', fullName: data.full_name, email: data.email,
+    classTitle: (data as any).classes?.title ?? '',
+    certificateTemplateUrl: (data as any).classes?.certificate_template_url ?? null,
+    fullName: data.full_name, email: data.email,
     score: data.score, issuedAt: data.issued_at,
   };
 }
@@ -2326,12 +2339,14 @@ export async function getCertificateById(id: string): Promise<CertificateRequest
 export async function listAllCertificatesForAdmin(): Promise<CertificateRequest[]> {
   const { data, error } = await supabase
     .from('certificate_requests')
-    .select('id, certificate_number, class_id, full_name, email, score, issued_at, classes(title)')
+    .select('id, certificate_number, class_id, full_name, email, score, issued_at, classes(title, certificate_template_url)')
     .order('issued_at', { ascending: false });
   if (error) throw error;
   return (data ?? []).map((c: any) => ({
     id: c.id, certificateNumber: c.certificate_number, classId: c.class_id,
-    classTitle: c.classes?.title ?? '', fullName: c.full_name, email: c.email,
+    classTitle: c.classes?.title ?? '',
+    certificateTemplateUrl: c.classes?.certificate_template_url ?? null,
+    fullName: c.full_name, email: c.email,
     score: c.score, issuedAt: c.issued_at,
   }));
 }

@@ -1,0 +1,23 @@
+Kerjakan HANYA di artifacts/markaz-fiqh/src. JANGAN sentuh folder supabase/, artifacts/api-server/, dan JANGAN mengubah logic pembayaran/checkout apa pun. Jangan menambah dependency baru. Ada 3 tugas kecil:
+
+TUGAS 1 — Hapus section "Pencapaian" di Dashboard.
+File: src/pages/DashboardPage.tsx
+- Hapus pemanggilan <AchievementBadges ... /> beserta <motion.div> pembungkusnya di dalam DashboardContent.
+- Hapus definisi function AchievementBadges, type BadgeDefinition, dan konstanta ACHIEVEMENT_BADGES.
+- Hapus import ikon yang jadi tidak terpakai setelah penghapusan (kemungkinan Flame, Medal, Award, Crown) — tapi JANGAN hapus import yang masih dipakai bagian lain halaman (misalnya Sparkles masih dipakai empty state dan kartu "Tambah kelas baru").
+- JANGAN menghapus StatsSummary, DashboardBoardCard, ProgressSidebar, atau bagian lain. Hanya "Pencapaian".
+
+TUGAS 2 — Hapus teks helper di checkout.
+File: src/pages/CheckoutPage.tsx
+- Di section "Nomor WhatsApp", hapus elemen <p> yang berisi teks persis: "Bukti bayar dan akses kelas dikirim ke nomor ini."
+- Jangan mengubah apa pun yang lain di section itu (input nomor, tombol Ubah/Simpan, validasi tetap).
+
+TUGAS 3 — Sidebar/drawer mobile.
+File: src/components/AppShell.tsx
+- Hapus komponen ProgressWidget beserta pemanggilannya (<ProgressWidget enrollments={enrollments} /> dan div pembungkus "pb-3"-nya) di SidebarContent.
+- Setelah itu, query listEnrollments di SidebarContent jadi tidak terpakai — hapus juga query tersebut beserta import listEnrollments dan type EnrollmentItem kalau sudah tidak dipakai di file ini.
+- Perbaiki drawer mobile yang bagian bawahnya (blok akun + tombol logout) ketutup toolbar browser HP: pada motion.div drawer panel (yang sekarang punya className "lg:hidden fixed inset-y-0 left-0 z-50 w-[260px] h-screen shadow-2xl"), ganti "inset-y-0 ... h-screen" menjadi "top-0 ... h-dvh" (Tailwind v4, h-dvh valid). 
+- Pada blok akun paling bawah di SidebarContent (div dengan className "border-t border-white/20 p-4 shrink-0"), tambahkan padding bawah safe-area: ganti p-4 menjadi "p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]".
+- Jangan mengubah sidebar desktop (AppSidebar) selain efek dari perubahan SidebarContent di atas.
+
+Terakhir: jalankan pnpm run typecheck dari root repo dan pastikan lolos. Laporkan file apa saja yang berubah.

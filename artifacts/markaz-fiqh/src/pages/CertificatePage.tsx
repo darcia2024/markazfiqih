@@ -40,6 +40,8 @@ export default function CertificatePage() {
     );
   }
 
+  const hasTemplate = !!(cert.certificateTemplateUrl?.trim());
+
   return (
     <>
       {/* Print styles */}
@@ -63,7 +65,53 @@ export default function CertificatePage() {
         </Button>
       </div>
 
-      {/* Halaman sertifikat */}
+      {hasTemplate ? (
+        /* ── Mode Template ───────────────────────────────────────────── */
+        <div className="cert-root min-h-screen bg-white flex items-center justify-center p-4">
+          <div className="relative w-full max-w-4xl">
+            {/* Gambar template full-width */}
+            <img
+              src={cert.certificateTemplateUrl!}
+              alt="Template Sertifikat"
+              className="w-full h-auto block"
+              style={{ display: 'block' }}
+            />
+            {/* Overlay tengah — posisi persen supaya proporsional */}
+            <div
+              className="absolute inset-0 flex flex-col items-center justify-center text-center"
+              style={{ top: '38%', bottom: '20%', left: '10%', right: '10%' }}
+            >
+              <p
+                className="font-serif font-bold text-foreground leading-tight"
+                style={{ fontSize: 'clamp(1.4rem, 3.5vw, 2.4rem)' }}
+              >
+                {cert.fullName}
+              </p>
+              <p
+                className="font-serif text-muted-foreground mt-2 leading-snug"
+                style={{ fontSize: 'clamp(0.8rem, 2vw, 1.15rem)' }}
+              >
+                {cert.classTitle}
+              </p>
+              {cert.score && (
+                <p
+                  className="mt-2 text-foreground"
+                  style={{ fontSize: 'clamp(0.65rem, 1.5vw, 0.9rem)' }}
+                >
+                  Nilai: <span className="font-bold">{cert.score}</span>
+                </p>
+              )}
+              <p
+                className="mt-3 text-muted-foreground"
+                style={{ fontSize: 'clamp(0.55rem, 1.2vw, 0.75rem)' }}
+              >
+                No. {cert.certificateNumber} &nbsp;·&nbsp; {formatTanggal(cert.issuedAt)}
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : (
+      /* ── Mode Bawaan ─────────────────────────────────────────────── */
       <div
         className="cert-root min-h-screen bg-white flex items-center justify-center p-8"
         style={{
@@ -190,6 +238,7 @@ export default function CertificatePage() {
           </div>
         </div>
       </div>
+      )}
     </>
   );
 }

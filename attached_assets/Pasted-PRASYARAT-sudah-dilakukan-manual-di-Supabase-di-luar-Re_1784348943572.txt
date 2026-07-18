@@ -1,0 +1,21 @@
+PRASYARAT (sudah dilakukan manual di Supabase, di luar Replit): kolom classes.certificate_template_url sudah ditambahkan. JANGAN membuat/menjalankan migrasi dari sini. JANGAN sentuh supabase/.
+
+Konteks: alur sertifikat sudah berfungsi (pelajar mengambil sertifikat setelah kelas 100%, halaman /sertifikat/:id merender desain HTML lalu di-print/PDF). Yang diminta klien: admin bisa meng-upload GAMBAR template sertifikat per kelas; kalau kelas punya template, halaman sertifikat merender template itu dengan nama peserta di atasnya; kalau tidak punya, tetap pakai desain bawaan yang sekarang.
+
+Kerjakan HANYA di artifacts/markaz-fiqh/src. File yang boleh disentuh: lib/db.ts, pages/admin/AdminClassesPage.tsx, pages/CertificatePage.tsx.
+
+TUGAS 1 — lib/db.ts:
+- createClass & updateClass: tambah field opsional certificateTemplateUrl?: string | null yang dipetakan ke kolom certificate_template_url (pola sama seperti field cover/link lain).
+- getClassById & listClasses (bagian select dan mapping): ikutkan certificate_template_url → certificateTemplateUrl (khusus listClasses cukup bila diperlukan admin; minimal getClassById dan query yang dipakai AdminClassesPage).
+- getCertificateById & listAllCertificatesForAdmin & requestCertificate: pada join classes( ... ), ikutkan certificate_template_url dan tambahkan ke hasil sebagai certificateTemplateUrl (perbarui type CertificateRequest).
+
+TUGAS 2 — pages/admin/AdminClassesPage.tsx:
+- Di form kelas, tambah field "Template Sertifikat (opsional)" memakai komponen ImageUploadField yang sudah ada (sama seperti upload cover; previewClassName persegi panjang, mis. "w-28 h-20 rounded-md object-cover border"), tersambung ke state form certificateTemplateUrl, terkirim ke createClass/updateClass.
+- Teks bantu: "Upload gambar template landscape (disarankan rasio A4 landscape, mis. 1123x794 px atau lebih besar). Kosongkan untuk memakai desain sertifikat bawaan."
+
+TUGAS 3 — pages/CertificatePage.tsx:
+- Bila cert.certificateTemplateUrl TERISI: render mode template — kartu berisi <img> template full-width (max-w-4xl, aspect sesuai gambar) dengan overlay absolut di tengah untuk: nama peserta (font-serif besar), judul kelas di bawahnya (lebih kecil), lalu baris kecil nomor sertifikat + tanggal terbit di bagian bawah. Nilai (score) tampil hanya bila ada. Pastikan tetap rapi saat print A4 landscape (aturan @page yang ada dipertahankan; overlay pakai posisi persen, bukan px absolut, supaya proporsional).
+- Bila kosong: render desain bawaan yang sekarang, PERSIS tanpa perubahan.
+- Tombol Download/Print tetap.
+
+Jalankan pnpm run typecheck dari root dan pastikan lolos.
