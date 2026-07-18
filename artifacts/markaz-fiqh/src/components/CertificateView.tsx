@@ -61,12 +61,27 @@ export function CertificateView({ cert, showPrintButton = true }: CertificateVie
       // Tunggu dua frame: browser bisa masih reflow satu frame setelah font resmi "ready"
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
-      const canvas = await html2canvas(certificateRef.current, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-      });
+      // Coba foreignObjectRendering: true (pakai mesin render asli browser → akurasi font lebih tinggi).
+      // Fallback ke mode default kalau canvas ternoda (SecurityError) akibat resource cross-origin.
+      let canvas;
+      try {
+        canvas = await html2canvas(certificateRef.current, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          logging: false,
+          foreignObjectRendering: true,
+        });
+        canvas.toDataURL('image/png'); // picu SecurityError di sini kalau canvas tainted
+      } catch {
+        canvas = await html2canvas(certificateRef.current, {
+          scale: 2,
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          logging: false,
+          foreignObjectRendering: false,
+        });
+      }
       const imgData = canvas.toDataURL('image/png', 1.0);
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
       const pageWidth = pdf.internal.pageSize.getWidth();

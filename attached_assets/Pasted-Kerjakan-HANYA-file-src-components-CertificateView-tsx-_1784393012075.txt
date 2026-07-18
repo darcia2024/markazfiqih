@@ -1,0 +1,31 @@
+Kerjakan HANYA file src/components/CertificateView.tsx di artifacts/markaz-fiqh. JANGAN sentuh supabase/.
+
+Tujuan: hasil Download PDF harus identik pixel-perfect dengan tampilan preview di browser, termasuk saat pakai font kustom. Root cause: html2canvas secara default menggambar ulang elemen dengan mesin render sendiri (bukan benar-benar "memotret" apa yang dirender browser), sehingga font kustom/kerning bisa meleset dari tampilan asli.
+
+Di fungsi handleDownloadPdf, ubah pemanggilan html2canvas untuk menambahkan opsi foreignObjectRendering: true — opsi ini membuat html2canvas mendelegasikan rendering ke SVG foreignObject yang memakai mesin render asli browser, jauh lebih akurat untuk font kustom dibanding mode default:
+
+const canvas = await html2canvas(certificateRef.current, {
+  scale: 2,
+  useCORS: true,
+  backgroundColor: '#ffffff',
+  logging: false,
+  foreignObjectRendering: true,
+});
+
+Karena foreignObjectRendering pada sebagian browser/kasus bisa gagal (terutama isu tainted canvas kalau ada resource cross-origin yang belum benar CORS-nya), bungkus dengan fallback: kalau canvas.toDataURL() melempar error (SecurityError akibat canvas ternoda), tangkap errornya dan ulangi sekali lagi TANPA foreignObjectRendering (mode default) sebagai fallback, supaya tombol download tetap berfungsi walau tidak pixel-perfect di kasus langka tersebut:
+
+let canvas;
+try {
+  canvas = await html2canvas(certificateRef.current, {
+    scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false, foreignObjectRendering: true,
+  });
+  canvas.toDataURL('image/png'); // trigger error di sini kalau tainted, sebelum lanjut
+} catch {
+  canvas = await html2canvas(certificateRef.current, {
+    scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false, foreignObjectRendering: false,
+  });
+}
+
+Pertahankan seluruh logic document.fonts.ready dan font-loading yang sudah ada sebelum bagian ini — itu tetap diperlukan sebagai lapisan pertama, foreignObjectRendering adalah lapisan tambahan untuk akurasi, bukan pengganti.
+
+Jangan mengubah logic PDF generation lainnya (ukuran halaman, scaling ke mm, penamaan file). Jalankan pnpm run typecheck dari root dan pastikan lolos. Saat testing manual, laporkan apakah foreignObjectRendering berhasil tanpa fallback ke mode default (cek di console browser tidak ada error SecurityError).
