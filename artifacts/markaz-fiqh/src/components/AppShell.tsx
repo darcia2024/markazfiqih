@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { FloatingCartBar } from '@/components/FloatingCartBar';
+import { FloatingWhatsAppButton } from '@/components/FloatingWhatsAppButton';
 import { Link, useLocation } from 'wouter';
 import {
   LayoutGrid,
@@ -219,6 +220,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         {children}
       </div>
 
+      <FloatingWhatsAppButton />
       {/* Floating cart bar — muncul di semua halaman internal saat keranjang ada isinya */}
       <FloatingCartBar />
     </div>

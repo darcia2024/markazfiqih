@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 
 import { Navbar } from '@/components/Navbar';
+import { FloatingWhatsAppButton } from '@/components/FloatingWhatsAppButton';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthContext';
@@ -954,6 +955,7 @@ export default function LandingPage() {
           contactPhone={settings?.contactPhone ?? null}
         />
       </main>
+      <FloatingWhatsAppButton />
     </div>
   );
 }
