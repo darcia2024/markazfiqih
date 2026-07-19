@@ -1,0 +1,75 @@
+# Restore Fitur Kode Kupon (Voucher Kelas)
+
+## Konteks
+
+Situs ini dulu punya fitur voucher/kupon per kelas ("Kode Hadiah"). UI-nya sempat dihapus atas permintaan klien, tapi sekarang klien minta fitur ini dihidupkan kembali dengan nama **"Kode Kupon"**.
+
+Temuan penting: **seluruh backend voucher masih utuh dan berfungsi**. Jangan dibangun ulang, jangan didesain ulang. Tugasmu HANYA dua hal: (1) mengembalikan UI kupon di halaman checkout, dan (2) membuat halaman admin untuk mengelola kupon.
+
+## Yang SUDAH ADA — pakai apa adanya, JANGAN DIUBAH
+
+- **Database** (migration `supabase/migrations/20260714_mayar_payment.sql`): tabel `class_vouchers` (id, class_id, code, discount_price, is_active, max_uses, used_count — unique per class_id+code), kolom `invoices.voucher_id`, dan fungsi RPC `increment_voucher_usage()` (hanya service_role).
+- **Edge Function `supabase/functions/checkout/index.ts`**: sudah menerima `voucherCode` di body, memvalidasi ke `class_vouchers` (aktif + kuota), menghitung harga voucher-aware di server, dan menyimpan `voucher_id` di invoice. Kalau kode tidak berlaku, server balas 400 dengan pesan error.
+- **`supabase/functions/_shared/fulfillment.ts`**: sudah menaikkan `used_count` tepat satu kali saat invoice berpindah ke status paid (idempoten).
+- **`artifacts/markaz-fiqh/src/lib/payments.ts`**: `startCheckout(voucherCode?)` sudah menerima parameter kode kupon.
+- **`artifacts/markaz-fiqh/src/lib/db.ts`**: fungsi `validateVoucher(classId, code)` masih ada (sekitar baris 759) untuk validasi cepat di sisi client.
+- **Referensi UI lama**: `attached_assets/CheckoutPage_1784036140896.tsx` berisi implementasi UI kupon versi sebelumnya. Boleh dijadikan acuan, tapi JANGAN copy mentah — adaptasikan ke struktur `CheckoutPage.tsx` yang sekarang (yang sudah punya checkbox S&K dan perubahan lain).
+
+## Cara kerja kupon (desain yang sudah berjalan — ikuti persis)
+
+- Satu kode terikat ke SATU kelas tertentu. Isinya `discount_price` = harga khusus untuk kelas itu (angka rupiah final, BUKAN persen potongan).
+- Kupon hanya berlaku untuk **kelas satuan** di keranjang — tidak berlaku untuk bundle maupun ebook. Jangan diperluas.
+- `max_uses` opsional (null = tanpa batas). `used_count` bertambah otomatis saat pembayaran sukses — bukan urusan frontend.
+- Kode dinormalisasi ke UPPERCASE saat validasi (server sudah melakukan ini; samakan di client).
+- Kupon dengan harga 0 → server otomatis fulfill tanpa membuat tagihan Mayar dan membalas `freeCheckout: true`. Alur gratis ini sudah ada di CheckoutPage — pastikan tetap jalan.
+
+## Tugas 1 — UI Kode Kupon di CheckoutPage
+
+File: `artifacts/markaz-fiqh/src/pages/CheckoutPage.tsx`
+
+1. Tambahkan bagian "Kode Kupon" di ringkasan pesanan: satu input teks + tombol "Pakai".
+2. Saat "Pakai" ditekan: trim + uppercase kode, lalu panggil `validateVoucher(classId, code)` dari `@/lib/db` untuk setiap kelas satuan di keranjang sampai ada yang cocok.
+   - Cocok → simpan `{ classId, discountPrice }` di state. Tampilkan harga coret + harga kupon pada item kelas terkait, subtotal & total ikut berubah, tampilkan baris "Hemat Rp X", dan sediakan tombol kecil untuk melepas kupon (reset ke harga normal).
+   - Tidak ada yang cocok → pesan error ramah, misal: "Kode ini tidak berlaku untuk kelas di keranjang kamu." Harga tidak berubah.
+   - Tampilkan state loading di tombol selama validasi.
+3. Saat tombol bayar ditekan: panggil `startCheckout(kodeKupon)` — kirim kode HANYA jika ada kupon yang applied; selain itu panggil tanpa argumen seperti sekarang.
+4. Kalau server membalas error 400 terkait voucher, tampilkan pesan dari server dan reset state kupon. Ingat: harga final selalu dihitung server; angka di UI hanya preview.
+5. Jika keranjang berubah (item dihapus/ditambah), reset kupon yang sedang applied.
+6. Handle respons `freeCheckout: true` persis seperti alur checkout gratis yang sudah ada.
+
+## Tugas 2 — Halaman admin "Kode Kupon"
+
+1. Buat `artifacts/markaz-fiqh/src/pages/admin/AdminVouchersPage.tsx`. Ikuti pola halaman admin yang sudah ada (lihat `AdminClassesPage.tsx` / `AdminEbooksPage.tsx`) untuk cara fetch/insert/update data dan gaya UI (shadcn/ui, layout `AdminLayout`).
+2. Daftarkan route baru (mis. `/admin/kupon`) di `App.tsx`, dibungkus `RequireAdminRoute` seperti route admin lain, dan tambahkan item menunya di `components/admin/AdminLayout.tsx`.
+3. Fitur halaman:
+   - Tabel daftar semua kupon: kode, nama kelas, harga kupon, pemakaian (`used_count`/`max_uses` atau "∞"), status aktif, tanggal dibuat.
+   - Form buat kupon baru: pilih kelas (dropdown dari daftar kelas), kode (auto-uppercase saat diketik), harga khusus (rupiah), max_uses opsional (kosong = tanpa batas).
+   - Toggle aktif/nonaktif per kupon, dan tombol hapus (dengan konfirmasi).
+   - `used_count` hanya tampil, tidak bisa diedit.
+4. Validasi form: kode wajib diisi; harga ≥ 0; jika harga ≥ harga normal kelas terpilih, tampilkan peringatan (boleh lanjut, tapi kasih tahu). Tangani pelanggaran unique constraint (kode sama untuk kelas sama) dengan pesan ramah, bukan error mentah.
+
+## Tugas 3 — Verifikasi RLS & akses (hati-hati)
+
+- File `supabase/migrations/class_vouchers_admin_rls.sql` mengandung typo artefak paste ("DROPche POLICY", baris "che" nyasar). Perlakukan file itu sebagai referensi niat saja — jangan dijalankan mentah dan jangan diedit.
+- Cek dulu bagaimana halaman admin lain menulis data (client Supabase + RLS, atau jalur lain), lalu ikuti mekanisme yang sama untuk `class_vouchers`.
+- Kebutuhan akses minimum: user login harus bisa SELECT voucher aktif (dipakai `validateVoucher`), dan admin harus bisa SELECT semua + INSERT/UPDATE/DELETE.
+- Kalau ternyata policy yang dibutuhkan belum ada di database live, buat SATU file migrasi SQL BARU yang bersih (idempoten, pakai `DROP POLICY IF EXISTS` sebelum `CREATE POLICY`), lalu tunjukkan SQL-nya ke saya untuk saya jalankan manual di Supabase SQL Editor. Jangan berasumsi migrasi bisa ter-apply otomatis ke database live.
+
+## Batasan keras
+
+- JANGAN mengubah apa pun di `supabase/functions/` (checkout, mayar-webhook, payment-status, _shared). Alur pembayaran baru saja dinyatakan aman oleh klien setelah pengujian — tidak boleh tersentuh.
+- JANGAN mengubah skema tabel yang sudah ada dan JANGAN membuat tabel baru.
+- JANGAN menyentuh atau mengaktifkan `artifacts/api-server` (Express leftover, tidak dipakai produksi; `routes/vouchers.ts` di sana diabaikan saja).
+- JANGAN mengubah perilaku checkout untuk user yang tidak memakai kupon.
+- Semua teks UI berbahasa Indonesia yang ramah dan konsisten dengan gaya situs (sapaan "kamu"), selaras dengan pesan-pesan error yang sudah ada.
+
+## Checklist uji — kerjakan lalu laporkan hasilnya satu per satu
+
+1. Kupon valid untuk kelas di keranjang → harga di UI berubah, dan total tagihan di halaman pembayaran Mayar sesuai harga kupon.
+2. Kupon salah / kupon untuk kelas yang tidak ada di keranjang → error ramah, harga tidak berubah, tetap bisa checkout harga normal.
+3. Keranjang berisi kelas satuan + bundle sekaligus → kupon hanya mempengaruhi kelas satuan; harga bundle tidak berubah.
+4. Kupon yang `max_uses`-nya sudah habis → server menolak saat checkout dengan pesan jelas di UI.
+5. Kupon harga 0 → user langsung mendapat akses kelas tanpa halaman pembayaran (alur `freeCheckout`).
+6. Checkout TANPA kupon → berjalan normal persis seperti sebelum perubahan ini.
+7. Setelah pembayaran sukses dengan kupon → `used_count` kupon bertambah 1 (cek datanya).
+8. Admin: buat kupon, nonaktifkan, hapus; kode duplikat untuk kelas yang sama ditolak dengan pesan ramah; halaman admin lain tetap berfungsi normal.

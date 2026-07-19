@@ -9,6 +9,8 @@ import {
   Lock,
   Package2,
   ShieldCheck,
+  Tag,
+  X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -32,7 +34,7 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { useCart } from '@/context/CartContext';
 import { formatPrice } from '@/pages/CatalogPage';
-import { getUserPhone, updateUserPhone } from '@/lib/db';
+import { getUserPhone, updateUserPhone, validateVoucher } from '@/lib/db';
 import { startCheckout, type CheckoutSession } from '@/lib/payments';
 
 // ── Indikator langkah ────────────────────────────────────────────────────────
@@ -110,20 +112,69 @@ function CheckoutContent() {
     }
   };
 
+  // ── Kode Kupon ────────────────────────────────────────────────────────────
+  const [voucherCode, setVoucherCode] = useState('');
+  const [appliedVoucher, setAppliedVoucher] = useState<{ classId: string; discountPrice: number } | null>(null);
+  const [voucherError, setVoucherError] = useState<string | null>(null);
+  const [isValidatingVoucher, setIsValidatingVoucher] = useState(false);
+
+  // Reset kupon kalau isi keranjang berubah
+  useEffect(() => {
+    setAppliedVoucher(null);
+    setVoucherError(null);
+  }, [items]);
+
+  const handleApplyVoucher = async () => {
+    const code = voucherCode.trim().toUpperCase();
+    if (!code) return;
+    setVoucherError(null);
+    setAppliedVoucher(null);
+    setIsValidatingVoucher(true);
+    try {
+      for (const item of items) {
+        if (item.type !== 'class') continue;
+        const result = await validateVoucher(item.class.id, code);
+        if (result.valid) {
+          setAppliedVoucher({ classId: item.class.id, discountPrice: result.discountPrice });
+          setIsValidatingVoucher(false);
+          return;
+        }
+      }
+      setVoucherError('Kode ini tidak berlaku untuk kelas di keranjang kamu.');
+    } catch {
+      setVoucherError('Kode gagal diperiksa. Coba lagi.');
+    } finally {
+      setIsValidatingVoucher(false);
+    }
+  };
+
+  const handleRemoveVoucher = () => {
+    setAppliedVoucher(null);
+    setVoucherCode('');
+    setVoucherError(null);
+  };
+
   // ── Total ─────────────────────────────────────────────────────────────────
-  const subtotal = useMemo(() => {
+  const { subtotal, savings } = useMemo(() => {
     let subtotal = 0;
+    let savings = 0;
     for (const item of items) {
       if (item.type === 'bundle') {
         subtotal += item.bundle.bundlePrice;
       } else if (item.type === 'ebook') {
         subtotal += item.ebook.discountPrice ?? item.ebook.price;
       } else {
-        subtotal += item.class.discountPrice ?? item.class.basePrice;
+        const normal = item.class.discountPrice ?? item.class.basePrice;
+        if (appliedVoucher && item.class.id === appliedVoucher.classId) {
+          subtotal += appliedVoucher.discountPrice;
+          savings += normal - appliedVoucher.discountPrice;
+        } else {
+          subtotal += normal;
+        }
       }
     }
-    return subtotal;
-  }, [items]);
+    return { subtotal, savings };
+  }, [items, appliedVoucher]);
 
   // ── Syarat & Ketentuan ────────────────────────────────────────────────────
   const [agreedToTerms, setAgreedToTerms] = useState(false);
@@ -138,7 +189,8 @@ function CheckoutContent() {
     if (!canPay) return;
     setIsStarting(true);
     try {
-      const created = await startCheckout();
+      const code = appliedVoucher ? voucherCode.trim().toUpperCase() : undefined;
+      const created = await startCheckout(code);
       if (created.freeCheckout) {
         toast.success('Pembayaran berhasil — kelas gratis sudah aktif.');
         setLocation(`/pembayaran/${created.id}`);
@@ -146,11 +198,19 @@ function CheckoutContent() {
       }
       setSession(created);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Pembayaran belum bisa dimulai.');
+      const msg = error instanceof Error ? error.message : 'Pembayaran belum bisa dimulai.';
+      // Kalau server menolak karena voucher, reset state kupon
+      if (appliedVoucher && msg.toLowerCase().includes('voucher')) {
+        setAppliedVoucher(null);
+        setVoucherError(msg);
+      }
+      toast.error(msg);
     } finally {
       setIsStarting(false);
     }
   };
+
+  const hasClassItems = items.some((i) => i.type === 'class');
 
   if (isLoading) {
     return (
@@ -264,11 +324,14 @@ function CheckoutContent() {
                       ? item.ebook.title
                       : item.class.title;
                   const cover = isBundle ? null : isEbook ? item.ebook.coverImage : item.class.coverImage;
-                  const price = isBundle
+
+                  const hasVoucher = !isBundle && !isEbook && appliedVoucher && item.class.id === appliedVoucher.classId;
+                  const normalPrice = isBundle
                     ? item.bundle.bundlePrice
                     : isEbook
                       ? (item.ebook.discountPrice ?? item.ebook.price)
                       : (item.class.discountPrice ?? item.class.basePrice);
+                  const displayPrice = hasVoucher ? appliedVoucher!.discountPrice : normalPrice;
 
                   return (
                     <li key={item.id} className="flex gap-3 px-5 py-3.5 items-center">
@@ -291,9 +354,16 @@ function CheckoutContent() {
                               : 'Kelas'}
                         </p>
                       </div>
-                      <span className="text-sm font-semibold text-foreground shrink-0">
-                        {formatPrice(price)}
-                      </span>
+                      <div className="text-right shrink-0">
+                        <span className="text-sm font-semibold text-foreground block">
+                          {formatPrice(displayPrice)}
+                        </span>
+                        {hasVoucher && (
+                          <span className="text-xs text-muted-foreground line-through">
+                            {formatPrice(normalPrice)}
+                          </span>
+                        )}
+                      </div>
                     </li>
                   );
                 })}
@@ -351,6 +421,55 @@ function CheckoutContent() {
               <div className="p-5 space-y-4">
                 <h2 className="text-sm font-semibold text-foreground">Ringkasan</h2>
 
+                {/* Kode Kupon — hanya tampil jika ada kelas satuan di keranjang */}
+                {hasClassItems && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-foreground">Kode Kupon</p>
+                    {appliedVoucher ? (
+                      <div className="flex items-center justify-between rounded-lg border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950 px-3 py-2">
+                        <div className="flex items-center gap-1.5 text-xs text-green-700 dark:text-green-300">
+                          <Tag className="h-3.5 w-3.5" />
+                          <span className="font-medium">{voucherCode.trim().toUpperCase()}</span>
+                          <span>— hemat {formatPrice(savings)}</span>
+                        </div>
+                        <button
+                          onClick={handleRemoveVoucher}
+                          className="text-muted-foreground hover:text-destructive transition-colors"
+                          aria-label="Hapus kupon"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5">
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="Masukkan kode kupon"
+                            value={voucherCode}
+                            onChange={(e) => {
+                              setVoucherCode(e.target.value);
+                              setVoucherError(null);
+                            }}
+                            onKeyDown={(e) => e.key === 'Enter' && void handleApplyVoucher()}
+                            disabled={isValidatingVoucher}
+                            className="h-9 text-sm uppercase"
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-9 shrink-0"
+                            onClick={handleApplyVoucher}
+                            disabled={!voucherCode.trim() || isValidatingVoucher}
+                          >
+                            {isValidatingVoucher ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Pakai'}
+                          </Button>
+                        </div>
+                        {voucherError && <p className="text-xs text-destructive">{voucherError}</p>}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 <div className="flex items-start gap-2.5">
                   <Checkbox
                     id="agree-terms"
@@ -371,8 +490,14 @@ function CheckoutContent() {
                 <div className="space-y-1.5 text-sm">
                   <div className="flex justify-between text-muted-foreground">
                     <span>Subtotal</span>
-                    <span>{formatPrice(subtotal)}</span>
+                    <span>{formatPrice(subtotal + savings)}</span>
                   </div>
+                  {savings > 0 && (
+                    <div className="flex justify-between text-green-600 dark:text-green-400">
+                      <span>Potongan kupon</span>
+                      <span>−{formatPrice(savings)}</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-baseline justify-between">

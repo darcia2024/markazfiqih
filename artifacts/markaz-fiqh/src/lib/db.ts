@@ -783,6 +783,68 @@ export async function validateVoucher(classId: string, code: string): Promise<Vo
   return { valid: true, discountPrice: data.discount_price as number };
 }
 
+// ── Admin CRUD Voucher ────────────────────────────────────────────────────────
+
+export type AdminVoucher = {
+  id: string;
+  classId: string;
+  className: string;
+  code: string;
+  discountPrice: number;
+  isActive: boolean;
+  maxUses: number | null;
+  usedCount: number;
+  createdAt: string;
+};
+
+export async function listAllVouchersForAdmin(): Promise<AdminVoucher[]> {
+  const { data, error } = await supabase
+    .from('class_vouchers')
+    .select('id, class_id, code, discount_price, is_active, max_uses, used_count, created_at, classes(title)')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((v: any) => ({
+    id: v.id,
+    classId: v.class_id,
+    className: (v.classes as any)?.title ?? '—',
+    code: v.code,
+    discountPrice: v.discount_price,
+    isActive: v.is_active,
+    maxUses: v.max_uses,
+    usedCount: v.used_count ?? 0,
+    createdAt: v.created_at,
+  }));
+}
+
+export async function createVoucher(payload: {
+  classId: string;
+  code: string;
+  discountPrice: number;
+  maxUses: number | null;
+}): Promise<void> {
+  const { error } = await supabase.from('class_vouchers').insert({
+    class_id: payload.classId,
+    code: payload.code.trim().toUpperCase(),
+    discount_price: payload.discountPrice,
+    max_uses: payload.maxUses,
+    is_active: true,
+  });
+  if (error) throw error;
+}
+
+export async function updateVoucherActive(id: string, isActive: boolean): Promise<void> {
+  const { error } = await supabase
+    .from('class_vouchers')
+    .update({ is_active: isActive })
+    .eq('id', id);
+  if (error) throw error;
+}
+
+export async function deleteVoucher(id: string): Promise<void> {
+  const { error } = await supabase.from('class_vouchers').delete().eq('id', id);
+  if (error) throw error;
+}
+
 // ─── PROGRESS ─────────────────────────────────────────────────────────────────
 // Catatan skema: tabel `progress` tidak punya kolom `is_completed`.
 // Keberadaan sebuah row berarti dars tersebut sudah selesai (ditandai completed_at).

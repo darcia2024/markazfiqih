@@ -33,6 +33,7 @@ import AdminEbooksPage from '@/pages/admin/AdminEbooksPage';
 import AdminNotificationsPage from '@/pages/admin/AdminNotificationsPage';
 import AdminCertificatesPage from '@/pages/admin/AdminCertificatesPage';
 import AdminCertificateDesignPage from '@/pages/admin/AdminCertificateDesignPage';
+import AdminVouchersPage from '@/pages/admin/AdminVouchersPage';
 import CertificatePage from '@/pages/CertificatePage';
 import InstructorsPage from '@/pages/InstructorsPage';
 import InstructorDetailPage from '@/pages/InstructorDetailPage';
@@ -113,6 +114,9 @@ function Router() {
       </Route>
       <Route path="/admin/certificate-design">
         {() => <RequireAdminRoute><AdminCertificateDesignPage /></RequireAdminRoute>}
+      </Route>
+      <Route path="/admin/vouchers">
+        {() => <RequireAdminRoute><AdminVouchersPage /></RequireAdminRoute>}
       </Route>
       <Route component={NotFound} />
     </Switch>
