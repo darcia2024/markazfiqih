@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Loader2, ShieldCheck, ExternalLink, CheckCircle2, X } from 'lucide-react';
+import { Loader2, ShieldCheck, ExternalLink, CheckCircle2, X, WifiOff } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { getPaymentStatus, type PaymentStatus } from '@/lib/payments';
@@ -12,15 +12,16 @@ import { formatPrice } from '@/pages/CatalogPage';
 // pembayaran Mayar tampil di dalam panel ini, dengan rangka, warna, dan status
 // milik kita sendiri.
 //
-// Kalau Mayar menolak ditampilkan di dalam frame (header X-Frame-Options),
-// panel otomatis pindah ke mode jendela terpisah — tab utama tetap di situs
-// kita dan tetap memantau status.
+// Kalau timeout terlewati, panel menampilkan pesan koneksi lambat + tombol
+// "Buka di jendela terpisah" — iframe tetap berusaha memuat di belakang.
+// Kalau iframe akhirnya selesai, pesan disembunyikan otomatis.
 //
-// Atur lewat env: VITE_MAYAR_EMBED=false → langsung pakai mode jendela.
+// Atur lewat env: VITE_MAYAR_EMBED=false → langsung pakai mode jendela
+// (dengan tombol yang harus diklik user — tidak auto-open).
 // ─────────────────────────────────────────────────────────────────────────────
 
 const EMBED_ENABLED = import.meta.env.VITE_MAYAR_EMBED !== 'false';
-const IFRAME_TIMEOUT_MS = 8000;
+const IFRAME_TIMEOUT_MS = 25_000;
 
 type Props = {
   invoiceId: string;
@@ -60,8 +61,12 @@ export function PaymentSheet({
   onPaid,
   onClose,
 }: Props) {
+  // 'embed'  → iframe di dalam panel
+  // 'window' → jendela terpisah, panel menunggu status
   const [mode, setMode] = useState<'embed' | 'window'>(EMBED_ENABLED ? 'embed' : 'window');
   const [frameReady, setFrameReady] = useState(false);
+  const [slowConn, setSlowConn] = useState(false); // timeout terlewati, koneksi lambat
+  const startedAtRef = useRef(Date.now());
   const popupRef = useRef<Window | null>(null);
   const countdown = useCountdown(expiresAt);
 
@@ -81,25 +86,39 @@ export function PaymentSheet({
     }
   }, [status, onPaid]);
 
-  // Beberapa penyedia menolak ditampilkan di dalam frame. Kalau iframe tidak
-  // pernah selesai memuat, pindah ke mode jendela tanpa perlu user bingung.
+  // Timeout: setelah IFRAME_TIMEOUT_MS tampilkan pesan koneksi lambat,
+  // tapi JANGAN pindah ke mode window dan JANGAN auto-open popup.
   useEffect(() => {
     if (mode !== 'embed') return;
     const id = setTimeout(() => {
-      if (!frameReady) setMode('window');
+      if (!frameReady) {
+        console.info('[PaymentSheet] iframe timeout: batas tunggu terlewati, koneksi mungkin lambat');
+        setSlowConn(true);
+      }
     }, IFRAME_TIMEOUT_MS);
     return () => clearTimeout(id);
   }, [mode, frameReady]);
 
   const openWindow = () => {
+    console.info('[PaymentSheet] user memilih buka di jendela terpisah');
     popupRef.current = window.open(paymentUrl, 'mayar-payment', 'width=480,height=760,noopener');
-    if (!popupRef.current) window.location.href = paymentUrl; // popup diblokir browser
+    // popup diblokir browser — tidak redirect paksa, cukup biarkan user coba lagi
+    if (!popupRef.current) {
+      console.info('[PaymentSheet] popup diblokir browser — tidak ada redirect paksa');
+    }
   };
 
-  useEffect(() => {
-    if (mode === 'window') openWindow();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode]);
+  const handleOpenWindow = () => {
+    setMode('window');
+    openWindow();
+  };
+
+  const handleFrameLoad = () => {
+    const elapsed = Date.now() - startedAtRef.current;
+    console.info(`[PaymentSheet] iframe berhasil dimuat dalam ${elapsed} ms`);
+    setFrameReady(true);
+    setSlowConn(false); // kalau lambat lalu akhirnya muat, sembunyikan pesan
+  };
 
   const isPaid = status?.status === 'paid';
 
@@ -144,34 +163,78 @@ export function PaymentSheet({
             </div>
           ) : mode === 'embed' ? (
             <>
+              {/* Overlay loading / pesan koneksi lambat — tampil selama iframe belum siap */}
               {!frameReady && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary/60" />
-                  <p className="text-sm text-muted-foreground">Menyiapkan metode pembayaran…</p>
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-8 text-center z-10 bg-background">
+                  {slowConn ? (
+                    <>
+                      <WifiOff className="h-7 w-7 text-muted-foreground" />
+                      <div>
+                        <p className="font-semibold text-foreground">
+                          Metode pembayaran lama dimuat.
+                        </p>
+                        <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                          Koneksi kamu mungkin sedang lambat. Halaman pembayaran masih dicoba
+                          dimuat di belakang.
+                        </p>
+                      </div>
+                      <Button size="sm" variant="outline" onClick={handleOpenWindow}>
+                        <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                        Buka di jendela terpisah
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Loader2 className="h-6 w-6 animate-spin text-primary/60" />
+                      <p className="text-sm text-muted-foreground">Menyiapkan metode pembayaran…</p>
+                    </>
+                  )}
                 </div>
               )}
+              {/* iframe tetap terpasang — terus berusaha memuat walau timeout */}
               <iframe
                 src={paymentUrl}
                 title="Pembayaran"
-                onLoad={() => setFrameReady(true)}
+                onLoad={handleFrameLoad}
                 allow="payment *"
                 className="w-full h-[480px] border-0"
               />
             </>
           ) : (
+            /* Mode jendela terpisah */
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-8 gap-4">
-              <Loader2 className="h-7 w-7 animate-spin text-primary/60" />
-              <div>
-                <p className="font-semibold text-foreground">Menunggu pembayaran</p>
-                <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
-                  Selesaikan pembayaran di jendela yang terbuka. Halaman ini akan berpindah sendiri
-                  begitu pembayaran masuk.
-                </p>
-              </div>
-              <Button variant="outline" size="sm" onClick={openWindow}>
-                <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
-                Buka lagi jendela pembayaran
-              </Button>
+              {popupRef.current ? (
+                <>
+                  <Loader2 className="h-7 w-7 animate-spin text-primary/60" />
+                  <div>
+                    <p className="font-semibold text-foreground">Menunggu pembayaran</p>
+                    <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                      Selesaikan pembayaran di jendela yang terbuka. Halaman ini akan berpindah
+                      sendiri begitu pembayaran masuk.
+                    </p>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={openWindow}>
+                    <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                    Buka lagi jendela pembayaran
+                  </Button>
+                </>
+              ) : (
+                /* VITE_MAYAR_EMBED=false → belum ada popup, minta user klik */
+                <>
+                  <ExternalLink className="h-7 w-7 text-primary/60" />
+                  <div>
+                    <p className="font-semibold text-foreground">Buka halaman pembayaran</p>
+                    <p className="text-sm text-muted-foreground mt-1 leading-relaxed">
+                      Klik tombol di bawah untuk membuka jendela pembayaran. Halaman ini akan
+                      berpindah sendiri begitu pembayaran masuk.
+                    </p>
+                  </div>
+                  <Button size="sm" onClick={openWindow}>
+                    <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+                    Buka jendela pembayaran
+                  </Button>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -184,7 +247,7 @@ export function PaymentSheet({
           </p>
           {mode === 'embed' && !isPaid && (
             <button
-              onClick={() => setMode('window')}
+              onClick={handleOpenWindow}
               className="text-xs text-primary underline underline-offset-2 hover:text-primary/80 shrink-0"
             >
               Buka di jendela terpisah

@@ -1,0 +1,33 @@
+# Perbaiki PaymentSheet: jangan buru-buru pindah ke jendela terpisah
+
+## Konteks
+
+Komponen `artifacts/markaz-fiqh/src/components/PaymentSheet.tsx` menampilkan halaman pembayaran Mayar lewat iframe di dalam panel (mode `embed`). Kalau iframe belum selesai memuat dalam 8 detik (`IFRAME_TIMEOUT_MS = 8000`), komponen otomatis pindah ke mode `window` (buka jendela terpisah).
+
+Masalahnya: 8 detik terlalu ketat. Banyak user mengakses dari luar Indonesia dengan latensi tinggi, jadi embed yang sebenarnya berfungsi malah keburu ditinggal, dan user kehilangan pengalaman memilih QRIS/metode lain langsung di dalam panel.
+
+Sudah diverifikasi lewat DevTools bahwa Mayar TIDAK memblokir iframe (tidak ada error X-Frame-Options / frame-ancestors) — murni soal waktu muat.
+
+## Ubah HANYA file `PaymentSheet.tsx`. Perilaku yang diinginkan:
+
+1. Naikkan batas tunggu iframe dari 8 detik menjadi 25 detik.
+2. Saat batas tunggu terlewati, JANGAN langsung auto-pindah ke mode jendela dan JANGAN auto-`window.open`. Sebagai gantinya, biarkan iframe tetap terpasang dan terus mencoba memuat di belakang, lalu di area loading tampilkan pesan + tombol:
+   - Pesan: "Metode pembayaran lama dimuat. Koneksi kamu mungkin sedang lambat."
+   - Tombol: "Buka di jendela terpisah" → baru di sinilah pindah ke mode `window` dan panggil `openWindow()`. Karena dipicu klik user (user gesture), popup tidak akan diblokir browser.
+   - Kalau iframe akhirnya selesai memuat (onLoad) setelah pesan itu tampil, sembunyikan pesannya dan tampilkan iframe seperti biasa.
+3. `window.open` tidak boleh lagi dipanggil dari `useEffect` tanpa gesture user, KECUALI untuk kasus `VITE_MAYAR_EMBED === 'false'` — untuk kasus itu, tampilkan mode jendela dengan tombol "Buka jendela pembayaran" yang harus diklik user sekali (jangan auto-open), supaya tidak kena popup blocker yang berujung `window.location.href` melempar user keluar dari situs.
+4. Tambahkan `console.info` ringan di tiga titik supaya gampang didiagnosis ke depannya: (a) iframe berhasil load (sertakan durasi ms), (b) batas tunggu terlewati, (c) user memilih pindah ke jendela terpisah.
+5. Tombol "Buka di jendela terpisah" yang sudah ada di footer tetap dipertahankan.
+
+## Jangan diubah
+
+- Logic polling status pembayaran (`getPaymentStatus` + react-query) dan perilaku `onPaid` — biarkan persis seperti sekarang.
+- Semua file lain, termasuk `supabase/functions/` dan `CheckoutPage.tsx`.
+- Jangan menambahkan trik apa pun untuk memaksa halaman yang menolak di-frame agar tampil di iframe.
+
+## Uji
+
+1. Jaringan normal → metode pembayaran (QRIS dll) tampil di dalam panel seperti biasa.
+2. Simulasikan koneksi lambat (DevTools → Network → throttling "Slow 3G") → setelah ±25 detik muncul pesan + tombol, iframe tetap berusaha memuat; kalau selesai memuat, panel kembali normal tanpa perlu klik apa pun.
+3. Klik "Buka di jendela terpisah" → jendela popup terbuka (tidak diblokir), panel utama menampilkan status menunggu, dan setelah pembayaran sukses panel berpindah sendiri ke status berhasil.
+4. Set `VITE_MAYAR_EMBED=false` → panel langsung mode jendela dengan tombol yang harus diklik, tanpa redirect paksa keluar situs. Kembalikan env seperti semula setelah uji.
