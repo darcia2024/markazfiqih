@@ -29,7 +29,7 @@ const NAV_ITEMS = [
   { title: 'Atur Tata Letak Katalog', url: '/admin/catalog-layout', icon: LayoutGrid },
   { title: 'Manajemen Pengajar', url: '/admin/instructors', icon: UserCog },
   { title: 'Pesanan', url: '/admin/orders', icon: Receipt },
-  { title: 'Kode Kupon', url: '/admin/vouchers', icon: Ticket },
+  { title: 'Akses Khusus', url: '/admin/vouchers', icon: Ticket },
   { title: 'Sertifikat', url: '/admin/certificates', icon: Award },
   { title: 'Tampilan Sertifikat', url: '/admin/certificate-design', icon: Palette },
   { title: 'Testimoni', url: '/admin/testimonials', icon: MessageSquareQuote },

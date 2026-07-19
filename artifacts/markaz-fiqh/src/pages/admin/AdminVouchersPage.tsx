@@ -99,7 +99,7 @@ export default function AdminVouchersPage() {
     mutationFn: (payload: Parameters<typeof createVoucher>[0]) => createVoucher(payload),
     onSuccess: () => {
       invalidateVouchers();
-      toast({ title: 'Kupon berhasil dibuat' });
+      toast({ title: 'Kode akses khusus berhasil dibuat' });
       setDialogOpen(false);
     },
     onError: (err: Error) => {
@@ -108,11 +108,11 @@ export default function AdminVouchersPage() {
       if (msg.includes('unique') || msg.includes('duplicate') || msg.includes('23505')) {
         toast({
           title: 'Kode sudah dipakai',
-          description: 'Kode kupon ini sudah ada untuk kelas yang dipilih. Gunakan kode lain.',
+          description: 'Kode akses khusus ini sudah ada untuk kelas yang dipilih. Gunakan kode lain.',
           variant: 'destructive',
         });
       } else {
-        toast({ title: 'Gagal membuat kupon', description: msg, variant: 'destructive' });
+        toast({ title: 'Gagal membuat kode akses khusus', description: msg, variant: 'destructive' });
       }
     },
   });
@@ -122,7 +122,7 @@ export default function AdminVouchersPage() {
       updateVoucherActive(id, isActive),
     onSuccess: () => invalidateVouchers(),
     onError: (err: Error) => {
-      toast({ title: 'Gagal mengubah status kupon', description: err.message, variant: 'destructive' });
+      toast({ title: 'Gagal mengubah status kode', description: err.message, variant: 'destructive' });
     },
   });
 
@@ -130,11 +130,11 @@ export default function AdminVouchersPage() {
     mutationFn: (id: string) => deleteVoucher(id),
     onSuccess: () => {
       invalidateVouchers();
-      toast({ title: 'Kupon berhasil dihapus' });
+      toast({ title: 'Kode akses khusus berhasil dihapus' });
       setDeleteTarget(null);
     },
     onError: (err: Error) => {
-      toast({ title: 'Gagal menghapus kupon', description: err.message, variant: 'destructive' });
+      toast({ title: 'Gagal menghapus kode akses khusus', description: err.message, variant: 'destructive' });
       setDeleteTarget(null);
     },
   });
@@ -165,7 +165,7 @@ export default function AdminVouchersPage() {
       const normal = selectedClass.discountPrice ?? selectedClass.basePrice;
       if (disc >= normal) {
         setFormWarning(
-          `Harga kupon (${formatPrice(disc)}) lebih besar atau sama dengan harga normal kelas (${formatPrice(normal)}). Kupon tetap bisa dibuat, tapi pastikan ini disengaja.`,
+          `Harga akses khusus (${formatPrice(disc)}) lebih besar atau sama dengan harga normal kelas (${formatPrice(normal)}). Kode tetap bisa dibuat, tapi pastikan ini disengaja.`,
         );
       } else {
         setFormWarning(null);
@@ -182,12 +182,12 @@ export default function AdminVouchersPage() {
       return;
     }
     if (!form.code.trim()) {
-      toast({ title: 'Kode kupon wajib diisi', variant: 'destructive' });
+      toast({ title: 'Kode akses khusus wajib diisi', variant: 'destructive' });
       return;
     }
     const discountPrice = Number(form.discountPrice);
     if (isNaN(discountPrice) || discountPrice < 0) {
-      toast({ title: 'Harga kupon harus berupa angka ≥ 0', variant: 'destructive' });
+      toast({ title: 'Harga akses khusus harus berupa angka ≥ 0', variant: 'destructive' });
       return;
     }
     const maxUses = form.maxUses.trim() ? Number(form.maxUses) : null;
@@ -208,14 +208,14 @@ export default function AdminVouchersPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h2 className="font-serif text-2xl font-bold text-foreground">Kode Kupon</h2>
+            <h2 className="font-serif text-2xl font-bold text-foreground">Akses Khusus</h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Kelola kode kupon per kelas — satu kode berlaku untuk satu kelas satuan.
+              Kelola kode akses khusus per kelas — satu kode berlaku untuk satu kelas satuan.
             </p>
           </div>
           <Button onClick={openCreateDialog}>
             <Plus className="h-4 w-4 mr-2" />
-            Buat Kupon
+            Buat Kode
           </Button>
         </div>
 
@@ -225,16 +225,16 @@ export default function AdminVouchersPage() {
             {vouchersQuery.isLoading ? (
               <div className="flex items-center justify-center py-12 text-muted-foreground">
                 <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                Memuat data kupon...
+                Memuat data akses khusus...
               </div>
             ) : vouchersQuery.isError ? (
               <div className="text-center text-sm text-destructive py-8">
-                Gagal memuat data kupon dari server.
+                Gagal memuat data akses khusus dari server.
               </div>
             ) : vouchers.length === 0 ? (
               <div className="text-center py-16 text-muted-foreground">
                 <Ticket className="h-10 w-10 mx-auto mb-3 opacity-30" />
-                <p className="text-sm">Belum ada kupon. Klik "Buat Kupon" untuk membuat yang pertama.</p>
+                <p className="text-sm">Belum ada kode akses khusus. Klik "Buat Kode" untuk membuat yang pertama.</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -243,7 +243,7 @@ export default function AdminVouchersPage() {
                     <TableRow>
                       <TableHead>Kode</TableHead>
                       <TableHead>Kelas</TableHead>
-                      <TableHead>Harga Kupon</TableHead>
+                      <TableHead>Harga Akses Khusus</TableHead>
                       <TableHead>Pemakaian</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Dibuat</TableHead>
@@ -275,7 +275,7 @@ export default function AdminVouchersPage() {
                                 toggleActiveMutation.mutate({ id: v.id, isActive: checked })
                               }
                               disabled={toggleActiveMutation.isPending}
-                              aria-label={v.isActive ? 'Nonaktifkan kupon' : 'Aktifkan kupon'}
+                              aria-label={v.isActive ? 'Nonaktifkan kode' : 'Aktifkan kode'}
                             />
                             <Badge variant={v.isActive ? 'success' : 'neutral'}>
                               {v.isActive ? 'Aktif' : 'Nonaktif'}
@@ -310,12 +310,12 @@ export default function AdminVouchersPage() {
         </Card>
       </div>
 
-      {/* ── Dialog Form Buat Kupon ── */}
+      {/* ── Dialog Form Buat Kode Akses Khusus ── */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg">
           <form onSubmit={handleSubmit}>
             <DialogHeader>
-              <DialogTitle>Buat Kupon Baru</DialogTitle>
+              <DialogTitle>Buat Kode Akses Khusus</DialogTitle>
             </DialogHeader>
 
             <div className="space-y-4 py-4">
@@ -345,9 +345,9 @@ export default function AdminVouchersPage() {
                 )}
               </div>
 
-              {/* Kode Kupon */}
+              {/* Kode Akses Khusus */}
               <div className="space-y-2">
-                <Label htmlFor="voucher-code">Kode Kupon</Label>
+                <Label htmlFor="voucher-code">Kode Akses Khusus</Label>
                 <Input
                   id="voucher-code"
                   placeholder="Contoh: RAMADAN25"
@@ -361,7 +361,7 @@ export default function AdminVouchersPage() {
                 </p>
               </div>
 
-              {/* Harga Kupon */}
+              {/* Harga Akses Khusus */}
               <div className="space-y-2">
                 <Label htmlFor="voucher-price">Harga Khusus (Rp)</Label>
                 <Input
@@ -374,7 +374,7 @@ export default function AdminVouchersPage() {
                   required
                 />
                 <p className="text-xs text-muted-foreground">
-                  Ini adalah harga final yang dibayar pemegang kupon — bukan persentase potongan.
+                  Ini adalah harga final yang dibayar pemegang kode akses khusus — bukan persentase potongan.
                   Isi 0 untuk kelas gratis.
                 </p>
                 {formWarning && (
@@ -405,7 +405,7 @@ export default function AdminVouchersPage() {
               </Button>
               <Button type="submit" disabled={isSaving}>
                 {isSaving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Buat Kupon
+                Buat Kode
               </Button>
             </DialogFooter>
           </form>
@@ -416,9 +416,9 @@ export default function AdminVouchersPage() {
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Hapus Kupon?</AlertDialogTitle>
+            <AlertDialogTitle>Hapus Kode Akses Khusus?</AlertDialogTitle>
             <AlertDialogDescription>
-              Kupon <strong className="font-mono">{deleteTarget?.code}</strong> untuk kelas{' '}
+              Kode <strong className="font-mono">{deleteTarget?.code}</strong> untuk kelas{' '}
               <strong>"{deleteTarget?.className}"</strong> akan dihapus secara permanen.
               Tindakan ini tidak dapat dibatalkan.
             </AlertDialogDescription>

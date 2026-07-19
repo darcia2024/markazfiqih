@@ -140,9 +140,9 @@ function CheckoutContent() {
           return;
         }
       }
-      setVoucherError('Kode ini tidak berlaku untuk kelas di keranjang kamu.');
+      setVoucherError('Kode akses khusus ini tidak berlaku untuk kelas di keranjang kamu.');
     } catch {
-      setVoucherError('Kode gagal diperiksa. Coba lagi.');
+      setVoucherError('Kode akses khusus gagal diperiksa. Coba lagi.');
     } finally {
       setIsValidatingVoucher(false);
     }
@@ -421,10 +421,10 @@ function CheckoutContent() {
               <div className="p-5 space-y-4">
                 <h2 className="text-sm font-semibold text-foreground">Ringkasan</h2>
 
-                {/* Kode Kupon — hanya tampil jika ada kelas satuan di keranjang */}
+                {/* Akses Khusus — hanya tampil jika ada kelas satuan di keranjang */}
                 {hasClassItems && (
                   <div className="space-y-2">
-                    <p className="text-xs font-medium text-foreground">Kode Kupon</p>
+                    <p className="text-xs font-medium text-foreground">Akses Khusus</p>
                     {appliedVoucher ? (
                       <div className="flex items-center justify-between rounded-lg border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950 px-3 py-2">
                         <div className="flex items-center gap-1.5 text-xs text-green-700 dark:text-green-300">
@@ -435,7 +435,7 @@ function CheckoutContent() {
                         <button
                           onClick={handleRemoveVoucher}
                           className="text-muted-foreground hover:text-destructive transition-colors"
-                          aria-label="Hapus kupon"
+                          aria-label="Hapus kode akses khusus"
                         >
                           <X className="h-3.5 w-3.5" />
                         </button>
@@ -444,7 +444,7 @@ function CheckoutContent() {
                       <div className="space-y-1.5">
                         <div className="flex gap-2">
                           <Input
-                            placeholder="Masukkan kode kupon"
+                            placeholder="Masukkan kode akses khusus"
                             value={voucherCode}
                             onChange={(e) => {
                               setVoucherCode(e.target.value);
@@ -494,7 +494,7 @@ function CheckoutContent() {
                   </div>
                   {savings > 0 && (
                     <div className="flex justify-between text-green-600 dark:text-green-400">
-                      <span>Potongan kupon</span>
+                      <span>Potongan akses khusus</span>
                       <span>−{formatPrice(savings)}</span>
                     </div>
                   )}
