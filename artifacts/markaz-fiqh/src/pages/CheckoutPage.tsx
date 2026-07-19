@@ -424,7 +424,7 @@ function CheckoutContent() {
                 {/* Akses Khusus — hanya tampil jika ada kelas satuan di keranjang */}
                 {hasClassItems && (
                   <div className="space-y-2">
-                    <p className="text-xs font-medium text-foreground">Akses Khusus</p>
+                    <p className="text-xs font-medium text-foreground">Punya Akses Khusus? Masukkan disini :</p>
                     {appliedVoucher ? (
                       <div className="flex items-center justify-between rounded-lg border border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950 px-3 py-2">
                         <div className="flex items-center gap-1.5 text-xs text-green-700 dark:text-green-300">
