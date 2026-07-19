@@ -384,7 +384,7 @@ export default function AdminVouchersPage() {
                     <SelectTrigger id="voucher-class">
                       <SelectValue placeholder="Pilih kelas" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="max-h-64 overflow-y-auto">
                       {classes.map((c) => (
                         <SelectItem key={c.id} value={c.id}>
                           {c.title}
