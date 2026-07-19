@@ -20,6 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -39,7 +40,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Plus, Trash2, Loader2, Ticket, AlertTriangle } from 'lucide-react';
+import { Plus, Trash2, Loader2, Ticket, AlertTriangle, ShieldAlert } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { formatPrice } from '@/pages/CatalogPage';
 import {
@@ -47,6 +48,7 @@ import {
   createVoucher,
   updateVoucherActive,
   deleteVoucher,
+  checkVoucherHasInvoices,
   listClasses,
   type AdminVoucher,
 } from '@/lib/db';
@@ -66,6 +68,11 @@ const EMPTY_FORM: VoucherFormState = {
   maxUses: '',
 };
 
+const isFkError = (msg: string) =>
+  msg.includes('invoices_voucher_id_fkey') ||
+  msg.includes('foreign key') ||
+  msg.includes('violates');
+
 // ─── Komponen utama ───────────────────────────────────────────────────────────
 export default function AdminVouchersPage() {
   const { toast } = useToast();
@@ -74,7 +81,13 @@ export default function AdminVouchersPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState<VoucherFormState>(EMPTY_FORM);
   const [formWarning, setFormWarning] = useState<string | null>(null);
+
+  // hapus normal
   const [deleteTarget, setDeleteTarget] = useState<AdminVoucher | null>(null);
+  // hapus diblokir FK → tunjukkan dialog ramah
+  const [blockedVoucher, setBlockedVoucher] = useState<AdminVoucher | null>(null);
+  // loading per baris saat mengecek invoice sebelum konfirmasi hapus
+  const [checkingId, setCheckingId] = useState<string | null>(null);
 
   // ─── Queries ───────────────────────────────────────────────────────────────
   const vouchersQuery = useQuery({
@@ -103,7 +116,6 @@ export default function AdminVouchersPage() {
       setDialogOpen(false);
     },
     onError: (err: Error) => {
-      // Tangani pelanggaran unique constraint (kode sama + kelas sama)
       const msg = err?.message ?? '';
       if (msg.includes('unique') || msg.includes('duplicate') || msg.includes('23505')) {
         toast({
@@ -134,10 +146,48 @@ export default function AdminVouchersPage() {
       setDeleteTarget(null);
     },
     onError: (err: Error) => {
-      toast({ title: 'Gagal menghapus kode akses khusus', description: err.message, variant: 'destructive' });
+      const msg = err?.message ?? '';
+      // Fallback: FK error lolos dari pre-check (race condition) → tunjukkan dialog ramah
+      if (isFkError(msg) && deleteTarget) {
+        setBlockedVoucher(deleteTarget);
+      } else {
+        toast({ title: 'Gagal menghapus kode akses khusus', description: msg, variant: 'destructive' });
+      }
       setDeleteTarget(null);
     },
   });
+
+  const deactivateMutation = useMutation({
+    mutationFn: (id: string) => updateVoucherActive(id, false),
+    onSuccess: () => {
+      invalidateVouchers();
+      toast({ title: 'Kode berhasil dinonaktifkan — tidak akan bisa dipakai untuk pembelian baru.' });
+      setBlockedVoucher(null);
+    },
+    onError: (err: Error) => {
+      toast({ title: 'Gagal menonaktifkan kode', description: err.message, variant: 'destructive' });
+    },
+  });
+
+  // ─── Handler tombol hapus (dengan pre-check invoice) ───────────────────────
+  async function handleDeleteClick(v: AdminVoucher) {
+    setCheckingId(v.id);
+    try {
+      // Sinyal cepat: sudah pernah dipakai berdasarkan used_count,
+      // tapi tetap cek invoices karena pending/expired juga memblokir.
+      const hasInvoices = await checkVoucherHasInvoices(v.id);
+      if (hasInvoices) {
+        setBlockedVoucher(v);
+      } else {
+        setDeleteTarget(v);
+      }
+    } catch {
+      // Kalau cek gagal, lanjutkan konfirmasi hapus biasa — fallback FK ada di onError
+      setDeleteTarget(v);
+    } finally {
+      setCheckingId(null);
+    }
+  }
 
   // ─── Form helpers ──────────────────────────────────────────────────────────
   function openCreateDialog() {
@@ -157,8 +207,6 @@ export default function AdminVouchersPage() {
 
   function handleDiscountPriceChange(value: string) {
     setForm((p) => ({ ...p, discountPrice: value }));
-
-    // Periksa apakah harga ≥ harga normal kelas
     const selectedClass = classes.find((c) => c.id === form.classId);
     if (selectedClass && value) {
       const disc = Number(value);
@@ -195,7 +243,6 @@ export default function AdminVouchersPage() {
       toast({ title: 'Batas pemakaian harus berupa angka ≥ 1, atau kosongkan untuk tanpa batas', variant: 'destructive' });
       return;
     }
-
     createMutation.mutate({ classId: form.classId, code: form.code, discountPrice, maxUses });
   }
 
@@ -295,9 +342,15 @@ export default function AdminVouchersPage() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => setDeleteTarget(v)}
+                            onClick={() => handleDeleteClick(v)}
+                            disabled={checkingId === v.id}
+                            aria-label="Hapus kode"
                           >
-                            <Trash2 className="h-4 w-4 text-destructive" />
+                            {checkingId === v.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                            ) : (
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            )}
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -412,7 +465,7 @@ export default function AdminVouchersPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── AlertDialog Konfirmasi Hapus ── */}
+      {/* ── AlertDialog Konfirmasi Hapus (kupon belum pernah dipakai) ── */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -435,6 +488,49 @@ export default function AdminVouchersPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* ── Dialog Kode Dipakai di Transaksi — tidak bisa dihapus permanen ── */}
+      <Dialog open={!!blockedVoucher} onOpenChange={(open) => !open && setBlockedVoucher(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ShieldAlert className="h-5 w-5 text-amber-500 shrink-0" />
+              Kode tidak bisa dihapus permanen
+            </DialogTitle>
+            <DialogDescription className="leading-relaxed pt-1">
+              Kode <strong className="font-mono">{blockedVoucher?.code}</strong> sudah tercatat di
+              transaksi, jadi tidak bisa dihapus permanen supaya riwayat pembelian tetap utuh.
+              {blockedVoucher?.isActive ? (
+                <span className="block mt-2">
+                  Kamu bisa <strong>menonaktifkannya</strong> — kode langsung berhenti berlaku
+                  untuk pembelian baru, tapi riwayat transaksi tetap terjaga.
+                </span>
+              ) : (
+                <span className="block mt-2">
+                  Kode ini sudah <strong>nonaktif</strong> dan tidak bisa dipakai untuk pembelian
+                  baru.
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col-reverse sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setBlockedVoucher(null)}>
+              Tutup
+            </Button>
+            {blockedVoucher?.isActive && (
+              <Button
+                onClick={() => blockedVoucher && deactivateMutation.mutate(blockedVoucher.id)}
+                disabled={deactivateMutation.isPending}
+              >
+                {deactivateMutation.isPending && (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                )}
+                Nonaktifkan kode
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }

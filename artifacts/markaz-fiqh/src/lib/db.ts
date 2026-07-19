@@ -845,6 +845,17 @@ export async function deleteVoucher(id: string): Promise<void> {
   if (error) throw error;
 }
 
+/** Cek apakah kupon pernah/masih direferensikan oleh invoice mana pun.
+ *  Cukup ambil keberadaan 1 baris — tidak perlu menarik semua data. */
+export async function checkVoucherHasInvoices(voucherId: string): Promise<boolean> {
+  const { count, error } = await supabase
+    .from('invoices')
+    .select('id', { count: 'exact', head: true })
+    .eq('voucher_id', voucherId);
+  if (error) throw error;
+  return (count ?? 0) > 0;
+}
+
 // ─── PROGRESS ─────────────────────────────────────────────────────────────────
 // Catatan skema: tabel `progress` tidak punya kolom `is_completed`.
 // Keberadaan sebuah row berarti dars tersebut sudah selesai (ditandai completed_at).

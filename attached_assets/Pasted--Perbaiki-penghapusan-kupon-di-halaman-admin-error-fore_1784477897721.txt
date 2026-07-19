@@ -1,0 +1,31 @@
+# Perbaiki penghapusan kupon di halaman admin (error foreign key)
+
+## Konteks
+
+Di halaman admin pengelolaan kupon ("kode akses khusus"), menghapus kupon yang sudah pernah dipakai di transaksi gagal dengan error Postgres mentah:
+
+`update or delete on table "class_vouchers" violates foreign key constraint "invoices_voucher_id_fkey" on table "invoices"`
+
+Penyebab: kolom `invoices.voucher_id` ber-foreign key ke `class_vouchers.id` dengan aturan default (NO ACTION), jadi kupon yang masih direferensikan invoice mana pun (paid/pending/expired) tidak bisa dihapus. Ini perilaku yang BENAR dan kita pertahankan — riwayat transaksi harus tetap bisa menunjuk kupon yang dipakainya. Yang salah adalah UX-nya: error mentah tampil ke admin.
+
+## Ubah HANYA halaman admin kupon (komponen "kode akses khusus"). Jangan sentuh database, migrasi, edge functions, atau alur checkout.
+
+Perilaku yang diinginkan:
+
+1. Saat admin menekan tombol hapus sebuah kupon, cek dulu apakah kupon itu pernah dipakai:
+   - Query ringan ke tabel `invoices`: adakah baris dengan `voucher_id` = id kupon tersebut (cukup cek keberadaan 1 baris, jangan tarik semua).
+   - Sebagai sinyal cepat tambahan, `used_count > 0` juga pasti berarti pernah dipakai — tapi tetap lakukan cek ke `invoices`, karena invoice pending/expired juga memblokir penghapusan meskipun `used_count` masih 0.
+2. Jika PERNAH dipakai / masih direferensikan:
+   - Jangan jalankan delete sama sekali.
+   - Tampilkan dialog dengan pesan ramah, misalnya: "Kode ini sudah tercatat di transaksi, jadi tidak bisa dihapus permanen supaya riwayat pembelian tetap utuh. Kamu bisa menonaktifkannya — kode langsung berhenti berlaku untuk pembelian baru."
+   - Sediakan tombol aksi utama "Nonaktifkan kode" (set `is_active = false`) dan tombol batal. Jika kupon sudah nonaktif, cukup informasikan bahwa kode sudah nonaktif dan tidak bisa dihapus permanen.
+3. Jika BELUM pernah dipakai: lanjutkan alur hapus dengan konfirmasi seperti biasa.
+4. Fallback: jika delete tetap dijalankan dan Postgres membalas error foreign key `invoices_voucher_id_fkey` (mis. ada transaksi masuk di sela-sela pengecekan), tangkap error itu dan tampilkan pesan ramah yang sama seperti poin 2 — error Postgres mentah tidak boleh pernah tampil ke admin.
+5. Di tabel daftar kupon, kupon nonaktif tetap tampil dengan badge status "Nonaktif" (kalau belum ada).
+
+## Uji
+
+1. Hapus kupon yang belum pernah dipakai → terhapus normal.
+2. Hapus kupon yang sudah dipakai di invoice paid → dialog ramah muncul, aksi "Nonaktifkan" berfungsi, tidak ada error mentah.
+3. Hapus kupon yang hanya nyangkut di invoice pending/expired (used_count masih 0) → tetap diarahkan ke nonaktifkan, bukan error.
+4. Kupon yang dinonaktifkan → ditolak saat dipakai di checkout (perilaku server yang sudah ada), dan tampil berstatus Nonaktif di daftar admin.
