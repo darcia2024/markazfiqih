@@ -47,14 +47,28 @@ export function Navbar({ variant = 'default' }: NavbarProps) {
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="relative flex h-16 items-center justify-between">
-          {/* Logo — kiri */}
-          <Link href="/" className="flex items-center transition-opacity hover:opacity-90">
-            <img
-              src="/logo.png"
-              alt="Markaz Fiqih"
-              className={`h-10 w-auto${isDark ? ' brightness-0 invert' : ''}`}
-            />
-          </Link>
+          {/* Kiri: hamburger (mobile) + logo */}
+          <div className="flex items-center gap-1">
+            {/* Hamburger — hanya tampil di mobile, di KIRI sesuai posisi sidebar */}
+            <motion.button
+              className="md:hidden flex items-center justify-center h-9 w-9 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-friendly"
+              onClick={() => setMobileMenuOpen((v) => !v)}
+              aria-label={mobileMenuOpen ? 'Tutup menu' : 'Buka menu'}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ duration: 0.15 }}
+            >
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </motion.button>
+
+            <Link href="/" className="flex items-center transition-opacity hover:opacity-90">
+              <img
+                src="/logo.png"
+                alt="Markaz Fiqih"
+                className={`h-10 w-auto${isDark ? ' brightness-0 invert' : ''}`}
+              />
+            </Link>
+          </div>
 
           {/* Menu desktop — center absolut (tersembunyi di mobile) */}
           <nav className="hidden md:flex items-center gap-6 absolute left-1/2 -translate-x-1/2">
@@ -65,7 +79,7 @@ export function Navbar({ variant = 'default' }: NavbarProps) {
             ))}
           </nav>
 
-          {/* Kanan: cart + avatar/masuk + hamburger */}
+          {/* Kanan: cart + avatar/masuk */}
           <div className="flex items-center gap-2 sm:gap-4">
             {!isLoading && user && (
               <Link
@@ -156,17 +170,6 @@ export function Navbar({ variant = 'default' }: NavbarProps) {
               )
             )}
 
-            {/* Hamburger — hanya tampil di mobile (di bawah md) */}
-            <motion.button
-              className="md:hidden flex items-center justify-center h-9 w-9 rounded-full text-white/80 hover:text-white hover:bg-white/10 transition-friendly"
-              onClick={() => setMobileMenuOpen((v) => !v)}
-              aria-label={mobileMenuOpen ? 'Tutup menu' : 'Buka menu'}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              transition={{ duration: 0.15 }}
-            >
-              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </motion.button>
           </div>
         </div>
       </div>
