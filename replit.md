@@ -91,6 +91,10 @@ artifacts/
 attached_assets/   Course images and design docs
 ```
 
+## Auth / access control
+
+All routes except `/login` and `/onboarding-nama` are wrapped in `ProtectedRoute` directly in `artifacts/markaz-fiqh/src/App.tsx`. Unauthenticated visitors on any URL see the "Yuk, Masuk Dulu" prompt with a Google login button that preserves the original URL via `?redirect=` so they land on the right page after signing in. The `ProtectedRoute` component is in `artifacts/markaz-fiqh/src/components/ProtectedRoute.tsx`.
+
 ## Replit setup notes
 
 - Re-imported and re-verified on 2026-07-18 (latest): dependencies reinstalled via `pnpm install`, missing secrets (`SUPABASE_DATABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`) re-collected, both workflows confirmed running and homepage verified via screenshot.
